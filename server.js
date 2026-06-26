@@ -37,7 +37,13 @@ function verify(token){
 function parseCookies(req){ const out={}; const h=req.headers.cookie; if(!h) return out; h.split(';').forEach(p=>{const i=p.indexOf('='); if(i>0) out[p.slice(0,i).trim()]=decodeURIComponent(p.slice(i+1).trim());}); return out; }
 function setCookie(res, token){ const a=[`${COOKIE}=${encodeURIComponent(token)}`,'HttpOnly','Path=/','SameSite=Lax',`Max-Age=${SESSION_HOURS*3600}`]; if(SECURE_COOKIES)a.push('Secure'); res.setHeader('Set-Cookie', a.join('; ')); }
 function clearCookie(res){ res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; Max-Age=0`+(SECURE_COOKIES?'; Secure':'')); }
-function session(req){ return verify(parseCookies(req)[COOKIE]); }
+function session(req){
+  // Prefer a Bearer token (works in cross-site iframes where 3rd-party cookies are blocked); fall back to cookie.
+  const h = req.headers['authorization'] || '';
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  if (m) { const v = verify(m[1].trim()); if (v) return v; }
+  return verify(parseCookies(req)[COOKIE]);
+}
 
 function readBody(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>1e6){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); try{resolve(d?JSON.parse(d):{});}catch{resolve({});} }); req.on('error',()=>resolve({})); }); }
 function sendJSON(res, code, obj){ const s=JSON.stringify(obj); res.writeHead(code,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(s)}); res.end(s); }
@@ -66,8 +72,9 @@ async function handleLogin(req,res){
       if((stay.guest.lastName||'').trim().toLowerCase()!==lastName.toLowerCase()) return sendJSON(res,401,{ok:false,error:'That last name does not match this booking.'});
       if(stay.booking.status && /draft|needs.?info/i.test(String(stay.booking.status))) return sendJSON(res,403,{ok:false,error:'Your stay is being finalized. Please check back shortly or contact your concierge.'});
     }
-    setCookie(res, sign({ref:reference,last:lastName})); attempts.delete(ip);
-    return sendJSON(res,200,{ok:true,stay});
+    const token = sign({ref:reference,last:lastName});
+    setCookie(res, token); attempts.delete(ip);
+    return sendJSON(res,200,{ok:true,stay,token});
   }catch(err){ console.error('[login]',err.message); return sendJSON(res,502,{ok:false,error:'We had trouble reaching the booking system. Please try again, or call your concierge.'}); }
 }
 async function handleStay(req,res){
