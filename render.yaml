@@ -1,0 +1,32 @@
+# One-click deploy to Render (https://render.com) — free tier works.
+# 1) Push this folder to a GitHub repo.
+# 2) Render → New → Blueprint → pick the repo. It reads this file.
+# 3) After it deploys, set the secret env vars (marked sync:false) in the
+#    Render dashboard: SESSION_SECRET and, when going live, the V365_* secrets.
+services:
+  - type: web
+    name: cph-my-stay
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: SESSION_HOURS
+        value: "12"
+      - key: V365_MOCK
+        value: "1"            # flip to "0" when real credentials are set
+      - key: V365_BASE_URL
+        value: https://secure.365villas.com/vros/external-booking/
+      - key: V365_KEY
+        sync: false
+      - key: V365_PASS
+        sync: false
+      - key: V365_OWNER_TOKEN
+        sync: false
+      - key: V365_USERNAME
+        sync: false

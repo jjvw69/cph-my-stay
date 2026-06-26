@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Stay · Caribbean Paradise Homes</title>
+<meta name="theme-color" content="#16241E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5EFE5; --panel:#FBF8F1; --card:#FFFFFF; --ink:#1F2A24;
+    --accent:#33493B; --accent2:#5B6E5F; --soft:#8B8475; --line:#E6DDCC;
+    --gold:#A98C5A; --login:#16241E; --backdrop:#1E2B25;
+    --ok-bg:#E2EAE0; --ok-tx:#33493B; --live:#5B9E6F;
+    --display:'Cormorant Garamond', Georgia, serif;
+    --ui:'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:var(--ui);background:var(--backdrop);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .label{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+  .display{font-family:var(--display)}
+  button{font-family:var(--ui);cursor:pointer;border:0;background:none}
+  a{color:inherit}
+
+  /* App column */
+  #app{max-width:440px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative;overflow:hidden;
+       box-shadow:0 0 60px rgba(0,0,0,.35)}
+  @media(min-width:480px){ body{display:flex;align-items:center;justify-content:center}
+    #app{height:920px;max-height:96dvh;min-height:0;border-radius:28px} }
+
+  .view{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 120px}
+  .enter{animation:slideIn .32s cubic-bezier(.22,.61,.36,1)}
+  @keyframes slideIn{from{transform:translateY(14px)}to{transform:translateY(0)}}
+
+  /* Login */
+  #login{position:absolute;inset:0;background:var(--login);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;
+         background-size:cover;background-position:center}
+  #login .grad{position:absolute;inset:0;background:linear-gradient(rgba(20,33,28,.34),rgba(20,33,28,.93))}
+  #login .top{position:absolute;top:48px;left:0;right:0;text-align:center;z-index:2}
+  #login .seal{width:54px;height:auto;margin:0 auto 10px;display:block}
+  #login .wordmark{font-size:11px;letter-spacing:.28em;color:rgba(255,255,255,.85)}
+  #login .body{position:relative;z-index:2;padding:0 26px 40px}
+  #login h1{font-family:var(--display);font-weight:600;font-size:40px;line-height:1.05;margin:6px 0 8px}
+  #login .sub{color:rgba(255,255,255,.78);font-weight:300;font-size:15px;margin-bottom:26px;max-width:300px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:7px}
+  .field input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;
+       padding:14px 16px;border-radius:12px;font-size:16px;font-family:var(--ui)}
+  .field input::placeholder{color:rgba(255,255,255,.45)}
+  .btn{width:100%;background:#F3ECDD;color:#1F2A24;padding:16px;border-radius:13px;font-size:15px;font-weight:500;
+       letter-spacing:.02em;box-shadow:0 12px 30px -10px rgba(0,0,0,.6)}
+  .btn:disabled{opacity:.6}
+  #login .helper{margin-top:14px;text-align:center;font-size:12.5px;color:rgba(255,255,255,.6)}
+  #login .helper a{color:rgba(255,255,255,.9);text-decoration:underline}
+  .err{background:rgba(158,91,67,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
+
+  /* Headers / cards */
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;position:sticky;top:0;background:linear-gradient(var(--bg),var(--bg) 70%,rgba(245,239,229,0));z-index:5}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand img{width:30px;height:auto}
+  .brand b{font-family:var(--display);font-weight:600;font-size:15px;line-height:1;color:var(--ink)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:.04em}
+  .eyebrow{margin-top:6px}
+  h2.villa{font-family:var(--display);font-weight:600;font-size:40px;line-height:1.02;color:var(--ink);margin:4px 0 2px}
+  .loc{color:var(--soft);font-size:14px;display:flex;align-items:center;gap:7px;margin-bottom:16px}
+  .loc::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);display:inline-block}
+  .hero{height:224px;border-radius:22px;background:#cfc6b3 center/cover no-repeat;position:relative;overflow:hidden;
+        box-shadow:0 18px 40px -22px rgba(31,42,36,.7)}
+  .hero.ph{background:linear-gradient(135deg,#33493B,#1E2B25)}
+  .hero .chips{position:absolute;left:12px;bottom:12px;display:flex;gap:7px;flex-wrap:wrap}
+  .chip{background:rgba(22,33,28,.62);color:#fff;font-size:11px;letter-spacing:.04em;padding:6px 11px;border-radius:30px;backdrop-filter:blur(4px)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
+  .countdown{display:flex;align-items:center;justify-content:space-between}
+  .countdown .big{font-family:var(--display);font-weight:600;font-size:52px;line-height:.9;color:var(--accent)}
+  .countdown .days{font-size:14px;color:var(--soft);margin-left:4px}
+  .countdown .sub{font-size:12.5px;color:var(--soft);margin-top:6px}
+  .ring{width:74px;height:74px;border-radius:50%;border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--accent)}
+  .ring b{font-family:var(--display);font-size:22px;line-height:1}
+  .ring span{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+  .greet{font-size:15.5px;line-height:1.5;color:var(--soft);margin:18px 2px 4px}
+  .greet b{color:var(--ink);font-weight:500}
+  .row{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-top:11px;width:100%;text-align:left}
+  .row .ic{width:34px;height:34px;border-radius:9px;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+  .row .tx{flex:1}
+  .row .tx b{display:block;font-weight:500;font-size:15px;color:var(--ink)}
+  .row .tx span{font-size:12.5px;color:var(--soft)}
+  .row .arr{color:var(--soft);font-size:18px}
+  .pill-done{font-size:11px;color:var(--ok-tx);background:var(--ok-bg);padding:3px 9px;border-radius:30px}
+  .sec-title{font-family:var(--display);font-weight:600;font-size:24px;color:var(--ink);margin:26px 2px 2px}
+  .teasers{display:flex;gap:12px;overflow-x:auto;padding:14px 0 2px;scrollbar-width:none}
+  .teasers::-webkit-scrollbar{display:none}
+  .teaser{flex:0 0 150px;height:104px;border-radius:14px;background:#cfc6b3 center/cover;position:relative;color:#fff;display:flex;align-items:flex-end;padding:11px;font-size:13px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .teaser.ph{background:linear-gradient(135deg,#5B6E5F,#33493B)}
+
+  /* Tab bar */
+  .tabs{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(251,248,241,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:9px 8px calc(9px + env(safe-area-inset-bottom))}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--soft);font-size:10.5px;letter-spacing:.04em;padding:5px 0}
+  .tab .ti{font-size:19px;line-height:1}
+  .tab.on{color:var(--accent)}
+  .backbar{display:flex;align-items:center;gap:14px;padding:18px 22px 6px}
+  .backbar button.bk{font-size:22px;color:var(--ink)}
+  .backbar .ttl{font-family:var(--display);font-weight:600;font-size:22px}
+
+  /* Generic UI bits */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:12px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .tile b{display:block;font-size:14px;font-weight:500}
+  .tile span{font-size:12px;color:var(--soft)}
+  .seg{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:30px;font-size:13px}
+  .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stepper{display:flex;align-items:center;gap:14px}
+  .stepper button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);font-size:18px;color:var(--accent);background:var(--card)}
+  .cta-bar{position:absolute;left:0;right:0;bottom:0;padding:14px 22px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(rgba(245,239,229,0),var(--bg) 30%)}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;padding:11px 18px;border-radius:30px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .chatwrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:9px}
+  .msg{max-width:78%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.4}
+  .msg.them{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
+  .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+  .composer{display:flex;gap:9px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel)}
+  .composer input{flex:1;border:1px solid var(--line);border-radius:30px;padding:12px 16px;font-size:15px;font-family:var(--ui)}
+  .composer button{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
+  .check .box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--accent2);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+  .check.on .box{background:var(--accent);border-color:var(--accent)}
+  .check.on .t{text-decoration:line-through;color:var(--soft)}
+  .center-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#fff;gap:14px;padding:30px;text-align:center}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .mode-flag{position:fixed;bottom:8px;left:8px;font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.5);z-index:50}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="boot" class="center-msg"><div class="spin"></div><div style="font-size:13px;letter-spacing:.1em">Loading your stay…</div></div>
+</div>
+<div class="mode-flag" id="modeFlag"></div>
+
+<script>
+const SEAL = "data:image/svg+xml;utf8," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150"><rect x="6" y="6" width="108" height="138" rx="10" fill="none" stroke="#7BA15B" stroke-width="9"/><rect x="20" y="20" width="80" height="110" rx="4" fill="#4E86B0"/><g fill="#fff"><path d="M60 54c-10-10-26-12-34-6 9-1 18 2 24 8-9-4-20-3-27 3 9-2 18 0 25 6-7 0-15 4-18 11 7-6 16-8 24-6l-3 50h8l-3-50c8-1 16 2 22 8-3-8-11-12-19-13 8-5 17-6 26-3-7-6-17-8-26-5 7-6 16-9 25-8-9-6-25-5-34 5z"/></g></svg>'
+);
+
+const state = { stay:null, tab:'home', stack:[], cart:{}, checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
+const $app = document.getElementById('app');
+const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
+const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function api(path, opts={}){
+  const r = await fetch(path, Object.assign({headers:{'Content-Type':'application/json'}, credentials:'same-origin'}, opts));
+  let j={}; try{ j=await r.json(); }catch(e){}
+  return {status:r.status, ok:r.ok && j.ok!==false, body:j};
+}
+
+function toast(t){ let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';$app.appendChild(el);} el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2300); }
+
+/* ---------------- LOGIN ---------------- */
+function renderLogin(prefill){
+  $app.innerHTML = `
+  <div id="login">
+    <div class="grad"></div>
+    <div class="top"><img class="seal" src="${SEAL}" alt=""><div class="wordmark">CARIBBEAN PARADISE HOMES</div></div>
+    <div class="body">
+      <div class="label" style="color:rgba(255,255,255,.7)">CASA DE CAMPO · LA ROMANA</div>
+      <h1>Welcome to<br>your stay</h1>
+      <div class="sub">Find your reservation to unlock check-in, your concierge and everything for a seamless arrival.</div>
+      <div class="err" id="loginErr"></div>
+      <div class="field"><label>Booking reference</label><input id="ref" autocomplete="off" autocapitalize="characters" placeholder="e.g. CDC-2026-0741" value="${esc(prefill&&prefill.ref||'')}"></div>
+      <div class="field"><label>Lead guest last name</label><input id="last" autocomplete="off" placeholder="Last name" value="${esc(prefill&&prefill.last||'')}"></div>
+      <button class="btn" id="loginBtn">Find my stay</button>
+      <div class="helper">Need help? <a href="tel:+19173102185">+1 917 310 2185</a></div>
+    </div>
+  </div>`;
+  const btn=document.getElementById('loginBtn'), errEl=document.getElementById('loginErr');
+  async function go(){
+    const reference=document.getElementById('ref').value.trim(), lastName=document.getElementById('last').value.trim();
+    errEl.style.display='none'; btn.disabled=true; btn.textContent='Finding your stay…';
+    const r = await api('/api/login',{method:'POST',body:JSON.stringify({reference,lastName})});
+    btn.disabled=false; btn.textContent='Find my stay';
+    if(r.ok){ state.stay=r.body.stay; bootIntoApp(); }
+    else { errEl.textContent=r.body.error||'Something went wrong. Please try again.'; errEl.style.display='block'; }
+  }
+  btn.onclick=go;
+  document.getElementById('last').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+}
+
+/* ---------------- APP SHELL ---------------- */
+function bootIntoApp(){ state.tab='home'; state.stack=[]; render(); }
+
+function tabBar(active){
+  const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
+  return `<div class="tabs">${t('home','⌂','Home')}${t('stay','❖','Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
+}
+window.goTab=function(id){ state.tab=id; state.stack=[]; render(); };
+window.push=function(v){ state.stack.push(v); render(); };
+window.pop=function(){ state.stack.pop(); render(); };
+
+function render(){
+  const v = state.stack[state.stack.length-1];
+  if(v) return renderPushed(v);
+  if(state.tab==='home') return renderHome();
+  if(state.tab==='stay') return renderStay();
+  if(state.tab==='explore') return renderExplore();
+  if(state.tab==='concierge') return renderConcierge();
+}
+
+/* ---------------- HOME ---------------- */
+function heroStyle(url){ return url ? `style="background-image:url('${esc(url)}')"` : ''; }
+function renderHome(){
+  const s=state.stay, b=s.booking, v=s.villa;
+  const d=daysUntil(b.arrive);
+  const checkinDone = !!state.checkin.done;
+  const cartCount = Object.values(state.cart).reduce((a,n)=>a+n,0);
+  $app.innerHTML = `
+  <div class="view enter">
+    <div class="appbar">
+      <div class="brand"><img src="${SEAL}" alt=""><b>Caribbean<br>Paradise Homes</b></div>
+      <button class="avatar" onclick="goTab('concierge')">${esc(s.concierge.avatarInitials||'C')}</button>
+    </div>
+    <div class="scroll">
+      <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
+      <h2 class="villa">${esc(v.name)}</h2>
+      <div class="loc">${esc([v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
+      <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
+        <div class="chips">
+          ${v.suites?`<span class="chip">${esc(v.suites)} suites · sleeps ${esc(v.sleeps||'')}</span>`:''}
+          ${(v.amenities||[]).slice(0,1).map(a=>`<span class="chip">${esc(a)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="card countdown">
+        <div><div class="label">ARRIVING IN</div>
+          <div style="margin-top:6px"><span class="big">${d==null?'–':d}</span><span class="days">days</span></div>
+          <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
+        <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights</span></div>
+      </div>
+      <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
+      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
+      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
+      <div class="sec-title">Discover Casa de Campo</div>
+      <div class="teasers">
+        ${EXPLORE.slice(0,4).map(e=>`<div class="teaser ph" onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
+      </div>
+    </div>
+    ${tabBar('home')}
+  </div>`;
+}
+
+/* ---------------- STAY ---------------- */
+function renderStay(){
+  const s=state.stay,b=s.booking,v=s.villa;
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><span class="ttl">The stay</span></div>
+    <div class="scroll">
+      <div class="card" style="background:var(--accent);color:#fff;border:0">
+        <div class="label" style="color:rgba(255,255,255,.7)">${esc([v.area,v.suites?v.suites+' suites':''].filter(Boolean).join(' · '))}</div>
+        <div class="display" style="font-size:30px;margin:4px 0 14px">${esc(v.name)}</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.9)">
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Check-in</div>${b.arrive?fmtDate(b.arrive):'–'}<br>${esc(b.checkInTime||'')}</div>
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Check-out</div>${b.depart?fmtDate(b.depart):'–'}<br>${esc(b.checkOutTime||'')}</div>
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Guests</div>${(b.adults||0)} adults${b.children?` · ${b.children} kids`:''}</div>
+        </div>
+      </div>
+      <div class="sec-title">Villa essentials</div>
+      <div class="grid2">
+        <div class="tile"><b>Wi-Fi</b><span>Provided at arrival</span></div>
+        <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
+        <div class="tile"><b>Address</b><span>${esc(v.area||'Casa de Campo')}, La Romana</span></div>
+        <div class="tile"><b>House manual</b><span>Tap to view →</span></div>
+      </div>
+      <div class="sec-title">Your timeline</div>
+      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>Check-in & add-ons</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Your concierge</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
+    </div>
+    ${tabBar('stay')}
+  </div>`;
+}
+
+/* ---------------- EXPLORE ---------------- */
+const EXPLORE=[
+  {cat:'Dining',name:'Minitas Beach Club',meta:'On resort · 5 min',desc:'Beachfront dining with Mediterranean-Caribbean menus and toes-in-the-sand tables.'},
+  {cat:'Activities',name:'Teeth of the Dog Golf',meta:'World top-100 · 7 min',desc:"Pete Dye's iconic oceanfront course — seven holes hug the Caribbean."},
+  {cat:'Excursions',name:'Saona Island Catamaran',meta:'Full day · pickup included',desc:'Sail to palm-fringed Saona, with natural pools and a beach lunch.'},
+  {cat:'Beaches',name:'Minitas Beach',meta:'On resort · 6 min',desc:'The resort\'s sheltered white-sand cove, loungers and water sports.'},
+  {cat:'Dining',name:'La Caña by Il Circo',meta:'On resort · 5 min',desc:'Signature Italian at the heart of the resort, poolside and elegant.'},
+  {cat:'Activities',name:'Altos de Chavón',meta:'Cultural village · 10 min',desc:'A re-created 16th-century Mediterranean village and amphitheatre.'},
+];
+function renderExplore(){
+  const cats=['All','Dining','Beaches','Activities','Excursions'];
+  const cur=state._exCat||'All';
+  const items=EXPLORE.filter(e=>cur==='All'||e.cat===cur);
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><span class="ttl">Explore</span></div>
+    <div style="padding:0 22px"><div class="seg">${cats.map(c=>`<button class="${c===cur?'on':''}" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
+    <div class="scroll" style="padding-top:6px">
+      ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
+        <div class="hero ph" style="height:120px;border-radius:0"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
+        <div style="padding:15px">
+          <div class="display" style="font-size:22px">${esc(e.name)}</div>
+          <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
+          <div style="font-size:13.5px;color:var(--soft);line-height:1.5">${esc(e.desc)}</div>
+          <div style="display:flex;gap:9px;margin-top:13px">
+            <button class="seg" style="flex:0"><span></span></button>
+            <button onclick="addToItinerary('${esc(e.name)}')" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button>
+            <button onclick="askConcierge('${esc(e.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Ask concierge</button>
+          </div>
+        </div></div>`).join('')}
+    </div>
+    ${tabBar('explore')}
+  </div>`;
+}
+window.setExCat=function(c){ state._exCat=c; render(); };
+window.addToItinerary=function(n){ toast(n+' added to your itinerary'); };
+window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
+
+/* ---------------- CONCIERGE ---------------- */
+function renderConcierge(){
+  const s=state.stay;
+  if(state.messages.length===0){
+    state.messages=[{from:'them',t:`Hi ${esc(s.guest.firstName||'there')}, I'm ${esc(s.concierge.name)}, your concierge. How can I help make your stay perfect?`}];
+  }
+  if(state._seed){ state.messages.push({from:'me',t:state._seed}); state._seed=null; setTimeout(()=>{state.messages.push({from:'them',t:'Wonderful choice — I\'ll put together the details and options for you right away.'}); if(state.tab==='concierge')render();},900); }
+  const quick=['Airport transfer','Restaurant booking','Grocery pre-stock','Late checkout'];
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
+    <div class="chatwrap">
+      <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
+      <div style="padding:0 16px"><div class="seg" style="overflow-x:auto;flex-wrap:nowrap">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
+      <div class="composer"><input id="cmsg" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
+    </div>
+    ${tabBar('concierge')}
+  </div>`;
+  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});}
+  const m=document.getElementById('msgs'); if(m)m.scrollTop=m.scrollHeight;
+}
+window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
+window.sendMsg=async function(){
+  const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
+  state.messages.push({from:'me',t}); i.value=''; render();
+  const r=await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
+  state.messages.push({from:'them',t:(r.body&&r.body.autoReply)||'Thank you — your concierge will reply shortly.'}); render();
+};
+
+/* ---------------- PUSHED VIEWS ---------------- */
+function renderPushed(v){
+  if(v==='checkin') return renderCheckin();
+  if(v==='addons') return renderAddons();
+  if(v==='arrival') return renderArrival();
+  if(v==='checkout') return renderCheckout();
+}
+
+function shell(title, inner, cta){
+  $app.innerHTML=`<div class="view enter">
+    <div class="backbar"><button class="bk" onclick="pop()">←</button><span class="ttl">${esc(title)}</span></div>
+    <div class="scroll">${inner}</div>${cta||''}</div>`;
+}
+
+function renderCheckin(){
+  const c=state.checkin; const steps=['Guest party','Arrival details','Travel documents','Preferences'];
+  const step=c.step;
+  const bar=`<div style="display:flex;gap:5px;padding:0 22px 4px">${steps.map((_,i)=>`<div style="flex:1;height:4px;border-radius:3px;background:${i<=step?'var(--accent)':'var(--line)'}"></div>`).join('')}</div>`;
+  let inner='';
+  if(step===0){ inner=`<div class="label">STEP 1 OF 4 · GUEST PARTY</div>
+    <div class="card"><b style="font-weight:500">Adults</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('adults',-1)">−</button><span class="display" style="font-size:24px">${c.adults}</span><button onclick="cinAdj('adults',1)">+</button></div></div>
+    <div class="card"><b style="font-weight:500">Children</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>`;
+  } else if(step===1){ inner=`<div class="label">STEP 2 OF 4 · ARRIVAL DETAILS</div>
+    <div class="card"><b style="font-weight:500">Arrival airport</b><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${c.airport===a?'on':''}" onclick="cinAir('${a}')">${a}</button>`).join('')}</div></div>
+    <div class="card"><b style="font-weight:500">Flight number</b><input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="e.g. AA1234" oninput="state.checkin.flight=this.value"></div>
+    <div class="check ${c.transfer?'on':''}" onclick="cinToggle('transfer')"><span class="box">✓</span><span class="t">Arrange airport transfer ($85)</span></div>`;
+  } else if(step===2){ inner=`<div class="label">STEP 3 OF 4 · TRAVEL DOCUMENTS</div>
+    <div class="card" style="text-align:center;border-style:dashed">
+      <div style="font-size:30px">🛂</div><b style="font-weight:500;display:block;margin-top:6px">Passport upload</b>
+      <span style="font-size:13px;color:var(--soft)">Required for resort entry. Secure upload arrives in the next release — for now your concierge will collect these.</span>
+    </div>
+    <div style="font-size:12px;color:var(--soft);margin-top:10px;line-height:1.5">Documents are encrypted and deleted after checkout.</div>`;
+  } else { inner=`<div class="label">STEP 4 OF 4 · PREFERENCES</div>
+    <div class="card"><b style="font-weight:500">Occasion</b><div class="seg">${['None','Anniversary','Birthday','Honeymoon'].map(o=>`<button onclick="this.classList.toggle('on')">${o}</button>`).join('')}</div></div>
+    <div class="card"><b style="font-weight:500">Dietary notes</b><textarea style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px;min-height:64px;font-family:var(--ui)" placeholder="Allergies, preferences…"></textarea></div>`;
+  }
+  const last=step===3;
+  shell('Pre check-in', bar+'<div style="padding-top:4px">'+inner+'</div>',
+    `<div class="cta-bar"><button class="btn" style="background:var(--accent);color:#fff" onclick="cinNext()">${last?'Submit pre check-in':'Continue'}</button></div>`);
+}
+window.cinAdj=function(k,d){ state.checkin[k]=Math.max(k==='adults'?1:0,(state.checkin[k]||0)+d); render(); };
+window.cinAir=function(a){ state.checkin.airport=a; render(); };
+window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
+window.cinNext=async function(){
+  if(state.checkin.step<3){ state.checkin.step++; render(); return; }
+  await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});
+  state.checkin.done=true; state.checkin.step=0; pop(); toast('Pre check-in submitted — thank you!');
+};
+
+const ADDONS=[
+  {cat:'Arrival & transfers',items:[{id:'transfer',name:'Private airport transfer',desc:'LRM → villa, meet & greet',price:'$85'},{id:'golfcart',name:'Extra golf cart',desc:'Per day',price:'$60'}]},
+  {cat:'Provisioning',items:[{id:'prestock',name:'Villa pre-stock',desc:'Groceries before you arrive',price:'On request'},{id:'wine',name:'Welcome wine & rum',desc:'Curated local selection',price:'$120'}]},
+  {cat:'Experiences',items:[{id:'chef',name:'Private chef dinner',desc:'Per evening, menu tailored',price:'$340'},{id:'spa',name:'In-villa spa',desc:'Massage for two',price:'$260'}]},
+];
+function addonRow(it){
+  const q=state.cart[it.id]||0;
+  const ctrl = q
+    ? `<div class="stepper"><button onclick="cartAdj('${it.id}',-1)">−</button><span>${q}</span><button onclick="cartAdj('${it.id}',1)">+</button></div>`
+    : `<button onclick="cartAdj('${it.id}',1)" style="border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--accent)">Add</button>`;
+  return `<div class="row" style="cursor:default"><span class="ic">✦</span><span class="tx"><b>${esc(it.name)}</b><span>${esc(it.desc)} · ${esc(it.price)}</span></span>${ctrl}</div>`;
+}
+function renderAddons(){
+  const count=Object.values(state.cart).reduce((a,n)=>a+n,0);
+  const inner=ADDONS.map(g=>`<div class="sec-title">${esc(g.cat)}</div>`+g.items.map(addonRow).join('')).join('');
+  const cta = count?`<div class="cta-bar"><button class="btn" style="background:var(--accent);color:#fff" onclick="sendAddons()">${count} added · Send to ${esc(state.stay.concierge.name)}</button></div>`:'';
+  shell('Add-ons', inner, cta);
+}
+window.cartAdj=function(id,d){ state.cart[id]=Math.max(0,(state.cart[id]||0)+d); if(!state.cart[id])delete state.cart[id]; render(); };
+window.sendAddons=async function(){
+  const items=Object.entries(state.cart).map(([id,qty])=>({id,qty}));
+  await api('/api/addons',{method:'POST',body:JSON.stringify({items})});
+  state.cart={}; pop(); goTab('concierge'); toast('Sent to your concierge');
+};
+
+function renderArrival(){
+  const s=state.stay,b=s.booking,v=s.villa;
+  const steps=[
+    {t:'Land at '+(b.airport||'LRM'),d:'Your driver meets you in arrivals with a '+esc(s.guest.family)+' sign.'},
+    {t:'Resort gate',d:'Registration is pre-arranged; the butler greets you at the villa.'},
+    {t:'Arrive at '+esc(v.name),d:'Wi-Fi and keys handed over in person. Check-in from '+(b.checkInTime||'3:00 PM')+'.'},
+  ];
+  const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">ROUTE</div>
+      <div class="display" style="font-size:24px;margin:4px 0">${esc(b.airport||'LRM')} → ${esc(v.name)}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
+      <div style="display:flex;gap:9px;margin-top:14px"><a href="https://maps.google.com/?q=Casa+de+Campo+${encodeURIComponent(v.name)}" target="_blank" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message driver</button></div>
+    </div>
+    <div class="sec-title">Step by step</div>
+    ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
+    <div class="sec-title">On arrival</div>
+    <div class="grid2"><div class="tile"><b>Wi-Fi & keys</b><span>Handed over in person</span></div><div class="tile"><b>Check-in</b><span>${esc(b.checkInTime||'3:00 PM')}</span></div></div>`;
+  shell('Getting there', inner);
+}
+
+function renderCheckout(){
+  const s=state.stay,b=s.booking;
+  const list=['Settle any villa charges with your butler','Leave keys & access cards on the kitchen counter','Confirm departure transfer time','Pack chargers, safe contents & documents'];
+  const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">CHECK-OUT</div>
+      <div class="display" style="font-size:26px;margin:4px 0">By ${esc(b.checkOutTime||'11:00 AM')}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.depart?fmtDate(b.depart):''}</div>
+      <button onclick="goTab('concierge')" style="margin-top:12px;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Request late checkout</button>
+    </div>
+    <div class="sec-title">Before you go</div>
+    ${list.map((t,i)=>`<div class="check ${state.checklist[i]?'on':''}" onclick="toggleCheck(${i})"><span class="box">✓</span><span class="t">${esc(t)}</span></div>`).join('')}
+    <button class="btn" style="margin-top:18px;background:var(--gold);color:#fff" onclick="toast('Thank you — we hope you loved your stay!')">Leave a review</button>`;
+  shell('Checkout', inner);
+}
+window.toggleCheck=function(i){ state.checklist[i]=!state.checklist[i]; render(); };
+
+/* ---------------- BOOT ---------------- */
+(async function(){
+  const r = await api('/api/stay');
+  const flag=document.getElementById('modeFlag');
+  if(r.ok && r.body.stay){
+    state.stay=r.body.stay;
+    if(state.stay.source==='mock') flag.textContent='DEMO DATA';
+    bootIntoApp();
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
