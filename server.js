@@ -99,7 +99,7 @@ const server = http.createServer(async (req,res)=>{
     if(req.method==='POST'&&url==='/api/checkin') return handleSubmit('checkin',req,res);
     if(req.method==='POST'&&url==='/api/addons') return handleSubmit('addons',req,res);
     if(req.method==='POST'&&url==='/api/message') return handleSubmit('message',req,res);
-    if(req.method==='GET'){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}); return res.end(INDEX_HTML); }
+    if(req.method==='GET'){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache, must-revalidate'}); return res.end(INDEX_HTML); }
     res.writeHead(405); res.end('Method not allowed');
   }catch(err){ console.error('[server]',err); sendJSON(res,500,{ok:false,error:'Server error'}); }
 });
