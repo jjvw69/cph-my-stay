@@ -1,16 +1,17 @@
-# One-click deploy to Render (https://render.com) — free tier works.
-# 1) Push this folder to a GitHub repo.
-# 2) Render → New → Blueprint → pick the repo. It reads this file.
-# 3) After it deploys, set the secret env vars (marked sync:false) in the
-#    Render dashboard: SESSION_SECRET and, when going live, the V365_* secrets.
+# Render blueprint. NOTE: the persistent disk requires a paid instance (Starter $7/mo+).
+# After upgrading to Starter, add the disk + env vars below (via dashboard or by syncing this blueprint).
 services:
   - type: web
     name: cph-my-stay
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -18,15 +19,11 @@ services:
         generateValue: true
       - key: SESSION_HOURS
         value: "12"
-      - key: V365_MOCK
-        value: "1"            # flip to "0" when real credentials are set
-      - key: V365_BASE_URL
-        value: https://secure.365villas.com/vros/external-booking/
-      - key: V365_KEY
-        sync: false
-      - key: V365_PASS
-        sync: false
-      - key: V365_OWNER_TOKEN
-        sync: false
-      - key: V365_USERNAME
+      - key: STAFF_SESSION_HOURS
+        value: "8"
+      - key: DATA_DIR
+        value: /data
+      # Staff accounts seeded on first boot. Format: "Name|email|password|role" entries joined by ';'
+      # Set this in the Render dashboard (secret). Example: Jan|jan@caribbeanparadisehomes.com|<password>|admin
+      - key: STAFF_ACCOUNTS
         sync: false

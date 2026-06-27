@@ -403,11 +403,6 @@ window.cinNext=async function(){
   state.checkin.done=true; state.checkin.step=0; pop(); toast('Pre check-in submitted — thank you!');
 };
 
-const ADDONS=[
-  {cat:'Arrival & transfers',items:[{id:'transfer',name:'Private airport transfer',desc:'LRM → villa, meet & greet',price:'$85'},{id:'golfcart',name:'Extra golf cart',desc:'Per day',price:'$60'}]},
-  {cat:'Provisioning',items:[{id:'prestock',name:'Villa pre-stock',desc:'Groceries before you arrive',price:'On request'},{id:'wine',name:'Welcome wine & rum',desc:'Curated local selection',price:'$120'}]},
-  {cat:'Experiences',items:[{id:'chef',name:'Private chef dinner',desc:'Per evening, menu tailored',price:'$340'},{id:'spa',name:'In-villa spa',desc:'Massage for two',price:'$260'}]},
-];
 function addonRow(it){
   const q=state.cart[it.id]||0;
   const ctrl = q
@@ -416,8 +411,11 @@ function addonRow(it){
   return `<div class="row" style="cursor:default"><span class="ic">✦</span><span class="tx"><b>${esc(it.name)}</b><span>${esc(it.desc)} · ${esc(it.price)}</span></span>${ctrl}</div>`;
 }
 function renderAddons(){
+  const list=(state.stay&&state.stay.addOns)||[];
   const count=Object.values(state.cart).reduce((a,n)=>a+n,0);
-  const inner=ADDONS.map(g=>`<div class="sec-title">${esc(g.cat)}</div>`+g.items.map(addonRow).join('')).join('');
+  if(!list.length){ shell('Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
+  const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
+  const inner=cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
   const cta = count?`<div class="cta-bar"><button class="btn" style="background:var(--accent);color:#fff" onclick="sendAddons()">${count} added · Send to ${esc(state.stay.concierge.name)}</button></div>`:'';
   shell('Add-ons', inner, cta);
 }
