@@ -363,7 +363,7 @@ function toGuestStay(s) {
     villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
-    addOns: ADDON_CATALOG.filter(a => offered.has(a.id)),
+    addOns: ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, time: r.time, guests: r.guests, note: r.note, status: r.status, createdAt: r.createdAt })),
   };
