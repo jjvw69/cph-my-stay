@@ -187,7 +187,7 @@ function buildStay(bookingRaw, propertyRaw, photosRaw) {
     },
     // Stay-config overlay (welcome msg, offered add-ons, concierge) is editable
     // by staff in the Concierge Console; until that store exists it defaults here.
-    concierge: { name: 'Ivonna', phone: '+1 917 310 2185', avatarInitials: 'Iv' },
+    concierge: { name: 'Ivonna', phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
     welcomeMessage: '',
     raw: process.env.V365_DEBUG === '1' ? { bookingRaw, propertyRaw } : undefined,
   };
@@ -243,7 +243,7 @@ function mockStay(reference) {
       staffIncluded: ['Chef', 'Butler', 'Housekeeping'],
       description: 'Oceanfront estate on Punta Minitas with a private pier.',
     },
-    concierge: { name: 'Ivonna', phone: '+1 917 310 2185', avatarInitials: 'Iv' },
+    concierge: { name: 'Ivonna', phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
     welcomeMessage: 'On file: Andrew & Claire Hartley. We will match guest names to your booking and prepare the right welcome.',
   };
 }
