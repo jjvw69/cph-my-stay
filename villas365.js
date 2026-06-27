@@ -53,7 +53,7 @@ const CFG = {
 };
 
 function isConfigured() {
-  return CFG.mock || (CFG.key && CFG.pass);
+  return !!(CFG.mock || (CFG.key && CFG.pass));
 }
 
 function get(obj, path, dflt) {
