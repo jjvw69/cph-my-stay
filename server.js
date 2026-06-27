@@ -99,6 +99,11 @@ const server = http.createServer(async (req,res)=>{
     if(req.method==='POST'&&url==='/api/checkin') return handleSubmit('checkin',req,res);
     if(req.method==='POST'&&url==='/api/addons') return handleSubmit('addons',req,res);
     if(req.method==='POST'&&url==='/api/message') return handleSubmit('message',req,res);
+    if(req.method==='GET'&&url==='/api/_probe'){
+      const cands=['getbooking','getbookings','getbookinginfo','getbookingsinfo','bookinginfo','booking','bookings','getreservation','getreservations','reservation','getbookinglist','bookinglist','getbookingdetails','getbookingdetail','get_booking'];
+      const out=[]; for(const a of cands){ out.push(await v365.probeAction(a)); }
+      return sendJSON(res,200,{ok:true,results:out});
+    }
     if(req.method==='GET'){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache, must-revalidate'}); return res.end(INDEX_HTML); }
     res.writeHead(405); res.end('Method not allowed');
   }catch(err){ console.error('[server]',err); sendJSON(res,500,{ok:false,error:'Server error'}); }

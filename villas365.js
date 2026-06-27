@@ -255,12 +255,25 @@ function mockVerify(reference, lastName) {
   return mockStay(b.reference);
 }
 
+// TEMP diagnostic: try one action name and return the PMS status/message (no throw, no guest data).
+async function probeAction(action) {
+  try {
+    const body = { key: CFG.key, pass: CFG.pass, owner_token: CFG.ownerToken || undefined, username: CFG.username || undefined, action, format: 'json', [CFG.paramReference]: 'PROBE-NONE' };
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), CFG.timeoutMs);
+    let res; try { res = await fetch(CFG.baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal }); } finally { clearTimeout(t); }
+    const text = await res.text();
+    let j; try { j = JSON.parse(text); } catch (e) { return { action, http: res.status, parse: 'non-json', sample: text.slice(0, 60) }; }
+    return { action, http: res.status, status: j.status, message: (j.message || j.error || '').slice(0, 80) };
+  } catch (e) { return { action, err: e.message }; }
+}
+
 module.exports = {
   CFG,
   isConfigured,
   lookupStay,
   buildStay,
   getBookingByReference,
+  probeAction,
   mock: { verify: mockVerify, stay: mockStay },
   _get: get,
 };
