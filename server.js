@@ -15,7 +15,7 @@ const store = require('./store');
 
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
-const GUEST_HOURS = Number(process.env.SESSION_HOURS || 12);
+const GUEST_HOURS = Number(process.env.SESSION_HOURS || 168);
 const STAFF_HOURS = Number(process.env.STAFF_SESSION_HOURS || 8);
 const STAFF_COOKIE = 'cph_staff';
 const SECURE = process.env.NODE_ENV !== 'development';
@@ -71,7 +71,7 @@ async function guestLogin(req,res){
   const token=sign({t:'g',ref:reference},GUEST_HOURS); attempts.delete('g:'+ip(req));
   return sendJSON(res,200,{ok:true,stay:r.stay,token});
 }
-function guestStay(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const stay=store.getPublishedByRefForSession(s.ref); if(!stay) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); return sendJSON(res,200,{ok:true,stay}); }
+function guestStay(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const stay=store.getPublishedByRefForSession(s.ref); if(!stay) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); const token=sign({t:'g',ref:s.ref},GUEST_HOURS); return sendJSON(res,200,{ok:true,stay,token}); }
 async function guestSubmit(kind,req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); await readBody(req); console.log('[%s] %s',kind,s.ref); if(kind==='message') return sendJSON(res,200,{ok:true,received:true,autoReply:'Thanks! Your concierge will reply shortly.'}); return sendJSON(res,200,{ok:true,received:true}); }
 async function guestAddRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.addRequest(s.ref,b); if(!r) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[request] %s %s "%s"',s.ref,r.type,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); return sendJSON(res,200,{ok:true,request:r}); }
 

@@ -170,6 +170,13 @@ const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' :
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+/* keep the guest signed in across reloads — persist the session token in this
+   app's own (iframe-origin) storage. Wrapped in try/catch in case a strict
+   browser blocks storage inside a 3rd-party iframe. */
+const TKEY='cph_guest_token';
+function saveToken(t){ state.token=t||null; try{ if(t) localStorage.setItem(TKEY,t); else localStorage.removeItem(TKEY); }catch(e){} }
+function loadToken(){ try{ return localStorage.getItem(TKEY)||null; }catch(e){ return null; } }
+
 async function api(path, opts={}){
   const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
   if(state.token) headers['Authorization'] = 'Bearer '+state.token;
@@ -203,7 +210,7 @@ function renderLogin(prefill){
     errEl.style.display='none'; btn.disabled=true; btn.textContent='Finding your stay…';
     const r = await api('/api/login',{method:'POST',body:JSON.stringify({reference,lastName})});
     btn.disabled=false; btn.textContent='Find my stay';
-    if(r.ok){ state.stay=r.body.stay; state.token=r.body.token||null; bootIntoApp(); }
+    if(r.ok){ state.stay=r.body.stay; saveToken(r.body.token||null); bootIntoApp(); }
     else { errEl.textContent=r.body.error||'Something went wrong. Please try again.'; errEl.style.display='block'; }
   }
   btn.onclick=go;
@@ -212,6 +219,20 @@ function renderLogin(prefill){
 
 /* ---------------- APP SHELL ---------------- */
 function bootIntoApp(){ state.tab='home'; state.stack=[]; render(); }
+
+/* account sheet + sign out */
+window.openAcct=function(){
+  const s=state.stay||{}; const g=s.guest||{};
+  const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeAcct(); };
+  ov.innerHTML=`<div class="reqbox">
+    <div class="reqh">${esc((g.family?g.family+' family':g.firstName||'Your stay'))}</div>
+    <div class="reqsub">You're signed in to your stay. We'll keep you signed in on this device.</div>
+    <div class="reqbtns"><button class="rqcancel" onclick="closeAcct()">Close</button><button class="rqok" onclick="signOut()">Sign out</button></div>
+  </div>`;
+  $app.appendChild(ov);
+};
+window.closeAcct=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+window.signOut=function(){ saveToken(null); state.stay=null; state.messages=[]; state.stack=[]; state.tab='home'; closeAcct(); renderLogin(); };
 
 function tabBar(active){
   const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
@@ -241,7 +262,7 @@ function renderHome(){
   <div class="view enter">
     <div class="appbar">
       <div class="brand"><img src="${SEAL}" alt=""><b>Caribbean<br>Paradise Homes</b></div>
-      <button class="avatar" onclick="goTab('concierge')">${esc(s.concierge.avatarInitials||'C')}</button>
+      <button class="avatar" onclick="openAcct()">${esc(s.concierge.avatarInitials||'C')}</button>
     </div>
     <div class="scroll">
       <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
@@ -268,6 +289,7 @@ function renderHome(){
       <div class="teasers">
         ${exploreData().slice(0,4).map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
       </div>
+      <button onclick="signOut()" style="display:block;margin:26px auto 6px;background:none;border:0;color:#8A958C;font-size:13px;text-decoration:underline;cursor:pointer">Sign out</button>
     </div>
     ${tabBar('home')}
   </div>`;
@@ -357,10 +379,11 @@ window.openReq=function(type,refId){
   const isTransfer = type==='addon' && refId==='transfer';
   const cartBlock = isCart ? `<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>` : '';
   const serviceBlock = isTransfer ? `<label class="reqlbl">Service level</label><select id="rqService"><option value="Regular Service">Regular Service</option><option value="VIP Service">VIP Service</option></select>` : '';
-  const dateBlock = isCart
-    ? `<div class="reqrange"><div><label class="reqlbl">From</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">To</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
+  const dateBlock = (isCart||isTransfer)
+    ? `<div class="reqrange"><div><label class="reqlbl">${isTransfer?'Arrival date':'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${isTransfer?'Departure date':'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
     : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
   const timeBlock = (isCart||isTransfer) ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
+  const notePlaceholder = isTransfer ? 'Anything we should know? Any child seat needed. Extra luggage (extra suitcases and golf clubs)?' : 'Anything we should know?';
   const guestsBlock = isCart ? '' : `<label class="reqlbl">How many guests</label>
     <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">${party}</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
   const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
@@ -372,7 +395,7 @@ window.openReq=function(type,refId){
     ${dateBlock}
     ${timeBlock}
     ${guestsBlock}
-    <label class="reqlbl">Note (optional)</label><textarea id="rqNote" rows="2" placeholder="Anything we should know?"></textarea>
+    <label class="reqlbl">Note (optional)</label><textarea id="rqNote" rows="2" placeholder="${esc(notePlaceholder)}"></textarea>
     <div class="reqbtns"><button class="rqcancel" onclick="closeReq()">Cancel</button><button class="rqok" onclick="submitReq('${type}','${esc(refId)}')">Send request</button></div>
   </div>`;
   $app.appendChild(ov);
@@ -553,13 +576,16 @@ window.toggleCheck=function(i){ state.checklist[i]=!state.checklist[i]; render()
 
 /* ---------------- BOOT ---------------- */
 (async function(){
+  state.token = loadToken();              // restore a previous session if present
   const r = await api('/api/stay');
   const flag=document.getElementById('modeFlag');
   if(r.ok && r.body.stay){
     state.stay=r.body.stay;
+    if(r.body.token) saveToken(r.body.token);   // sliding window: refresh on each visit
     if(state.stay.source==='mock') flag.textContent='DEMO DATA';
     bootIntoApp();
   } else {
+    saveToken(null);                       // stale/expired token — clear it
     renderLogin();
   }
 })();
