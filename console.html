@@ -206,7 +206,7 @@ function renderList(){
 window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); } };
 
 /* ---- editor ---- */
-function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
+function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
 function concOpts(sel){ return BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
 function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); markDirty(); }
 /* pick() = for buttons/toggles/segments that change the editor's own visuals — re-renders the editor so the selection shows. */
