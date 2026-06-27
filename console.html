@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Concierge Console · Caribbean Paradise Homes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +12,7 @@
     --okbg:#E2EAE0;--oktx:#33493B;--drbg:#F0E7D2;--drtx:#9A7B36;--nibg:#F2E3DC;--nitx:#9E5B43;
     --display:'Cormorant Garamond',Georgia,serif;--ui:'Jost',-apple-system,sans-serif;}
   *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden;max-width:100%}
   body{font-family:var(--ui);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
   button{font-family:var(--ui);cursor:pointer;border:0;background:none}
   input,select,textarea{font-family:var(--ui);font-size:16px;color:var(--ink)}
@@ -31,7 +32,7 @@
   .gatecard .foot{font-size:12.5px;color:var(--soft);margin-top:16px}
   .gatecard .ssoNote{font-size:12.5px;color:var(--soft);margin-top:10px}
   /* Console */
-  #app{display:none;height:100vh;flex-direction:column}
+  #app{display:none;height:100dvh;flex-direction:column}
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:#fff;border-bottom:1px solid var(--line)}
   .topbar .brand{display:flex;align-items:center;gap:9px}
   .topbar .brand img{width:26px}
