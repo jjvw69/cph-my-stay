@@ -233,7 +233,7 @@ function renderEditor(){
       <div class="f"><label>Last name (for login)</label><input value="${esc(cur.lastName)}" oninput="set('lastName',this.value)"></div>
       <div class="f"><label>Email</label><input value="${esc(cur.email)}" oninput="set('email',this.value)"></div>
       <div class="f"><label>Phone / WhatsApp</label><input value="${esc(cur.phone)}" oninput="set('phone',this.value)"></div>
-      <div class="f"><label>Booking source</label><select onchange="set('source',this.value)">${['Direct Booking','Rental Escapes','One Fine Stay','Top Villas','Exceptional Villas','Other'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div class="f full"><label>Booking source</label><select onchange="set('source',this.value)">${['Direct Booking','Rental Escapes','One Fine Stay','Top Villas','Exceptional Villas','Other'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</select></div>
       <div class="f"><label>Adults</label><div class="step"><button onclick="adj('adults',-1)">−</button><span>${cur.adults}</span><button onclick="adj('adults',1)">＋</button></div></div>
       <div class="f"><label>Children</label><div class="step"><button onclick="adj('children',-1)">−</button><span>${cur.children}</span><button onclick="adj('children',1)">＋</button></div></div>
     </div></div>
