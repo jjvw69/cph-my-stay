@@ -206,14 +206,14 @@ function renderList(){
 window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); } };
 
 /* ---- editor ---- */
-function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)} · ${esc(v.area)}</option>`).join(''); }
+function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
 function concOpts(sel){ return BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
 function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); markDirty(); }
 /* pick() = for buttons/toggles/segments that change the editor's own visuals — re-renders the editor so the selection shows. */
 function pick(k,v){ cur[k]=v; renderEditor(); renderPreview(); markDirty(); }
 window.pick=pick;
 /* Prefill the editable villa fields from a saved listing; staff can still edit any field after. */
-function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
+function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.villaInternal=x.internalName||''; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
 window.pickVilla=pickVilla;
 let dirty=false; function markDirty(){ dirty=true; }
 function renderEditor(){
@@ -240,6 +240,7 @@ function renderEditor(){
     <div class="sec"><h3>Stay &amp; villa</h3><div class="grid">
       <div class="f full"><label>Quick-fill from a saved listing</label><select onchange="pickVilla(this.value)">${villaOpts(cur.villaId)}</select></div>
       <div class="f"><label>Villa name</label><input value="${esc(cur.villaName)}" oninput="set('villaName',this.value)" placeholder="Casa …"></div>
+      <div class="f"><label>Internal property name</label><input value="${esc(cur.villaInternal)}" oninput="set('villaInternal',this.value)" placeholder="Bahia Minitas 3"></div>
       <div class="f"><label>Area / neighbourhood</label><input value="${esc(cur.villaArea)}" oninput="set('villaArea',this.value)" placeholder="Punta Minitas"></div>
       <div class="f"><label>View</label><input value="${esc(cur.villaView)}" oninput="set('villaView',this.value)" placeholder="Oceanfront"></div>
       <div class="f"><label>Bedrooms / suites</label><input value="${esc(cur.villaSuites)}" oninput="set('villaSuites',this.value)" placeholder="5"></div>
@@ -286,7 +287,7 @@ function daysUntil(a){ const d=new Date(a+'T00:00:00'); if(isNaN(d))return null;
 function renderPreview(){
   if(!cur){ document.getElementById('preview').innerHTML='<div class="empty">No stay selected.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{};
-  const vName=cur.villaName||v.name||'—', vArea=cur.villaArea||v.area||'Casa de Campo', vView=cur.villaView||v.view||'', vHero=cur.heroPhoto||v.hero||'';
+  const vName=cur.villaName||v.name||'—', vArea=cur.villaArea||v.area||'Casa de Campo', vView=cur.villaView||v.view||'', vHero=cur.heroPhoto||v.hero||'', vInternal=cur.villaInternal||v.internalName||'';
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
   const d=daysUntil(cur.checkin), n=nights(cur.checkin,cur.checkout);
   const offered=(cur.offeredAddOnIds||[]).length;
@@ -298,7 +299,7 @@ function renderPreview(){
       <div class="pv-body">
         <div class="pv-eyebrow">Your stay · ${esc(vArea.toUpperCase())}</div>
         <div class="pv-villa">${esc(vName)}</div>
-        <div class="pv-loc">${esc([vArea,vView].filter(Boolean).join(' · '))}</div>
+        <div class="pv-loc">${esc([vInternal||vArea,vView].filter(Boolean).join(' · '))}</div>
         <div class="pv-count"><div><div class="label">Arriving in</div><span class="big">${d==null?'–':d}</span> days<div class="s">${cur.checkin||''}${cur.checkinTime?' · '+esc(cur.checkinTime):''}</div></div><div style="text-align:right"><div class="big">${n==null?'–':n}</div><div class="s">nights</div></div></div>
         <div class="pv-greet">Welcome, the <b>${esc(cur.lastName||cur.leadName||'—')}</b> family.</div>
         <div class="pv-row">✦ ${offered} add-on${offered===1?'':'s'} offered</div>
@@ -310,7 +311,7 @@ function renderPreview(){
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;

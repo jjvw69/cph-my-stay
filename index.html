@@ -244,7 +244,7 @@ function renderHome(){
     <div class="scroll">
       <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
       <h2 class="villa">${esc(v.name)}</h2>
-      <div class="loc">${esc([v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
+      <div class="loc">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
       <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
         <div class="chips">
           ${v.suites?`<span class="chip">${esc(v.suites)} suites · sleeps ${esc(v.sleeps||'')}</span>`:''}
@@ -279,7 +279,7 @@ function renderStay(){
     <div class="backbar"><span class="ttl">The stay</span></div>
     <div class="scroll">
       <div class="card" style="background:var(--accent);color:#fff;border:0">
-        <div class="label" style="color:rgba(255,255,255,.7)">${esc([v.area,v.suites?v.suites+' suites':''].filter(Boolean).join(' · '))}</div>
+        <div class="label" style="color:rgba(255,255,255,.7)">${esc([v.internalName||v.area,v.suites?v.suites+' suites':''].filter(Boolean).join(' · '))}</div>
         <div class="display" style="font-size:30px;margin:4px 0 14px">${esc(v.name)}</div>
         <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.9)">
           <div><div class="label" style="color:rgba(255,255,255,.6)">Check-in</div>${b.arrive?fmtDate(b.arrive):'–'}<br>${esc(b.checkInTime||'')}</div>
@@ -435,15 +435,18 @@ function renderCheckin(){
   } else if(step===1){ inner=`<div class="label">STEP 2 OF 4 · ARRIVAL DETAILS</div>
     <div class="card"><b style="font-weight:500">Arrival airport</b><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${c.airport===a?'on':''}" onclick="cinAir('${a}')">${a}</button>`).join('')}</div></div>
     <div class="card"><b style="font-weight:500">Flight number</b><input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="e.g. AA1234" oninput="state.checkin.flight=this.value"></div>
-    <div class="check ${c.transfer?'on':''}" onclick="cinToggle('transfer')"><span class="box">✓</span><span class="t">Arrange airport transfer ($85)</span></div>`;
-  } else if(step===2){ inner=`<div class="label">STEP 3 OF 4 · TRAVEL DOCUMENTS</div>
-    <div class="card" style="text-align:center;border-style:dashed">
-      <div style="font-size:30px">🛂</div><b style="font-weight:500;display:block;margin-top:6px">Passport upload</b>
-      <span style="font-size:13px;color:var(--soft)">Required for resort entry. Secure upload arrives in the next release — for now your concierge will collect these.</span>
-    </div>
-    <div style="font-size:12px;color:var(--soft);margin-top:10px;line-height:1.5">Documents are encrypted and deleted after checkout.</div>`;
+    <div class="check ${c.transferType==='oneway'?'on':''}" onclick="cinTransfer('oneway')"><span class="box">✓</span><span class="t">Arrange one-way airport transfer</span></div>
+    <div class="check ${c.transferType==='roundtrip'?'on':''}" onclick="cinTransfer('roundtrip')"><span class="box">✓</span><span class="t">Arrange round-trip airport transfer</span></div>`;
+  } else if(step===2){ const total=(c.adults||1)+(c.children||0); const docs=c.docs||(c.docs=[]);
+    inner=`<div class="label">STEP 3 OF 4 · TRAVEL DOCUMENTS</div>
+    <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">List each guest's full name and passport number for resort registration.</div>
+    ${Array.from({length:total}).map((_,i)=>`<div class="card">
+      <b style="font-weight:500;font-size:12px;letter-spacing:.05em;color:var(--soft);text-transform:uppercase">Guest ${i+1}</b>
+      <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Full name (as on passport)" value="${esc((docs[i]||{}).name||'')}" oninput="cinDoc(${i},'name',this.value)">
+      <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Passport number" value="${esc((docs[i]||{}).passport||'')}" oninput="cinDoc(${i},'passport',this.value)">
+    </div>`).join('')}`;
   } else { inner=`<div class="label">STEP 4 OF 4 · PREFERENCES</div>
-    <div class="card"><b style="font-weight:500">Occasion</b><div class="seg">${['None','Anniversary','Birthday','Honeymoon'].map(o=>`<button onclick="this.classList.toggle('on')">${o}</button>`).join('')}</div></div>
+    <div class="card"><b style="font-weight:500">Occasion</b><div class="seg" style="flex-wrap:wrap">${['None','Family trip','Golf trip','Corporate retreat','Anniversary','Birthday','Honeymoon'].map(o=>`<button onclick="this.classList.toggle('on')">${o}</button>`).join('')}</div></div>
     <div class="card"><b style="font-weight:500">Dietary notes</b><textarea style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px;min-height:64px;font-family:var(--ui)" placeholder="Allergies, preferences…"></textarea></div>`;
   }
   const last=step===3;
@@ -453,6 +456,8 @@ function renderCheckin(){
 window.cinAdj=function(k,d){ state.checkin[k]=Math.max(k==='adults'?1:0,(state.checkin[k]||0)+d); render(); };
 window.cinAir=function(a){ state.checkin.airport=a; render(); };
 window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
+window.cinTransfer=function(t){ state.checkin.transferType = state.checkin.transferType===t?null:t; render(); };
+window.cinDoc=function(i,k,v){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{}; d[i][k]=v; };
 window.cinNext=async function(){
   if(state.checkin.step<3){ state.checkin.step++; render(); return; }
   await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});

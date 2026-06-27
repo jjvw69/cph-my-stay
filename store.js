@@ -122,6 +122,27 @@ let VILLAS = [
   { id: "la-darsena", name: "La Darsena", area: "Darsena", view: "Marina view", suites: 2, sleeps: 4, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/122/20260112_123809_3725jpeg.jpeg" },
 ];
 
+// 365villas internal property name per property ID (read from the GuestWisely Property Status table).
+const INTERNAL = {
+  '3':'Punta Minitas 18','4':'Punta Minitas 19','5':'Punta Aguila 22','6':'Punta Minitas 34','7':'Punta Aguila 26',
+  '8':'Bahia Minitas 6','9':'Caleton 24','10':'Vista Chavon 7','11':'Costamar 10','12':'Costa Verde 1',
+  '13':'Punta Aguila 57','14':'Punta Minitas 5','15':'Barranca Este 71','16':'Riomar 29','17':'Punta Minitas 32',
+  '18':'Vista Chavon 13','19':'Palmas 11','20':'Vista Chavon 17','23':'Ingenio 12','24':'Rio Arriba 8',
+  '25':'Mangos 28','26':'Batey 10','27':'Barranca Este 72','28':'Costa Verde 5','30':'Naranjos 11',
+  '32':'Palmas 36','35':'Bahia Chavon 7','36':'Barranca Este 72a','38':'Los Lagos 4','41':'Vistamar 30',
+  '44':'Colinas 20','46':'Batey 20','47':'Cerezas 34','48':'Limones 39','51':'Canas 45',
+  '54':'Limones 25','55':'Golf Villa 8','56':'Golf Villa 120','57':'Golf Villa 255','58':'Golf Villa 267',
+  '61':'Los Lagos 55','65':'Vistamar 22','67':'Polo 35','79':'Palmas 22','80':'Punta Minitas 34 (8br)',
+  '82':'Jardin Minitas 6','84':'Barranca 14a','85':'Vistamar 8','86':'Los Lagos 31','87':'Los Lagos 49',
+  '91':'Palmas 13','93':'Tennis Villa 34a','94':'Punta Aguila 58','95':'Ingenio 3','97':'Punta Minitas 14',
+  '98':'Punta Aguila 22 - 6br','100':'Punta Minitas 12','104':'Los Almendros 4','106':'Batey 6','107':'Cerezas 71',
+  '108':'La Catalina 10','109':'Bahia Chavon 2','110':'Palmas 27','111':'Canas II 9','112':'Barranca Oeste 7',
+  '113':'Golf Villa 142','118':'Ingenio 16','119':'Ingenio 1a','120':'Punta Aguila 12a','121':'El Bosque 8',
+  '122':'Darsena 5','123':'Bahia Minitas 3','124':'Riomar 35','125':'Polo 16','126':'Punta Aguila 25',
+  '127':'Barranca 17','128':'Golf Villa 18','129':'Los Lagos 65','130':'Punta Aguila 10','131':'Toronjas 1',
+};
+VILLAS.forEach(v => { const m = String(v.hero || '').match(/\/gallery\/(\d+)\//); v.internalName = (m && INTERNAL[m[1]]) ? INTERNAL[m[1]] : ''; });
+
 // Resort / explore scenes shown to guests (Discover + Explore). Photos from the CPH media library.
 // Explore scenes shown to guests (Discover + Explore). info:true = informational (no request buttons).
 const EXPLORE_SCENES = [
@@ -230,7 +251,7 @@ function blankStay() {
     adults: 2, children: 0,
     villaId: v0.id || '',
     villaName: v0.name || '', villaArea: v0.area || '', villaView: v0.view || '',
-    villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '',
+    villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '', villaInternal: v0.internalName || '',
     heroPhoto: '',
     checkin: '', checkout: '', checkinTime: '3:00 PM', checkoutTime: '11:00 AM',
     airport: 'LRM', flight: '', transferArranged: false,
@@ -254,7 +275,7 @@ function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
@@ -311,6 +332,7 @@ function toGuestStay(s) {
     view: s.villaView || v.view || '',
     suites: s.villaSuites || v.suites || null,
     sleeps: s.villaSleeps || v.sleeps || null,
+    internalName: s.villaInternal || v.internalName || '',
     hero: s.heroPhoto || v.hero || '',
   };
   const c = CONCIERGES.find(x => x.id === s.conciergeId) || CONCIERGES[0];
@@ -325,7 +347,7 @@ function toGuestStay(s) {
       adults: Number(s.adults) || null, children: Number(s.children) || 0,
       airport: s.airport || 'LRM', flight: s.flight || '', transferArranged: !!s.transferArranged,
     },
-    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, hero: villa.hero, gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
+    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
     addOns: ADDON_CATALOG.filter(a => offered.has(a.id)),
