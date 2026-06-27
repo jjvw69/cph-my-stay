@@ -17,16 +17,29 @@ const STAYS_FILE = path.join(DATA_DIR, 'stays.json');
 const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
 
 // ---------------------------------------------------------------- seed catalogs
+// Concierge services & experiences (from caribbeanparadisehomes.com/guest-services). No rates shown — handled by the concierge.
 const ADDON_CATALOG = [
-  { id: 'transfer',   category: 'Arrival & transfers', name: 'Private airport transfer', desc: 'Meet & greet, airport → villa', price: '$85' },
-  { id: 'golfcart',   category: 'Arrival & transfers', name: 'Golf cart',                desc: 'Per day',                       price: '$60' },
-  { id: 'grocery',    category: 'Provisioning',         name: 'Grocery pre-stocking',     desc: 'Villa stocked before arrival',  price: 'On request' },
-  { id: 'rumcigar',   category: 'Experiences',          name: 'Rum & cigar tasting',      desc: 'Curated local selection',       price: '$140' },
-  { id: 'spa',        category: 'Experiences',          name: 'In-villa spa',             desc: 'Massage for two',               price: '$260' },
-  { id: 'yoga',       category: 'Experiences',          name: 'Private yoga',             desc: 'Sunrise session, per class',    price: '$90'  },
-  { id: 'yacht',      category: 'Experiences',          name: 'Yacht charter',            desc: 'Half or full day',              price: 'On request' },
-  { id: 'saona',      category: 'Excursions',           name: 'Saona Island day trip',    desc: 'Catamaran, lunch, pickup',      price: '$160' },
-  { id: 'babygear',   category: 'In-villa services',    name: 'Baby gear',                desc: 'Crib, high chair, more',        price: 'On request' },
+  // Arrival & transfers
+  { id: 'transfer',      category: 'Arrival & transfers',   name: 'Private airport transfer',           desc: 'Meet & greet at the airport and a private drive to your villa.' },
+  { id: 'drivers',       category: 'Arrival & transfers',   name: 'Private driver',                     desc: 'A driver on call for the resort, the Marina or trips out.' },
+  { id: 'carrental',     category: 'Arrival & transfers',   name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
+  { id: 'golfcart',      category: 'Arrival & transfers',   name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
+  { id: 'meetgreet',     category: 'Arrival & transfers',   name: 'Meet & greet',                       desc: 'A personal welcome and assistance on arrival.' },
+  { id: 'privatetravel', category: 'Arrival & transfers',   name: 'Luxury private travel',              desc: 'Helicopter, private jet and luxury transfers.' },
+  // Provisioning & dining
+  { id: 'grocery',       category: 'Provisioning & dining', name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
+  { id: 'catering',      category: 'Provisioning & dining', name: 'Private chef & catering',            desc: 'In-villa dining and catering for any occasion.' },
+  { id: 'dining',        category: 'Provisioning & dining', name: 'Restaurant & activity reservations', desc: "Bookings at the resort's restaurants and activities." },
+  // Experiences
+  { id: 'yacht',         category: 'Experiences',           name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
+  { id: 'excursions',    category: 'Experiences',           name: 'Tours & excursions',                 desc: 'Island day trips and curated local tours.' },
+  { id: 'rumcigar',      category: 'Experiences',           name: 'Tobacco & rum tasting',              desc: 'A curated Dominican rum and cigar tasting.' },
+  { id: 'spa',           category: 'Experiences',           name: 'In-villa massage',                   desc: 'Spa treatments and massages in the comfort of your villa.' },
+  { id: 'yoga',          category: 'Experiences',           name: 'Private yoga',                       desc: 'Sunrise yoga on your terrace or the beach.' },
+  { id: 'entertainment', category: 'Experiences',           name: 'Live entertainment',                 desc: 'Musicians, DJs and performers for your event.' },
+  // In-villa services
+  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra butlers, housekeepers or a nanny.' },
+  { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
 ];
 
 const CONCIERGES = [
