@@ -266,7 +266,7 @@ function renderEditor(){
     ${(cur.requests&&cur.requests.length)?`<div class="sec"><h3>Guest requests <span class="reqcount">${cur.requests.length}</span></h3>
       <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem">
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b>${esc(r.title||'')}</b><button class="reqx" onclick="dismissReq('${r.id}')">Mark done</button></div>
-        <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
+        <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
