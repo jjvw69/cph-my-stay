@@ -288,6 +288,13 @@ function renderEditor(){
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
+    ${(cur.messages&&cur.messages.length)?`<div class="sec"><h3>Concierge messages <span class="reqcount">${cur.messages.length}</span></h3>
+      <div class="reqlist">${cur.messages.slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
+        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):'Concierge'}</div>
+        <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
+      </div>`).join('')}</div>
+      <div class="counter">Messages the guest sent from the app chat. Reply to them directly via WhatsApp for now.</div></div>`:''}
+
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>

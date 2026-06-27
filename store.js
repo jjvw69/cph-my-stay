@@ -269,6 +269,7 @@ function blankStay() {
     conciergeId: 'maria-fernanda', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
     welcomeMessage: '',
     requests: [],
+    messages: [],
     createdAt: Date.now(), updatedAt: Date.now(),
   };
 }
@@ -331,6 +332,14 @@ function removeStaffRequest(stayId, requestId) {
   const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
   s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
 }
+/** Guest sends a concierge chat message — persisted on the stay so the conversation survives reloads/logout. */
+function addGuestMessage(reference, text) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  if (!Array.isArray(s.messages)) s.messages = [];
+  const t = norm(text).slice(0, 1000); if (!t) return null;
+  const m = { id: genId(), from: 'guest', text: t, at: Date.now() };
+  s.messages.push(m); s.updatedAt = Date.now(); persistStays(); return m;
+}
 
 // ------------------------------------------------------- guest-facing mapping
 function nightsBetween(a, b) { const d1 = new Date(a), d2 = new Date(b); if (isNaN(d1) || isNaN(d2)) return null; return Math.max(0, Math.round((d2 - d1) / 86400000)); }
@@ -366,6 +375,7 @@ function toGuestStay(s) {
     addOns: ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, time: r.time, guests: r.guests, note: r.note, status: r.status, createdAt: r.createdAt })),
+    messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
   };
 }
 
@@ -393,7 +403,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest,
+  addRequest, removeGuestRequest, removeStaffRequest, addGuestMessage,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
