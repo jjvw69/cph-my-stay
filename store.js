@@ -257,7 +257,7 @@ function blankStay() {
   return {
     id: genId(), reference: nextReference(), status: 'draft',
     leadName: '', lastName: '', email: '', phone: '', source: 'Direct Booking',
-    adults: 2, children: 0,
+    adults: 0, children: 0,
     villaId: v0.id || '',
     villaName: v0.name || '', villaArea: v0.area || '', villaView: v0.view || '',
     villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '', villaInternal: v0.internalName || '',

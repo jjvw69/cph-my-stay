@@ -296,7 +296,7 @@ function renderEditor(){
 }
 window.set=set;
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
-window.adj=function(k,d){ const min=k==='adults'?1:0; cur[k]=Math.max(min,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
+window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 
 /* ---- preview ---- */
