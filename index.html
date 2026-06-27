@@ -340,7 +340,7 @@ const EXPLORE=[
 /* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
 function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
 function renderExplore(){
-  const cats=['All','Dining','Golf','Beaches','Activities'];
+  const cats=['All','Dining','Golf','Amenities','Activities'];
   const cur=state._exCat||'All';
   const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
   $app.innerHTML=`
