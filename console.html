@@ -194,9 +194,15 @@ function renderList(){
 window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); } };
 
 /* ---- editor ---- */
-function villaOpts(sel){ return BOOT.villas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)} · ${esc(v.area)}</option>`).join(''); }
+function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)} · ${esc(v.area)}</option>`).join(''); }
 function concOpts(sel){ return BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
 function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); markDirty(); }
+/* pick() = for buttons/toggles/segments that change the editor's own visuals — re-renders the editor so the selection shows. */
+function pick(k,v){ cur[k]=v; renderEditor(); renderPreview(); markDirty(); }
+window.pick=pick;
+/* Prefill the editable villa fields from a saved listing; staff can still edit any field after. */
+function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
+window.pickVilla=pickVilla;
 let dirty=false; function markDirty(){ dirty=true; }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
@@ -208,7 +214,7 @@ function renderEditor(){
   }).join('');
   document.getElementById('editor').innerHTML=`
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
-      <div class="ebtns"><button class="b-out" onclick="saveDraft()">Save draft</button><button class="b-fill" onclick="publish()">Publish &amp; send link</button></div></div>
+      <div class="ebtns"><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button><button class="b-out" onclick="saveDraft()">Save draft</button><button class="b-fill" onclick="publish()">Publish &amp; send link</button></div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
       <div class="f"><label>Lead guest (full name)</label><input value="${esc(cur.leadName)}" oninput="set('leadName',this.value)"></div>
@@ -220,18 +226,23 @@ function renderEditor(){
     </div></div>
 
     <div class="sec"><h3>Stay &amp; villa</h3><div class="grid">
-      <div class="f full"><label>Villa</label><select onchange="set('villaId',this.value)">${villaOpts(cur.villaId)}</select></div>
+      <div class="f full"><label>Quick-fill from a saved listing</label><select onchange="pickVilla(this.value)">${villaOpts(cur.villaId)}</select></div>
+      <div class="f"><label>Villa name</label><input value="${esc(cur.villaName)}" oninput="set('villaName',this.value)" placeholder="Casa …"></div>
+      <div class="f"><label>Area / neighbourhood</label><input value="${esc(cur.villaArea)}" oninput="set('villaArea',this.value)" placeholder="Punta Minitas"></div>
+      <div class="f"><label>View</label><input value="${esc(cur.villaView)}" oninput="set('villaView',this.value)" placeholder="Oceanfront"></div>
+      <div class="f"><label>Bedrooms / suites</label><input value="${esc(cur.villaSuites)}" oninput="set('villaSuites',this.value)" placeholder="5"></div>
+      <div class="f"><label>Sleeps</label><input value="${esc(cur.villaSleeps)}" oninput="set('villaSleeps',this.value)" placeholder="10"></div>
+      <div class="f full"><label>Villa photo (URL) — leave blank to use the listing default</label><input value="${esc(cur.heroPhoto)}" oninput="set('heroPhoto',this.value)" placeholder="https://caribbeanparadisehomes.com/…"></div>
       <div class="f"><label>Check-in date</label><input type="date" value="${esc(cur.checkin)}" oninput="set('checkin',this.value)"></div>
       <div class="f"><label>Check-out date</label><input type="date" value="${esc(cur.checkout)}" oninput="set('checkout',this.value)"></div>
       <div class="f"><label>Check-in time</label><input value="${esc(cur.checkinTime)}" oninput="set('checkinTime',this.value)"></div>
       <div class="f"><label>Included</label><input value="Chef · Butler · Housekeeping" disabled style="color:var(--soft)"></div>
-      <div class="f full"><div class="label">Selected villa</div><div style="font-size:13px;color:var(--soft)">${esc(v.name||'—')} · ${esc(v.area||'')} · ${v.suites||'?'} suites · sleeps ${v.sleeps||'?'}</div></div>
     </div></div>
 
     <div class="sec"><h3>Arrival &amp; transfer</h3><div class="grid">
-      <div class="f"><label>Arrival airport</label><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${cur.airport===a?'on':''}" onclick="set('airport','${a}')">${a}</button>`).join('')}</div></div>
+      <div class="f"><label>Arrival airport</label><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${cur.airport===a?'on':''}" onclick="pick('airport','${a}')">${a}</button>`).join('')}</div></div>
       <div class="f"><label>Flight</label><input value="${esc(cur.flight)}" oninput="set('flight',this.value)"></div>
-      <div class="f full"><div class="toggle"><div class="sw ${cur.transferArranged?'on':''}" onclick="set('transferArranged',!cur.transferArranged)"></div> Private airport transfer arranged</div></div>
+      <div class="f full"><div class="toggle"><div class="sw ${cur.transferArranged?'on':''}" onclick="pick('transferArranged',!cur.transferArranged)"></div> Private airport transfer arranged</div></div>
     </div></div>
 
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
@@ -253,6 +264,7 @@ function daysUntil(a){ const d=new Date(a+'T00:00:00'); if(isNaN(d))return null;
 function renderPreview(){
   if(!cur){ document.getElementById('preview').innerHTML='<div class="empty">No stay selected.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{};
+  const vName=cur.villaName||v.name||'—', vArea=cur.villaArea||v.area||'Casa de Campo', vView=cur.villaView||v.view||'', vHero=cur.heroPhoto||v.hero||'';
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
   const d=daysUntil(cur.checkin), n=nights(cur.checkin,cur.checkout);
   const offered=(cur.offeredAddOnIds||[]).length;
@@ -260,11 +272,11 @@ function renderPreview(){
     <div class="label">What the guest sees</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
     <div class="phone"><div class="screen">
-      <div class="pv-hero" ${v.hero?`style="background-image:url('${esc(v.hero)}')"`:''}></div>
+      <div class="pv-hero" ${vHero?`style="background-image:url('${esc(vHero)}')"`:''}></div>
       <div class="pv-body">
-        <div class="pv-eyebrow">Your stay · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
-        <div class="pv-villa">${esc(v.name||'—')}</div>
-        <div class="pv-loc">${esc([v.area,v.view].filter(Boolean).join(' · '))}</div>
+        <div class="pv-eyebrow">Your stay · ${esc(vArea.toUpperCase())}</div>
+        <div class="pv-villa">${esc(vName)}</div>
+        <div class="pv-loc">${esc([vArea,vView].filter(Boolean).join(' · '))}</div>
         <div class="pv-count"><div><div class="label">Arriving in</div><span class="big">${d==null?'–':d}</span> days<div class="s">${cur.checkin||''}${cur.checkinTime?' · '+esc(cur.checkinTime):''}</div></div><div style="text-align:right"><div class="big">${n==null?'–':n}</div><div class="s">nights</div></div></div>
         <div class="pv-greet">Welcome, the <b>${esc(cur.lastName||cur.leadName||'—')}</b> family.</div>
         <div class="pv-row">✦ ${offered} add-on${offered===1?'':'s'} offered</div>
@@ -276,7 +288,8 @@ function renderPreview(){
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
 window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Published — guest link is live'); } };

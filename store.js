@@ -19,7 +19,7 @@ const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
 // ---------------------------------------------------------------- seed catalogs
 const ADDON_CATALOG = [
   { id: 'transfer',   category: 'Arrival & transfers', name: 'Private airport transfer', desc: 'Meet & greet, airport → villa', price: '$85' },
-  { id: 'golfcart',   category: 'Arrival & transfers', name: 'Extra golf cart',          desc: 'Per day',                       price: '$60' },
+  { id: 'golfcart',   category: 'Arrival & transfers', name: 'Golf cart',                desc: 'Per day',                       price: '$60' },
   { id: 'grocery',    category: 'Provisioning',         name: 'Grocery pre-stocking',     desc: 'Villa stocked before arrival',  price: 'On request' },
   { id: 'rumcigar',   category: 'Experiences',          name: 'Rum & cigar tasting',      desc: 'Curated local selection',       price: '$140' },
   { id: 'spa',        category: 'Experiences',          name: 'In-villa spa',             desc: 'Massage for two',               price: '$260' },
@@ -30,18 +30,29 @@ const ADDON_CATALOG = [
 ];
 
 const CONCIERGES = [
-  { id: 'ivonna', name: 'Ivonna', phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
-  { id: 'jan',    name: 'Jan',    phone: '+1 (829) 763-8801', avatarInitials: 'Jn' },
-  { id: 'maria',  name: 'María',  phone: '+1 (829) 763-8801', avatarInitials: 'Mn' },
+  { id: 'maria-fernanda', name: 'María Fernanda', phone: '+1 (829) 763-8801', avatarInitials: 'MF' },
+  { id: 'ivonna',         name: 'Ivonna',         phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
+  { id: 'jan',            name: 'Jan',            phone: '+1 (829) 763-8801', avatarInitials: 'Jn' },
 ];
 
-// Starter villa list — staff can extend/edit. (Future: sync from 365Villas listings.)
+// Starter villa list — staff can extend/edit. hero = default photo (staff can override per stay).
+const IMG = 'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/';
 let VILLAS = [
-  { id: 'bahia-azul',   name: 'Casa Bahía Azul', area: 'Punta Minitas',  view: 'Oceanfront',  suites: 5, sleeps: 10, hero: '' },
-  { id: 'vista-mar',    name: 'Casa Vista Mar',  area: 'Vistamar',       view: 'Ocean view',  suites: 4, sleeps: 8,  hero: '' },
-  { id: 'las-colinas',  name: 'Casa Las Colinas',area: 'Las Colinas',    view: 'Golf view',   suites: 6, sleeps: 12, hero: '' },
-  { id: 'cajuiles',     name: 'Casa Cajuiles',   area: 'Cajuiles',       view: 'Garden view', suites: 4, sleeps: 8,  hero: '' },
-  { id: 'marina',       name: 'Casa Marina',     area: 'Marina',         view: 'Marina view', suites: 3, sleeps: 6,  hero: '' },
+  { id: 'bahia-azul',   name: 'Casa Bahía Azul', area: 'Punta Minitas',  view: 'Oceanfront',  suites: 5, sleeps: 10, hero: IMG+'Punta_Minitas_5_Casa_de_Campo_Caribbean_Paradise_Homes_6.webp' },
+  { id: 'vista-mar',    name: 'Casa Vista Mar',  area: 'Vistamar',       view: 'Ocean view',  suites: 4, sleeps: 8,  hero: IMG+'Punta_Minitas_18_Casa_de_Campo_Caribbean_Paradise_Homes_28.webp' },
+  { id: 'las-colinas',  name: 'Casa Las Colinas',area: 'Las Colinas',    view: 'Golf view',   suites: 6, sleeps: 12, hero: IMG+'Golf_Villa_142_Casa_de_Campo_Caribbean_Paradise_Homes_21.webp' },
+  { id: 'cajuiles',     name: 'Casa Cajuiles',   area: 'Cajuiles',       view: 'Garden view', suites: 4, sleeps: 8,  hero: IMG+'Bahia_Chavon_7_Casa_de_Campo_Caribbean_Paradise_Homes_4.webp' },
+  { id: 'marina',       name: 'Casa Marina',     area: 'Marina',         view: 'Marina view', suites: 3, sleeps: 6,  hero: IMG+'Dye-Fore-Golf-View-To-Marina-Caribbean-Paradise-Homes_3.webp' },
+];
+
+// Resort / explore scenes shown to guests (Discover + Explore). Photos from the CPH media library.
+const EXPLORE_SCENES = [
+  { id:'minitas-beach', cat:'Beaches',    name:'Minitas Beach',           meta:'On resort · 6 min',          desc:"The resort's sheltered white-sand cove, loungers and water sports.", img: IMG+'minitas-beach.webp' },
+  { id:'teeth-dog',     cat:'Activities', name:'Teeth of the Dog Golf',   meta:'World top-100 · 7 min',      desc:"Pete Dye's iconic oceanfront course — seven holes hug the Caribbean.", img: IMG+'Dye-fore-Golf-Caribbean-Paradise-Homes_2.webp' },
+  { id:'saona',         cat:'Excursions', name:'Saona Island Catamaran',  meta:'Full day · pickup included', desc:'Sail to palm-fringed Saona, with natural pools and a beach lunch.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2025/01/saona.jpeg' },
+  { id:'minitas-club',  cat:'Dining',     name:'Minitas Beach Club',      meta:'On resort · 5 min',          desc:'Beachfront dining with Mediterranean-Caribbean menus, toes in the sand.', img: IMG+'Minitas_-Restaurant-3-min-800x600-1.webp' },
+  { id:'la-cana',       cat:'Dining',     name:'La Caña by Il Circo',     meta:'On resort · 5 min',          desc:'Signature Italian at the heart of the resort, poolside and elegant.', img: IMG+'Causa-Restaurant.webp' },
+  { id:'altos',         cat:'Activities', name:'Altos de Chavón',         meta:'Cultural village · 10 min',  desc:'A re-created 16th-century Mediterranean village and amphitheatre.', img: IMG+'Golf-Villas-Aerial-Caribbean-Paradise-Homes_1.webp' },
 ];
 
 // ----------------------------------------------------------------- persistence
@@ -107,15 +118,19 @@ function getVilla(id) { return VILLAS.find(v => v.id === id) || null; }
 
 // -------------------------------------------------------------------- stays
 function blankStay() {
+  const v0 = VILLAS[0] || {};
   return {
     id: genId(), reference: nextReference(), status: 'draft',
     leadName: '', lastName: '', email: '', phone: '',
     adults: 2, children: 0,
-    villaId: VILLAS[0] ? VILLAS[0].id : '',
+    villaId: v0.id || '',
+    villaName: v0.name || '', villaArea: v0.area || '', villaView: v0.view || '',
+    villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '',
+    heroPhoto: '',
     checkin: '', checkout: '', checkinTime: '3:00 PM',
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: [],
-    conciergeId: 'ivonna', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
+    conciergeId: 'maria-fernanda', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
     welcomeMessage: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
@@ -132,7 +147,7 @@ function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
@@ -145,7 +160,16 @@ function nightsBetween(a, b) { const d1 = new Date(a), d2 = new Date(b); if (isN
 
 /** Map a stored stay → the shape the guest app renders. */
 function toGuestStay(s) {
-  const v = getVilla(s.villaId) || { name: 'Your villa', area: 'Casa de Campo', view: '', suites: null, sleeps: null, hero: '' };
+  const v = getVilla(s.villaId) || {};
+  const villa = {
+    id: s.villaId || v.id || '',
+    name: s.villaName || v.name || 'Your villa',
+    area: s.villaArea || v.area || 'Casa de Campo',
+    view: s.villaView || v.view || '',
+    suites: s.villaSuites || v.suites || null,
+    sleeps: s.villaSleeps || v.sleeps || null,
+    hero: s.heroPhoto || v.hero || '',
+  };
   const c = CONCIERGES.find(x => x.id === s.conciergeId) || CONCIERGES[0];
   const offered = new Set(s.offeredAddOnIds || []);
   return {
@@ -158,10 +182,11 @@ function toGuestStay(s) {
       adults: Number(s.adults) || null, children: Number(s.children) || 0,
       airport: s.airport || 'LRM', flight: s.flight || '', transferArranged: !!s.transferArranged,
     },
-    villa: { id: v.id, name: v.name, area: v.area, view: v.view, suites: v.suites, sleeps: v.sleeps, hero: v.hero || '', gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
+    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, hero: villa.hero, gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
     addOns: ADDON_CATALOG.filter(a => offered.has(a.id)),
+    explore: EXPLORE_SCENES,
   };
 }
 

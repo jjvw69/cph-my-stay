@@ -247,7 +247,7 @@ function renderHome(){
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
       <div class="sec-title">Discover Casa de Campo</div>
       <div class="teasers">
-        ${EXPLORE.slice(0,4).map(e=>`<div class="teaser ph" onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
+        ${exploreData().slice(0,4).map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
       </div>
     </div>
     ${tabBar('home')}
@@ -296,17 +296,19 @@ const EXPLORE=[
   {cat:'Dining',name:'La Caña by Il Circo',meta:'On resort · 5 min',desc:'Signature Italian at the heart of the resort, poolside and elegant.'},
   {cat:'Activities',name:'Altos de Chavón',meta:'Cultural village · 10 min',desc:'A re-created 16th-century Mediterranean village and amphitheatre.'},
 ];
+/* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
+function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
 function renderExplore(){
   const cats=['All','Dining','Beaches','Activities','Excursions'];
   const cur=state._exCat||'All';
-  const items=EXPLORE.filter(e=>cur==='All'||e.cat===cur);
+  const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><span class="ttl">Explore</span></div>
     <div style="padding:0 22px"><div class="seg">${cats.map(c=>`<button class="${c===cur?'on':''}" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
     <div class="scroll" style="padding-top:6px">
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
-        <div class="hero ph" style="height:120px;border-radius:0"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
+        <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
           <div class="display" style="font-size:22px">${esc(e.name)}</div>
           <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
