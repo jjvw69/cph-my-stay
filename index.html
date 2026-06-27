@@ -565,6 +565,7 @@ window.sendAddons=async function(){
 function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
   const steps=[
+    {t:'Fill out your E-Ticket (required)',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
     {t:'Land at '+(b.airport||'LRM'),d:'Your private driver meets you in arrivals holding a '+esc(s.guest.family)+' sign and takes you straight to the resort.'},
     {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
     {t:'Arrive at '+esc(v.name),d:'Your concierge welcomes you at the villa and hands over the keys and Wi-Fi in person. Check-in is from '+(b.checkInTime||'3:00 PM')+'.'},
