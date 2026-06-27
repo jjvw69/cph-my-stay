@@ -288,12 +288,13 @@ function renderEditor(){
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
-    ${(cur.messages&&cur.messages.length)?`<div class="sec"><h3>Concierge messages <span class="reqcount">${cur.messages.length}</span></h3>
-      <div class="reqlist">${cur.messages.slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
-        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):'Concierge'}</div>
+    <div class="sec"><h3>Concierge chat ${cur.messages&&cur.messages.length?`<span class="reqcount">${cur.messages.length}</span>`:''}</h3>
+      <div class="reqlist">${(cur.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
+        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):'You'}</div>
         <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
-      </div>`).join('')}</div>
-      <div class="counter">Messages the guest sent from the app chat. Reply to them directly via WhatsApp for now.</div></div>`:''}
+      </div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>'}</div>
+      <div style="display:flex;gap:8px;margin-top:11px"><input id="staffMsg" placeholder="Reply to ${esc(cur.leadName||'the guest')}…" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--ui)" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()" style="padding:10px 18px">Send</button></div>
+      <div class="counter">The guest sees your replies live in their app chat.</div></div>
 
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
@@ -303,6 +304,7 @@ function renderEditor(){
 }
 window.set=set;
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
+window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 

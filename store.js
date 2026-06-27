@@ -340,6 +340,19 @@ function addGuestMessage(reference, text) {
   const m = { id: genId(), from: 'guest', text: t, at: Date.now() };
   s.messages.push(m); s.updatedAt = Date.now(); persistStays(); return m;
 }
+/** Concierge replies from the Console (keyed by stay id). */
+function addStaffMessage(stayId, text) {
+  const s = getStay(stayId); if (!s) return null;
+  if (!Array.isArray(s.messages)) s.messages = [];
+  const t = norm(text).slice(0, 1000); if (!t) return null;
+  const m = { id: genId(), from: 'concierge', text: t, at: Date.now() };
+  s.messages.push(m); s.updatedAt = Date.now(); persistStays(); return m;
+}
+/** Lightweight fetch of just the conversation, for guest polling. */
+function getMessagesByRef(reference) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  return (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at }));
+}
 
 // ------------------------------------------------------- guest-facing mapping
 function nightsBetween(a, b) { const d1 = new Date(a), d2 = new Date(b); if (isNaN(d1) || isNaN(d2)) return null; return Math.max(0, Math.round((d2 - d1) / 86400000)); }
@@ -403,7 +416,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, addGuestMessage,
+  addRequest, removeGuestRequest, removeStaffRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

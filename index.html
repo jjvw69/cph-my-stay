@@ -221,7 +221,7 @@ function renderLogin(prefill){
 }
 
 /* ---------------- APP SHELL ---------------- */
-function bootIntoApp(){ state.tab='home'; state.stack=[]; loadConversation(); render(); }
+function bootIntoApp(){ state.tab='home'; state.stack=[]; loadConversation(); startPolling(); render(); }
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
 function loadConversation(){
   const s=state.stay; if(!s) return;
@@ -242,7 +242,7 @@ window.openAcct=function(){
   $app.appendChild(ov);
 };
 window.closeAcct=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
-window.signOut=function(){ saveToken(null); state.stay=null; state.messages=[]; state.stack=[]; state.tab='home'; closeAcct(); renderLogin(); };
+window.signOut=function(){ stopPolling(); saveToken(null); state.stay=null; state.messages=[]; state.stack=[]; state.tab='home'; closeAcct(); renderLogin(); };
 
 function tabBar(active,flow){
   const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
@@ -452,10 +452,25 @@ function renderConcierge(){
 window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
 window.sendMsg=async function(){
   const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
-  state.messages.push({from:'me',t}); i.value=''; render();
-  const r=await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
-  state.messages.push({from:'them',t:(r.body&&r.body.autoReply)||'Thank you — your concierge will reply shortly.'}); render();
+  state.messages.push({from:'me',t}); i.value=''; updateMsgs();
+  await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
 };
+/* repaint just the message list (keeps the input + its focus intact) */
+function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHTML=state.messages.map(x=>`<div class="msg ${x.from}">${esc(x.t)}</div>`).join(''); m.scrollTop=m.scrollHeight; } }
+/* poll for concierge replies so they appear live without a reload */
+let _pollTimer=null;
+function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollMessages, 9000); }
+function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
+async function pollMessages(){
+  if(!state.stay||!state.token) return;
+  const r=await api('/api/messages'); if(!r.ok||!r.body||!r.body.messages) return;
+  const server=r.body.messages; const curCount=state.messages.length-1;
+  if(server.length>curCount){
+    const greet=state.messages[0]||{from:'them',t:''};
+    state.messages=[greet].concat(server.map(mm=>({from:mm.from==='guest'?'me':'them',t:mm.text})));
+    if(state.tab==='concierge'&&!state.stack.length) updateMsgs();
+  }
+}
 
 /* ---------------- PUSHED VIEWS ---------------- */
 function renderPushed(v){
