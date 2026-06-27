@@ -38,7 +38,7 @@ const CONCIERGES = [
 // Starter villa list — staff can extend/edit. hero = default photo (staff can override per stay).
 const IMG = 'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/';
 let VILLAS = [
-  { id: 'bahia-azul',   name: 'Casa Bahía Azul', area: 'Punta Minitas',  view: 'Oceanfront',  suites: 5, sleeps: 10, hero: IMG+'Punta_Minitas_5_Casa_de_Campo_Caribbean_Paradise_Homes_6.webp' },
+  { id: 'bahia-azul',   name: 'Casa Bahía Azul', area: 'Punta Minitas',  view: 'Oceanfront',  suites: 5, sleeps: 10, hero: 'https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/123/20260114_123614_7813jpg.jpg' },
   { id: 'vista-mar',    name: 'Casa Vista Mar',  area: 'Vistamar',       view: 'Ocean view',  suites: 4, sleeps: 8,  hero: IMG+'Punta_Minitas_18_Casa_de_Campo_Caribbean_Paradise_Homes_28.webp' },
   { id: 'las-colinas',  name: 'Casa Las Colinas',area: 'Las Colinas',    view: 'Golf view',   suites: 6, sleeps: 12, hero: IMG+'Golf_Villa_142_Casa_de_Campo_Caribbean_Paradise_Homes_21.webp' },
   { id: 'cajuiles',     name: 'Casa Cajuiles',   area: 'Cajuiles',       view: 'Garden view', suites: 4, sleeps: 8,  hero: IMG+'Bahia_Chavon_7_Casa_de_Campo_Caribbean_Paradise_Homes_4.webp' },
