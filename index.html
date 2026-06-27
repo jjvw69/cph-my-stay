@@ -502,9 +502,9 @@ window.sendAddons=async function(){
 function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
   const steps=[
-    {t:'Land at '+(b.airport||'LRM'),d:'Your driver meets you in arrivals with a '+esc(s.guest.family)+' sign.'},
-    {t:'Resort main gate',d:'Your concierge will meet and greet you at the villa. Note: you must stop at the resort main gate to finalize your registration in order to enter the resort.'},
-    {t:'Arrive at '+esc(v.name),d:'Wi-Fi and keys handed over in person. Check-in from '+(b.checkInTime||'3:00 PM')+'.'},
+    {t:'Land at '+(b.airport||'LRM'),d:'Your private driver meets you in arrivals holding a '+esc(s.guest.family)+' sign and takes you straight to the resort.'},
+    {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
+    {t:'Arrive at '+esc(v.name),d:'Your concierge welcomes you at the villa and hands over the keys and Wi-Fi in person. Check-in is from '+(b.checkInTime||'3:00 PM')+'.'},
   ];
   const mapQuery=encodeURIComponent((v.internalName?v.internalName+', ':'')+'Casa de Campo, La Romana, Dominican Republic');
   const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
