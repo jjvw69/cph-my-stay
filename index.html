@@ -95,6 +95,23 @@
   .teasers::-webkit-scrollbar{display:none}
   .teaser{flex:0 0 150px;height:104px;border-radius:14px;background:#cfc6b3 center/cover;position:relative;color:#fff;display:flex;align-items:flex-end;padding:11px;font-size:13px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,.5)}
   .teaser.ph{background:linear-gradient(135deg,#5B6E5F,#33493B)}
+  /* guest request (add-on / itinerary) capture */
+  .reqov{position:absolute;inset:0;background:rgba(20,28,24,.55);display:flex;align-items:flex-end;justify-content:center;z-index:60}
+  .reqbox{background:#fff;width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:20px 20px 24px;box-shadow:0 -10px 40px rgba(0,0,0,.28);animation:requp .22s ease}
+  @keyframes requp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+  .reqh{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;color:#1F2A24;margin-bottom:2px;line-height:1.1}
+  .reqsub{font-size:12.5px;color:#6E7B71;margin-bottom:8px;line-height:1.45}
+  .reqlbl{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8A958C;margin:12px 0 5px}
+  .reqbox input,.reqbox textarea{width:100%;border:1px solid #E2DCCD;border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;box-sizing:border-box;background:#fff;color:#1F2A24}
+  .reqstep{display:flex;align-items:center;gap:18px}
+  .reqstep button{width:40px;height:40px;border:1px solid #E2DCCD;border-radius:10px;background:#fff;font-size:20px;color:#33493B;cursor:pointer}
+  .reqstep span{font-size:17px;min-width:26px;text-align:center}
+  .reqbtns{display:flex;gap:10px;margin-top:18px}
+  .reqbtns button{flex:1;border-radius:12px;padding:13px;font-size:14px;border:0;cursor:pointer}
+  .rqcancel{background:#EFE9DC;color:#1F2A24}
+  .rqok{background:#33493B;color:#fff}
+  .reqpill{display:inline-flex;align-items:center;gap:9px;margin-top:7px;background:#EEF3EE;color:#33493B;border-radius:9px;padding:6px 10px;font-size:12px;line-height:1.3}
+  .reqpill .x{cursor:pointer;font-size:15px;color:#9E5B43;font-weight:600}
 
   /* Tab bar */
   .tabs{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(251,248,241,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:9px 8px calc(9px + env(safe-area-inset-bottom))}
@@ -313,9 +330,9 @@ function renderExplore(){
           <div class="display" style="font-size:22px">${esc(e.name)}</div>
           <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
           <div style="font-size:13.5px;color:var(--soft);line-height:1.5">${esc(e.desc)}</div>
+          ${reqFor('explore',e.id).map(reqLine).join('')}
           <div style="display:flex;gap:9px;margin-top:13px">
-            <button class="seg" style="flex:0"><span></span></button>
-            <button onclick="addToItinerary('${esc(e.name)}')" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button>
+            <button onclick="openReq('explore','${esc(e.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button>
             <button onclick="askConcierge('${esc(e.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Ask concierge</button>
           </div>
         </div></div>`).join('')}
@@ -324,8 +341,45 @@ function renderExplore(){
   </div>`;
 }
 window.setExCat=function(c){ state._exCat=c; render(); };
-window.addToItinerary=function(n){ toast(n+' added to your itinerary'); };
 window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
+
+/* ---------- guest interest requests (add-on + itinerary) ---------- */
+function reqList(){ return (state.stay&&state.stay.requests)||[]; }
+function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId===refId); }
+function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
+function reqLine(r){ const bits=[r.date?fmtDate(r.date):'', r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
+  return `<span class="reqpill">Requested${bits?' · '+esc(bits):''}<span class="x" onclick="removeReq('${r.id}')">×</span></span>`; }
+window.openReq=function(type,refId){
+  const b=state.stay.booking||{}; const party=(b.adults||2)+(b.children||0); state._rqG=party;
+  const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
+  ov.innerHTML=`<div class="reqbox">
+    <div class="reqh">${esc(reqTitle(type,refId))}</div>
+    <div class="reqsub">Let your concierge know when — they'll confirm availability and pricing.</div>
+    <label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">
+    <label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">
+    <label class="reqlbl">How many guests</label>
+    <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">${party}</span><button type="button" onclick="rqAdj(1)">+</button></div>
+    <label class="reqlbl">Note (optional)</label><textarea id="rqNote" rows="2" placeholder="Anything we should know?"></textarea>
+    <div class="reqbtns"><button class="rqcancel" onclick="closeReq()">Cancel</button><button class="rqok" onclick="submitReq('${type}','${esc(refId)}')">Send request</button></div>
+  </div>`;
+  $app.appendChild(ov);
+};
+window.rqAdj=function(d){ state._rqG=Math.max(1,(state._rqG||1)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
+window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+window.submitReq=async function(type,refId){
+  const date=(document.getElementById('rqDate')||{}).value||'';
+  const time=(document.getElementById('rqTime')||{}).value||'';
+  const note=(document.getElementById('rqNote')||{}).value||'';
+  const title=reqTitle(type,refId); const guests=state._rqG||1;
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,time,guests,note})});
+  if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
+  else toast('Could not send — please try again');
+};
+window.removeReq=async function(id){
+  const r=await api('/api/request/remove',{method:'POST',body:JSON.stringify({id})});
+  if(r.ok){ state.stay.requests=reqList().filter(x=>x.id!==id); render(); toast('Request removed'); }
+  else toast('Could not remove');
+};
 
 /* ---------------- CONCIERGE ---------------- */
 function renderConcierge(){
@@ -406,11 +460,10 @@ window.cinNext=async function(){
 };
 
 function addonRow(it){
-  const q=state.cart[it.id]||0;
-  const ctrl = q
-    ? `<div class="stepper"><button onclick="cartAdj('${it.id}',-1)">−</button><span>${q}</span><button onclick="cartAdj('${it.id}',1)">+</button></div>`
-    : `<button onclick="cartAdj('${it.id}',1)" style="border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--accent)">Add</button>`;
-  return `<div class="row" style="cursor:default"><span class="ic">✦</span><span class="tx"><b>${esc(it.name)}</b><span>${esc(it.desc)} · ${esc(it.price)}</span></span>${ctrl}</div>`;
+  const reqs=reqFor('addon',it.id);
+  const pend=reqs.map(reqLine).join('');
+  const btn=`<button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--accent);white-space:nowrap">${reqs.length?'+ Date':'Request'}</button>`;
+  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx"><b>${esc(it.name)}</b><span>${esc(it.desc)} · ${esc(it.price)}</span>${pend}</span>${btn}</div>`;
 }
 function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];

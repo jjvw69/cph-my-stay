@@ -204,11 +204,12 @@ function blankStay() {
     villaName: v0.name || '', villaArea: v0.area || '', villaView: v0.view || '',
     villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '',
     heroPhoto: '',
-    checkin: '', checkout: '', checkinTime: '3:00 PM',
+    checkin: '', checkout: '', checkinTime: '3:00 PM', checkoutTime: '11:00 AM',
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: [],
     conciergeId: 'maria-fernanda', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
     welcomeMessage: '',
+    requests: [],
     createdAt: Date.now(), updatedAt: Date.now(),
   };
 }
@@ -218,19 +219,56 @@ function listStays() {
 function summaryStay(s) {
   const v = getVilla(s.villaId);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
-    villa: v ? v.name : '', checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0) };
+    villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
+    requests: (s.requests || []).length };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
 }
 function publishStay(id) { return saveStay(id, { status: 'published' }); }
 function deleteStay(id) { const i = stays.findIndex(s => s.id === id); if (i < 0) return false; stays.splice(i, 1); persistStays(); return true; }
+
+// ----------------------------------------------------- guest interest requests
+function findPublishedStayByRef(reference) {
+  const ref = norm(reference).toLowerCase();
+  return stays.find(x => x.status === 'published' && norm(x.reference).toLowerCase() === ref) || null;
+}
+/** A guest taps "Add to itinerary" or requests an add-on; capture date/time/party size. */
+function addRequest(reference, body) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  if (!Array.isArray(s.requests)) s.requests = [];
+  const req = {
+    id: genId(),
+    type: body.type === 'addon' ? 'addon' : 'explore',
+    refId: norm(body.refId).slice(0, 60),
+    title: norm(body.title).slice(0, 120),
+    date: norm(body.date).slice(0, 20),
+    time: norm(body.time).slice(0, 20),
+    guests: Math.max(0, Math.min(99, Number(body.guests) || 0)),
+    note: norm(body.note).slice(0, 300),
+    status: 'pending',
+    createdAt: Date.now(),
+  };
+  s.requests.push(req); s.updatedAt = Date.now(); persistStays(); return req;
+}
+/** Guest removes one of their own pending requests. */
+function removeGuestRequest(reference, requestId) {
+  const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return false;
+  const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
+  s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
+}
+/** Staff dismisses a request (e.g. once actioned) from the Console. */
+function removeStaffRequest(stayId, requestId) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return false;
+  const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
+  s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
+}
 
 // ------------------------------------------------------- guest-facing mapping
 function nightsBetween(a, b) { const d1 = new Date(a), d2 = new Date(b); if (isNaN(d1) || isNaN(d2)) return null; return Math.max(0, Math.round((d2 - d1) / 86400000)); }
@@ -255,7 +293,7 @@ function toGuestStay(s) {
     booking: {
       reference: s.reference, status: s.status,
       arrive: s.checkin, depart: s.checkout, nights: nightsBetween(s.checkin, s.checkout),
-      arriveTime: '15:00', checkInTime: s.checkinTime || '3:00 PM', checkOutTime: '11:00 AM',
+      arriveTime: '15:00', checkInTime: s.checkinTime || '3:00 PM', checkOutTime: s.checkoutTime || '11:00 AM',
       adults: Number(s.adults) || null, children: Number(s.children) || 0,
       airport: s.airport || 'LRM', flight: s.flight || '', transferArranged: !!s.transferArranged,
     },
@@ -264,6 +302,7 @@ function toGuestStay(s) {
     welcomeMessage: s.welcomeMessage || '',
     addOns: ADDON_CATALOG.filter(a => offered.has(a.id)),
     explore: EXPLORE_SCENES,
+    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, time: r.time, guests: r.guests, note: r.note, status: r.status, createdAt: r.createdAt })),
   };
 }
 
@@ -291,6 +330,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
+  addRequest, removeGuestRequest, removeStaffRequest,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

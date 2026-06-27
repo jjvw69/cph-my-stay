@@ -55,6 +55,17 @@
   .pill.published{background:var(--okbg);color:var(--oktx)}
   .pill.draft{background:var(--drbg);color:var(--drtx)}
   .pill.needsinfo{background:var(--nibg);color:var(--nitx)}
+  .reqbadge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#9E5B43;color:#fff}
+  .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
+  .reqlist{display:flex;flex-direction:column;gap:9px}
+  .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
+  .reqtop{display:flex;align-items:center;gap:9px}
+  .reqtop b{font-size:14.5px;flex:1}
+  .reqtype{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:6px;background:#EEF3EE;color:#33493B}
+  .reqtype.addon{background:#F3ECDD;color:#7A5A2E}
+  .reqx{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;color:#33493B;cursor:pointer}
+  .reqmeta{font-size:13px;color:var(--soft);margin-top:6px}
+  .reqnote{font-size:13px;color:var(--ink,#33493B);margin-top:5px;font-style:italic}
   .center{padding:22px 26px}
   .center .ehd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
   .center h2{font-family:var(--display);font-weight:600;font-size:28px}
@@ -185,10 +196,11 @@ function renderList(){
   el.innerHTML=items.map(s=>{
     const dates=(s.checkin||'?')+' – '+(s.checkout||'?');
     const pill=(s.status||'draft').replace(/\s/g,'').toLowerCase();
+    const reqB=s.requests?`<span class="reqbadge">${s.requests} request${s.requests==1?'':'s'}</span>`:'';
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''}" onclick="selectStay('${s.id}')">
       <div class="g">${esc(s.guest)}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <span class="pill ${pill}">${esc(s.status)}</span></div>`;
+      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}</div>`;
   }).join('');
 }
 window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); } };
@@ -235,7 +247,8 @@ function renderEditor(){
       <div class="f full"><label>Villa photo (URL) — leave blank to use the listing default</label><input value="${esc(cur.heroPhoto)}" oninput="set('heroPhoto',this.value)" placeholder="https://caribbeanparadisehomes.com/…"></div>
       <div class="f"><label>Check-in date</label><input type="date" value="${esc(cur.checkin)}" oninput="set('checkin',this.value)"></div>
       <div class="f"><label>Check-out date</label><input type="date" value="${esc(cur.checkout)}" oninput="set('checkout',this.value)"></div>
-      <div class="f"><label>Check-in time</label><input value="${esc(cur.checkinTime)}" oninput="set('checkinTime',this.value)"></div>
+      <div class="f"><label>Check-in time</label><input value="${esc(cur.checkinTime)}" oninput="set('checkinTime',this.value)" placeholder="3:00 PM"></div>
+      <div class="f"><label>Check-out time</label><input value="${esc(cur.checkoutTime)}" oninput="set('checkoutTime',this.value)" placeholder="11:00 AM"></div>
       <div class="f"><label>Included</label><input value="Chef · Butler · Housekeeping" disabled style="color:var(--soft)"></div>
     </div></div>
 
@@ -248,6 +261,14 @@ function renderEditor(){
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
       <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} enabled · these control what the guest sees.</div></div>
 
+    ${(cur.requests&&cur.requests.length)?`<div class="sec"><h3>Guest requests <span class="reqcount">${cur.requests.length}</span></h3>
+      <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem">
+        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b>${esc(r.title||'')}</b><button class="reqx" onclick="dismissReq('${r.id}')">Mark done</button></div>
+        <div class="reqmeta">${[r.date?esc(r.date):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
+        ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
+      </div>`).join('')}</div>
+      <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
+
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
@@ -255,6 +276,7 @@ function renderEditor(){
     </div></div>`;
 }
 window.set=set;
+window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
 window.adj=function(k,d){ const min=k==='adults'?1:0; cur[k]=Math.max(min,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 
@@ -288,7 +310,7 @@ function renderPreview(){
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
