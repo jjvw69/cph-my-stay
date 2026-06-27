@@ -258,7 +258,7 @@ function blankStay() {
   const v0 = VILLAS[0] || {};
   return {
     id: genId(), reference: nextReference(), status: 'draft',
-    leadName: '', lastName: '', email: '', phone: '',
+    leadName: '', lastName: '', email: '', phone: '', source: 'Direct Booking',
     adults: 2, children: 0,
     villaId: v0.id || '',
     villaName: v0.name || '', villaArea: v0.area || '', villaView: v0.view || '',
@@ -287,7 +287,7 @@ function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;

@@ -233,6 +233,7 @@ function renderEditor(){
       <div class="f"><label>Last name (for login)</label><input value="${esc(cur.lastName)}" oninput="set('lastName',this.value)"></div>
       <div class="f"><label>Email</label><input value="${esc(cur.email)}" oninput="set('email',this.value)"></div>
       <div class="f"><label>Phone / WhatsApp</label><input value="${esc(cur.phone)}" oninput="set('phone',this.value)"></div>
+      <div class="f"><label>Booking source</label><select onchange="set('source',this.value)">${['Direct Booking','Rental Escapes','One Fine Stay','Top Villas','Exceptional Villas','Other'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</select></div>
       <div class="f"><label>Adults</label><div class="step"><button onclick="adj('adults',-1)">−</button><span>${cur.adults}</span><button onclick="adj('adults',1)">＋</button></div></div>
       <div class="f"><label>Children</label><div class="step"><button onclick="adj('children',-1)">−</button><span>${cur.children}</span><button onclick="adj('children',1)">＋</button></div></div>
     </div></div>
@@ -311,7 +312,7 @@ function renderPreview(){
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
