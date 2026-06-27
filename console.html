@@ -119,12 +119,16 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .empty{color:var(--soft);font-size:16px;padding:40px 10px;text-align:center}
   @media(max-width:1024px){ .cols{grid-template-columns:280px 1fr} .right{display:none} }
+  .backlist{display:none}
   @media(max-width:760px){
     .cols{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch}
-    .col{height:auto;overflow:visible}
-    .col.left,.col.right{display:block}
-    .col.left{border-right:0;border-bottom:1px solid var(--line);padding-bottom:6px}
-    .col.right{border-top:1px solid var(--line)}
+    .col{height:auto;overflow:visible;border:0}
+    .col.left{display:block}
+    .col.center,.col.right{display:none}
+    #app.view-detail .col.left{display:none}
+    #app.view-detail .col.center{display:block}
+    #app.view-detail .col.right{display:block;border-top:1px solid var(--line);margin-top:10px}
+    .backlist{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:14px;color:var(--accent)}
     .topbar{flex-direction:column;align-items:flex-start;gap:9px;padding:12px 16px}
     .topbar .right{width:100%;flex-wrap:wrap;gap:8px 14px;font-size:13px}
     .topbar .who{overflow-wrap:anywhere;min-width:0}
@@ -213,7 +217,9 @@ function renderList(){
       <span class="pill ${pill}">${esc(s.status)}</span>${reqB}</div>`;
   }).join('');
 }
-window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); } };
+function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
+window.backToList=function(){ setView(false); };
+window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); setView(true); } };
 
 /* ---- editor ---- */
 function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
@@ -235,6 +241,7 @@ function renderEditor(){
     return `<button class="chip ${on?'on':''}" onclick="toggleAddon('${a.id}')">${esc(a.name)}</button>`;
   }).join('');
   document.getElementById('editor').innerHTML=`
+    <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button><button class="b-out" onclick="saveDraft()">Save draft</button><button class="b-fill" onclick="publish()">Publish &amp; send link</button></div></div>
 
@@ -323,7 +330,7 @@ window.copyLink=function(){ const i=document.getElementById('glink'); i.select()
 
 /* ---- save / publish ---- */
 function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
-window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); toast('Deleted'); } else { toast('Could not delete'); } };
+window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
 window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Published — guest link is live'); } };
