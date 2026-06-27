@@ -285,10 +285,23 @@ async function schemaProbe(action, extra) {
   } catch (e) { return { action, err: e.message }; }
 }
 
+// TEMP diagnostic: return status/message + a SHORT preview (<=300 chars) of data, to learn the real shape.
+async function rawProbe(action, extra) {
+  try {
+    const body = Object.assign({ key: CFG.key, pass: CFG.pass, owner_token: CFG.ownerToken || undefined, username: CFG.username || undefined, action, format: 'json' }, extra || {});
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), CFG.timeoutMs);
+    let res; try { res = await fetch(CFG.baseUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body), signal: ctrl.signal }); } finally { clearTimeout(t); }
+    const text = await res.text(); let j; try { j = JSON.parse(text); } catch (e) { return { extra: extra || null, parse: 'non-json', sample: text.slice(0, 120) }; }
+    const dataPreview = JSON.stringify(j.data === undefined ? null : j.data).slice(0, 300);
+    return { extra: extra || null, status: j.status, message: (j.message || '').slice(0, 80), keys: Object.keys(j || {}), dataPreview };
+  } catch (e) { return { extra: extra || null, err: e.message }; }
+}
+
 module.exports = {
   CFG,
   isConfigured,
   schemaProbe,
+  rawProbe,
   lookupStay,
   buildStay,
   getBookingByReference,

@@ -100,11 +100,16 @@ const server = http.createServer(async (req,res)=>{
     if(req.method==='POST'&&url==='/api/addons') return handleSubmit('addons',req,res);
     if(req.method==='POST'&&url==='/api/message') return handleSubmit('message',req,res);
     if(req.method==='GET'&&url==='/api/_probe'){
-      const out=[];
-      out.push(await v365.schemaProbe('getreservations'));
-      out.push(await v365.schemaProbe('getreservations',{arrivalFrom:'2026-06-01',arrivalTo:'2027-12-31'}));
-      out.push(await v365.schemaProbe('getreservations',{dateFrom:'2026-06-01',dateTo:'2027-12-31'}));
-      out.push(await v365.schemaProbe('getreservations',{checkin:'2026-06-01',checkout:'2027-12-31'}));
+      const variants=[
+        {},
+        {arrivalDateFrom:'2026-06-01',arrivalDateTo:'2027-12-31'},
+        {from:'2026-06-01',to:'2027-12-31'},
+        {startDate:'2026-06-01',endDate:'2027-12-31'},
+        {status:'1'},
+        {propertyId:123},
+        {page:1},
+      ];
+      const out=[]; for(const v of variants){ out.push(await v365.rawProbe('getreservations',v)); }
       return sendJSON(res,200,{ok:true,results:out});
     }
     if(req.method==='GET'){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache, must-revalidate'}); return res.end(INDEX_HTML); }
