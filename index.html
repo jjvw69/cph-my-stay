@@ -137,13 +137,16 @@
   .cta-bar{position:absolute;left:0;right:0;bottom:0;padding:14px 22px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(rgba(245,239,229,0),var(--bg) 30%)}
   .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;padding:11px 18px;border-radius:30px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .chatwrap{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
-  .msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:9px}
+  .chatwrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:9px;min-width:0}
   .msg{max-width:78%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.4}
   .msg.them{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
   .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
   .composer{display:flex;gap:9px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
-  .composer input{flex:1;border:1px solid var(--line);border-radius:30px;padding:12px 16px;font-size:15px;font-family:var(--ui)}
+  .composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:30px;padding:12px 16px;font-size:15px;font-family:var(--ui)}
+  .composer button{flex:none}
+  .qrow{padding:8px 16px 0;max-width:100%;overflow:hidden}
+  .qrow .seg{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .composer button{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px}
   .check{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
   .check .box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--accent2);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
@@ -234,9 +237,9 @@ window.openAcct=function(){
 window.closeAcct=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
 window.signOut=function(){ saveToken(null); state.stay=null; state.messages=[]; state.stack=[]; state.tab='home'; closeAcct(); renderLogin(); };
 
-function tabBar(active){
+function tabBar(active,flow){
   const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
-  return `<div class="tabs">${t('home','⌂','Home')}${t('stay','❖','Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
+  return `<div class="tabs"${flow?' style="position:static;flex:none"':''}>${t('home','⌂','Home')}${t('stay','❖','Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
 }
 window.goTab=function(id){ state.tab=id; state.stack=[]; render(); };
 window.push=function(v){ state.stack.push(v); render(); };
@@ -431,12 +434,10 @@ function renderConcierge(){
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
-    <div class="chatwrap">
-      <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
-      <div style="padding:0 16px"><div class="seg" style="overflow-x:auto;flex-wrap:nowrap">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
-      <div class="composer"><input id="cmsg" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
-    </div>
-    ${tabBar('concierge')}
+    <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
+    <div class="qrow"><div class="seg">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
+    <div class="composer"><input id="cmsg" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
+    ${tabBar('concierge',true)}
   </div>`;
   const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});}
   const m=document.getElementById('msgs'); if(m)m.scrollTop=m.scrollHeight;
