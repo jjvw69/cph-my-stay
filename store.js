@@ -19,27 +19,25 @@ const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
 // ---------------------------------------------------------------- seed catalogs
 // Concierge services & experiences (from caribbeanparadisehomes.com/guest-services). No rates shown — handled by the concierge.
 const ADDON_CATALOG = [
-  // Arrival & transfers
-  { id: 'transfer',      category: 'Arrival & transfers',   name: 'Private airport transfer',           desc: 'Meet & greet at the airport and a private drive to your villa.' },
-  { id: 'drivers',       category: 'Arrival & transfers',   name: 'Private driver',                     desc: 'A driver on call for the resort, the Marina or trips out.' },
-  { id: 'carrental',     category: 'Arrival & transfers',   name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
-  { id: 'golfcart',      category: 'Arrival & transfers',   name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
-  { id: 'meetgreet',     category: 'Arrival & transfers',   name: 'Meet & greet',                       desc: 'A personal welcome and assistance on arrival.' },
-  { id: 'privatetravel', category: 'Arrival & transfers',   name: 'Luxury private travel',              desc: 'Helicopter, private jet and luxury transfers.' },
+  // Travel & transfers (in the order they appear on caribbeanparadisehomes.com/guest-services)
+  { id: 'privatetravel', category: 'Travel & transfers',    name: 'Luxury private travel',              desc: 'Helicopter, private jet and luxury transfers.' },
+  { id: 'transfer',      category: 'Travel & transfers',    name: 'Private airport transfer',           desc: 'Meet & greet at the airport and a private drive to your villa.' },
+  { id: 'carrental',     category: 'Travel & transfers',    name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
+  { id: 'golfcart',      category: 'Travel & transfers',    name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
+  { id: 'yacht',         category: 'Travel & transfers',    name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
   // Provisioning & dining
   { id: 'grocery',       category: 'Provisioning & dining', name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
-  { id: 'catering',      category: 'Provisioning & dining', name: 'Private chef & catering',            desc: 'In-villa dining and catering for any occasion.' },
   { id: 'dining',        category: 'Provisioning & dining', name: 'Restaurant & activity reservations', desc: "Bookings at the resort's restaurants and activities." },
+  { id: 'catering',      category: 'Provisioning & dining', name: 'Private chef & catering',            desc: 'In-villa dining and catering for any occasion.' },
   // Experiences
-  { id: 'yacht',         category: 'Experiences',           name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
   { id: 'excursions',    category: 'Experiences',           name: 'Tours & excursions',                 desc: 'Island day trips and curated local tours.' },
-  { id: 'rumcigar',      category: 'Experiences',           name: 'Tobacco & rum tasting',              desc: 'A curated Dominican rum and cigar tasting.' },
-  { id: 'spa',           category: 'Experiences',           name: 'In-villa massage',                   desc: 'Spa treatments and massages in the comfort of your villa.' },
-  { id: 'yoga',          category: 'Experiences',           name: 'Private yoga',                       desc: 'Sunrise yoga on your terrace or the beach.' },
   { id: 'entertainment', category: 'Experiences',           name: 'Live entertainment',                 desc: 'Musicians, DJs and performers for your event.' },
+  { id: 'rumcigar',      category: 'Experiences',           name: 'Tobacco & rum tasting',              desc: 'A curated Dominican rum and cigar tasting.' },
+  { id: 'yoga',          category: 'Experiences',           name: 'Private yoga',                       desc: 'Sunrise yoga on your terrace or the beach.' },
+  { id: 'spa',           category: 'Experiences',           name: 'In-villa massage',                   desc: 'Spa treatments and massages in the comfort of your villa.' },
   // In-villa services
-  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra butlers, housekeepers or a nanny.' },
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
+  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra butlers, housekeepers or a nanny.' },
 ];
 
 const CONCIERGES = [
@@ -88,7 +86,7 @@ let VILLAS = [
   { id: "villa-royale", name: "Villa Royale", area: "Cerezas", view: "Golf view", suites: 6, sleeps: 12, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/107/20250703_123755_2565jpg.jpg" },
   { id: "villa-serenita", name: "Villa Serenita", area: "Boca Chavón", view: "Oceanfront", suites: 6, sleeps: 12, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/109/20250801_033057_4740jpg.jpg" },
   { id: "villa-sueno", name: "Villa Sueño", area: "Vistamar", view: "Oceanfront", suites: 6, sleeps: 12, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/130/20260619_022358_1040jpg.jpg" },
-  { id: "bahia-azul", name: "Casa Bahia Azul", area: "Bahía Minitas", view: "Beachfront", suites: 5, sleeps: 10, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/123/20260114_123614_7813jpg.jpg" },
+  { id: "bahia-azul", name: "Casa Bahia Azul", area: "Bahía Minitas", view: "Beachfront", suites: 5, sleeps: 10, staff: "Housekeeper · Cook · Butler", hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/123/20260114_123614_7813jpg.jpg" },
   { id: "casa-batey", name: "Casa Batey", area: "Batey", view: "Golf view", suites: 5, sleeps: 10, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/106/20250630_134644_3227jpeg.jpeg" },
   { id: "casa-bo", name: "Casa BO", area: "Ingenio", view: "Golf view", suites: 5, sleeps: 10, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/23/20241113_142518_3190jpg.jpg" },
   { id: "casa-bosque", name: "Casa Bosque", area: "El Bosque", view: "Garden view", suites: 5, sleeps: 10, hero: "https://secure.365villas.com/getimage/uploads/config/jvanwelie/property/gallery/121/20260110_110019_882jpg.jpg" },
@@ -267,6 +265,7 @@ function blankStay() {
     villaSuites: v0.suites || '', villaSleeps: v0.sleeps || '', villaInternal: v0.internalName || '',
     heroPhoto: '',
     checkin: '', checkout: '', checkinTime: '3:00 PM', checkoutTime: '11:00 AM',
+    staffIncluded: (v0.staff || 'Chef · Butler · Housekeeper'),
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: [],
     conciergeId: 'maria-fernanda', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
@@ -288,7 +287,7 @@ function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
@@ -360,7 +359,7 @@ function toGuestStay(s) {
       adults: Number(s.adults) || null, children: Number(s.children) || 0,
       airport: s.airport || 'LRM', flight: s.flight || '', transferArranged: !!s.transferArranged,
     },
-    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: ['Chef','Butler','Housekeeping'], description: '' },
+    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: String(s.staffIncluded || v.staff || 'Chef · Butler · Housekeeper').split(/\s*·\s*|\s*,\s*/).filter(Boolean), description: '' },
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
     addOns: ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, recommended: offered.has(a.id) })),
