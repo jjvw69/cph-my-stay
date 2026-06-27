@@ -434,7 +434,7 @@ function renderCheckin(){
     <div class="card"><b style="font-weight:500">Children</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>`;
   } else if(step===1){ inner=`<div class="label">STEP 2 OF 4 · ARRIVAL DETAILS</div>
     <div class="card"><b style="font-weight:500">Arrival airport</b><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${c.airport===a?'on':''}" onclick="cinAir('${a}')">${a}</button>`).join('')}</div></div>
-    <div class="card"><b style="font-weight:500">Flight number</b><input value="${esc(c.flight||'')}" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="e.g. AA1234" oninput="state.checkin.flight=this.value"></div>
+    <div class="card"><b style="font-weight:500">Flight number</b><input value="${esc(c.flight||'')}" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="e.g. AA1234" oninput="state.checkin.flight=this.value"><div style="font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.45">If your group arrives on several flights, just let us know by adding each flight.</div></div>
     <div class="check ${c.transferType==='oneway'?'on':''}" onclick="cinTransfer('oneway')"><span class="box">✓</span><span class="t">Arrange one-way airport transfer</span></div>
     <div class="check ${c.transferType==='roundtrip'?'on':''}" onclick="cinTransfer('roundtrip')"><span class="box">✓</span><span class="t">Arrange round-trip airport transfer</span></div>`;
   } else if(step===2){ const docs=c.docs||(c.docs=[]);
