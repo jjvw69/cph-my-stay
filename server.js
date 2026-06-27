@@ -48,7 +48,7 @@ function clearCookie(res,name){ res.setHeader('Set-Cookie',`${name}=; HttpOnly; 
 
 function readBody(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>2e6){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); try{resolve(d?JSON.parse(d):{});}catch{resolve({});} }); req.on('error',()=>resolve({})); }); }
 function sendJSON(res,code,obj){ const s=JSON.stringify(obj); res.writeHead(code,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(s)}); res.end(s); }
-function sendHTML(res,buf){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache, must-revalidate'}); res.end(buf); }
+function sendHTML(res,buf){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Expires':'0'}); res.end(buf); }
 
 // ---- guest session: bearer token (works inside cross-site iframe) or cookie ----
 function guestSession(req){ const h=req.headers['authorization']||''; const m=h.match(/^Bearer\s+(.+)$/i); if(m){ const v=verify(m[1].trim()); if(v&&v.t==='g') return v; } const v=verify(parseCookies(req)['cph_stay']); return (v&&v.t==='g')?v:null; }
