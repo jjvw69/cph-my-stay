@@ -102,7 +102,9 @@
   .reqh{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;color:#1F2A24;margin-bottom:2px;line-height:1.1}
   .reqsub{font-size:12.5px;color:#6E7B71;margin-bottom:8px;line-height:1.45}
   .reqlbl{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8A958C;margin:12px 0 5px}
-  .reqbox input,.reqbox textarea{width:100%;border:1px solid #E2DCCD;border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;box-sizing:border-box;background:#fff;color:#1F2A24}
+  .reqbox input,.reqbox textarea,.reqbox select{width:100%;border:1px solid #E2DCCD;border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;box-sizing:border-box;background:#fff;color:#1F2A24}
+  .reqrange{display:flex;gap:10px}
+  .reqrange>div{flex:1}
   .reqstep{display:flex;align-items:center;gap:18px}
   .reqstep button{width:40px;height:40px;border:1px solid #E2DCCD;border-radius:10px;background:#fff;font-size:20px;color:#33493B;cursor:pointer}
   .reqstep span{font-size:17px;min-width:26px;text-align:center}
@@ -347,16 +349,23 @@ window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more abou
 function reqList(){ return (state.stay&&state.stay.requests)||[]; }
 function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId===refId); }
 function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
-function reqLine(r){ const bits=[r.date?fmtDate(r.date):'', r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
+function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
   return `<span class="reqpill">Requested${bits?' · '+esc(bits):''}<span class="x" onclick="removeReq('${r.id}')">×</span></span>`; }
 window.openReq=function(type,refId){
   const b=state.stay.booking||{}; const party=(b.adults||2)+(b.children||0); state._rqG=party;
+  const isCart = type==='addon' && refId==='golfcart';
+  const cartBlock = isCart ? `<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>` : '';
+  const dateBlock = isCart
+    ? `<div class="reqrange"><div><label class="reqlbl">From</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">To</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
+    : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
+  const timeBlock = isCart ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
   const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
   ov.innerHTML=`<div class="reqbox">
     <div class="reqh">${esc(reqTitle(type,refId))}</div>
     <div class="reqsub">Let your concierge know when — they'll confirm availability and pricing.</div>
-    <label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">
-    <label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">
+    ${cartBlock}
+    ${dateBlock}
+    ${timeBlock}
     <label class="reqlbl">How many guests</label>
     <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">${party}</span><button type="button" onclick="rqAdj(1)">+</button></div>
     <label class="reqlbl">Note (optional)</label><textarea id="rqNote" rows="2" placeholder="Anything we should know?"></textarea>
@@ -368,10 +377,12 @@ window.rqAdj=function(d){ state._rqG=Math.max(1,(state._rqG||1)+d); const g=docu
 window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
 window.submitReq=async function(type,refId){
   const date=(document.getElementById('rqDate')||{}).value||'';
+  const endDate=(document.getElementById('rqEnd')||{}).value||'';
+  const cartType=(document.getElementById('rqCart')||{}).value||'';
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
   const title=reqTitle(type,refId); const guests=state._rqG||1;
-  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,time,guests,note})});
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,time,guests,note})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
 };

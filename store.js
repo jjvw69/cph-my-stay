@@ -310,6 +310,8 @@ function addRequest(reference, body) {
     refId: norm(body.refId).slice(0, 60),
     title: norm(body.title).slice(0, 120),
     date: norm(body.date).slice(0, 20),
+    endDate: norm(body.endDate).slice(0, 20),
+    cartType: norm(body.cartType).slice(0, 30),
     time: norm(body.time).slice(0, 20),
     guests: Math.max(0, Math.min(99, Number(body.guests) || 0)),
     note: norm(body.note).slice(0, 300),
