@@ -103,8 +103,11 @@
   .reqsub{font-size:12.5px;color:#6E7B71;margin-bottom:8px;line-height:1.45}
   .reqlbl{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8A958C;margin:12px 0 5px}
   .reqbox input,.reqbox textarea,.reqbox select{width:100%;border:1px solid #E2DCCD;border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;box-sizing:border-box;background:#fff;color:#1F2A24}
+  .reqbox input[type=date],.reqbox input[type=time]{-webkit-appearance:none;appearance:none;min-width:0}
+  .reqbox input[type=date]::-webkit-date-and-time-value,.reqbox input[type=time]::-webkit-date-and-time-value{text-align:left}
+  .reqbox input[type=date]::-webkit-calendar-picker-indicator,.reqbox input[type=time]::-webkit-calendar-picker-indicator{margin-left:auto}
   .reqrange{display:flex;gap:10px}
-  .reqrange>div{flex:1}
+  .reqrange>div{flex:1;min-width:0}
   .reqstep{display:flex;align-items:center;gap:18px}
   .reqstep button{width:40px;height:40px;border:1px solid #E2DCCD;border-radius:10px;background:#fff;font-size:20px;color:#33493B;cursor:pointer}
   .reqstep span{font-size:17px;min-width:26px;text-align:center}
