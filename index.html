@@ -377,7 +377,7 @@ function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay
 function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', r.serviceLevel||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
   return `<span class="reqpill">Requested${bits?' · '+esc(bits):''}<span class="x" onclick="removeReq('${r.id}')">×</span></span>`; }
 window.openReq=function(type,refId){
-  const b=state.stay.booking||{}; const party=(b.adults||2)+(b.children||0); state._rqG=party;
+  const b=state.stay.booking||{}; state._rqG=0;
   const isCart = type==='addon' && refId==='golfcart';
   const isTransfer = type==='addon' && refId==='transfer';
   const cartBlock = isCart ? `<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>` : '';
@@ -388,7 +388,7 @@ window.openReq=function(type,refId){
   const timeBlock = (isCart||isTransfer) ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
   const notePlaceholder = isTransfer ? 'Anything we should know? Any child seat needed. Extra luggage (extra suitcases and golf clubs)?' : 'Anything we should know?';
   const guestsBlock = isCart ? '' : `<label class="reqlbl">How many guests</label>
-    <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">${party}</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
+    <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">0</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
   const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
   ov.innerHTML=`<div class="reqbox">
     <div class="reqh">${esc(reqTitle(type,refId))}</div>
@@ -403,7 +403,7 @@ window.openReq=function(type,refId){
   </div>`;
   $app.appendChild(ov);
 };
-window.rqAdj=function(d){ state._rqG=Math.max(1,(state._rqG||1)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
+window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
 window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
 window.submitReq=async function(type,refId){
   const date=(document.getElementById('rqDate')||{}).value||'';
@@ -412,7 +412,7 @@ window.submitReq=async function(type,refId){
   const serviceLevel=(document.getElementById('rqService')||{}).value||'';
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
-  const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||1);
+  const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
   const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
