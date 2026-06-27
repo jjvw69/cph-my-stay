@@ -123,13 +123,41 @@ let VILLAS = [
 ];
 
 // Resort / explore scenes shown to guests (Discover + Explore). Photos from the CPH media library.
+// Explore scenes shown to guests (Discover + Explore). info:true = informational (no request buttons).
 const EXPLORE_SCENES = [
-  { id:'minitas-beach', cat:'Beaches',    name:'Minitas Beach',           meta:'On resort · 6 min',          desc:"The resort's sheltered white-sand cove, loungers and water sports.", img: IMG+'minitas-beach.webp' },
-  { id:'teeth-dog',     cat:'Activities', name:'Teeth of the Dog Golf',   meta:'World top-100 · 7 min',      desc:"Pete Dye's iconic oceanfront course — seven holes hug the Caribbean.", img: IMG+'Dye-fore-Golf-Caribbean-Paradise-Homes_2.webp' },
-  { id:'saona',         cat:'Excursions', name:'Saona Island Catamaran',  meta:'Full day · pickup included', desc:'Sail to palm-fringed Saona, with natural pools and a beach lunch.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2025/01/saona.jpeg' },
-  { id:'minitas-club',  cat:'Dining',     name:'Minitas Beach Club',      meta:'On resort · 5 min',          desc:'Beachfront dining with Mediterranean-Caribbean menus, toes in the sand.', img: IMG+'Minitas_-Restaurant-3-min-800x600-1.webp' },
-  { id:'la-cana',       cat:'Dining',     name:'La Caña by Il Circo',     meta:'On resort · 5 min',          desc:'Signature Italian at the heart of the resort, poolside and elegant.', img: IMG+'Causa-Restaurant.webp' },
-  { id:'altos',         cat:'Activities', name:'Altos de Chavón',         meta:'Cultural village · 10 min',  desc:'A re-created 16th-century Mediterranean village and amphitheatre.', img: IMG+'Golf-Villas-Aerial-Caribbean-Paradise-Homes_1.webp' },
+  // ---- Dining (image-rich first so the Home "Discover" strip leads with photos) ----
+  { id:'minitas-club',  cat:'Dining', name:'Minitas Beach Club',          meta:'Beachfront',        desc:'Mediterranean, seafood, pizza and pasta on the sand — sea-view lunches and sunset dinners.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Minitas_-Restaurant-3-min-800x600-1.webp' },
+  { id:'la-casita',     cat:'Dining', name:'La Casita',                   meta:'Marina',            desc:'Spanish & Mediterranean seafood on an elevated Marina terrace — a sunset-reservation favourite.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/La-Casita7-800x600-1.webp' },
+  { id:'causa',         cat:'Dining', name:'Causa',                       meta:'Marina',            desc:'Peruvian — Creole, Nikkei and Chifa — with exceptional ceviche and tiradito.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Causa-Restaurant.webp' },
+  { id:'sbg',           cat:'Dining', name:'SBG · Blue Grill',            meta:'Marina',            desc:'Mediterranean-international fusion — grilled fish, steaks, DJ nights and Sunday brunch.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/SBG_Marina_084-800x600-1.jpg' },
+  { id:'la-piazzetta',  cat:'Dining', name:'La Piazzetta',                meta:'Altos de Chavón',   desc:'Fine Italian in the clifftop village — housemade pasta and a serious wine list, candlelit.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/la-piazzetta-casa-de-campo-min-1-800x600-1.jpg' },
+  { id:'limoncello',    cat:'Dining', name:'Limoncello',                  meta:'Marina',            desc:'Casual Italian — thin-crust pizza and pasta in a relaxed waterfront setting.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Limoncello_1-1024x681-1.webp' },
+  { id:'shibuya',       cat:'Dining', name:'Shibuya',                     meta:'Marina',            desc:'Asian fusion and sushi on the Marina waterfront.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/DJI_0725_HDR.webp' },
+  { id:'la-cana',       cat:'Dining', name:'La Caña by Il Circo',         meta:'Resort centre',     desc:"French-Mediterranean fine dining — the resort's social hub, with rum, cigars and live music.", img:'' },
+  { id:'peperoni',      cat:'Dining', name:'Peperoni',                    meta:'Marina',            desc:'Steaks, sushi, pasta and international fare under an outdoor canopy terrace.', img:'' },
+  { id:'onnos',         cat:'Dining', name:"Onno's",                      meta:'Altos de Chavón',   desc:'Tapas and international casual by the amphitheatre — 100+ cocktails, an all-day social hub.', img:'' },
+  { id:'la-cantina',    cat:'Dining', name:'La Cantina',                  meta:'Altos de Chavón',   desc:'Caribbean-Latin dishes and sushi on the plaza — reliable mofongo (closed Sundays).', img:'' },
+  { id:'chilango',      cat:'Dining', name:'Chilango Taquería',           meta:'Altos de Chavón',   desc:'Mexican street food above Plaza Chavón — tacos, guacamole and plaza views.', img:'' },
+  { id:'cafe-marietta', cat:'Dining', name:'Café Marietta',               meta:'Altos de Chavón',   desc:'Café fare and light meals on the village steps, with Chavón River and Dye Fore views.', img:'' },
+  { id:'lago',          cat:'Dining', name:'Lago',                        meta:'Teeth of the Dog',  desc:'Buffet breakfast and à la carte overlooking the 18th fairway, by the pro shop.', img:'' },
+  { id:'massa',         cat:'Dining', name:'Massa',                       meta:'On resort',         desc:'Wood-fired sourdough pizza and flatbreads with long-fermented artisan bases.', img:'' },
+  { id:'brasa',         cat:'Dining', name:'Brasa Food Truck',            meta:'On resort',         desc:'Street food on the grounds — ceviches, grilled platters, burgers and Argentinian choripán.', img:'' },
+  { id:'nineteenth',    cat:'Dining', name:'The 19th Hole Bar',           meta:'Teeth of the Dog',  desc:'Sandwiches, snacks and drinks at the pro shop — the post-round sporting-club bar.', img:'' },
+  // ---- Golf ----
+  { id:'teeth-of-the-dog', cat:'Golf', name:'Teeth of the Dog',          meta:'Pete Dye · 18 holes', desc:"Pete Dye's #1-ranked Caribbean course — seven oceanfront holes 'created by God.'", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic45.webp' },
+  { id:'dye-fore',      cat:'Golf', name:'Dye Fore',                      meta:'Pete Dye · 27 holes', desc:'A clifftop 27 holes above the Chavón River — three nines up to 7,667 yards.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic19-small.webp' },
+  { id:'the-links',     cat:'Golf', name:'The Links',                     meta:'Pete Dye · 18 holes', desc:"Pete Dye's inland Scottish-style links — strategic, playable, built for repeat rounds.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/02/hole16_2.jpg.jpeg' },
+  // ---- Beaches (informational) ----
+  { id:'minitas-beach', cat:'Beaches', name:'Minitas Beach',             meta:'Private · on resort', desc:"Casa de Campo's only private beach — calm, swimmable Caribbean water and full beach-club facilities.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp', info:true },
+  // ---- Sights (informational) ----
+  { id:'marina',        cat:'Activities', name:'Casa de Campo Marina',   meta:'Waterfront village',  desc:'A Mediterranean-style yacht harbour — a walkable waterfront of dining, boutiques and nightlife.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg', info:true },
+  { id:'altos',         cat:'Activities', name:'Altos de Chavón',        meta:'Cultural village',    desc:'A re-created 16th-century Mediterranean clifftop village — amphitheatre, museum, galleries and dining.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/altos-de-chavon-web.jpg', info:true },
+  // ---- Activities & wellness (bookable) ----
+  { id:'spa',           cat:'Activities', name:'The Spa',                meta:'Wellness',            desc:'Massage, facials, body treatments and hydrotherapy — plus in-villa spa services.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Reception.webp' },
+  { id:'tennis',        cat:'Activities', name:'La Terraza Tennis Center', meta:'13 clay courts',     desc:"The Caribbean's largest racquet facility — Har-Tru clay courts plus padel and pickleball.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/TennisCDC.webp' },
+  { id:'equestrian',    cat:'Activities', name:'Equestrian Center',      meta:'Polo & riding',       desc:"Horseback riding, polo, jumping and children's programs across countryside trails and arenas.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/polo_Casa_de_Campo_Nacho_Figueras-1.webp' },
+  { id:'shooting',      cat:'Activities', name:'Shooting Center',        meta:'245 acres',           desc:"The DR's largest range — 200+ stations of sporting clays, trap, skeet and five-stand.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic39.webp' },
+  { id:'saona',         cat:'Activities', name:'Saona Island Catamaran', meta:'Full day · off resort', desc:'Sail to palm-fringed Saona, with natural pools and a beach lunch.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2025/01/saona.jpeg' },
 ];
 
 // ----------------------------------------------------------------- persistence

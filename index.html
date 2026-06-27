@@ -316,7 +316,7 @@ const EXPLORE=[
 /* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
 function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
 function renderExplore(){
-  const cats=['All','Dining','Beaches','Activities','Excursions'];
+  const cats=['All','Dining','Golf','Beaches','Activities'];
   const cur=state._exCat||'All';
   const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
   $app.innerHTML=`
@@ -330,11 +330,11 @@ function renderExplore(){
           <div class="display" style="font-size:22px">${esc(e.name)}</div>
           <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
           <div style="font-size:13.5px;color:var(--soft);line-height:1.5">${esc(e.desc)}</div>
-          ${reqFor('explore',e.id).map(reqLine).join('')}
-          <div style="display:flex;gap:9px;margin-top:13px">
+          ${e.info?'':reqFor('explore',e.id).map(reqLine).join('')}
+          ${e.info?'':`<div style="display:flex;gap:9px;margin-top:13px">
             <button onclick="openReq('explore','${esc(e.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button>
             <button onclick="askConcierge('${esc(e.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Ask concierge</button>
-          </div>
+          </div>`}
         </div></div>`).join('')}
     </div>
     ${tabBar('explore')}

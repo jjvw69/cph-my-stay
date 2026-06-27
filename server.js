@@ -20,7 +20,13 @@ const STAFF_HOURS = Number(process.env.STAFF_SESSION_HOURS || 8);
 const STAFF_COOKIE = 'cph_staff';
 const SECURE = process.env.NODE_ENV !== 'development';
 const LOGIN_MAX = Number(process.env.LOGIN_MAX_ATTEMPTS || 10);
-// Concierge email notifications (optional). Set RESEND_API_KEY (+ a verified NOTIFY_FROM) to enable.
+// Concierge notifications (all optional). Set the relevant env vars to enable a channel.
+// WhatsApp via Twilio:
+const TWILIO_SID = process.env.TWILIO_SID || '';
+const TWILIO_TOKEN = process.env.TWILIO_TOKEN || '';
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || ''; // e.g. whatsapp:+14155238886
+const CONCIERGE_WHATSAPP = process.env.CONCIERGE_WHATSAPP || '';     // e.g. whatsapp:+18297638801
+// Email via Resend:
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'concierge@caribbeanparadisehomes.com';
 const NOTIFY_FROM = process.env.NOTIFY_FROM || 'My Stay <onboarding@resend.dev>';
@@ -69,23 +75,40 @@ function guestStay(req,res){ const s=guestSession(req); if(!s) return sendJSON(r
 async function guestSubmit(kind,req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); await readBody(req); console.log('[%s] %s',kind,s.ref); if(kind==='message') return sendJSON(res,200,{ok:true,received:true,autoReply:'Thanks! Your concierge will reply shortly.'}); return sendJSON(res,200,{ok:true,received:true}); }
 async function guestAddRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.addRequest(s.ref,b); if(!r) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[request] %s %s "%s"',s.ref,r.type,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); return sendJSON(res,200,{ok:true,request:r}); }
 
-// Email the concierge when a guest submits a request. No-op (logs only) until RESEND_API_KEY is set.
+// Notify the concierge when a guest submits a request — WhatsApp (Twilio) and/or email (Resend).
+// No-op (logs only) until at least one channel's env vars are set.
 function notifyConcierge(stay,r){
   const ref=stay&&stay.booking?stay.booking.reference:''; const guest=stay&&stay.guest?(stay.guest.family||stay.guest.firstName||'Guest'):'Guest'; const villa=stay&&stay.villa?stay.villa.name:'';
-  if(!RESEND_API_KEY){ console.log('[notify] email disabled — %s requested "%s" (%s)',guest,r.title,ref); return; }
   const text=[
-    `${guest} (booking ${ref}) just submitted a request from the My Stay app:`,'',
+    `New My Stay request`,
+    `${guest} (booking ${ref})`,'',
     `${r.type==='addon'?'Add-on':'Itinerary'}: ${r.title}`,
     `When: ${r.date||'—'}   Time: ${r.time||'—'}   Guests: ${r.guests||'—'}`,
     r.note?`Note: ${r.note}`:'', villa?`Villa: ${villa}`:'','',
-    `Open the Console: ${APP_URL}/console`,
+    `Console: ${APP_URL}/console`,
   ].filter(Boolean).join('\n');
-  const body=JSON.stringify({from:NOTIFY_FROM,to:[NOTIFY_EMAIL],subject:`New guest request — ${r.title} (${ref})`,text});
+  let sent=false;
+  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
+  if(RESEND_API_KEY){ sendEmail(`New guest request — ${r.title} (${ref})`,text,ref); sent=true; }
+  if(!sent) console.log('[notify] disabled — %s requested "%s" (%s)',guest,r.title,ref);
+}
+function withWa(n){ return n.indexOf('whatsapp:')===0?n:('whatsapp:'+n); }
+function sendWhatsApp(text,ref){
   try{
+    const form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(CONCIERGE_WHATSAPP))+'&Body='+encodeURIComponent(text);
+    const auth='Basic '+Buffer.from(TWILIO_SID+':'+TWILIO_TOKEN).toString('base64');
     const https=require('https');
-    const rq=https.request('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] failed',resp.statusCode,d):console.log('[notify] emailed %s re %s',NOTIFY_EMAIL,ref); }); });
-    rq.on('error',e=>console.error('[notify] error',e.message)); rq.write(body); rq.end();
-  }catch(e){ console.error('[notify] threw',e.message); }
+    const rq=https.request('https://api.twilio.com/2010-04-01/Accounts/'+TWILIO_SID+'/Messages.json',{method:'POST',headers:{'Authorization':auth,'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] whatsapp failed',resp.statusCode,d):console.log('[notify] whatsapp sent re %s',ref); }); });
+    rq.on('error',e=>console.error('[notify] whatsapp error',e.message)); rq.write(form); rq.end();
+  }catch(e){ console.error('[notify] whatsapp threw',e.message); }
+}
+function sendEmail(subject,text,ref){
+  try{
+    const body=JSON.stringify({from:NOTIFY_FROM,to:[NOTIFY_EMAIL],subject,text});
+    const https=require('https');
+    const rq=https.request('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] email failed',resp.statusCode,d):console.log('[notify] emailed %s re %s',NOTIFY_EMAIL,ref); }); });
+    rq.on('error',e=>console.error('[notify] email error',e.message)); rq.write(body); rq.end();
+  }catch(e){ console.error('[notify] email threw',e.message); }
 }
 async function guestRemoveRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); return store.removeGuestRequest(s.ref,String(b.id||''))?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
 
