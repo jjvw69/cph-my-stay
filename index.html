@@ -502,14 +502,15 @@ function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
   const steps=[
     {t:'Land at '+(b.airport||'LRM'),d:'Your driver meets you in arrivals with a '+esc(s.guest.family)+' sign.'},
-    {t:'Resort gate',d:'Registration is pre-arranged; the butler greets you at the villa.'},
+    {t:'Resort main gate',d:'Your concierge will meet and greet you at the villa. Note: you must stop at the resort main gate to finalize your registration in order to enter the resort.'},
     {t:'Arrive at '+esc(v.name),d:'Wi-Fi and keys handed over in person. Check-in from '+(b.checkInTime||'3:00 PM')+'.'},
   ];
+  const mapQuery=encodeURIComponent((v.internalName?v.internalName+', ':'')+'Casa de Campo, La Romana, Dominican Republic');
   const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">ROUTE</div>
       <div class="display" style="font-size:24px;margin:4px 0">${esc(b.airport||'LRM')} → ${esc(v.name)}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
-      <div style="display:flex;gap:9px;margin-top:14px"><a href="https://maps.google.com/?q=Casa+de+Campo+${encodeURIComponent(v.name)}" target="_blank" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message driver</button></div>
+      <div style="display:flex;gap:9px;margin-top:14px"><a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message driver</button></div>
     </div>
     <div class="sec-title">Step by step</div>
     ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
