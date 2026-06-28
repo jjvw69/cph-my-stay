@@ -445,7 +445,7 @@ const SERVICE_INFO = {
   },
   golfcart: {
     range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
-    selects:`<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>`,
+    selects:`<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select><label class="reqlbl">How many carts</label><select id="rqQty"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>`,
     rates:`<b>RATES (per day)</b>
       <div class="rt"><span>4-seater · year-round</span><span>$80</span></div>
       <div class="rt"><span>4-seater · Easter &amp; holidays</span><span>$120</span></div>
@@ -479,6 +479,7 @@ const SERVICE_INFO = {
   },
   excursions: {
     menu:'https://www.casadecampo.com.do/experiences/',
+    selects:`<label class="reqlbl">Excursion</label><select id="rqService"><option>Saona Island day trip</option><option>Catalina Island catamaran</option><option>Marinarium snorkel &amp; sharks</option><option>Cumayasa zip line</option><option>Cumayasa buggies</option><option>Chavón River kayak</option><option>Santo Domingo city tour</option><option>Altos de Chavón visit</option><option>Cueva de las Maravillas</option><option>Cigar / rum factory tour</option><option>Deep-sea fishing</option><option>Other (add a note)</option></select>`,
     rates:`<b>A FEW FAVOURITES (taxes incl., most min. 4 guests)</b>
       <div class="rt"><span>Catalina Island catamaran</span><span>from $48</span></div>
       <div class="rt"><span>Marinarium snorkel &amp; sharks</span><span>from $64</span></div>
@@ -575,7 +576,9 @@ window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.rem
 window.submitReq=async function(type,refId){
   const date=(document.getElementById('rqDate')||{}).value||'';
   const endDate=(document.getElementById('rqEnd')||{}).value||'';
-  const cartType=(document.getElementById('rqCart')||{}).value||'';
+  const cartTypeRaw=(document.getElementById('rqCart')||{}).value||'';
+  const cartQty=(document.getElementById('rqQty')||{}).value||'';
+  const cartType=(cartQty&&cartTypeRaw)?(cartQty+' × '+cartTypeRaw):cartTypeRaw;
   const serviceLevel=(document.getElementById('rqService')||{}).value||'';
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';

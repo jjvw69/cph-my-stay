@@ -60,6 +60,17 @@
   .srcpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;vertical-align:middle}
   .srcpill.direct{background:#E4EEE6;color:#3F6B4E}
   .srcpill.partner{background:#EFEADD;color:#6E5C39;border:1px solid #E2D9C6}
+  .fupill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#E7EBE6;color:#5B6B5F}
+  .fupill.due{background:#F4E4C7;color:#8A5A1E}
+  .fupill.over{background:#F2D7CF;color:#9E3B2A}
+  .fustrip{background:#FBF1E8;border:1px solid #ECD9C5;border-radius:13px;padding:11px 12px;margin-bottom:12px}
+  .fuhd{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9E5B43;font-weight:600;margin-bottom:2px}
+  .fuitem{display:flex;align-items:flex-start;gap:9px;width:100%;text-align:left;background:#fff;border:1px solid #ECD9C5;border-radius:10px;padding:9px 11px;margin-top:7px;cursor:pointer}
+  .fudot{width:8px;height:8px;border-radius:50%;background:#C8852F;flex:0 0 auto;margin-top:5px}
+  .fudot.over{background:#9E3B2A}
+  .futx{display:flex;flex-direction:column;min-width:0}
+  .futx b{font-size:13.5px}
+  .futx span{font-size:12px;color:var(--soft)}
   .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
@@ -226,17 +237,23 @@ function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
   const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q));
   const el=document.getElementById('stayList');
-  if(!items.length){ el.innerHTML='<div class="empty" style="padding:20px 4px">No stays yet. Tap ＋ New.</div>'; return; }
-  el.innerHTML=items.map(s=>{
+  const today=todayStr();
+  // Follow-ups that are due today or overdue, across all stays (not filtered by search).
+  const due=LIST.filter(s=>s.followUpDate && s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
+  const strip=due.length?`<div class="fustrip"><div class="fuhd">Follow-ups due (${due.length})</div>${due.map(s=>{const over=s.followUpDate<today;return `<button class="fuitem" onclick="selectStay('${s.id}')"><span class="fudot ${over?'over':''}"></span><span class="futx"><b>${esc(s.guest)}</b><span>${esc(s.followUpNote||'Follow up')} · ${fmtDay(s.followUpDate)}${over?' · overdue':' · today'}</span></span></button>`;}).join('')}</div>`:'';
+  if(!items.length){ el.innerHTML=strip+'<div class="empty" style="padding:20px 4px">No stays yet. Tap ＋ New.</div>'; return; }
+  el.innerHTML=strip+items.map(s=>{
     const dates=(s.checkin||'?')+' – '+(s.checkout||'?');
     const pill=(s.status||'draft').replace(/\s/g,'').toLowerCase();
     const reqB=s.requests?`<span class="reqbadge">${s.requests} request${s.requests==1?'':'s'}</span>`:'';
     const isDirect=/direct/i.test(s.source||'');
     const srcB=s.source?`<span class="srcpill ${isDirect?'direct':'partner'}">${isDirect?'Direct':esc(s.source)}</span>`:'';
+    const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
+    const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''}" onclick="selectStay('${s.id}')">
       <div class="g">${esc(s.guest)}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}</div>`;
+      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}</div>`;
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
@@ -266,6 +283,12 @@ function renderEditor(){
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button><button class="b-out" onclick="saveDraft()">Save draft</button><button class="b-fill" onclick="publish()">Publish</button></div></div>
+
+    <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
+      <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
+      <div class="f"><label>Note</label><input value="${esc(cur.followUpNote||'')}" placeholder="e.g. Confirm transfer price" oninput="set('followUpNote',this.value)"></div>
+      <div class="f full counter">Appears on the stay card and in the “Follow-ups due” strip on the date you pick. Save the draft to apply.${cur.followUpDate?` · <a href="#" onclick="clearFollowUp();return false" style="color:#9E5B43;text-decoration:underline">Clear</a>`:''}</div>
+    </div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
       <div class="f"><label>Lead guest (full name)</label><input value="${esc(cur.leadName)}" oninput="set('leadName',this.value)"></div>
@@ -349,6 +372,7 @@ function renderEditor(){
     </div></div>`;
 }
 window.set=set;
+window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
 window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } renderEditor(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
@@ -359,6 +383,8 @@ window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnI
 function nights(a,b){ const d1=new Date(a),d2=new Date(b); if(isNaN(d1)||isNaN(d2))return null; return Math.max(0,Math.round((d2-d1)/864e5)); }
 function daysUntil(a){ const d=new Date(a+'T00:00:00'); if(isNaN(d))return null; return Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/864e5)); }
 function fmtReqDate(ts){ try{ const d=new Date(ts); if(isNaN(d))return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtDay(iso){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return iso; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
 function renderPreview(){
   if(!cur){ document.getElementById('preview').innerHTML='<div class="empty">No stay selected.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{};

@@ -269,6 +269,7 @@ function blankStay() {
     messages: [],
     guestList: [],
     guestCheckin: null,
+    followUpDate: '', followUpNote: '',
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
@@ -280,13 +281,13 @@ function summaryStay(s) {
   const v = getVilla(s.villaId);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
-    source: s.source || '', requests: (s.requests || []).length };
+    source: s.source || '', followUpDate: s.followUpDate || '', followUpNote: s.followUpNote || '', requests: (s.requests || []).length };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
