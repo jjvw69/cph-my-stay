@@ -981,6 +981,8 @@ function renderArrival(){
   const transferMsg = b.transferArranged
     ? 'Your private airport transfer is arranged — your driver will meet you as described below.'
     : (gc.transferType ? ('Transfer requested ('+(gc.transferType==='roundtrip'?'round-trip':'one-way')+') — your concierge will confirm the details shortly.') : '');
+  const DIST={LRM:'≈ 15 min · 12 mi',PUJ:'≈ 1 hr · 40 mi',SDQ:'≈ 1 hr 45 min · 68 mi'};
+  const dist=DIST[(b.airport||'LRM')]||DIST.LRM;
   const steps=[
     {t:'Before you arrive',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
     {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
@@ -993,7 +995,7 @@ function renderArrival(){
   const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/03/Casa_de_Campo_Dominica_Republic28.jpg') center/cover;color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.75)">ROUTE</div>
       <div class="display" style="font-size:24px;margin:4px 0">${esc(b.airport||'LRM')} → ${esc(v.name)}</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">${dist}</div>
       <div style="display:flex;gap:9px;margin-top:14px"><a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message concierge</button></div>
     </div>
     ${transferMsg?`<div class="card" style="display:flex;gap:10px;align-items:flex-start;margin-top:12px"><span style="font-size:18px;flex:0 0 auto">${b.transferArranged?'✓':'⏳'}</span><div style="font-size:13.5px;color:var(--ink);line-height:1.5">${transferMsg}</div></div>`:''}
