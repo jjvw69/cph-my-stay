@@ -472,8 +472,45 @@ const SERVICE_INFO = {
     notePlaceholder:'Quantity, ages, dates needed, anything specific…',
     selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Baby playpen</option><option>Other</option></select>`
   },
+  tennis: {
+    menu:'https://www.casadecampo.com.do/experiences/racquet-center/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Tennis — court rental</option><option>Tennis — private lesson</option><option>Tennis — group clinic</option><option>Padel — court rental</option><option>Padel — lesson</option><option>Racquet / paddle rental</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes not incl.)</b>
+      <div class="rth">Tennis</div>
+      <div class="rt"><span>Court · day / night</span><span>$35 / $45</span></div>
+      <div class="rt"><span>Private lesson (Pro / Director)</span><span>$65 / $125 p/h</span></div>
+      <div class="rt"><span>Group clinic (adults / kids)</span><span>$35 / $25</span></div>
+      <div class="rt"><span>Ball machine · racquet rental</span><span>$25 · $15</span></div>
+      <div class="rth">Padel</div>
+      <div class="rt"><span>Court · day / night</span><span>$40 / $45</span></div>
+      <div class="rt"><span>Private lesson · paddle rental</span><span>from $60 · $10</span></div>`
+  },
+  equestrian: {
+    menu:'https://www.casadecampo.com.do/experiences/equestrian/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Horseback ride</option><option>Pony ride (kids 4–6)</option><option>Riding / jumping lesson</option><option>Polo lesson</option><option>Donkey polo</option><option>Ranch horseback tour</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes incl.)</b>
+      <div class="rt"><span>Horseback ride (½h / 1h / 2h)</span><span>$45 / $85 / $125 p/p</span></div>
+      <div class="rt"><span>Pony ride (½h, ages 4–6)</span><span>$40</span></div>
+      <div class="rt"><span>Riding / jumping lesson (½h / 1h)</span><span>$80 / $125 p/p</span></div>
+      <div class="rt"><span>Polo lesson (assistant / pro)</span><span>$120 / $200 p/p</span></div>
+      <div class="rt"><span>Donkey polo (1h, min 6)</span><span>$70 p/p</span></div>
+      <div class="rt"><span>Ranch horseback tour (2h)</span><span>$170–$255 p/p</span></div>`
+  },
+  shooting: {
+    menu:'https://www.casadecampo.com.do/experiences/shooting-center/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Skeet / Trap round</option><option>Five-stand round</option><option>Sporting clays round</option><option>Flush (group)</option><option>Lesson</option><option>Bird shooting</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes not incl.)</b>
+      <div class="rt"><span>Skeet / Trap round (25)</span><span>$45</span></div>
+      <div class="rt"><span>Five-stand round (25)</span><span>$50</span></div>
+      <div class="rt"><span>Sporting clays (50 → 200)</span><span>$105 – $320</span></div>
+      <div class="rt"><span>Flush 2 / 3 / 4 / 5-man</span><span>$105 / $135 / $190 / $220</span></div>
+      <div class="rt"><span>Lessons (Skeet / Clays / Pro)</span><span>$20 / $45 / $80</span></div>
+      <div class="rt"><span>Bird shooting</span><span>from $40/bird</span></div>
+      <div class="rtnote">Under-12s must be evaluated at the Shooting Center. Bird shooting is booked directly with the centre.</div>`
+  },
   spa: {
     menu:'https://www.casadecampo.com.do/experiences/spa/',
+    selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Massage</option><option>Facial</option><option>Body treatment</option><option>Hydrothermal Experience</option><option>In-villa treatment</option><option>Other</option></select>`,
     rates:`<b>THE SPA AT CASA DE CAMPO</b>
       <div class="rt"><span>In-villa add-ons</span><span>from $95</span></div>
       <div class="rt"><span>Massages &amp; facials (80–110 min)</span><span>$285–$385</span></div>
@@ -484,7 +521,7 @@ const SERVICE_INFO = {
 };
 window.openReq=function(type,refId){
   const b=state.stay.booking||{}; state._rqG=0;
-  const info = (type==='addon' && SERVICE_INFO[refId]) ? SERVICE_INFO[refId] : {};
+  const info = SERVICE_INFO[refId] || {};
   const ratesBlock = info.rates ? `<div class="reqrates">${info.rates}</div>` : '';
   const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
   const selectsBlock = info.selects || '';
