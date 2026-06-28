@@ -587,13 +587,6 @@ const SERVICE_INFO = {
       <div class="rt"><span>Single kayak</span><span>$30 p/p</span></div>
       <div class="rt"><span>Double kayak</span><span>$45 p/p</span></div>`
   },
-  'funcat': {
-    menu:'https://www.casadecampo.com.do/experiences/excursions/',
-    rates:`<b>RATES (taxes incl. · 1h 30m)</b>
-      <div class="rt"><span>Adult</span><span>$115 p/p</span></div>
-      <div class="rt"><span>Child (6–14)</span><span>$75 per child</span></div>
-      <div class="rtnote">Departures: 9:30–11:00 am or 1:30–3:30 pm.</div>`
-  },
   'watersports': {
     menu:'https://www.casadecampo.com.do/experiences/beaches/',
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Snorkelling gear</option><option>Kayak (single)</option><option>Kayak (double)</option><option>Banana boat ride</option><option>Hobie Wave</option><option>Sunfish sailboat</option><option>Sun floats</option><option>Other</option></select>`,
@@ -620,12 +613,6 @@ const SERVICE_INFO = {
       <div class="rt"><span>Double motor</span><span>$105 p/p</span></div>
       <div class="rt"><span>Child (5+)</span><span>$90 per child</span></div>
       <div class="rtnote">Includes water, goggles and bandana. Sport clothing.</div>`
-  },
-  'marinarium': {
-    menu:'https://www.casadecampo.com.do/experiences/excursions/',
-    rates:`<b>RATES (taxes incl. · min. 6 · ages 5+)</b>
-      <div class="rt"><span>Adult</span><span>$124 p/p</span></div>
-      <div class="rt"><span>Child (5–12)</span><span>$64 per child</span></div>`
   },
   'catalina': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
@@ -658,21 +645,6 @@ const SERVICE_INFO = {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (taxes incl. · min. 6 · adults only)</b>
       <div class="rt"><span>Per person</span><span>$57 p/p</span></div>`
-  },
-  'bird-shooting': {
-    menu:'https://www.casadecampo.com.do/experiences/shooting-center/',
-    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Monte Carlo box pigeons (25)</option><option>Columbari pigeons (25)</option><option>Partridge (per bird)</option><option>Pheasant (per bird)</option><option>Mallard ducks (per bird)</option><option>Dove hunting — half day</option><option>Other</option></select>`,
-    rates:`<b>RATES (taxes not incl.)</b>
-      <div class="rt"><span>Monte Carlo / Columbari (25 birds, 50 shells)</span><span>$375</span></div>
-      <div class="rt"><span>Partridge / Pheasant / Mallard (per bird)</span><span>$40</span></div>
-      <div class="rt"><span>Dove hunting — half day (max 3)</span><span>$400</span></div>
-      <div class="rtnote">Cartridges $17 per box of 25. Booked directly with the Shooting Center.</div>`
-  },
-  'scavenger': {
-    notePlaceholder:'Group size, preferred date & time, any theme…',
-    rates:`<b>GROUP ACTIVITY</b>
-      <div class="rt"><span>Scavenger hunt (per event)</span><span>from $985</span></div>
-      <div class="rtnote">From 15 people. A fun team-building activity — ask your concierge for more group options.</div>`
   },
   'family-programs': {
     menu:'https://www.casadecampo.com.do/experiences/for-families/',
@@ -709,6 +681,12 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">Session</label><select id="rqService"><option>Private session</option><option>Couples session</option><option>Group session</option><option>Sunrise on the beach</option></select>`,
     notePlaceholder:'Number of participants, preferred date & time, location (terrace/beach)…',
     rates:`<b>PRIVATE YOGA</b><div class="rtnote">A certified instructor comes to your villa or the beach. Your concierge will confirm availability and pricing.</div>`
+  },
+  'yacht-charter': {
+    menu:'https://www.casadecampo.com.do/experiences/marina/',
+    notePlaceholder:'Number of guests, date, duration, destination (Catalina, Saona, coastal cruise…), any preferences…',
+    selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select>`,
+    rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   }
 };
 window.openReq=function(type,refId){
