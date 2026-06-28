@@ -190,7 +190,7 @@ try{ if(window.parent && window.parent !== window) document.documentElement.clas
 
 const SEAL = "https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
 
-const state = { stay:null, token:null, tab:'home', stack:[], checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
+const state = { stay:null, token:null, tab:'home', stack:[], checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
 const $app = document.getElementById('app');
 const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
@@ -269,7 +269,8 @@ function hydrateCheckin(){
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
 function loadConversation(){
   const s=state.stay; if(!s) return;
-  const greet={from:'them',t:`Hi ${s.guest.firstName||'there'}, I'm ${(s.concierge&&s.concierge.name)||'your concierge'}, your concierge. How can I help make your stay perfect?`};
+  const wm=(s.welcomeMessage||'').trim();
+  const greet={from:'them',t: wm || `Hi ${s.guest.firstName||'there'}, I'm ${(s.concierge&&s.concierge.name)||'your concierge'}, your concierge. How can I help make your stay perfect?`};
   const stored=(s.messages||[]).map(m=>({from:m.from==='guest'?'me':'them',t:m.text}));
   state.messages=[greet].concat(stored);
 }
@@ -621,19 +622,20 @@ window.removeReq=async function(id){
 function renderConcierge(){
   const s=state.stay;
   if(state.messages.length===0){
-    state.messages=[{from:'them',t:`Hi ${esc(s.guest.firstName||'there')}, I'm ${esc(s.concierge.name)}, your concierge. How can I help make your stay perfect?`}];
+    const wm=(s.welcomeMessage||'').trim();
+    state.messages=[{from:'them',t: wm || `Hi ${s.guest.firstName||'there'}, I'm ${s.concierge.name}, your concierge. How can I help make your stay perfect?`}];
   }
-  if(state._seed){ state.messages.push({from:'me',t:state._seed}); state._seed=null; setTimeout(()=>{state.messages.push({from:'them',t:'Wonderful choice — I\'ll put together the details and options for you right away.'}); if(state.tab==='concierge')render();},900); }
+  const seed=state._seed||''; state._seed=null;   // prefill the composer so the guest sends a REAL message (no fake auto-reply)
   const quick=['Airport transfer','Restaurant booking','Grocery pre-stock','Late checkout'];
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
     <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
     <div class="qrow"><div class="seg">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
-    <div class="composer"><input id="cmsg" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
+    <div class="composer"><input id="cmsg" value="${esc(seed)}" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
     ${tabBar('concierge',true)}
   </div>`;
-  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});}
+  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();}); if(seed){i.focus();}}
   const m=document.getElementById('msgs'); if(m)m.scrollTop=m.scrollHeight;
 }
 window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
@@ -813,6 +815,10 @@ function renderAddons(){
 
 function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
+  const gc=s.guestCheckin||{};
+  const transferMsg = b.transferArranged
+    ? 'Your private airport transfer is arranged — your driver will meet you as described below.'
+    : (gc.transferType ? ('Transfer requested ('+(gc.transferType==='roundtrip'?'round-trip':'one-way')+') — your concierge will confirm the details shortly.') : '');
   const steps=[
     {t:'Before you arrive',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
     {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
@@ -828,6 +834,7 @@ function renderArrival(){
       <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
       <div style="display:flex;gap:9px;margin-top:14px"><a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message concierge</button></div>
     </div>
+    ${transferMsg?`<div class="card" style="display:flex;gap:10px;align-items:flex-start;margin-top:12px"><span style="font-size:18px;flex:0 0 auto">${b.transferArranged?'✓':'⏳'}</span><div style="font-size:13.5px;color:var(--ink);line-height:1.5">${transferMsg}</div></div>`:''}
     <div class="sec-title">Step by step</div>
     ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
     <div class="sec-title">On arrival</div>
