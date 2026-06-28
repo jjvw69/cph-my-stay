@@ -29,11 +29,7 @@ const ADDON_CATALOG = [
   { id: 'grocery',       category: 'Provisioning & dining', name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
   { id: 'dining',        category: 'Provisioning & dining', name: 'Restaurant & activity reservations', desc: "Bookings at the resort's restaurants and activities." },
   { id: 'catering',      category: 'Provisioning & dining', name: 'Private chef & catering',            desc: 'In-villa dining and catering for any occasion.' },
-  // Experiences
-  { id: 'entertainment', category: 'Experiences',           name: 'Live entertainment',                 desc: 'Musicians, DJs and performers for your event.' },
-  { id: 'rumcigar',      category: 'Experiences',           name: 'Tobacco & rum tasting',              desc: 'A curated Dominican rum and cigar tasting.' },
-  { id: 'yoga',          category: 'Experiences',           name: 'Private yoga',                       desc: 'Sunrise yoga on your terrace or the beach.' },
-  { id: 'spa',           category: 'Experiences',           name: 'In-villa massage',                   desc: 'Spa treatments and massages in the comfort of your villa.' },
+  // (Experiences moved to the Explore → Experiences directory)
   // In-villa services
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
   { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra butlers, housekeepers or a nanny.' },
@@ -206,6 +202,10 @@ const EXPLORE_SCENES = [
   { id:'family-tweens', cat:'Activities', name:'Casa Tweens', meta:'Ages 7–12 · supervised', desc:'An active full- or half-day program — kayaking, horseback riding, tennis, water sports and tournaments.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B912551231.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
   { id:'family-teens', cat:'Activities', name:'Bonche 4 Teens', meta:'Ages 13–17', desc:'A supervised teens-only zone with billiards, air hockey, music, movies and scheduled tournaments.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B912541241.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
   { id:'family-nannies', cat:'Activities', name:'Nannies & Babysitting', meta:'Childcare · day or night', desc:'Professionally trained nannies (First Aid & CPR, English/Spanish) for daytime supervision or evening babysitting.', img:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Nanny-Services-2025.jpeg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
+  // ---- In-villa experiences (arranged by your concierge) ----
+  { id:'entertainment', cat:'Activities', name:'Live Entertainment', meta:'In-villa · events', desc:'Musicians, DJs and performers to set the mood for a dinner, celebration or party at your villa.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/SBG_Marina_084-800x600-1.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
+  { id:'rumcigar', cat:'Activities', name:'Rum & Cigar Tasting', meta:'In-villa · curated', desc:'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/manos-1024x949.jpg.webp', more:'https://www.casadecampo.com.do/experiences/' },
+  { id:'yoga', cat:'Activities', name:'Private Yoga', meta:'In-villa · wellness', desc:'A private sunrise yoga session on your terrace or the beach with a certified instructor.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Reception.webp', more:'https://www.casadecampo.com.do/rejuvenate/' },
 ];
 
 // ----------------------------------------------------------------- persistence

@@ -36,6 +36,12 @@
   html.embedded, html.embedded body{height:100%;min-height:100%}
   html.embedded body{display:block}
   html.embedded #app{max-width:none;height:100%;min-height:100%;max-height:none;border-radius:0;box-shadow:none}
+  /* iPad / tablets: even inside the embed, present the app as a centered phone-style
+     column with the dark backdrop showing in the margins (keeps the design intact). */
+  @media(min-width:768px){
+    html.embedded body{display:flex;align-items:stretch;justify-content:center;background:var(--backdrop)}
+    html.embedded #app{max-width:480px;width:480px;height:100%;min-height:100%;border-radius:0;box-shadow:0 0 60px rgba(0,0,0,.35)}
+  }
 
   .view{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
   .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 120px}
@@ -410,7 +416,11 @@ function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.len
 function renderExplore(){
   const cats=[['All','All'],['Dine','Dining'],['Golf','Golf'],['Experiences','Activities'],['Amenity','Amenities']];
   const cur=state._exCat||'All';
-  const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
+  const _all=exploreData().filter(e=>cur==='All'||e.cat===cur);
+  const PER=10, pageCount=Math.max(1,Math.ceil(_all.length/PER));
+  let _pg=Math.min(state._exPage||0,pageCount-1); if(_pg<0)_pg=0;
+  const items=_all.slice(_pg*PER,(_pg+1)*PER);
+  const pager = pageCount>1 ? `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 2px 6px"><button onclick="setExPage(${_pg-1})" ${_pg===0?'disabled':''} style="border:1px solid var(--line);border-radius:11px;padding:11px 16px;font-size:13.5px;color:var(--accent);background:#fff${_pg===0?';opacity:.4':''}">← Prev</button><span style="font-size:13px;color:var(--soft)">Page ${_pg+1} of ${pageCount}</span><button onclick="setExPage(${_pg+1})" ${_pg>=pageCount-1?'disabled':''} style="border:1px solid var(--line);border-radius:11px;padding:11px 16px;font-size:13.5px;color:var(--accent);background:#fff${_pg>=pageCount-1?';opacity:.4':''}">Next →</button></div>` : '';
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><span class="ttl">Explore</span></div>
@@ -429,11 +439,13 @@ function renderExplore(){
             : reqFor('explore',e.id).map(reqLine).join('')+`<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:13px">${e.menu?`<a href="${esc(e.menu)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">Menu</a>`:''}${e.more?`<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info</a>`:''}<button onclick="openReq('explore','${esc(e.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Add to itinerary</button></div>`
           )}
         </div></div>`).join('')}
+      ${pager}
     </div>
     ${tabBar('explore')}
   </div>`;
 }
-window.setExCat=function(c){ state._exCat=c; render(); };
+window.setExCat=function(c){ state._exCat=c; state._exPage=0; render(); };
+window.setExPage=function(n){ state._exPage=Math.max(0,n); render(); const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
 
 /* ---------- guest interest requests (add-on + itinerary) ---------- */
@@ -555,8 +567,8 @@ const SERVICE_INFO = {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     selects:`<label class="reqlbl">Which ranch?</label><select id="rqService"><option>Rancho Peligro — 2h trail ride</option><option>Rancho Peligro — 2h with picnic</option><option>Rancho Higüeral — 2h</option><option>Rancho Cacata — 2h</option></select>`,
     rates:`<b>RATES (taxes incl., Thu/Fri/Sat · min. 4)</b>
-      <div class="rt"><span>Rancho Peligro (2h)</span><span>$185–$250 p/p</span></div>
-      <div class="rt"><span>Rancho Peligro — with picnic</span><span>$255–$300 p/p</span></div>
+      <div class="rt"><span>Rancho Peligro (2h)</span><span>$250 p/p</span></div>
+      <div class="rt"><span>Rancho Peligro — with picnic</span><span>$300 p/p</span></div>
       <div class="rt"><span>Rancho Higüeral / Cacata (2h)</span><span>$170 p/p</span></div>
       <div class="rtnote">Long trousers and closed shoes. Helmets provided.</div>`
   },
@@ -709,6 +721,20 @@ const SERVICE_INFO = {
       <div class="rt"><span>Half day · up to 2 children</span><span>$85 (+$29 3rd)</span></div>
       <div class="rt"><span>By night · per hour (2 children)</span><span>$20 (+$10 3rd)</span></div>
       <div class="rtnote">Max 3 children per nanny. Book 24h ahead. Night service paid in cash to the nanny.</div>`
+  },
+  'entertainment': {
+    notePlaceholder:'Type of act (band, DJ, soloist), occasion, date, time and number of guests…',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Live band / musicians</option><option>DJ</option><option>Solo guitarist / pianist</option><option>Dancers / performers</option><option>Other</option></select>`,
+    rates:`<b>LIVE ENTERTAINMENT</b><div class="rtnote">Pricing varies by act and duration — your concierge will source options and quote for your event.</div>`
+  },
+  'rumcigar': {
+    notePlaceholder:'Number of guests, preferred date & time, any rum or cigar preferences…',
+    rates:`<b>RUM &amp; CIGAR TASTING</b><div class="rtnote">A curated in-villa tasting of Dominican rums and hand-rolled cigars. Your concierge will tailor it to your group and quote.</div>`
+  },
+  'yoga': {
+    selects:`<label class="reqlbl">Session</label><select id="rqService"><option>Private session</option><option>Couples session</option><option>Group session</option><option>Sunrise on the beach</option></select>`,
+    notePlaceholder:'Number of participants, preferred date & time, location (terrace/beach)…',
+    rates:`<b>PRIVATE YOGA</b><div class="rtnote">A certified instructor comes to your villa or the beach. Your concierge will confirm availability and pricing.</div>`
   }
 };
 window.openReq=function(type,refId){
