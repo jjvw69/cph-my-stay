@@ -859,6 +859,8 @@ window.printItinerary=function(){
   const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
     const status=r.status==='confirmed'?('Confirmed'+(r.price?' · '+esc(r.price):'')):'Requested';
     return `<tr><td style="padding:7px 0;border-top:1px solid #E6E9E2">${esc(r.title||'Request')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;color:#54605A">${esc(when||'Date to be confirmed')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${esc(status)}</td></tr>`; };
+  const gk=(k,val)=>`<tr><td style="padding:6px 14px 6px 0;color:#6B756C;white-space:nowrap;vertical-align:top;font-weight:600;border-top:1px solid #EEF1EC">${k}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC">${val}</td></tr>`;
+  const air=esc(b.airport||'LRM');
   const body=`
     <div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #16241E;padding-bottom:12px">
       <img src="${SEAL}" alt="" style="width:46px;height:auto">
@@ -880,6 +882,29 @@ window.printItinerary=function(){
     ${reqs.length?`<table style="width:100%;font-size:13.5px;border-collapse:collapse">
       <thead><tr style="text-align:left;color:#8A938B;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase"><th style="padding:4px 0;font-weight:600">Item</th><th style="padding:4px 0;font-weight:600">When</th><th style="padding:4px 0;font-weight:600;text-align:right">Status</th></tr></thead>
       <tbody>${reqs.map(reqRow).join('')}</tbody></table>`:`<div style="font-size:13px;color:#6B756C;padding-top:6px">Nothing arranged yet.</div>`}
+
+    <h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Getting there</h2>
+    <ol style="font-size:13px;line-height:1.55;color:#33403A;padding-left:18px;margin:4px 0 0">
+      <li style="margin-bottom:7px"><b>Before you arrive —</b> Fill out the Dominican Republic E‑Ticket at eticket.migracion.gob.do. Your address in the DR: Casa de Campo, La Romana, Province La Romana, Section Central Romana, Dominican Republic.</li>
+      <li style="margin-bottom:7px"><b>Pre‑arrival registration —</b> Send each guest’s full name &amp; passport number so we can pre‑register your group; you’ll receive a Registration Number for check‑in.${s.registrationNumber?' Your Registration #: <b>'+esc(s.registrationNumber)+'</b>.':''}</li>
+      <li style="margin-bottom:7px"><b>Land at ${air} —</b> Your driver waits just outside customs with a sign showing your name. We monitor your flight; the driver waits up to 1 hour after you land.</li>
+      <li style="margin-bottom:7px"><b>Resort main gate —</b> Stop to complete registration; have each guest’s passport and a credit card ready. The resort fee is settled here.</li>
+      <li style="margin-bottom:7px"><b>Resort fee —</b> US$30 per adult/day (12+), US$15 per child/day (4–12), free for children 3 and under.</li>
+      <li><b>Arrive at ${esc(v.name||'your villa')} —</b> Your concierge welcomes you and hands over the keys &amp; Wi‑Fi in person. Check‑in from ${esc(b.checkInTime||'3:00 PM')}.</li>
+    </ol>
+
+    <h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Good to know</h2>
+    <table style="font-size:13px;border-collapse:collapse;width:100%">
+      ${gk('Villa staff','Daily 8 AM–5 PM unless arranged. Beyond hours: US$60 per staff member (cash).')}
+      ${gk('Tipping','Suggested US$35–45 per day, per staff member, in cash. ATMs at the Hotel, Minitas Beach and the Marina.')}
+      ${(s.wifiName||s.wifiPassword)?gk('Wi‑Fi','Network <b>'+esc(s.wifiName||'—')+'</b> · Password <b>'+esc(s.wifiPassword||'—')+'</b>'):gk('Wi‑Fi','Provided in your villa on arrival.')}
+      ${gk('Getting around','Google Maps &amp; Waze work inside the resort — pin your villa. Photograph your golf cart to find it easily.')}
+      ${gk('Groceries','Marina: wine &amp; spirits, bakery, El Nacional supermarket. Larger supermarkets in La Romana.')}
+      ${gk('Check‑out','By '+esc(b.checkOutTime||'11:00 AM')+' — late check‑out on request.')}
+      ${gk('Reservations','Owner’s Club +1 809‑523‑3165 (ext. 3165 / 3166), or message your concierge.')}
+      ${gk('Emergencies','General 911 · Fire 5555 · Resort security 5193 / 5194.')}
+    </table>
+
     <div style="margin-top:28px;font-size:10.5px;color:#9AA49B;border-top:1px solid #D9DDD5;padding-top:10px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · caribbeanparadisehomes.com · Final prices are confirmed by your concierge.</div>
     <button onclick="window.print()" class="noprint" style="margin:26px auto 0;display:block;background:#16241E;color:#fff;border:0;border-radius:11px;padding:12px 20px;font-size:15px;cursor:pointer">Print / Save as PDF</button>`;
   const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My Stay Itinerary</title>'
