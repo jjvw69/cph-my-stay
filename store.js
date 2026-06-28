@@ -196,11 +196,8 @@ const EXPLORE_SCENES = [
   { id:'rum', cat:'Activities', name:'Rum Factory · Ron Barceló', meta:'Distillery tour', desc:"Tour one of the country's most prestigious rum distilleries, founded in 1930 (adults only).", img:'https://www.casadecampo.com.do/wp-content/uploads/2019/07/excursions.jpg', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   { id:'bird-shooting', cat:'Activities', name:'Bird Shooting', meta:'Shooting Center', desc:"Driven bird shooting at the Caribbean's largest range — pigeons, partridge, pheasant, mallard and dove.", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic39.webp', more:'https://www.casadecampo.com.do/experiences/shooting-center/' },
   { id:'scavenger', cat:'Activities', name:'Scavenger Hunt', meta:'Group · team-building', desc:'A fun, team-building group activity around the resort — great for families and groups (15+ people).', img:'https://www.casadecampo.com.do/wp-content/uploads/2022/08/EJ4B4594-scaled-1.jpg', more:'https://www.casadecampo.com.do/experiences/' },
-  // ---- Family programs (supervised kids' camps & childcare) ----
-  { id:'family-toddlers', cat:'Activities', name:"Toddlers 'N' Casa", meta:'Ages 1–3 · supervised', desc:'A supervised half- or full-day program for our youngest guests — playground, arts & crafts, puppet shows and games.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91245.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  { id:'family-kidz', cat:'Activities', name:"Kidz 'N' Casa", meta:'Ages 4–6 · supervised', desc:'Beach Olympics, treasure hunts, swimming, tennis lessons and pony rides with friendly counsellors.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91254151.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  { id:'family-tweens', cat:'Activities', name:'Casa Tweens', meta:'Ages 7–12 · supervised', desc:'An active full- or half-day program — kayaking, horseback riding, tennis, water sports and tournaments.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B912551231.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  { id:'family-teens', cat:'Activities', name:'Bonche 4 Teens', meta:'Ages 13–17', desc:'A supervised teens-only zone with billiards, air hockey, music, movies and scheduled tournaments.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B912541241.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
+  // ---- Family programs & childcare ----
+  { id:'family-programs', cat:'Activities', name:'Family Programs', meta:"Supervised kids' camps · 1–17", desc:'Award-winning supervised programs by age group — Toddlers (1–3), Kidz (4–6), Casa Tweens (7–12) and Bonche 4 Teens (13–17): playground, arts & crafts, beach Olympics, sports, kayaking, horseback riding and more.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91245.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
   { id:'family-nannies', cat:'Activities', name:'Nannies & Babysitting', meta:'Childcare · day or night', desc:'Professionally trained nannies (First Aid & CPR, English/Spanish) for daytime supervision or evening babysitting.', img:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Nanny-Services-2025.jpeg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
   // ---- In-villa experiences (arranged by your concierge) ----
   { id:'entertainment', cat:'Activities', name:'Live Entertainment', meta:'In-villa · events', desc:'Musicians, DJs and performers to set the mood for a dinner, celebration or party at your villa.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/SBG_Marina_084-800x600-1.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
@@ -380,6 +377,10 @@ function saveCheckin(reference, data) {
     dietary: norm(data.dietary).slice(0, 600),
     submittedAt: Date.now(),
   };
+  // Keep the staff-facing arrival fields in sync with what the guest actually submitted,
+  // so the console's "Arrival airport / Flight" always reflect the guest's real arrival.
+  if (s.guestCheckin.airport) s.airport = s.guestCheckin.airport;
+  if (s.guestCheckin.flight) s.flight = s.guestCheckin.flight;
   s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
 /** Concierge confirms a request from the Console and sets the final price. */

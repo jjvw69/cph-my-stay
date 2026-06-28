@@ -348,7 +348,8 @@ function renderEditor(){
         ${cur.guestCheckin.flight?`<div class="reqmeta">Flight: <b>${esc(cur.guestCheckin.flight)}</b></div>`:''}
         ${cur.guestCheckin.occasion?`<div class="reqmeta">Occasion: <b>${esc(cur.guestCheckin.occasion)}</b></div>`:''}
         ${cur.guestCheckin.dietary?`<div class="reqmeta">Dietary notes: ${esc(cur.guestCheckin.dietary)}</div>`:''}
-        <div class="reqmeta" style="color:#7A8B7E;margin-top:6px">The guest submitted this in their app. Use it to set the Arrival &amp; transfer fields above.</div>
+        ${((cur.guestCheckin.airport&&cur.guestCheckin.airport!==cur.airport)||(cur.guestCheckin.flight&&cur.guestCheckin.flight!==(cur.flight||'')))?`<div class="reqmeta" style="color:#9E5B43;margin-top:8px;font-weight:600">⚠ The Arrival &amp; transfer fields above don't match this submission — tap Apply.</div>`:`<div class="reqmeta" style="color:#3F6B4E;margin-top:8px">✓ Arrival fields match the guest's submission.</div>`}
+        <button class="b-fill" onclick="applyCheckin()" style="margin-top:10px;padding:9px 14px">Apply to arrival fields above</button>
       </div></div>`:''}
 
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
@@ -390,6 +391,8 @@ function renderEditor(){
     </div></div>`;
 }
 window.set=set;
+/* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
+window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
 window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } renderEditor(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
