@@ -933,7 +933,7 @@ function renderCGuide(id){
   shell(g.title, inner);
 }
 function renderExplore(){
-  const cats=[['All','All'],['Dining','Dining'],['Golf Courses','Golf'],['Resort Experiences','Activities'],['Outside Experiences','Outside'],['Resort Amenities','Amenities']];
+  const cats=[['All','All'],['Golf Courses','Golf'],['Dining','Dining'],['Resort Amenities','Amenities'],['Resort Experiences','Activities'],['Outside Experiences','Outside']];
   const cur=state._exCat||'All';
   const _all=exploreData().filter(e=>cur==='All'||e.cat===cur);
   const PER=10, pageCount=Math.max(1,Math.ceil(_all.length/PER));
