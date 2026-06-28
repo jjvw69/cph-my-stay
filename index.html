@@ -344,6 +344,7 @@ function renderHome(){
 /* ---------------- STAY ---------------- */
 function renderStay(){
   const s=state.stay,b=s.booking,v=s.villa;
+  const checkinDone = !!state.checkin.done;
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><span class="ttl">The stay</span></div>
@@ -365,7 +366,7 @@ function renderStay(){
         <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa guide →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
-      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>Check-in & add-ons</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Your concierge</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
