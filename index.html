@@ -305,6 +305,7 @@ function renderHome(){
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa &amp; resort guide</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
@@ -336,9 +337,9 @@ function renderStay(){
       </div>
       <div class="sec-title">Villa essentials</div>
       <div class="grid2">
-        <div class="tile"><b>Wi-Fi</b><span>Provided at arrival</span></div>
+        <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
-        <div class="tile"><b>Address</b><span>${esc(v.area||'Casa de Campo')}, La Romana</span></div>
+        <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
         <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa &amp; resort guide →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
@@ -583,6 +584,7 @@ function renderPushed(v){
   if(v==='guide') return renderGuide();
   if(v==='dineguide') return renderDiningGuide();
   if(v==='guestlist') return renderGuestList();
+  if(v==='plan') return renderPlan();
 }
 
 function shell(title, inner, cta){
@@ -640,6 +642,8 @@ window.cinDoc=function(i,k,v){ const d=state.checkin.docs||(state.checkin.docs=[
 window.cinNext=async function(){
   if(state.checkin.step<3){ state.checkin.step++; render(); return; }
   await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});
+  const docs=(state.checkin.docs||[]).filter(d=>d&&((d.name||'').trim()||(d.passport||'').trim())).map(d=>({name:d.name||'',passport:d.passport||''}));
+  if(docs.length){ const gr=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests:docs})}); if(gr.ok&&gr.body.guestList) state.stay.guestList=gr.body.guestList; }
   state.checkin.done=true; state.checkin.step=0; pop(); toast('Pre check-in submitted — thank you!');
 };
 
@@ -669,15 +673,15 @@ function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
   const steps=[
     {t:'Before you arrive',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
-    {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
+    {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
     {t:'Land at '+(b.airport||'LRM'),d:'The driver will be waiting just outside customs with a sign showing the client’s name. Our operations department monitors your flight’s arrival and landing time, and the driver will wait for up to 1 hour after you land. After that time, an additional charge applies.'},
     {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
     {t:'Resort fee',d:'Please take into account that a resort fee applies:<br>• US$30 per adult, per day (12 years of age and older)<br>• US$15 per child, per day (between 4–12 years old)<br>• Children 3 years of age and under are granted free access.'},
     {t:'Arrive at '+esc(v.name),d:'Your concierge welcomes you at the villa and hands over the keys and Wi-Fi in person. Check-in is from '+(b.checkInTime||'3:00 PM')+'.'},
   ];
   const mapQuery=encodeURIComponent((v.internalName?v.internalName+', ':'')+'Casa de Campo, La Romana, Dominican Republic');
-  const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
-      <div class="label" style="color:rgba(255,255,255,.7)">ROUTE</div>
+  const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/03/Casa_de_Campo_Dominica_Republic28.jpg') center/cover;color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.75)">ROUTE</div>
       <div class="display" style="font-size:24px;margin:4px 0">${esc(b.airport||'LRM')} → ${esc(v.name)}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
       <div style="display:flex;gap:9px;margin-top:14px"><a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message concierge</button></div>
@@ -685,15 +689,15 @@ function renderArrival(){
     <div class="sec-title">Step by step</div>
     ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
     <div class="sec-title">On arrival</div>
-    <div class="grid2"><div class="tile"><b>Wi-Fi & keys</b><span>Handed over in person</span></div><div class="tile"><b>Check-in</b><span>${esc(b.checkInTime||'3:00 PM')}</span></div></div>`;
+    <div class="grid2"><div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Handed over in person'}</span></div><div class="tile"><b>Check-in</b><span>${esc(b.checkInTime||'3:00 PM')}</span></div></div>`;
   shell('Getting there', inner);
 }
 
 function renderCheckout(){
   const s=state.stay,b=s.booking;
-  const list=['Settle any villa charges with your butler','Leave keys & access cards on the kitchen counter','Confirm departure transfer time','Pack chargers, safe contents & documents'];
-  const inner=`<div class="card" style="background:var(--accent);color:#fff;border:0">
-      <div class="label" style="color:rgba(255,255,255,.7)">CHECK-OUT</div>
+  const list=['Settle any pending bills with our concierge','Leave villa, golf cart or car keys at the villa','Confirm your departure transfer time','Pack chargers, safe contents & documents'];
+  const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp') center/cover;color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.75)">CHECK-OUT</div>
       <div class="display" style="font-size:26px;margin:4px 0">By ${esc(b.checkOutTime||'11:00 AM')}</div>
       <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.depart?fmtDate(b.depart):''}</div>
       <button onclick="goTab('concierge')" style="margin-top:12px;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Request late checkout</button>
@@ -701,7 +705,7 @@ function renderCheckout(){
     <div class="sec-title">Before you go</div>
     ${list.map((t,i)=>`<div class="check ${state.checklist[i]?'on':''}" onclick="toggleCheck(${i})"><span class="box">✓</span><span class="t">${esc(t)}</span></div>`).join('')}
     <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:14px"><b style="font-size:14px">Departure transfer</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">Your driver arrives at the villa <b>15 minutes before</b> the scheduled pick-up and waits a maximum of <b>30 minutes</b>. After that it’s considered a no-show and the paid fare is forfeited. Any pick-up time change must be requested at least <b>24 hours</b> in advance.</div></div>
-    <button class="btn" style="margin-top:18px;background:var(--gold);color:#fff" onclick="toast('Thank you — we hope you loved your stay!')">Leave a review</button>`;
+    <a class="btn" href="https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:18px;background:var(--gold);color:#fff;text-decoration:none">Leave a review</a>`;
   shell('Checkout', inner);
 }
 window.toggleCheck=function(i){ state.checklist[i]=!state.checklist[i]; render(); };
@@ -717,7 +721,7 @@ function renderGuide(){
     </div>
     ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
     ${card('Tipping','We recommend a minimum tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay. Dominican Pesos are also welcome. ATMs are at the Casa de Campo Hotel, Minitas Beach and the Marina.')}
-    ${card('Wi-Fi','Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.')}
+    ${card('Wi-Fi',(state.stay.wifiName||state.stay.wifiPassword)?`Network: <b>${esc(state.stay.wifiName||'—')}</b><br>Password: <b>${esc(state.stay.wifiPassword||'—')}</b>`:'Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.')}
     ${card('Getting around','Google Maps and Waze both work inside Casa de Campo — we recommend pinning your villa for easy reference. If you rented a golf cart, snap a photo of it for quick identification.')}
     ${card('Groceries &amp; shopping','The Marina has wine &amp; spirits shops, a fresh bakery and the El Nacional supermarket. Larger supermarkets are in La Romana, just outside the resort.')}
     ${card('Check-out','Check-out is at <b>11:00&nbsp;AM</b>. For a late check-out, please let us know in advance.')}
@@ -753,6 +757,29 @@ window.glSet=function(i,k,v){ if(state._gl&&state._gl[i]) state._gl[i][k]=v; };
 window.glAdd=function(){ state._gl.push({name:'',passport:''}); glView(); };
 window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:''}); glView(); };
 window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').trim()||(g.passport||'').trim()); const r=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests})}); if(r.ok&&r.body.guestList){ state.stay.guestList=r.body.guestList; state._gl=null; toast('Guest list sent to your concierge'); pop(); } else toast('Could not send — please try again'); };
+
+/* ---------------- MY PLAN (itinerary) ---------------- */
+function renderPlan(){
+  const s=state.stay,b=s.booking;
+  const reqs=(reqList()||[]).slice().filter(r=>r).sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
+  const pill=(r)=>r.status==='confirmed'
+    ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${r.price?' · '+esc(r.price):''}</span>`
+    :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
+  const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(r.title||'Request')}</b>${pill(r)}</div><span>${esc(meta||'Date to be confirmed')}</span></span></div>`; };
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
+      <div class="display" style="font-size:24px;margin:4px 0 4px">${esc(s.villa.name)}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.arrive?fmtDate(b.arrive):''} – ${b.depart?fmtDate(b.depart):''}${b.nights?' · '+b.nights+' nights':''}</div>
+    </div>
+    <div class="sec-title">Your stay</div>
+    <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
+    <div class="sec-title">Requests &amp; bookings</div>
+    ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>`;
+  shell('My plan', inner);
+}
 
 /* ---------------- DINING GUIDE ---------------- */
 function renderDiningGuide(){

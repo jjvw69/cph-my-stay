@@ -318,6 +318,13 @@ function renderEditor(){
       <div style="display:flex;gap:8px;margin-top:11px"><input id="staffMsg" placeholder="Reply to ${esc(cur.leadName||'the guest')}…" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--ui)" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()" style="padding:10px 18px">Send</button></div>
       <div class="counter">The guest sees your replies live in their app chat.</div></div>
 
+    <div class="sec"><h3>Stay details (shown to guest)</h3><div class="grid">
+      <div class="f"><label>Villa number</label><input value="${esc(cur.villaNumber||'')}" oninput="set('villaNumber',this.value)" placeholder="e.g. 12345"></div>
+      <div class="f"><label>Registration number</label><input value="${esc(cur.registrationNumber||'')}" oninput="set('registrationNumber',this.value)" placeholder="From Casa de Campo"></div>
+      <div class="f"><label>Wi-Fi network name</label><input value="${esc(cur.wifiName||'')}" oninput="set('wifiName',this.value)"></div>
+      <div class="f"><label>Wi-Fi password</label><input value="${esc(cur.wifiPassword||'')}" oninput="set('wifiPassword',this.value)"></div>
+    </div></div>
+
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
