@@ -389,6 +389,11 @@ function getMessagesByRef(reference) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
   return (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at }));
 }
+/** Lightweight fetch of just the requests, for guest polling (live status/price updates). Same shape as toGuestStay.requests. */
+function getRequestsByRef(reference) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt }));
+}
 
 // ------------------------------------------------------- guest-facing mapping
 function nightsBetween(a, b) { const d1 = new Date(a), d2 = new Date(b); if (isNaN(d1) || isNaN(d2)) return null; return Math.max(0, Math.round((d2 - d1) / 86400000)); }
@@ -455,7 +460,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

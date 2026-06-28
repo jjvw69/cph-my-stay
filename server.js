@@ -74,6 +74,7 @@ async function guestLogin(req,res){
 function guestStay(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const stay=store.getPublishedByRefForSession(s.ref); if(!stay) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); const token=sign({t:'g',ref:s.ref},GUEST_HOURS); return sendJSON(res,200,{ok:true,stay,token}); }
 async function guestMessage(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const m=store.addGuestMessage(s.ref,String(b.text||'')); if(!m) return sendJSON(res,400,{ok:false,error:'Empty message.'}); console.log('[message] %s "%s"',s.ref,String(m.text).slice(0,40)); notifyMessage(store.getPublishedByRefForSession(s.ref),m.text); return sendJSON(res,200,{ok:true,message:m}); }
 function guestMessages(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const msgs=store.getMessagesByRef(s.ref); if(!msgs) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); return sendJSON(res,200,{ok:true,messages:msgs}); }
+function guestRequests(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const reqs=store.getRequestsByRef(s.ref); if(!reqs) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); return sendJSON(res,200,{ok:true,requests:reqs}); }
 async function guestAddRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.addRequest(s.ref,b); if(!r) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[request] %s %s "%s"',s.ref,r.type,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); return sendJSON(res,200,{ok:true,request:r}); }
 
 // Notify the concierge when a guest submits a request — WhatsApp (Twilio) and/or email (Resend).
@@ -149,6 +150,7 @@ async function route(req,res){
   if(m==='POST'&&url==='/api/checkin') return guestCheckinSave(req,res);
   if(m==='POST'&&url==='/api/message') return guestMessage(req,res);
   if(m==='GET' &&url==='/api/messages') return guestMessages(req,res);
+  if(m==='GET' &&url==='/api/requests') return guestRequests(req,res);
   if(m==='POST'&&url==='/api/request') return guestAddRequest(req,res);
   if(m==='POST'&&url==='/api/request/remove') return guestRemoveRequest(req,res);
   if(m==='POST'&&url==='/api/guestlist') return guestGuestList(req,res);

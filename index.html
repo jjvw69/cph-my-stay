@@ -648,7 +648,8 @@ window.sendMsg=async function(){
 function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHTML=state.messages.map(x=>`<div class="msg ${x.from}">${esc(x.t)}</div>`).join(''); m.scrollTop=m.scrollHeight; } }
 /* poll for concierge replies so they appear live without a reload */
 let _pollTimer=null;
-function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollMessages, 9000); }
+function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollUpdates, 9000); }
+function pollUpdates(){ pollMessages(); pollRequests(); }
 function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
 async function pollMessages(){
   if(!state.stay||!state.token) return;
@@ -659,6 +660,21 @@ async function pollMessages(){
     state.messages=[greet].concat(server.map(mm=>({from:mm.from==='guest'?'me':'them',t:mm.text})));
     if(state.tab==='concierge'&&!state.stack.length) updateMsgs();
   }
+}
+/* poll for request status/price changes (concierge confirmations) so they appear live without a reload — mirrors the chat */
+async function pollRequests(){
+  if(!state.stay||!state.token) return;
+  const r=await api('/api/requests'); if(!r.ok||!r.body||!Array.isArray(r.body.requests)) return;
+  const server=r.body.requests, prev=state.stay.requests||[];
+  const sig=a=>a.map(x=>x.id+':'+x.status+':'+(x.price||'')).sort().join('|');
+  if(sig(server)===sig(prev)) return;            // nothing changed
+  const prevMap={}; prev.forEach(x=>{ prevMap[x.id]=x; });
+  const justConfirmed=server.find(x=>x.status==='confirmed' && (!prevMap[x.id] || prevMap[x.id].status!=='confirmed'));
+  state.stay.requests=server;
+  if(justConfirmed) toast('Confirmed by your concierge: '+justConfirmed.title+(justConfirmed.price?' · '+justConfirmed.price:''));
+  if(document.querySelector('.reqov')) return;    // don't yank a request modal the guest is filling in
+  const top=state.stack.length?state.stack[state.stack.length-1]:null;
+  if(top==='plan' || (!top && state.tab==='home')) render();   // refresh the views that show request status
 }
 
 /* ---------------- PUSHED VIEWS ---------------- */
