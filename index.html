@@ -408,7 +408,7 @@ const EXPLORE=[
 /* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
 function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
 function renderExplore(){
-  const cats=[['All','All'],['Dine','Dining'],['Golf','Golf'],['Activity','Activities'],['Amenity','Amenities']];
+  const cats=[['All','All'],['Dine','Dining'],['Golf','Golf'],['Experiences','Activities'],['Amenity','Amenities']];
   const cur=state._exCat||'All';
   const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
   $app.innerHTML=`
@@ -500,19 +500,6 @@ const SERVICE_INFO = {
     notePlaceholder:'Meals & menus you’d like, number of guests, dietary needs, dates…',
     rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
   },
-  excursions: {
-    menu:'https://www.casadecampo.com.do/experiences/',
-    selects:`<label class="reqlbl">Excursion</label><select id="rqService"><option>Saona Island day trip</option><option>Catalina Island catamaran</option><option>Marinarium snorkel &amp; sharks</option><option>Cumayasa zip line</option><option>Cumayasa buggies</option><option>Chavón River kayak</option><option>Santo Domingo city tour</option><option>Altos de Chavón visit</option><option>Cueva de las Maravillas</option><option>Cigar / rum factory tour</option><option>Deep-sea fishing</option><option>Other (add a note)</option></select>`,
-    rates:`<b>A FEW FAVOURITES (taxes incl., most min. 4 guests)</b>
-      <div class="rt"><span>Catalina Island catamaran</span><span>from $48</span></div>
-      <div class="rt"><span>Marinarium snorkel &amp; sharks</span><span>from $64</span></div>
-      <div class="rt"><span>Cumayasa zip line</span><span>from $59</span></div>
-      <div class="rt"><span>Cumayasa buggies</span><span>from $90</span></div>
-      <div class="rt"><span>Chavón River kayak</span><span>from $30</span></div>
-      <div class="rt"><span>Santo Domingo city tour</span><span>$50</span></div>
-      <div class="rt"><span>Cigar / rum factory tour</span><span>from $20</span></div>
-      <div class="rtnote">Horseback riding, tennis, shooting &amp; more available — ask your concierge for the full list.</div>`
-  },
   babygear: {
     noTime:true, noGuests:true,
     notePlaceholder:'Quantity, ages, dates needed, anything specific…',
@@ -563,6 +550,165 @@ const SERVICE_INFO = {
       <div class="rt"><span>Signature facials</span><span>up to $495</span></div>
       <div class="rt"><span>Hydrothermal Experience (3 h)</span><span>$140</span></div>
       <div class="rtnote">Prices subject to 18% tax + 10% service. Full treatment menu via the link below.</div>`
+  },
+  'horseback-tour': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    selects:`<label class="reqlbl">Which ranch?</label><select id="rqService"><option>Rancho Peligro — 2h trail ride</option><option>Rancho Peligro — 2h with picnic</option><option>Rancho Higüeral — 2h</option><option>Rancho Cacata — 2h</option></select>`,
+    rates:`<b>RATES (taxes incl., Thu/Fri/Sat · min. 4)</b>
+      <div class="rt"><span>Rancho Peligro (2h)</span><span>$185–$250 p/p</span></div>
+      <div class="rt"><span>Rancho Peligro — with picnic</span><span>$255–$300 p/p</span></div>
+      <div class="rt"><span>Rancho Higüeral / Cacata (2h)</span><span>$170 p/p</span></div>
+      <div class="rtnote">Long trousers and closed shoes. Helmets provided.</div>`
+  },
+  'pottery': {
+    menu:'https://www.casadecampo.com.do/experiences/altos-de-chavon/',
+    selects:`<label class="reqlbl">Who's joining?</label><select id="rqService"><option>Adult</option><option>Child</option><option>Mixed group</option></select>`,
+    rates:`<b>RATES (taxes incl. · 1h, 5:00–6:00 pm)</b>
+      <div class="rt"><span>Adult</span><span>$65 p/p</span></div>
+      <div class="rt"><span>Child</span><span>$47 per child</span></div>
+      <div class="rtnote">Limit 5 people per class.</div>`
+  },
+  'kayak': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    selects:`<label class="reqlbl">Kayak</label><select id="rqService"><option>Single kayak</option><option>Double kayak</option></select>`,
+    rates:`<b>RATES (taxes incl. · min. 4)</b>
+      <div class="rt"><span>Single kayak</span><span>$30 p/p</span></div>
+      <div class="rt"><span>Double kayak</span><span>$45 p/p</span></div>`
+  },
+  'funcat': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · 1h 30m)</b>
+      <div class="rt"><span>Adult</span><span>$115 p/p</span></div>
+      <div class="rt"><span>Child (6–14)</span><span>$75 per child</span></div>
+      <div class="rtnote">Departures: 9:30–11:00 am or 1:30–3:30 pm.</div>`
+  },
+  'watersports': {
+    menu:'https://www.casadecampo.com.do/experiences/beaches/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Snorkelling gear</option><option>Kayak (single)</option><option>Kayak (double)</option><option>Banana boat ride</option><option>Hobie Wave</option><option>Sunfish sailboat</option><option>Sun floats</option><option>Other</option></select>`,
+    rates:`<b>RATES (Minitas Beach)</b>
+      <div class="rt"><span>Snorkelling gear (full day)</span><span>$19</span></div>
+      <div class="rt"><span>Kayak single / double (1h)</span><span>$25 / $35</span></div>
+      <div class="rt"><span>Banana boat (15 min)</span><span>$20</span></div>
+      <div class="rt"><span>Hobie Wave (1h)</span><span>$50</span></div>
+      <div class="rt"><span>Sunfish sailboat (1h)</span><span>$40</span></div>
+      <div class="rt"><span>Sun floats (full day)</span><span>$14</span></div>`
+  },
+  'zipline': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (min. 4 participants)</b>
+      <div class="rt"><span>Adult</span><span>$87 p/p</span></div>
+      <div class="rt"><span>Child</span><span>$59 per child</span></div>
+      <div class="rtnote">Sport clothing. Minimum age applies — ask your concierge.</div>`
+  },
+  'buggies': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    selects:`<label class="reqlbl">Buggy</label><select id="rqService"><option>Single-motor buggy</option><option>Double-motor buggy</option><option>Child</option></select>`,
+    rates:`<b>RATES (taxes incl. · min. 4 · ages 5+)</b>
+      <div class="rt"><span>Single motor</span><span>$130 p/p</span></div>
+      <div class="rt"><span>Double motor</span><span>$105 p/p</span></div>
+      <div class="rt"><span>Child (5+)</span><span>$90 per child</span></div>
+      <div class="rtnote">Includes water, goggles and bandana. Sport clothing.</div>`
+  },
+  'marinarium': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · min. 6 · ages 5+)</b>
+      <div class="rt"><span>Adult</span><span>$124 p/p</span></div>
+      <div class="rt"><span>Child (5–12)</span><span>$64 per child</span></div>`
+  },
+  'catalina': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · min. 4)</b>
+      <div class="rt"><span>Adult</span><span>$48 p/p</span></div>
+      <div class="rt"><span>Child (up to 12)</span><span>$30 per child</span></div>
+      <div class="rtnote">Departs 10:00 am, returns 1:45 pm. Be there 15 min early.</div>`
+  },
+  'cave': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · min. 6)</b>
+      <div class="rt"><span>Per person</span><span>$34 p/p</span></div>
+      <div class="rtnote">Thu & Sun, 8:45 am–12:00 pm. Includes transport & water. Comfortable shoes.</div>`
+  },
+  'santo-domingo': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · min. 6)</b>
+      <div class="rt"><span>Per person</span><span>$50 p/p</span></div>
+      <div class="rtnote">Wed & Fri, 8:15 am–4:00 pm. Includes transport & site admissions. Long trousers/sleeves.</div>`
+  },
+  'cigar': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    selects:`<label class="reqlbl">Which tour?</label><select id="rqService"><option>Tabacalera de García factory tour</option><option>Cigar Country store tour</option></select>`,
+    rates:`<b>RATES (min. 3 · 18+)</b>
+      <div class="rt"><span>Factory day tour (per vehicle, 1–5)</span><span>$150</span></div>
+      <div class="rt"><span>Cigar Country store tour</span><span>$20 p/p</span></div>
+      <div class="rtnote">Tue & Thu. Factory tour: book 48h ahead.</div>`
+  },
+  'rum': {
+    menu:'https://www.casadecampo.com.do/experiences/excursions/',
+    rates:`<b>RATES (taxes incl. · min. 6 · adults only)</b>
+      <div class="rt"><span>Per person</span><span>$57 p/p</span></div>`
+  },
+  'bird-shooting': {
+    menu:'https://www.casadecampo.com.do/experiences/shooting-center/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Monte Carlo box pigeons (25)</option><option>Columbari pigeons (25)</option><option>Partridge (per bird)</option><option>Pheasant (per bird)</option><option>Mallard ducks (per bird)</option><option>Dove hunting — half day</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes not incl.)</b>
+      <div class="rt"><span>Monte Carlo / Columbari (25 birds, 50 shells)</span><span>$375</span></div>
+      <div class="rt"><span>Partridge / Pheasant / Mallard (per bird)</span><span>$40</span></div>
+      <div class="rt"><span>Dove hunting — half day (max 3)</span><span>$400</span></div>
+      <div class="rtnote">Cartridges $17 per box of 25. Booked directly with the Shooting Center.</div>`
+  },
+  'scavenger': {
+    notePlaceholder:'Group size, preferred date & time, any theme…',
+    rates:`<b>GROUP ACTIVITY</b>
+      <div class="rt"><span>Scavenger hunt (per event)</span><span>from $985</span></div>
+      <div class="rtnote">From 15 people. A fun team-building activity — ask your concierge for more group options.</div>`
+  },
+  'family-toddlers': {
+    menu:'https://www.casadecampo.com.do/experiences/for-families/',
+    notePlaceholder:'Child age(s), dates, any allergies or needs…',
+    selects:`<label class="reqlbl">Program</label><select id="rqService"><option>Half day (snack incl.)</option><option>Full day (lunch incl.)</option></select>`,
+    rates:`<b>TODDLERS 'N' CASA · AGES 1–3</b>
+      <div class="rt"><span>Half day</span><span>8:30 am–12 pm / 1:30–4 pm</span></div>
+      <div class="rt"><span>Full day</span><span>8:30 am–4 pm</span></div>
+      <div class="rtnote">Supervised play, arts & crafts, puppet shows and games. Ask your concierge for current pricing.</div>`
+  },
+  'family-kidz': {
+    menu:'https://www.casadecampo.com.do/experiences/for-families/',
+    notePlaceholder:'Child age(s), dates, any allergies or needs…',
+    selects:`<label class="reqlbl">Program</label><select id="rqService"><option>Half day (snack incl.)</option><option>Full day (lunch incl.)</option></select>`,
+    rates:`<b>KIDZ 'N' CASA · AGES 4–6</b>
+      <div class="rt"><span>Half day</span><span>8:30 am–12 pm / 1:30–4 pm</span></div>
+      <div class="rt"><span>Full day</span><span>8:30 am–4 pm</span></div>
+      <div class="rt"><span>Optional: horseback / kayak</span><span>$20</span></div>
+      <div class="rt"><span>Optional: tennis lesson</span><span>$25</span></div>
+      <div class="rtnote">Beach Olympics, swimming, pony rides and more.</div>`
+  },
+  'family-tweens': {
+    menu:'https://www.casadecampo.com.do/experiences/for-families/',
+    notePlaceholder:'Child age(s), dates, any allergies or needs…',
+    selects:`<label class="reqlbl">Program</label><select id="rqService"><option>Half day (snack incl.)</option><option>Full day (lunch incl.)</option></select>`,
+    rates:`<b>CASA TWEENS · AGES 7–12</b>
+      <div class="rt"><span>Half day</span><span>8:30 am–12 pm / 1:30–4 pm</span></div>
+      <div class="rt"><span>Full day</span><span>8:30 am–4 pm</span></div>
+      <div class="rt"><span>Optional: horseback / kayak / banana boat</span><span>$20</span></div>
+      <div class="rt"><span>Optional: tennis lesson</span><span>$25</span></div>`
+  },
+  'family-teens': {
+    menu:'https://www.casadecampo.com.do/experiences/for-families/',
+    noTime:true,
+    notePlaceholder:'Teen age(s), dates…',
+    rates:`<b>BONCHE 4 TEENS · AGES 13–17</b>
+      <div class="rtnote">Supervised teens-only zone (billiards, air hockey, music, movies). Open daily 8 am–6 pm. Requires parental approval and a Casa de Campo Guest Card.</div>`
+  },
+  'family-nannies': {
+    menu:'https://www.casadecampo.com.do/experiences/for-families/',
+    noGuests:true,
+    notePlaceholder:'Number & ages of children, dates, hours needed…',
+    selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Nanny — full day (9 am–4 pm)</option><option>Nanny — half day</option><option>Babysitting — by night (from 4 pm)</option></select>`,
+    rates:`<b>NANNY & BABYSITTING (taxes incl.)</b>
+      <div class="rt"><span>Full day · up to 2 children</span><span>$120 (+$29 3rd)</span></div>
+      <div class="rt"><span>Half day · up to 2 children</span><span>$85 (+$29 3rd)</span></div>
+      <div class="rt"><span>By night · per hour (2 children)</span><span>$20 (+$10 3rd)</span></div>
+      <div class="rtnote">Max 3 children per nanny. Book 24h ahead. Night service paid in cash to the nanny.</div>`
   }
 };
 window.openReq=function(type,refId){
