@@ -297,7 +297,7 @@ window.signOut=function(){ stopPolling(); saveToken(null); state.stay=null; stat
 
 function tabBar(active,flow){
   const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
-  return `<div class="tabs"${flow?' style="position:static;flex:none"':''}>${t('home','⌂','Home')}${t('stay','❖','Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
+  return `<div class="tabs"${flow?' style="position:static;flex:none"':''}>${t('home','⌂','Home')}${t('stay','❖','Your Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
 }
 window.goTab=function(id){ state.tab=id; state.stack=[]; render(); };
 window.push=function(v){ state.stack.push(v); render(); };
