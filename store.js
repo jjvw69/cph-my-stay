@@ -337,11 +337,13 @@ function addRequest(reference, body) {
   };
   s.requests.push(req); s.updatedAt = Date.now(); persistStays(); return req;
 }
-/** Guest removes one of their own pending requests. */
+/** Guest cancels one of their own requests. We DON'T delete it — we mark it
+ *  cancelled so the concierge keeps a record (log) of it in the Console. */
 function removeGuestRequest(reference, requestId) {
   const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return false;
-  const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
-  s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
+  const r = s.requests.find(r => r.id === requestId); if (!r) return false;
+  r.status = 'cancelled'; r.cancelledAt = Date.now();
+  s.updatedAt = Date.now(); persistStays(); return true;
 }
 /** Staff dismisses a request (e.g. once actioned) from the Console. */
 function removeStaffRequest(stayId, requestId) {

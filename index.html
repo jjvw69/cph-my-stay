@@ -343,7 +343,7 @@ function renderHome(){
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
-      <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).filter(r=>r&&r.status!=='cancelled').length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa guide</span></span><span class="arr">→</span></button>
@@ -933,7 +933,7 @@ function renderCGuide(id){
   shell(g.title, inner);
 }
 function renderExplore(){
-  const cats=[['All','All'],['Dine','Dining'],['Golf','Golf'],['Resort Experiences','Activities'],['Outside Experiences','Outside'],['Amenity','Amenities']];
+  const cats=[['All','All'],['Dining','Dining'],['Golf Courses','Golf'],['Resort Experiences','Activities'],['Outside Experiences','Outside'],['Resort Amenities','Amenities']];
   const cur=state._exCat||'All';
   const _all=exploreData().filter(e=>cur==='All'||e.cat===cur);
   const PER=10, pageCount=Math.max(1,Math.ceil(_all.length/PER));
@@ -969,7 +969,7 @@ window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more abou
 
 /* ---------- guest interest requests (add-on + itinerary) ---------- */
 function reqList(){ return (state.stay&&state.stay.requests)||[]; }
-function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId===refId); }
+function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId===refId&&r.status!=='cancelled'); }
 function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
 function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', r.serviceLevel||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
   const confirmed=r.status==='confirmed';
@@ -1255,9 +1255,16 @@ window.submitReq=async function(type,refId){
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
 };
+window.confirmRemoveReq=function(id){
+  const it=reqList().find(x=>x.id===id); const nm=(it&&it.title)?it.title:'this request';
+  const msg=(it&&it.status==='confirmed')
+    ? 'Cancel "'+nm+'"?\n\nThis is a confirmed booking — your concierge will be notified.'
+    : 'Remove "'+nm+'"?\n\nYour concierge will be notified.';
+  if(window.confirm(msg)) removeReq(id);
+};
 window.removeReq=async function(id){
   const r=await api('/api/request/remove',{method:'POST',body:JSON.stringify({id})});
-  if(r.ok){ state.stay.requests=reqList().filter(x=>x.id!==id); render(); toast('Request removed'); }
+  if(r.ok){ const it=reqList().find(x=>x.id===id); if(it) it.status='cancelled'; render(); toast('Request removed — your concierge will be notified'); }
   else toast('Could not remove');
 };
 
@@ -1572,12 +1579,12 @@ window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').tr
 /* ---------------- MY PLAN (itinerary) ---------------- */
 function renderPlan(){
   const s=state.stay,b=s.booking;
-  const reqs=(reqList()||[]).slice().filter(r=>r).sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
+  const reqs=(reqList()||[]).slice().filter(r=>r&&r.status!=='cancelled').sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
   const pill=(r)=>r.status==='confirmed'
     ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${r.price?' · '+esc(r.price):''}</span>`
     :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
   const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(r.title||'Request')}</b>${pill(r)}</div><span>${esc(meta||'Date to be confirmed')}</span></span></div>`; };
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(r.title||'Request')}</b>${pill(r)}</div><span>${esc(meta||'Date to be confirmed')}</span><button onclick="confirmRemoveReq('${esc(r.id)}')" style="margin-top:7px;align-self:flex-start;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
@@ -1599,7 +1606,7 @@ function renderPlan(){
 window.printItinerary=function(){
   const s=state.stay; if(!s) return;
   const b=s.booking, v=s.villa, g=s.guest;
-  const reqs=(s.requests||[]).slice().sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
+  const reqs=(s.requests||[]).slice().filter(r=>r&&r.status!=='cancelled').sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
   const fmt=iso=>iso?fmtDate(iso):'—';
   const r2=(k,val)=>`<tr><td style="padding:4px 14px 4px 0;color:#6B756C;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:4px 0">${val}</td></tr>`;
   const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
