@@ -174,6 +174,13 @@
   .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp 1s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
   .mode-flag{position:fixed;bottom:8px;left:8px;font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.5);z-index:50}
+  /* printable itinerary: hidden on screen, the only thing shown when printing */
+  #printsheet{display:none}
+  @media print{
+    #app,.toast,.mode-flag{display:none !important}
+    #printsheet{display:block !important;position:absolute;left:0;top:0;width:100%}
+    @page{margin:14mm}
+  }
 </style>
 </head>
 <body>
@@ -839,9 +846,49 @@ function renderPlan(){
     <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
     <div class="sec-title">Requests &amp; bookings</div>
     ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
-    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>`;
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>
+    <button class="btn" style="margin-top:10px;background:#EFE9DC;color:#1F2A24" onclick="printItinerary()">Print / save as PDF</button>`;
   shell('My plan', inner);
 }
+
+/* Build a clean, branded one-page itinerary and open the print / save-as-PDF dialog. */
+window.printItinerary=function(){
+  const s=state.stay; if(!s) return;
+  const b=s.booking, v=s.villa, g=s.guest;
+  const reqs=(s.requests||[]).slice().sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
+  const fmt=iso=>iso?fmtDate(iso):'—';
+  const r2=k=>`<tr><td style="padding:4px 10px 4px 0;color:#6B756C;white-space:nowrap;vertical-align:top">${k[0]}</td><td style="padding:4px 0">${k[1]}</td></tr>`;
+  const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
+    const status=r.status==='confirmed'?('Confirmed'+(r.price?' · '+esc(r.price):'')):'Requested';
+    return `<tr><td style="padding:7px 0;border-top:1px solid #E6E9E2">${esc(r.title||'Request')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;color:#54605A">${esc(when||'Date to be confirmed')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${esc(status)}</td></tr>`; };
+  let sheet=document.getElementById('printsheet');
+  if(!sheet){ sheet=document.createElement('div'); sheet.id='printsheet'; document.body.appendChild(sheet); }
+  sheet.innerHTML=`
+    <div style="font-family:'Jost',sans-serif;color:#1F2A24;max-width:720px;margin:0 auto;padding:8px 4px">
+      <div style="display:flex;align-items:center;gap:12px;border-bottom:2px solid #16241E;padding-bottom:12px">
+        <img src="${SEAL}" alt="" style="width:44px;height:auto">
+        <div><div style="font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;line-height:1">Caribbean Paradise Homes</div><div style="font-size:11px;color:#6B756C;letter-spacing:.18em;margin-top:2px">MY STAY ITINERARY</div></div>
+      </div>
+      <h1 style="font-family:'Cormorant Garamond',serif;font-size:26px;margin:18px 0 2px;font-weight:600">${esc(v.name||'Your villa')}</h1>
+      <div style="font-size:13px;color:#6B756C">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · '))}</div>
+      <table style="font-size:13px;margin-top:16px;border-collapse:collapse">
+        ${r2(['Guest',esc(g.family?g.family+' family':g.firstName||'—')])}
+        ${r2(['Check-in',fmt(b.arrive)+' · '+esc(b.checkInTime||'3:00 PM')])}
+        ${r2(['Check-out',fmt(b.depart)+' · '+esc(b.checkOutTime||'11:00 AM')])}
+        ${b.nights!=null?r2(['Nights',String(b.nights)]):''}
+        ${s.villaNumber?r2(['Villa','Villa '+esc(s.villaNumber)+', '+esc(v.area||'Casa de Campo')+', La Romana']):''}
+        ${s.wifiName?r2(['Wi-Fi',esc(s.wifiName)+(s.wifiPassword?' · '+esc(s.wifiPassword):'')]):''}
+        ${s.registrationNumber?r2(['Registration #',esc(s.registrationNumber)]):''}
+        ${r2(['Concierge',esc((s.concierge&&s.concierge.name)||'')+' · '+esc((s.concierge&&s.concierge.phone)||'+1 (829) 763-8801')])}
+      </table>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:18px;margin:24px 0 4px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px">Requests &amp; bookings</h2>
+      ${reqs.length?`<table style="width:100%;font-size:13px;border-collapse:collapse">
+        <thead><tr style="text-align:left;color:#8A938B;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase"><th style="padding:4px 0;font-weight:500">Item</th><th style="padding:4px 0;font-weight:500">When</th><th style="padding:4px 0;font-weight:500;text-align:right">Status</th></tr></thead>
+        <tbody>${reqs.map(reqRow).join('')}</tbody></table>`:`<div style="font-size:13px;color:#6B756C;padding-top:6px">Nothing arranged yet.</div>`}
+      <div style="margin-top:28px;font-size:10.5px;color:#9AA49B;border-top:1px solid #D9DDD5;padding-top:10px">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · caribbeanparadisehomes.com · Final prices are confirmed by your concierge.</div>
+    </div>`;
+  setTimeout(function(){ try{ window.focus(); }catch(e){} window.print(); }, 80);
+};
 
 /* ---------------- DINING GUIDE ---------------- */
 function renderDiningGuide(){
@@ -946,9 +993,11 @@ function renderRealEstate(){
     ${card('Casa de Campo &amp; beyond', `The portfolio spans <b>Casa de Campo</b>, Cap Cana and Punta Cana &mdash; on-market villas as well as <b>private, off-market offerings</b>. Whether you&rsquo;d like to tour a property during your stay or explore buying, just let us know.`)}
     <div class="sec-title">Your advisor</div>
     <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:2px">
-      <b style="font-size:15px">Jan van Welie</b>
-      <div style="font-size:12.5px;color:var(--soft);margin-top:2px">Real estate advisor</div>
-      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:11px">
+      <div style="display:flex;align-items:center;gap:13px">
+        <img src="https://dominicanrepublicfgp.com/wp-content/uploads/2025/12/WhatsApp-Image-2026-06-25-at-15.41.09.jpeg" alt="Jan van Welie" style="width:58px;height:58px;border-radius:50%;object-fit:cover;flex:0 0 auto;border:1px solid var(--line)">
+        <div><b style="font-size:15px">Jan van Welie</b><div style="font-size:12.5px;color:var(--soft);margin-top:2px">Real estate advisor</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:12px">
         <a href="mailto:jvanwelie@dominicanrepublicfgp.com" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">Email</a>
         <a href="https://wa.me/18096974404" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">WhatsApp / iMessage</a>
       </div>
@@ -956,9 +1005,8 @@ function renderRealEstate(){
     </div>
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Arrange a viewing</b>
-      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Tell your concierge you&rsquo;d like to tour a villa or learn about buying, and we&rsquo;ll connect you with Ivonna or Jan.</div>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reach out to Jan directly to tour a villa or explore buying &mdash; or browse the current listings.</div>
       <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:11px">
-        <button onclick="goTab('concierge')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message concierge</button>
         <a href="https://dominicanrepublicfgp.com/properties/" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">Browse listings</a>
       </div>
     </div>`;
