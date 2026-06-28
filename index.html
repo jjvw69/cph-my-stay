@@ -97,7 +97,15 @@
   .teaser.ph{background:linear-gradient(135deg,#5B6E5F,#33493B)}
   /* guest request (add-on / itinerary) capture */
   .reqov{position:absolute;inset:0;background:rgba(20,28,24,.55);display:flex;align-items:flex-end;justify-content:center;z-index:60}
-  .reqbox{background:#fff;width:100%;max-width:440px;border-radius:20px 20px 0 0;padding:20px 20px 24px;box-shadow:0 -10px 40px rgba(0,0,0,.28);animation:requp .22s ease}
+  .reqbox{background:#fff;width:100%;max-width:440px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:20px 20px 0 0;padding:20px 20px 24px;box-shadow:0 -10px 40px rgba(0,0,0,.28);animation:requp .22s ease}
+  .reqrates{background:#F6F2E9;border:1px solid #E6DDCC;border-radius:12px;padding:11px 13px;margin:6px 0 2px;font-size:12.5px}
+  .reqrates>b{display:block;font-size:11.5px;letter-spacing:.04em;color:var(--accent);margin-bottom:6px}
+  .reqrates .rt{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
+  .reqrates .rt span:first-child{color:#8A958C}
+  .reqrates .rt span:last-child{color:#1F2A24;font-weight:500;white-space:nowrap}
+  .reqrates .rth{font-weight:600;color:#1F2A24;margin-top:7px;font-size:12px}
+  .reqrates .rtnote{font-size:11.5px;color:#8A958C;margin-top:7px;line-height:1.45}
+  .reqmenu{display:inline-block;margin:8px 0 2px;font-size:13px;color:var(--accent);text-decoration:underline}
   @keyframes requp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
   .reqh{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;color:#1F2A24;margin-bottom:2px;line-height:1.1}
   .reqsub{font-size:12.5px;color:#6E7B71;margin-bottom:8px;line-height:1.45}
@@ -362,6 +370,7 @@ function renderExplore(){
     <div class="backbar"><span class="ttl">Explore</span></div>
     <div style="padding:0 22px"><div class="seg">${cats.map(c=>`<button class="${c===cur?'on':''}" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
     <div class="scroll" style="padding-top:6px">
+      ${(cur==='All'||cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
         <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
@@ -386,25 +395,103 @@ function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId==
 function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
 function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', r.serviceLevel||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
   return `<span class="reqpill">Requested${bits?' · '+esc(bits):''}<span class="x" onclick="removeReq('${r.id}')">×</span></span>`; }
+const SERVICE_INFO = {
+  transfer: {
+    range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
+    notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
+    selects:`<label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
+    rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
+      <div class="rth">LRM → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
+      <div class="rt"><span>Comfort</span><span>$80 / $150</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$150 / $280</span></div>
+      <div class="rth">PUJ → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$125 / $240</span></div>
+      <div class="rt"><span>Comfort</span><span>$160 / $300</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$290 / $560</span></div>
+      <div class="rth">SDQ → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$140 / $270</span></div>
+      <div class="rt"><span>Comfort</span><span>$190 / $360</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$320 / $620</span></div>
+      <div class="rth">Casa de Campo → SDQ / Punta Cana (one-way)</div>
+      <div class="rt"><span>Standard / Comfort / VIP</span><span>$180 / $260 / $380</span></div>`
+  },
+  golfcart: {
+    range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
+    selects:`<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>`,
+    rates:`<b>RATES (per day)</b>
+      <div class="rt"><span>4-seater · year-round</span><span>$80</span></div>
+      <div class="rt"><span>4-seater · Easter &amp; holidays</span><span>$120</span></div>
+      <div class="rt"><span>6-seater · year-round</span><span>$105</span></div>
+      <div class="rt"><span>6-seater · Easter &amp; holidays</span><span>$150</span></div>
+      <div class="rtnote">Full payment confirms the reservation. Fuel is at the guest's expense.</div>`
+  },
+  carrental: {
+    range:true, fromLabel:'Pick-up date', toLabel:'Return date', noGuests:true,
+    notePlaceholder:'Driver needed? Child seat? Wi-Fi? Anything else…',
+    selects:`<label class="reqlbl">Vehicle</label><select id="rqService"><option>Small SUV (up to 5)</option><option>Mid-size SUV (up to 5)</option><option>Luxury SUV (up to 5)</option><option>Minivan (up to 9)</option><option>Minivan Full (up to 9)</option><option>Minibus (up to 15)</option><option>Chevrolet Tahoe</option><option>Chevrolet Suburban (up to 7)</option></select>`,
+    rates:`<b>RATES (per day + 18% tax)</b>
+      <div class="rt"><span>Small SUV</span><span>$85</span></div>
+      <div class="rt"><span>Luxury SUV (mid, full comfort)</span><span>$120</span></div>
+      <div class="rt"><span>Mid-size SUV (3 rows)</span><span>$140</span></div>
+      <div class="rt"><span>Minivan (Hyundai H-1)</span><span>$125</span></div>
+      <div class="rt"><span>Minivan Full</span><span>$160</span></div>
+      <div class="rt"><span>Minibus (up to 15)</span><span>$160</span></div>
+      <div class="rt"><span>Chevrolet Tahoe</span><span>$320</span></div>
+      <div class="rt"><span>Chevrolet Suburban</span><span>$360</span></div>
+      <div class="rtnote">3-day minimum. Full insurance included. Wi-Fi $5/day, child seat $5/day; driver from $20/hr (3 h min).</div>`
+  },
+  grocery: {
+    noTime:true, noGuests:true,
+    notePlaceholder:'List the items you’d like stocked — brands, quantities, dietary needs…',
+    rates:`<b>PRE-STOCK &amp; MENU</b><div class="rtnote">A US$500 deposit secures your pre-stocking. We reimburse against the itemized invoice — settled by Zelle, wire transfer or cash on arrival, reviewed with you at your meet &amp; greet.</div>`
+  },
+  catering: {
+    notePlaceholder:'Meals & menus you’d like, number of guests, dietary needs, dates…',
+    rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
+  },
+  excursions: {
+    menu:'https://www.casadecampo.com.do/experiences/',
+    rates:`<b>A FEW FAVOURITES (taxes incl., most min. 4 guests)</b>
+      <div class="rt"><span>Catalina Island catamaran</span><span>from $48</span></div>
+      <div class="rt"><span>Marinarium snorkel &amp; sharks</span><span>from $64</span></div>
+      <div class="rt"><span>Cumayasa zip line</span><span>from $59</span></div>
+      <div class="rt"><span>Cumayasa buggies</span><span>from $90</span></div>
+      <div class="rt"><span>Chavón River kayak</span><span>from $30</span></div>
+      <div class="rt"><span>Santo Domingo city tour</span><span>$50</span></div>
+      <div class="rt"><span>Cigar / rum factory tour</span><span>from $20</span></div>
+      <div class="rtnote">Horseback riding, tennis, shooting &amp; more available — ask your concierge for the full list.</div>`
+  },
+  spa: {
+    menu:'https://www.casadecampo.com.do/experiences/spa/',
+    rates:`<b>THE SPA AT CASA DE CAMPO</b>
+      <div class="rt"><span>In-villa add-ons</span><span>from $95</span></div>
+      <div class="rt"><span>Massages &amp; facials (80–110 min)</span><span>$285–$385</span></div>
+      <div class="rt"><span>Signature facials</span><span>up to $495</span></div>
+      <div class="rt"><span>Hydrothermal Experience (3 h)</span><span>$140</span></div>
+      <div class="rtnote">Prices subject to 18% tax + 10% service. Full treatment menu via the link below.</div>`
+  }
+};
 window.openReq=function(type,refId){
   const b=state.stay.booking||{}; state._rqG=0;
-  const isCart = type==='addon' && refId==='golfcart';
-  const isTransfer = type==='addon' && refId==='transfer';
-  const cartBlock = isCart ? `<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>` : '';
-  const serviceBlock = isTransfer ? `<label class="reqlbl">Service level</label><select id="rqService"><option value="Regular Service">Regular Service</option><option value="VIP Service">VIP Service</option></select>` : '';
-  const dateBlock = (isCart||isTransfer)
-    ? `<div class="reqrange"><div><label class="reqlbl">${isTransfer?'Arrival date':'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${isTransfer?'Departure date':'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
+  const info = (type==='addon' && SERVICE_INFO[refId]) ? SERVICE_INFO[refId] : {};
+  const ratesBlock = info.rates ? `<div class="reqrates">${info.rates}</div>` : '';
+  const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
+  const selectsBlock = info.selects || '';
+  const dateBlock = info.range
+    ? `<div class="reqrange"><div><label class="reqlbl">${info.fromLabel||'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${info.toLabel||'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
     : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
-  const timeBlock = (isCart||isTransfer) ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
-  const notePlaceholder = isTransfer ? 'Anything we should know? Any child seat needed. Extra luggage (extra suitcases and golf clubs)?' : 'Anything we should know?';
-  const guestsBlock = isCart ? '' : `<label class="reqlbl">How many guests</label>
+  const timeBlock = info.noTime ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
+  const notePlaceholder = info.notePlaceholder || 'Anything we should know?';
+  const guestsBlock = info.noGuests ? '' : `<label class="reqlbl">How many guests</label>
     <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">0</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
   const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
   ov.innerHTML=`<div class="reqbox">
     <div class="reqh">${esc(reqTitle(type,refId))}</div>
-    <div class="reqsub">Let your concierge know when — they'll confirm availability and pricing.</div>
-    ${cartBlock}
-    ${serviceBlock}
+    <div class="reqsub">Let your concierge know — they'll confirm availability and final pricing.</div>
+    ${ratesBlock}
+    ${menuBlock}
+    ${selectsBlock}
     ${dateBlock}
     ${timeBlock}
     ${guestsBlock}
@@ -422,8 +509,10 @@ window.submitReq=async function(type,refId){
   const serviceLevel=(document.getElementById('rqService')||{}).value||'';
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
+  const route=(document.getElementById('rqRoute')||{}).value||'';
+  const noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
   const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
-  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note})});
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
 };
@@ -482,6 +571,7 @@ function renderPushed(v){
   if(v==='arrival') return renderArrival();
   if(v==='checkout') return renderCheckout();
   if(v==='guide') return renderGuide();
+  if(v==='dineguide') return renderDiningGuide();
 }
 
 function shell(title, inner, cta){
@@ -628,6 +718,41 @@ function renderGuide(){
       <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Message concierge</button>
     </div>`;
   shell('Good to know', inner);
+}
+
+/* ---------------- DINING GUIDE ---------------- */
+function renderDiningGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const pick=(occ,rest,loc)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div style="font-size:13px;color:var(--soft);flex:1">${occ}</div><div style="text-align:right;flex:0 0 auto"><div style="font-size:13.5px;font-weight:500">${rest}</div><div style="font-size:11.5px;color:var(--soft)">${loc}</div></div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">DINING GUIDE</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Where to eat at Casa de Campo</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">12 restaurants &amp; 9 bars — from Altos de Chavón fine dining to beachfront lunches and golf-view breakfasts.</div>
+    </div>
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">We book your tables</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reservations are strongly recommended at every sit-down restaurant — especially in peak season (Dec–April). Tell your concierge which nights and which restaurants, and we'll confirm everything before you arrive.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge to book</button>
+    </div>
+    <div class="sec-title">Where to eat, by occasion</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('Special occasion dinner','La Caña','Main hotel')}
+      ${pick('Sunset dinner with views','Minitas Beach Club','Minitas Beach')}
+      ${pick('Marina evening with energy','SBG','Marina')}
+      ${pick('Family dinner, no fuss','Chilango Taquería','Altos de Chavón')}
+      ${pick('Fine Italian in a village','La Piazzetta','Altos de Chavón')}
+      ${pick('Something genuinely different','Causa · Peruvian','Marina')}
+      ${pick('Early breakfast, golf views','Lago','Teeth of the Dog')}
+      ${pick('Post-golf lunch & drinks','19th Hole Bar','Teeth of the Dog')}
+      ${pick('Casual pizza, any evening','Limoncello / Massa','Marina / resort')}
+      ${pick('Pre-concert drinks','Onno’s','Altos de Chavón')}
+      ${pick('Street-food lunch','Brasa food truck','Resort grounds')}
+      ${pick('Whole week sorted','Private chef in villa','Your villa')}
+    </div>
+    ${card('Plan your dining week','For a 7-night stay we suggest: <b>2 nights in Altos de Chavón</b> (Chilango + La Piazzetta), <b>1–2 at the Marina</b> (SBG or Causa), <b>1 night at Minitas Beach Club</b> for the sunset, <b>1 night at La Caña</b>, and <b>2–3 nights in your villa</b> with a private chef — the meals guests remember most.')}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all restaurants</button>`;
+  shell('Dining guide', inner);
 }
 
 /* ---------------- BOOT ---------------- */
