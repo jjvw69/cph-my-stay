@@ -442,7 +442,7 @@ const SERVICE_INFO = {
       <div class="rtnote">3-day minimum. Full insurance included. Wi-Fi $5/day, child seat $5/day; driver from $20/hr (3 h min).</div>`
   },
   grocery: {
-    noTime:true, noGuests:true,
+    noTime:true, noGuests:true, noDate:true,
     notePlaceholder:'List the items you’d like stocked — brands, quantities, dietary needs…',
     rates:`<b>PRE-STOCK &amp; MENU</b><div class="rtnote">A US$500 deposit secures your pre-stocking. We reimburse against the itemized invoice — settled by Zelle, wire transfer or cash on arrival, reviewed with you at your meet &amp; greet.</div>`
   },
@@ -478,7 +478,8 @@ window.openReq=function(type,refId){
   const ratesBlock = info.rates ? `<div class="reqrates">${info.rates}</div>` : '';
   const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
   const selectsBlock = info.selects || '';
-  const dateBlock = info.range
+  const dateBlock = info.noDate ? ''
+    : info.range
     ? `<div class="reqrange"><div><label class="reqlbl">${info.fromLabel||'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${info.toLabel||'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
     : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
   const timeBlock = info.noTime ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
