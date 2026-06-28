@@ -35,7 +35,7 @@
      first load inside a third-party iframe; filling the frame avoids that entirely. */
   html.embedded, html.embedded body{height:100%;min-height:100%}
   html.embedded body{display:block}
-  html.embedded #app{max-width:none;height:auto;min-height:100%;max-height:none;border-radius:0;box-shadow:none;overflow:visible}
+  html.embedded #app{max-width:none;height:100%;min-height:100%;max-height:none;border-radius:0;box-shadow:none}
 
   .view{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
   .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 120px}
@@ -896,20 +896,24 @@ bootPing('js-start');
   }
 })();
 
-/* Repaint once the page is fully loaded / resized. Inside a 3rd-party iframe the very
-   first paint can land before layout settles and leave the app visually blank; re-running
-   the current view (preserving any typed login input) fixes it without a reload. */
-function reflowApp(){
+/* Inside a 3rd-party iframe (the /my-stay/ page) the app's content lays out correctly but
+   the browser can fail to PAINT it on the busy initial page load, leaving a blank frame
+   until something forces a repaint. Force that repaint ourselves: briefly toggle the body
+   display + nudge a compositing layer. Only runs when embedded; harmless top-level. */
+function cphRepaint(){
   try{
-    if(state.stay){ render(); return; }
-    if(document.getElementById('login')){
-      const ref=document.getElementById('ref'), last=document.getElementById('last');
-      renderLogin({ ref: ref?ref.value:'', last: last?last.value:'' });
-    }
+    var b=document.body; if(b){ var d=b.style.display; b.style.display='none'; void b.offsetHeight; b.style.display=d||''; }
+    var de=document.documentElement; if(de){ de.style.transform='translateZ(0)'; void de.offsetHeight; de.style.transform=''; }
   }catch(e){}
 }
-window.addEventListener('load', function(){ reflowApp(); setTimeout(reflowApp,80); setTimeout(reflowApp,400); });
-var __reflowT; window.addEventListener('resize', function(){ clearTimeout(__reflowT); __reflowT=setTimeout(reflowApp,150); });
+if(document.documentElement.classList.contains('embedded')){
+  var _kick=function(){ cphRepaint(); };
+  if(document.readyState==='complete') { _kick(); }
+  window.addEventListener('load', function(){ _kick(); setTimeout(_kick,60); setTimeout(_kick,200); setTimeout(_kick,500); setTimeout(_kick,1000); });
+  document.addEventListener('visibilitychange', _kick);
+  // self-heal on the guest's first interaction, just in case the load-time kicks missed.
+  ['scroll','pointerdown','touchstart','focusin'].forEach(function(ev){ window.addEventListener(ev,_kick,{once:true,passive:true}); });
+}
 </script>
 </body>
 </html>
