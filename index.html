@@ -318,6 +318,7 @@ function renderHome(){
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa guide</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('realestate')"><span class="ic">⌂</span><span class="tx"><b>Own a home in Casa de Campo</b><span>Forbes Global Properties · tours &amp; buying</span></span><span class="arr">→</span></button>
@@ -650,12 +651,75 @@ function renderPushed(v){
   if(v==='discover') return renderDiscover();
   if(v==='golfguide') return renderGolfGuide();
   if(v==='realestate') return renderRealEstate();
+  if(v==='resortmap') return renderResortMap();
 }
 
 function shell(title, inner, cta){
   $app.innerHTML=`<div class="view enter">
     <div class="backbar"><button class="bk" onclick="pop()">←</button><span class="ttl">${esc(title)}</span></div>
     <div class="scroll">${inner}</div>${cta||''}</div>`;
+}
+
+/* ---------------- RESORT MAP (full-screen pinch/drag zoom) ---------------- */
+const RESORT_MAP_URL='https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/casa-de-campo-resort-map.webp';
+function renderResortMap(){
+  const btn='width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.94);color:#16241E;font-size:21px;font-weight:600;box-shadow:0 2px 9px rgba(0,0,0,.28);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1';
+  $app.innerHTML=`<div class="view enter">
+    <div class="backbar"><button class="bk" onclick="pop()">←</button><span class="ttl">Resort map</span></div>
+    <div id="mapWrap" style="position:relative;overflow:hidden;background:#0d1713;touch-action:none;width:100%">
+      <img id="mapImg" src="${RESORT_MAP_URL}" alt="Casa de Campo resort map" draggable="false" style="position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;user-select:none;-webkit-user-drag:none;max-width:none">
+      <div style="position:absolute;right:14px;bottom:56px;display:flex;flex-direction:column;gap:9px;z-index:5">
+        <button aria-label="Zoom in" onclick="mapZoom(1.5)" style="${btn}">+</button>
+        <button aria-label="Zoom out" onclick="mapZoom(${1/1.5})" style="${btn}">&minus;</button>
+        <button aria-label="Fit" onclick="mapReset()" style="${btn};font-size:15px">&#10530;</button>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;text-align:center;color:#fff;font-size:12px;padding:9px 12px;background:linear-gradient(transparent,rgba(0,0,0,.5));pointer-events:none">Pinch or double-tap to zoom &middot; drag to pan</div>
+    </div>
+  </div>`;
+  setupMapZoom();
+}
+var _map=null;
+function _mapApply(){
+  if(!_map) return; var s=_map, fw=s.iw*s.scale, fh=s.ih*s.scale;
+  if(fw<=s.cw){ s.tx=(s.cw-fw)/2; } else { if(s.tx>0)s.tx=0; if(s.tx<s.cw-fw)s.tx=s.cw-fw; }
+  if(fh<=s.ch){ s.ty=(s.ch-fh)/2; } else { if(s.ty>0)s.ty=0; if(s.ty<s.ch-fh)s.ty=s.ch-fh; }
+  s.img.style.transform='translate('+s.tx+'px,'+s.ty+'px) scale('+s.scale+')';
+}
+function _mapZoomTo(ns,px,py){
+  if(!_map) return; var s=_map; ns=Math.max(s.min,Math.min(s.max,ns)); var f=ns/s.scale;
+  s.tx=px-(px-s.tx)*f; s.ty=py-(py-s.ty)*f; s.scale=ns; _mapApply();
+}
+window.mapZoom=function(f){ if(!_map)return; _mapZoomTo(_map.scale*f,_map.cw/2,_map.ch/2); };
+window.mapReset=function(){ if(!_map)return; _map.scale=_map.min; _mapApply(); };
+function setupMapZoom(){
+  var wrap=document.getElementById('mapWrap'), img=document.getElementById('mapImg');
+  if(!wrap||!img) return;
+  function size(){ var bar=document.querySelector('.backbar'); var bh=bar?bar.getBoundingClientRect().height:52; wrap.style.height=(window.innerHeight-bh)+'px'; }
+  function init(){
+    size();
+    var iw=img.naturalWidth||1920, ih=img.naturalHeight||1280;
+    img.style.width=iw+'px'; img.style.height=ih+'px';
+    var cw=wrap.clientWidth, ch=wrap.clientHeight, fit=Math.min(cw/iw,ch/ih);
+    _map={img:img,iw:iw,ih:ih,cw:cw,ch:ch,min:fit,max:fit*7,scale:fit,tx:(cw-iw*fit)/2,ty:(ch-ih*fit)/2};
+    _mapApply();
+  }
+  if(img.complete && img.naturalWidth) init(); else img.onload=init;
+  var pts={}, last=0;
+  wrap.addEventListener('pointerdown',function(e){ try{wrap.setPointerCapture(e.pointerId);}catch(_){} pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    var now=Date.now(); if(now-last<300 && Object.keys(pts).length===1 && _map){ var r=wrap.getBoundingClientRect(); var ns=(_map.scale<=_map.min*1.25)?_map.min*2.6:_map.min; _mapZoomTo(ns,e.clientX-r.left,e.clientY-r.top); } last=now;
+  });
+  wrap.addEventListener('pointermove',function(e){ if(!pts[e.pointerId]||!_map)return; var ids=Object.keys(pts), r=wrap.getBoundingClientRect();
+    if(ids.length===1){ var p=pts[e.pointerId]; _map.tx+=e.clientX-p.x; _map.ty+=e.clientY-p.y; p.x=e.clientX; p.y=e.clientY; _mapApply(); }
+    else if(ids.length>=2){ var a=pts[ids[0]], b=pts[ids[1]], oldD=Math.hypot(a.x-b.x,a.y-b.y);
+      pts[e.pointerId].x=e.clientX; pts[e.pointerId].y=e.clientY;
+      var na=pts[ids[0]], nb=pts[ids[1]], newD=Math.hypot(na.x-nb.x,na.y-nb.y);
+      if(oldD>0) _mapZoomTo(_map.scale*(newD/oldD),(na.x+nb.x)/2-r.left,(na.y+nb.y)/2-r.top);
+    }
+  });
+  function up(e){ delete pts[e.pointerId]; }
+  wrap.addEventListener('pointerup',up); wrap.addEventListener('pointercancel',up); wrap.addEventListener('pointerleave',up);
+  wrap.addEventListener('wheel',function(e){ if(!_map)return; e.preventDefault(); var r=wrap.getBoundingClientRect(); _mapZoomTo(_map.scale*(e.deltaY<0?1.12:1/1.12),e.clientX-r.left,e.clientY-r.top); },{passive:false});
+  window.addEventListener('resize',function(){ if(document.getElementById('mapWrap')===wrap && _map){ size(); _map.cw=wrap.clientWidth; _map.ch=wrap.clientHeight; _mapApply(); } });
 }
 
 function renderCheckin(){
