@@ -318,7 +318,7 @@ function renderHome(){
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
-      <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa &amp; resort guide</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa guide</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
       <button onclick="push('discover')" style="width:100%;text-align:left;border:0;cursor:pointer;background:var(--accent);color:#fff;border-radius:16px;padding:15px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="min-width:0">
@@ -333,7 +333,7 @@ function renderHome(){
         ${exploreData().slice(0,4).map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
       </div>
       <button onclick="signOut()" style="display:block;margin:26px auto 6px;background:none;border:0;color:#8A958C;font-size:13px;text-decoration:underline;cursor:pointer">Sign out</button>
-      <div style="max-width:384px;margin:8px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:center">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
+      <div style="max-width:384px;margin:24px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
     </div>
     ${tabBar('home')}
   </div>`;
@@ -360,7 +360,7 @@ function renderStay(){
         <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
-        <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa &amp; resort guide →</span></div>
+        <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa guide →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>Check-in & add-ons</span></span><span class="arr">→</span></button>
@@ -393,6 +393,7 @@ function renderExplore(){
     <div style="padding:0 22px"><div class="seg" style="flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${cats.map(([lbl,val])=>`<button class="${val===cur?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="setExCat('${val}')">${lbl}</button>`).join('')}</div></div>
     <div class="scroll" style="padding-top:6px">
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
+      ${(cur==='Golf')?`<a href="https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/" target="_blank" rel="noopener" style="width:100%;box-sizing:border-box;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center;text-decoration:none">⛳ Golf course guide — all three courses<span>→</span></a>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
         <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
@@ -774,7 +775,7 @@ function renderGuide(){
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">GOOD TO KNOW</div>
-      <div class="display" style="font-size:24px;margin:4px 0 6px">Your villa &amp; resort guide</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Your villa guide</div>
       <div style="font-size:13px;color:rgba(255,255,255,.85)">Everything to make your stay seamless.</div>
     </div>
     ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
