@@ -320,7 +320,15 @@ function renderHome(){
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa &amp; resort guide</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
-      <div class="sec-title">Discover Casa de Campo</div>
+      <button onclick="push('discover')" style="width:100%;text-align:left;border:0;cursor:pointer;background:var(--accent);color:#fff;border-radius:16px;padding:15px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <span style="min-width:0">
+          <span class="label" style="color:rgba(255,255,255,.7)">DISCOVER</span>
+          <span style="display:block;font-size:16px;font-weight:500;margin-top:3px">Casa de Campo &amp; the Dominican Republic</span>
+          <span style="display:block;font-size:12.5px;color:rgba(255,255,255,.82);margin-top:2px;line-height:1.45">The resort&rsquo;s story &middot; island facts &middot; what&rsquo;s nearby</span>
+        </span>
+        <span style="font-size:18px;opacity:.85;flex:0 0 auto">→</span>
+      </button>
+      <div class="sec-title">Explore the resort</div>
       <div class="teasers">
         ${exploreData().slice(0,4).map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
       </div>
@@ -633,6 +641,7 @@ function renderPushed(v){
   if(v==='dineguide') return renderDiningGuide();
   if(v==='guestlist') return renderGuestList();
   if(v==='plan') return renderPlan();
+  if(v==='discover') return renderDiscover();
 }
 
 function shell(title, inner, cta){
@@ -862,6 +871,64 @@ function renderDiningGuide(){
     ${card('Plan your dining week','For a 7-night stay we suggest: <b>2 nights in Altos de Chavón</b> (Chilango + La Piazzetta), <b>1–2 at the Marina</b> (SBG or Causa), <b>1 night at Minitas Beach Club</b> for the sunset, <b>1 night at La Caña</b>, and <b>2–3 nights in your villa</b> with a private chef — the meals guests remember most.')}
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all restaurants</button>`;
   shell('Dining guide', inner);
+}
+
+/* ---------------- DISCOVER (resort & DR) ---------------- */
+function renderDiscover(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.6;margin-top:6px">${d}</div></div>`;
+  const fact=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)"><span style="font-size:13px;color:var(--soft)">${k}</span><span style="font-size:13px;font-weight:500;text-align:right">${v}</span></div>`;
+  const place=(n,d)=>`<div style="padding:11px 0;border-top:1px solid var(--line)"><b style="font-size:14px">${n}</b><div style="font-size:13px;color:var(--soft);line-height:1.55;margin-top:3px">${d}</div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">DISCOVER</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Casa de Campo &amp; the Dominican Republic</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">The resort&rsquo;s story, the island that surrounds it, and the places worth exploring beyond the gate.</div>
+    </div>
+
+    <div class="sec-title">The story of Casa de Campo</div>
+    ${card('It began with sugar', `In the early 1970s the Gulf + Western sugar company &mdash; whose mill in La Romana had grown into the largest in the world &mdash; set out to turn its fortunes into a new industry: tourism. It brought in the legendary golf architect <b>Pete Dye</b> to find the perfect spot, and he found it on a dry, rocky stretch of coastline outside La Romana.`)}
+    ${card('Teeth of the Dog, built by hand', `With machinery too costly to import, more than <b>300 Dominicans built the course by hand</b> &mdash; clearing brush with machetes, cracking coral rock with sledgehammers and chisels, and hauling soil inland by ox-drawn sugarcane carts. When Dye heard locals call the jagged coral <i>&ldquo;diente del perro,&rdquo;</i> the course had its name. Teeth of the Dog opened in 1971 with seven holes on the Caribbean Sea, and is still ranked the <b>#1 course in the Caribbean</b>.`)}
+    ${card('A resort &mdash; and a cultural mecca', `Casa de Campo opened in <b>1974</b>. It added polo (introduced by Indian prince Maharajah Jabar Singh), tennis, and, high on a hilltop, <b>Altos de Chav&oacute;n</b> &mdash; a hand-built replica of a 16th-century Mediterranean village created to showcase Dominican art. Frank Sinatra inaugurated its 5,000-seat amphitheater in 1982, and the Altos de Chav&oacute;n School of Design (affiliated with New York&rsquo;s Parsons) opened in 1983. Designer <b>Oscar de la Renta</b>, a native son, shaped the resort&rsquo;s signature style.`)}
+    ${card('Ever-evolving', `More followed: a world-class shooting center, the Marina &amp; Yacht Club, the <b>Dye Fore</b> golf course (2003), the Beach Club by Le Cirque, and the resort&rsquo;s own international airport. Today Casa de Campo spans <b>7,000 acres</b> and remains one of the Caribbean&rsquo;s most celebrated resorts.`)}
+
+    <div class="sec-title">About the Dominican Republic</div>
+    ${card('The island', `The Dominican Republic is the <b>second-largest and most diverse</b> country in the Caribbean &mdash; just two hours south of Miami. It pairs nearly 1,000 miles of coastline and some of the world&rsquo;s best beaches with mountains, rivers and a rich culture of merengue, rum, cigars, chocolate, coffee, amber and larimar. It&rsquo;s also the <b>#1 golf destination</b> in the Caribbean and Latin America.`)}
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 12px;margin-top:11px">
+      ${fact('Capital','Santo Domingo')}
+      ${fact('Language','Spanish (English widely spoken)')}
+      ${fact('Currency','Dominican peso (RD$)')}
+      ${fact('Climate','Semitropical &middot; ~80&deg;F / 27&deg;C')}
+      ${fact('Independence','February 27, 1844')}
+      ${fact('Population','~10.5 million')}
+    </div>
+    ${card('A little history', `When Christopher Columbus landed on <b>December 5, 1492</b>, the island &mdash; which he named Hispaniola &mdash; was home to the Ta&iacute;no people, who called it <i>&ldquo;Quisqueya.&rdquo;</i> <b>Santo Domingo</b>, founded in 1496, became the first European city in the Americas and the seat of the Spanish court. Over the centuries the island passed between Spanish, French and Haitian rule; on <b>February 27, 1844</b> the eastern side declared independence and took the name Dominican Republic &mdash; today a vibrant democracy and one of the Caribbean&rsquo;s leading destinations.`)}
+
+    <div class="sec-title">Good to know in the DR</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 12px;margin-top:2px">
+      ${place('Electricity','110 volts &mdash; the same as the US &amp; Canada. Visitors from elsewhere should bring adapters.')}
+      ${place('Money','The currency is the peso (RD$); US dollars and euros are easily exchanged at banks. Cash over US$10,000 must be declared at customs.')}
+      ${place('Tipping','Restaurant bills already include a 10% service charge; an extra ~10% for good service is customary.')}
+      ${place('Sun &amp; health','The Caribbean sun is strong &mdash; wear sunblock even on cloudy days, and keep hydrated with water.')}
+      ${place('Climate','Warm year-round (high-80s&deg;F by day). Warmest June&ndash;September, with brief afternoon showers.')}
+      ${place('Dress','Light, casual resort wear &mdash; plus a light jacket for cooler December&ndash;February evenings.')}
+    </div>
+
+    <div class="sec-title">Near Casa de Campo</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 12px;margin-top:2px">
+      ${place('Altos de Chav&oacute;n','The resort&rsquo;s own hilltop village: art galleries, shops, an archaeological museum, the St. Stanislaus church and a 5,000-seat amphitheater above the Chav&oacute;n River.')}
+      ${place('La Romana','The nearby town &mdash; sugar cane, beaches and diving &mdash; and the gateway to the region.')}
+      ${place('Isla Saona','Powder-sugar beaches, palms and turquoise water inside Parque Nacional del Este &mdash; one of the Caribbean&rsquo;s &ldquo;Dream Beaches.&rdquo; Day trips by boat from Bayahibe.')}
+      ${place('Isla Catalina','A protected island ~20 minutes by boat, ringed by coral reefs &mdash; superb diving and snorkeling, plus the Captain Kidd &ldquo;Living Museum of the Sea&rdquo; shipwreck.')}
+      ${place('Playa Dominicus','The first Blue Flag beach in the Caribbean, near Bayahibe &mdash; a favourite of divers.')}
+      ${place('Diving','La Romana&ndash;Bayahibe is considered the DR&rsquo;s best diving: coral walls, reefs and wrecks like the St. George freighter, across two national parks.')}
+    </div>
+
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:14px">
+      <b style="font-size:14.5px">Want to explore?</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Your concierge can arrange a Saona or Catalina day trip, diving, an Altos de Chav&oacute;n evening, or any excursion beyond the resort.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Message concierge</button>
+    </div>`;
+  shell('Discover', inner);
 }
 
 /* ---------------- BOOT ---------------- */
