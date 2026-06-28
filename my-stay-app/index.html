@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Stay · Caribbean Paradise Homes</title>
+<meta name="theme-color" content="#16241E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5EFE5; --panel:#FBF8F1; --card:#FFFFFF; --ink:#1F2A24;
+    --accent:#33493B; --accent2:#5B6E5F; --soft:#8B8475; --line:#E6DDCC;
+    --gold:#A98C5A; --login:#16241E; --backdrop:#1E2B25;
+    --ok-bg:#E2EAE0; --ok-tx:#33493B; --live:#5B9E6F;
+    --display:'Cormorant Garamond', Georgia, serif;
+    --ui:'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;width:100%;overflow-x:hidden;max-width:100%}
+  body{font-family:var(--ui);background:var(--backdrop);color:var(--ink);-webkit-font-smoothing:antialiased}
+  .label{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+  .display{font-family:var(--display)}
+  button{font-family:var(--ui);cursor:pointer;border:0;background:none}
+  a{color:inherit}
+
+  /* App column */
+  #app{width:100%;max-width:440px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative;overflow:hidden;
+       box-shadow:0 0 60px rgba(0,0,0,.35)}
+  @media(min-width:480px){ body{display:flex;align-items:center;justify-content:center}
+    #app{height:920px;max-height:96dvh;min-height:0;border-radius:28px} }
+
+  .view{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+  .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 120px}
+  .enter{animation:slideIn .32s cubic-bezier(.22,.61,.36,1)}
+  @keyframes slideIn{from{transform:translateY(14px)}to{transform:translateY(0)}}
+
+  /* Login */
+  #login{position:absolute;inset:0;background:var(--login);color:#fff;display:flex;flex-direction:column;justify-content:flex-end;
+         background-size:cover;background-position:center}
+  #login .grad{position:absolute;inset:0;background:linear-gradient(rgba(20,33,28,.34),rgba(20,33,28,.93))}
+  #login .top{position:absolute;top:48px;left:0;right:0;text-align:center;z-index:2}
+  #login .seal{width:54px;height:auto;margin:0 auto 10px;display:block}
+  #login .wordmark{font-size:11px;letter-spacing:.28em;color:rgba(255,255,255,.85)}
+  #login .body{position:relative;z-index:2;padding:0 26px 40px}
+  #login h1{font-family:var(--display);font-weight:600;font-size:40px;line-height:1.05;margin:6px 0 8px}
+  #login .sub{color:rgba(255,255,255,.78);font-weight:300;font-size:15px;margin-bottom:26px;max-width:300px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:7px}
+  .field input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;
+       padding:14px 16px;border-radius:12px;font-size:16px;font-family:var(--ui)}
+  .field input::placeholder{color:rgba(255,255,255,.45)}
+  .btn{width:100%;background:#F3ECDD;color:#1F2A24;padding:16px;border-radius:13px;font-size:15px;font-weight:500;
+       letter-spacing:.02em;box-shadow:0 12px 30px -10px rgba(0,0,0,.6)}
+  .btn:disabled{opacity:.6}
+  #login .helper{margin-top:14px;text-align:center;font-size:12.5px;color:rgba(255,255,255,.6)}
+  #login .helper a{color:rgba(255,255,255,.9);text-decoration:underline}
+  .err{background:rgba(158,91,67,.92);color:#fff;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px;display:none}
+
+  /* Headers / cards */
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 8px;position:sticky;top:0;background:linear-gradient(var(--bg),var(--bg) 70%,rgba(245,239,229,0));z-index:5}
+  .brand{display:flex;align-items:center;gap:9px}
+  .brand img{width:30px;height:auto}
+  .brand b{font-family:var(--display);font-weight:600;font-size:15px;line-height:1;color:var(--ink)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;letter-spacing:.04em}
+  .eyebrow{margin-top:6px}
+  h2.villa{font-family:var(--display);font-weight:600;font-size:40px;line-height:1.02;color:var(--ink);margin:4px 0 2px}
+  .loc{color:var(--soft);font-size:14px;display:flex;align-items:center;gap:7px;margin-bottom:16px}
+  .loc::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);display:inline-block}
+  .hero{height:224px;border-radius:22px;background:#cfc6b3 center/cover no-repeat;position:relative;overflow:hidden;
+        box-shadow:0 18px 40px -22px rgba(31,42,36,.7)}
+  .hero.ph{background:linear-gradient(135deg,#33493B,#1E2B25)}
+  .hero .chips{position:absolute;left:12px;bottom:12px;display:flex;gap:7px;flex-wrap:wrap}
+  .chip{background:rgba(22,33,28,.62);color:#fff;font-size:11px;letter-spacing:.04em;padding:6px 11px;border-radius:30px;backdrop-filter:blur(4px)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
+  .countdown{display:flex;align-items:center;justify-content:space-between}
+  .countdown .big{font-family:var(--display);font-weight:600;font-size:52px;line-height:.9;color:var(--accent)}
+  .countdown .days{font-size:14px;color:var(--soft);margin-left:4px}
+  .countdown .sub{font-size:12.5px;color:var(--soft);margin-top:6px}
+  .ring{width:74px;height:74px;border-radius:50%;border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--accent)}
+  .ring b{font-family:var(--display);font-size:22px;line-height:1}
+  .ring span{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft)}
+  .greet{font-size:15.5px;line-height:1.5;color:var(--soft);margin:18px 2px 4px}
+  .greet b{color:var(--ink);font-weight:500}
+  .row{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-top:11px;width:100%;text-align:left}
+  .row .ic{width:34px;height:34px;border-radius:9px;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+  .row .tx{flex:1}
+  .row .tx b{display:block;font-weight:500;font-size:15px;color:var(--ink)}
+  .row .tx span{font-size:12.5px;color:var(--soft)}
+  .row .arr{color:var(--soft);font-size:18px}
+  .pill-done{font-size:11px;color:var(--ok-tx);background:var(--ok-bg);padding:3px 9px;border-radius:30px}
+  .sec-title{font-family:var(--display);font-weight:600;font-size:24px;color:var(--ink);margin:26px 2px 2px}
+  .teasers{display:flex;gap:12px;overflow-x:auto;padding:14px 0 2px;scrollbar-width:none}
+  .teasers::-webkit-scrollbar{display:none}
+  .teaser{flex:0 0 150px;height:104px;border-radius:14px;background:#cfc6b3 center/cover;position:relative;color:#fff;display:flex;align-items:flex-end;padding:11px;font-size:13px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .teaser.ph{background:linear-gradient(135deg,#5B6E5F,#33493B)}
+  /* guest request (add-on / itinerary) capture */
+  .reqov{position:absolute;inset:0;background:rgba(20,28,24,.55);display:flex;align-items:flex-end;justify-content:center;z-index:60}
+  .reqbox{background:#fff;width:100%;max-width:440px;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;border-radius:20px 20px 0 0;padding:20px 20px 24px;box-shadow:0 -10px 40px rgba(0,0,0,.28);animation:requp .22s ease}
+  .reqrates{background:#F6F2E9;border:1px solid #E6DDCC;border-radius:12px;padding:11px 13px;margin:6px 0 2px;font-size:12.5px}
+  .reqrates>b{display:block;font-size:11.5px;letter-spacing:.04em;color:var(--accent);margin-bottom:6px}
+  .reqrates .rt{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
+  .reqrates .rt span:first-child{color:#8A958C}
+  .reqrates .rt span:last-child{color:#1F2A24;font-weight:500;white-space:nowrap}
+  .reqrates .rth{font-weight:600;color:#1F2A24;margin-top:7px;font-size:12px}
+  .reqrates .rtnote{font-size:11.5px;color:#8A958C;margin-top:7px;line-height:1.45}
+  .reqmenu{display:inline-block;margin:8px 0 2px;font-size:13px;color:var(--accent);text-decoration:underline}
+  @keyframes requp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+  .reqh{font-family:'Cormorant Garamond',Georgia,serif;font-size:23px;color:#1F2A24;margin-bottom:2px;line-height:1.1}
+  .reqsub{font-size:12.5px;color:#6E7B71;margin-bottom:8px;line-height:1.45}
+  .reqlbl{display:block;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#8A958C;margin:12px 0 5px}
+  .reqbox input,.reqbox textarea,.reqbox select{width:100%;border:1px solid #E2DCCD;border-radius:11px;padding:11px 12px;font-size:15px;font-family:inherit;box-sizing:border-box;background:#fff;color:#1F2A24}
+  .reqbox input[type=date],.reqbox input[type=time]{-webkit-appearance:none;appearance:none;min-width:0}
+  .reqbox input[type=date]::-webkit-date-and-time-value,.reqbox input[type=time]::-webkit-date-and-time-value{text-align:left}
+  .reqbox input[type=date]::-webkit-calendar-picker-indicator,.reqbox input[type=time]::-webkit-calendar-picker-indicator{margin-left:auto}
+  .reqrange{display:flex;gap:10px}
+  .reqrange>div{flex:1;min-width:0}
+  .reqstep{display:flex;align-items:center;gap:18px}
+  .reqstep button{width:40px;height:40px;border:1px solid #E2DCCD;border-radius:10px;background:#fff;font-size:20px;color:#33493B;cursor:pointer}
+  .reqstep span{font-size:17px;min-width:26px;text-align:center}
+  .reqbtns{display:flex;gap:10px;margin-top:18px}
+  .reqbtns button{flex:1;border-radius:12px;padding:13px;font-size:14px;border:0;cursor:pointer}
+  .rqcancel{background:#EFE9DC;color:#1F2A24}
+  .rqok{background:#33493B;color:#fff}
+  .reqpill{display:inline-flex;align-items:center;gap:9px;margin-top:7px;background:#EEF3EE;color:#33493B;border-radius:9px;padding:6px 10px;font-size:12px;line-height:1.3}
+  .reqpill .x{cursor:pointer;font-size:15px;color:#9E5B43;font-weight:600}
+  .reqpill.ok{background:#E2EAE0;color:#33493B;font-weight:600}
+
+  /* Tab bar */
+  .tabs{position:absolute;left:0;right:0;bottom:0;display:flex;background:rgba(251,248,241,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:9px 8px calc(9px + max(env(safe-area-inset-bottom), 30px))}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--soft);font-size:10.5px;letter-spacing:.04em;padding:5px 0}
+  .tab .ti{font-size:19px;line-height:1}
+  .tab.on{color:var(--accent)}
+  .backbar{display:flex;align-items:center;gap:14px;padding:18px 22px 6px}
+  .backbar button.bk{font-size:22px;color:var(--ink)}
+  .backbar .ttl{font-family:var(--display);font-weight:600;font-size:22px}
+
+  /* Generic UI bits */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:12px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+  .tile b{display:block;font-size:14px;font-weight:500}
+  .tile span{font-size:12px;color:var(--soft)}
+  .seg{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+  .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:30px;font-size:13px}
+  .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stepper{display:flex;align-items:center;gap:14px}
+  .stepper button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);font-size:18px;color:var(--accent);background:var(--card)}
+  .cta-bar{position:absolute;left:0;right:0;bottom:0;padding:14px 22px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(rgba(245,239,229,0),var(--bg) 30%)}
+  .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;padding:11px 18px;border-radius:30px;font-size:13.5px;opacity:0;transition:.25s;pointer-events:none;z-index:30;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .chatwrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .msgs{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:9px;min-width:0}
+  .msg{max-width:78%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.4}
+  .msg.them{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
+  .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+  .composer{display:flex;gap:9px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
+  .composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:30px;padding:12px 16px;font-size:15px;font-family:var(--ui)}
+  .composer button{flex:none}
+  .qrow{padding:8px 16px 0;max-width:100%;overflow:hidden}
+  .qrow .seg{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .composer button{width:46px;height:46px;border-radius:50%;background:var(--accent);color:#fff;font-size:18px}
+  .check{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px}
+  .check .box{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--accent2);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+  .check.on .box{background:var(--accent);border-color:var(--accent)}
+  .check.on .t{text-decoration:line-through;color:var(--soft)}
+  .center-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#fff;gap:14px;padding:30px;text-align:center}
+  .spin{width:34px;height:34px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .mode-flag{position:fixed;bottom:8px;left:8px;font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.5);z-index:50}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="boot" class="center-msg"><div class="spin"></div><div style="font-size:13px;letter-spacing:.1em">Loading your stay…</div></div>
+</div>
+<div class="mode-flag" id="modeFlag"></div>
+
+<script>
+const SEAL = "https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
+
+const state = { stay:null, token:null, tab:'home', stack:[], cart:{}, checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
+const $app = document.getElementById('app');
+const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
+const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* keep the guest signed in across reloads — persist the session token in this
+   app's own (iframe-origin) storage. Wrapped in try/catch in case a strict
+   browser blocks storage inside a 3rd-party iframe. */
+const TKEY='cph_guest_token';
+function saveToken(t){ state.token=t||null; try{ if(t) localStorage.setItem(TKEY,t); else localStorage.removeItem(TKEY); }catch(e){} }
+function loadToken(){ try{ return localStorage.getItem(TKEY)||null; }catch(e){ return null; } }
+
+async function api(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  if(state.token) headers['Authorization'] = 'Bearer '+state.token;
+  const r = await fetch(path, Object.assign({credentials:'same-origin'}, opts, {headers}));
+  let j={}; try{ j=await r.json(); }catch(e){}
+  return {status:r.status, ok:r.ok && j.ok!==false, body:j};
+}
+
+function toast(t){ let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';$app.appendChild(el);} el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2300); }
+
+/* ---------------- LOGIN ---------------- */
+function renderLogin(prefill){
+  $app.innerHTML = `
+  <div id="login">
+    <div class="grad"></div>
+    <div class="top"><img class="seal" src="${SEAL}" alt=""><div class="wordmark">CARIBBEAN PARADISE HOMES</div></div>
+    <div class="body">
+      <div class="label" style="color:rgba(255,255,255,.7)">CASA DE CAMPO · LA ROMANA</div>
+      <h1>Welcome to<br>your stay</h1>
+      <div class="sub">Find your reservation to unlock check-in, your concierge and everything for a seamless arrival.</div>
+      <div class="err" id="loginErr"></div>
+      <div class="field"><label>Booking reference</label><input id="ref" autocomplete="off" autocapitalize="characters" placeholder="e.g. CDC-2026-0741" value="${esc(prefill&&prefill.ref||'')}"></div>
+      <div class="field"><label>Lead guest last name</label><input id="last" autocomplete="off" placeholder="Last name" value="${esc(prefill&&prefill.last||'')}"></div>
+      <button class="btn" id="loginBtn">Find my stay</button>
+      <div class="helper">Need help? <a href="tel:+18297638801">+1 (829) 763-8801</a></div>
+    </div>
+  </div>`;
+  const btn=document.getElementById('loginBtn'), errEl=document.getElementById('loginErr');
+  async function go(){
+    const reference=document.getElementById('ref').value.trim(), lastName=document.getElementById('last').value.trim();
+    errEl.style.display='none'; btn.disabled=true; btn.textContent='Finding your stay…';
+    const r = await api('/api/login',{method:'POST',body:JSON.stringify({reference,lastName})});
+    btn.disabled=false; btn.textContent='Find my stay';
+    if(r.ok){ state.stay=r.body.stay; saveToken(r.body.token||null); bootIntoApp(); }
+    else { errEl.textContent=r.body.error||'Something went wrong. Please try again.'; errEl.style.display='block'; }
+  }
+  btn.onclick=go;
+  document.getElementById('last').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+}
+
+/* ---------------- APP SHELL ---------------- */
+function bootIntoApp(){ state.tab='home'; state.stack=[]; loadConversation(); startPolling(); render(); }
+/* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
+function loadConversation(){
+  const s=state.stay; if(!s) return;
+  const greet={from:'them',t:`Hi ${s.guest.firstName||'there'}, I'm ${(s.concierge&&s.concierge.name)||'your concierge'}, your concierge. How can I help make your stay perfect?`};
+  const stored=(s.messages||[]).map(m=>({from:m.from==='guest'?'me':'them',t:m.text}));
+  state.messages=[greet].concat(stored);
+}
+
+/* account sheet + sign out */
+window.openAcct=function(){
+  const s=state.stay||{}; const g=s.guest||{};
+  const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeAcct(); };
+  ov.innerHTML=`<div class="reqbox">
+    <div class="reqh">${esc((g.family?g.family+' family':g.firstName||'Your stay'))}</div>
+    <div class="reqsub">You're signed in to your stay. We'll keep you signed in on this device.</div>
+    <div class="reqbtns"><button class="rqcancel" onclick="closeAcct()">Close</button><button class="rqok" onclick="signOut()">Sign out</button></div>
+  </div>`;
+  $app.appendChild(ov);
+};
+window.closeAcct=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+window.signOut=function(){ stopPolling(); saveToken(null); state.stay=null; state.messages=[]; state.stack=[]; state.tab='home'; closeAcct(); renderLogin(); };
+
+function tabBar(active,flow){
+  const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
+  return `<div class="tabs"${flow?' style="position:static;flex:none"':''}>${t('home','⌂','Home')}${t('stay','❖','Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
+}
+window.goTab=function(id){ state.tab=id; state.stack=[]; render(); };
+window.push=function(v){ state.stack.push(v); render(); };
+window.pop=function(){ state.stack.pop(); render(); };
+
+function render(){
+  const v = state.stack[state.stack.length-1];
+  if(v) return renderPushed(v);
+  if(state.tab==='home') return renderHome();
+  if(state.tab==='stay') return renderStay();
+  if(state.tab==='explore') return renderExplore();
+  if(state.tab==='concierge') return renderConcierge();
+}
+
+/* ---------------- HOME ---------------- */
+function heroStyle(url){ return url ? `style="background-image:url('${esc(url)}')"` : ''; }
+function renderHome(){
+  const s=state.stay, b=s.booking, v=s.villa;
+  const d=daysUntil(b.arrive);
+  const checkinDone = !!state.checkin.done;
+  const cartCount = Object.values(state.cart).reduce((a,n)=>a+n,0);
+  $app.innerHTML = `
+  <div class="view enter">
+    <div class="appbar">
+      <div class="brand"><img src="${SEAL}" alt=""><b>Caribbean<br>Paradise Homes</b></div>
+      <button class="avatar" onclick="openAcct()">${esc(s.concierge.avatarInitials||'C')}</button>
+    </div>
+    <div class="scroll">
+      <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
+      <h2 class="villa">${esc(v.name)}</h2>
+      <div class="loc">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
+      <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
+        <div class="chips">
+          ${v.suites?`<span class="chip">${esc(v.suites)} suites · sleeps ${esc(v.sleeps||'')}</span>`:''}
+          ${(v.amenities||[]).slice(0,1).map(a=>`<span class="chip">${esc(a)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="card countdown">
+        <div><div class="label">ARRIVING IN</div>
+          <div style="margin-top:6px"><span class="big">${d==null?'–':d}</span><span class="days">days</span></div>
+          <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
+        <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights</span></div>
+      </div>
+      <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
+      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
+      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa &amp; resort guide</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
+      <div class="sec-title">Discover Casa de Campo</div>
+      <div class="teasers">
+        ${exploreData().slice(0,4).map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('')}
+      </div>
+      <button onclick="signOut()" style="display:block;margin:26px auto 6px;background:none;border:0;color:#8A958C;font-size:13px;text-decoration:underline;cursor:pointer">Sign out</button>
+    </div>
+    ${tabBar('home')}
+  </div>`;
+}
+
+/* ---------------- STAY ---------------- */
+function renderStay(){
+  const s=state.stay,b=s.booking,v=s.villa;
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><span class="ttl">The stay</span></div>
+    <div class="scroll">
+      <div class="card" style="background:var(--accent);color:#fff;border:0">
+        <div class="label" style="color:rgba(255,255,255,.7)">${esc([v.internalName||v.area,v.suites?v.suites+' suites':''].filter(Boolean).join(' · '))}</div>
+        <div class="display" style="font-size:30px;margin:4px 0 14px">${esc(v.name)}</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.9)">
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Check-in</div>${b.arrive?fmtDate(b.arrive):'–'}<br>${esc(b.checkInTime||'')}</div>
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Check-out</div>${b.depart?fmtDate(b.depart):'–'}<br>${esc(b.checkOutTime||'')}</div>
+          <div><div class="label" style="color:rgba(255,255,255,.6)">Guests</div>${(b.adults||0)} adults${b.children?` · ${b.children} kids`:''}</div>
+        </div>
+      </div>
+      <div class="sec-title">Villa essentials</div>
+      <div class="grid2">
+        <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
+        <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
+        <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
+        <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa &amp; resort guide →</span></div>
+      </div>
+      <div class="sec-title">Your timeline</div>
+      <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>Check-in & add-ons</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Your concierge</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
+    </div>
+    ${tabBar('stay')}
+  </div>`;
+}
+
+/* ---------------- EXPLORE ---------------- */
+const EXPLORE=[
+  {cat:'Dining',name:'Minitas Beach Club',meta:'On resort · 5 min',desc:'Beachfront dining with Mediterranean-Caribbean menus and toes-in-the-sand tables.'},
+  {cat:'Activities',name:'Teeth of the Dog Golf',meta:'World top-100 · 7 min',desc:"Pete Dye's iconic oceanfront course — seven holes hug the Caribbean."},
+  {cat:'Excursions',name:'Saona Island Catamaran',meta:'Full day · pickup included',desc:'Sail to palm-fringed Saona, with natural pools and a beach lunch.'},
+  {cat:'Beaches',name:'Minitas Beach',meta:'On resort · 6 min',desc:'The resort\'s sheltered white-sand cove, loungers and water sports.'},
+  {cat:'Dining',name:'La Caña by Il Circo',meta:'On resort · 5 min',desc:'Signature Italian at the heart of the resort, poolside and elegant.'},
+  {cat:'Activities',name:'Altos de Chavón',meta:'Cultural village · 10 min',desc:'A re-created 16th-century Mediterranean village and amphitheatre.'},
+];
+/* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
+function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
+function renderExplore(){
+  const cats=['All','Dining','Golf','Amenities','Activities'];
+  const cur=state._exCat||'All';
+  const items=exploreData().filter(e=>cur==='All'||e.cat===cur);
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><span class="ttl">Explore</span></div>
+    <div style="padding:0 22px"><div class="seg" style="flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${cats.map(c=>`<button class="${c===cur?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
+    <div class="scroll" style="padding-top:6px">
+      ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
+      ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
+        <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
+        <div style="padding:15px">
+          <div class="display" style="font-size:22px">${esc(e.name)}</div>
+          <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
+          <div style="font-size:13.5px;color:var(--soft);line-height:1.5">${esc(e.desc)}</div>
+          ${e.info?'':(e.cat==='Golf'
+            ? `<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px">${e.more?`<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info</a>`:''}<a href="https://www.casadecampoteetimes.com/book.php?t=17825874558980c33587c662969cb3b50dfe47ff521726892188e08d20a5126428b7e6324810cdc4084f" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;background:var(--accent);color:#fff;border-radius:11px;padding:12px 14px;font-size:13.5px;font-weight:500;text-decoration:none">Book your Tee Time</a></div>`
+            : reqFor('explore',e.id).map(reqLine).join('')+`<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:13px">${e.menu?`<a href="${esc(e.menu)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">Menu</a>`:''}${e.more?`<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info</a>`:''}<button onclick="openReq('explore','${esc(e.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Add to itinerary</button></div>`
+          )}
+        </div></div>`).join('')}
+    </div>
+    ${tabBar('explore')}
+  </div>`;
+}
+window.setExCat=function(c){ state._exCat=c; render(); };
+window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
+
+/* ---------- guest interest requests (add-on + itinerary) ---------- */
+function reqList(){ return (state.stay&&state.stay.requests)||[]; }
+function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId===refId); }
+function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
+function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', r.serviceLevel||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
+  const confirmed=r.status==='confirmed';
+  const lbl=confirmed?('Confirmed'+(r.price?' · '+esc(r.price):'')):'Requested';
+  const x=confirmed?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
+  return `<span class="reqpill${confirmed?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
+const SERVICE_INFO = {
+  transfer: {
+    range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
+    notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
+    selects:`<label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
+    rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
+      <div class="rth">LRM → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
+      <div class="rt"><span>Comfort</span><span>$80 / $150</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$150 / $280</span></div>
+      <div class="rth">PUJ → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$125 / $240</span></div>
+      <div class="rt"><span>Comfort</span><span>$160 / $300</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$290 / $560</span></div>
+      <div class="rth">SDQ → Casa de Campo</div>
+      <div class="rt"><span>Standard</span><span>$140 / $270</span></div>
+      <div class="rt"><span>Comfort</span><span>$190 / $360</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>$320 / $620</span></div>
+      <div class="rth">Casa de Campo → SDQ / Punta Cana (one-way)</div>
+      <div class="rt"><span>Standard / Comfort / VIP</span><span>$180 / $260 / $380</span></div>`
+  },
+  golfcart: {
+    range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
+    selects:`<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select>`,
+    rates:`<b>RATES (per day)</b>
+      <div class="rt"><span>4-seater · year-round</span><span>$80</span></div>
+      <div class="rt"><span>4-seater · Easter &amp; holidays</span><span>$120</span></div>
+      <div class="rt"><span>6-seater · year-round</span><span>$105</span></div>
+      <div class="rt"><span>6-seater · Easter &amp; holidays</span><span>$150</span></div>
+      <div class="rtnote">Full payment confirms the reservation. Fuel is at the guest's expense.</div>`
+  },
+  carrental: {
+    range:true, fromLabel:'Pick-up date', toLabel:'Return date', noGuests:true,
+    notePlaceholder:'Driver needed? Child seat? Wi-Fi? Anything else…',
+    selects:`<label class="reqlbl">Vehicle</label><select id="rqService"><option>Small SUV (up to 5)</option><option>Mid-size SUV (up to 5)</option><option>Luxury SUV (up to 5)</option><option>Minivan (up to 9)</option><option>Minivan Full (up to 9)</option><option>Minibus (up to 15)</option><option>Chevrolet Tahoe</option><option>Chevrolet Suburban (up to 7)</option></select>`,
+    rates:`<b>RATES (per day + 18% tax)</b>
+      <div class="rt"><span>Small SUV</span><span>$85</span></div>
+      <div class="rt"><span>Luxury SUV (mid, full comfort)</span><span>$120</span></div>
+      <div class="rt"><span>Mid-size SUV (3 rows)</span><span>$140</span></div>
+      <div class="rt"><span>Minivan (Hyundai H-1)</span><span>$125</span></div>
+      <div class="rt"><span>Minivan Full</span><span>$160</span></div>
+      <div class="rt"><span>Minibus (up to 15)</span><span>$160</span></div>
+      <div class="rt"><span>Chevrolet Tahoe</span><span>$320</span></div>
+      <div class="rt"><span>Chevrolet Suburban</span><span>$360</span></div>
+      <div class="rtnote">3-day minimum. Full insurance included. Wi-Fi $5/day, child seat $5/day; driver from $20/hr (3 h min).</div>`
+  },
+  grocery: {
+    noTime:true, noGuests:true, noDate:true,
+    notePlaceholder:'List the items you’d like stocked — brands, quantities, dietary needs…',
+    rates:`<b>PRE-STOCK &amp; MENU</b><div class="rtnote">A US$500 deposit secures your pre-stocking. We reimburse against the itemized invoice — settled by Zelle, wire transfer or cash on arrival, reviewed with you at your meet &amp; greet.</div>`
+  },
+  catering: {
+    notePlaceholder:'Meals & menus you’d like, number of guests, dietary needs, dates…',
+    rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
+  },
+  excursions: {
+    menu:'https://www.casadecampo.com.do/experiences/',
+    rates:`<b>A FEW FAVOURITES (taxes incl., most min. 4 guests)</b>
+      <div class="rt"><span>Catalina Island catamaran</span><span>from $48</span></div>
+      <div class="rt"><span>Marinarium snorkel &amp; sharks</span><span>from $64</span></div>
+      <div class="rt"><span>Cumayasa zip line</span><span>from $59</span></div>
+      <div class="rt"><span>Cumayasa buggies</span><span>from $90</span></div>
+      <div class="rt"><span>Chavón River kayak</span><span>from $30</span></div>
+      <div class="rt"><span>Santo Domingo city tour</span><span>$50</span></div>
+      <div class="rt"><span>Cigar / rum factory tour</span><span>from $20</span></div>
+      <div class="rtnote">Horseback riding, tennis, shooting &amp; more available — ask your concierge for the full list.</div>`
+  },
+  babygear: {
+    noTime:true, noGuests:true,
+    notePlaceholder:'Quantity, ages, dates needed, anything specific…',
+    selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Baby playpen</option><option>Other</option></select>`
+  },
+  tennis: {
+    menu:'https://www.casadecampo.com.do/experiences/racquet-center/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Tennis — court rental</option><option>Tennis — private lesson</option><option>Tennis — group clinic</option><option>Padel — court rental</option><option>Padel — lesson</option><option>Racquet / paddle rental</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes not incl.)</b>
+      <div class="rth">Tennis</div>
+      <div class="rt"><span>Court · day / night</span><span>$35 / $45</span></div>
+      <div class="rt"><span>Private lesson (Pro / Director)</span><span>$65 / $125 p/h</span></div>
+      <div class="rt"><span>Group clinic (adults / kids)</span><span>$35 / $25</span></div>
+      <div class="rt"><span>Ball machine · racquet rental</span><span>$25 · $15</span></div>
+      <div class="rth">Padel</div>
+      <div class="rt"><span>Court · day / night</span><span>$40 / $45</span></div>
+      <div class="rt"><span>Private lesson · paddle rental</span><span>from $60 · $10</span></div>`
+  },
+  equestrian: {
+    menu:'https://www.casadecampo.com.do/experiences/equestrian/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Horseback ride</option><option>Pony ride (kids 4–6)</option><option>Riding / jumping lesson</option><option>Polo lesson</option><option>Donkey polo</option><option>Ranch horseback tour</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes incl.)</b>
+      <div class="rt"><span>Horseback ride (½h / 1h / 2h)</span><span>$45 / $85 / $125 p/p</span></div>
+      <div class="rt"><span>Pony ride (½h, ages 4–6)</span><span>$40</span></div>
+      <div class="rt"><span>Riding / jumping lesson (½h / 1h)</span><span>$80 / $125 p/p</span></div>
+      <div class="rt"><span>Polo lesson (assistant / pro)</span><span>$120 / $200 p/p</span></div>
+      <div class="rt"><span>Donkey polo (1h, min 6)</span><span>$70 p/p</span></div>
+      <div class="rt"><span>Ranch horseback tour (2h)</span><span>$170–$255 p/p</span></div>`
+  },
+  shooting: {
+    menu:'https://www.casadecampo.com.do/experiences/shooting-center/',
+    selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Skeet / Trap round</option><option>Five-stand round</option><option>Sporting clays round</option><option>Flush (group)</option><option>Lesson</option><option>Bird shooting</option><option>Other</option></select>`,
+    rates:`<b>RATES (taxes not incl.)</b>
+      <div class="rt"><span>Skeet / Trap round (25)</span><span>$45</span></div>
+      <div class="rt"><span>Five-stand round (25)</span><span>$50</span></div>
+      <div class="rt"><span>Sporting clays (50 → 200)</span><span>$105 – $320</span></div>
+      <div class="rt"><span>Flush 2 / 3 / 4 / 5-man</span><span>$105 / $135 / $190 / $220</span></div>
+      <div class="rt"><span>Lessons (Skeet / Clays / Pro)</span><span>$20 / $45 / $80</span></div>
+      <div class="rt"><span>Bird shooting</span><span>from $40/bird</span></div>
+      <div class="rtnote">Under-12s must be evaluated at the Shooting Center. Bird shooting is booked directly with the centre.</div>`
+  },
+  spa: {
+    menu:'https://www.casadecampo.com.do/experiences/spa/',
+    selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Massage</option><option>Facial</option><option>Body treatment</option><option>Hydrothermal Experience</option><option>In-villa treatment</option><option>Other</option></select>`,
+    rates:`<b>THE SPA AT CASA DE CAMPO</b>
+      <div class="rt"><span>In-villa add-ons</span><span>from $95</span></div>
+      <div class="rt"><span>Massages &amp; facials (80–110 min)</span><span>$285–$385</span></div>
+      <div class="rt"><span>Signature facials</span><span>up to $495</span></div>
+      <div class="rt"><span>Hydrothermal Experience (3 h)</span><span>$140</span></div>
+      <div class="rtnote">Prices subject to 18% tax + 10% service. Full treatment menu via the link below.</div>`
+  }
+};
+window.openReq=function(type,refId){
+  const b=state.stay.booking||{}; state._rqG=0;
+  const info = SERVICE_INFO[refId] || {};
+  const ratesBlock = info.rates ? `<div class="reqrates">${info.rates}</div>` : '';
+  const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
+  const selectsBlock = info.selects || '';
+  const dateBlock = info.noDate ? ''
+    : info.range
+    ? `<div class="reqrange"><div><label class="reqlbl">${info.fromLabel||'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${info.toLabel||'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
+    : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
+  const timeBlock = info.noTime ? '' : `<label class="reqlbl">Preferred time</label><input id="rqTime" placeholder="e.g. 9:00 AM">`;
+  const notePlaceholder = info.notePlaceholder || 'Anything we should know?';
+  const guestsBlock = info.noGuests ? '' : `<label class="reqlbl">How many guests</label>
+    <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">0</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
+  const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
+  ov.innerHTML=`<div class="reqbox">
+    <div class="reqh">${esc(reqTitle(type,refId))}</div>
+    <div class="reqsub">Let your concierge know — they'll confirm availability and final pricing.</div>
+    ${ratesBlock}
+    ${menuBlock}
+    ${selectsBlock}
+    ${dateBlock}
+    ${timeBlock}
+    ${guestsBlock}
+    <label class="reqlbl">Note (optional)</label><textarea id="rqNote" rows="2" placeholder="${esc(notePlaceholder)}"></textarea>
+    <div class="reqbtns"><button class="rqcancel" onclick="closeReq()">Cancel</button><button class="rqok" onclick="submitReq('${type}','${esc(refId)}')">Send request</button></div>
+  </div>`;
+  $app.appendChild(ov);
+};
+window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
+window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+window.submitReq=async function(type,refId){
+  const date=(document.getElementById('rqDate')||{}).value||'';
+  const endDate=(document.getElementById('rqEnd')||{}).value||'';
+  const cartType=(document.getElementById('rqCart')||{}).value||'';
+  const serviceLevel=(document.getElementById('rqService')||{}).value||'';
+  const time=(document.getElementById('rqTime')||{}).value||'';
+  const note=(document.getElementById('rqNote')||{}).value||'';
+  const route=(document.getElementById('rqRoute')||{}).value||'';
+  const noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
+  const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut})});
+  if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
+  else toast('Could not send — please try again');
+};
+window.removeReq=async function(id){
+  const r=await api('/api/request/remove',{method:'POST',body:JSON.stringify({id})});
+  if(r.ok){ state.stay.requests=reqList().filter(x=>x.id!==id); render(); toast('Request removed'); }
+  else toast('Could not remove');
+};
+
+/* ---------------- CONCIERGE ---------------- */
+function renderConcierge(){
+  const s=state.stay;
+  if(state.messages.length===0){
+    state.messages=[{from:'them',t:`Hi ${esc(s.guest.firstName||'there')}, I'm ${esc(s.concierge.name)}, your concierge. How can I help make your stay perfect?`}];
+  }
+  if(state._seed){ state.messages.push({from:'me',t:state._seed}); state._seed=null; setTimeout(()=>{state.messages.push({from:'them',t:'Wonderful choice — I\'ll put together the details and options for you right away.'}); if(state.tab==='concierge')render();},900); }
+  const quick=['Airport transfer','Restaurant booking','Grocery pre-stock','Late checkout'];
+  $app.innerHTML=`
+  <div class="view enter">
+    <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
+    <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
+    <div class="qrow"><div class="seg">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
+    <div class="composer"><input id="cmsg" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
+    ${tabBar('concierge',true)}
+  </div>`;
+  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});}
+  const m=document.getElementById('msgs'); if(m)m.scrollTop=m.scrollHeight;
+}
+window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
+window.sendMsg=async function(){
+  const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
+  state.messages.push({from:'me',t}); i.value=''; updateMsgs();
+  await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
+};
+/* repaint just the message list (keeps the input + its focus intact) */
+function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHTML=state.messages.map(x=>`<div class="msg ${x.from}">${esc(x.t)}</div>`).join(''); m.scrollTop=m.scrollHeight; } }
+/* poll for concierge replies so they appear live without a reload */
+let _pollTimer=null;
+function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollMessages, 9000); }
+function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
+async function pollMessages(){
+  if(!state.stay||!state.token) return;
+  const r=await api('/api/messages'); if(!r.ok||!r.body||!r.body.messages) return;
+  const server=r.body.messages; const curCount=state.messages.length-1;
+  if(server.length>curCount){
+    const greet=state.messages[0]||{from:'them',t:''};
+    state.messages=[greet].concat(server.map(mm=>({from:mm.from==='guest'?'me':'them',t:mm.text})));
+    if(state.tab==='concierge'&&!state.stack.length) updateMsgs();
+  }
+}
+
+/* ---------------- PUSHED VIEWS ---------------- */
+function renderPushed(v){
+  if(v==='checkin') return renderCheckin();
+  if(v==='addons') return renderAddons();
+  if(v==='arrival') return renderArrival();
+  if(v==='checkout') return renderCheckout();
+  if(v==='guide') return renderGuide();
+  if(v==='dineguide') return renderDiningGuide();
+  if(v==='guestlist') return renderGuestList();
+  if(v==='plan') return renderPlan();
+}
+
+function shell(title, inner, cta){
+  $app.innerHTML=`<div class="view enter">
+    <div class="backbar"><button class="bk" onclick="pop()">←</button><span class="ttl">${esc(title)}</span></div>
+    <div class="scroll">${inner}</div>${cta||''}</div>`;
+}
+
+function renderCheckin(){
+  const c=state.checkin; const steps=['Guest party','Arrival details','Travel documents','Preferences'];
+  const step=c.step; const total=(c.adults||1)+(c.children||0);
+  const bar=`<div style="display:flex;gap:5px;padding:0 22px 4px">${steps.map((_,i)=>`<div style="flex:1;height:4px;border-radius:3px;background:${i<=step?'var(--accent)':'var(--line)'}"></div>`).join('')}</div>`;
+  let inner='';
+  if(step===0){ inner=`<div class="label">STEP 1 OF 4 · GUEST PARTY</div>
+    <div class="card"><b style="font-weight:500">Adults</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('adults',-1)">−</button><span class="display" style="font-size:24px">${c.adults}</span><button onclick="cinAdj('adults',1)">+</button></div></div>
+    <div class="card"><b style="font-weight:500">Children</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>`;
+  } else if(step===1){ inner=`<div class="label">STEP 2 OF 4 · ARRIVAL DETAILS</div>
+    <div class="card"><b style="font-weight:500">Arrival airport</b><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${c.airport===a?'on':''}" onclick="cinAir('${a}')">${a}</button>`).join('')}</div></div>
+    <div class="card"><b style="font-weight:500">Flight number</b><input value="${esc(c.flight||'')}" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="e.g. AA1234" oninput="state.checkin.flight=this.value"><div style="font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.45">If your group arrives on several flights, just let us know by adding each flight.</div></div>
+    <div class="check ${c.transferType==='oneway'?'on':''}" onclick="cinTransfer('oneway')"><span class="box">✓</span><span class="t">Arrange one-way airport transfer</span></div>
+    <div class="check ${c.transferType==='roundtrip'?'on':''}" onclick="cinTransfer('roundtrip')"><span class="box">✓</span><span class="t">Arrange round-trip airport transfer</span></div>`;
+  } else if(step===2){ const docs=c.docs||(c.docs=[]);
+    inner=`<div class="label">STEP 3 OF 4 · TRAVEL DOCUMENTS</div>
+    <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">List each guest's full name and passport number for resort registration.</div>
+    ${Array.from({length:total}).map((_,i)=>`<div class="card">
+      <b style="font-weight:500;font-size:12px;letter-spacing:.05em;color:var(--soft);text-transform:uppercase">Guest ${i+1}</b>
+      <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Full name (as on passport)" value="${esc((docs[i]||{}).name||'')}" oninput="cinDoc(${i},'name',this.value)">
+      <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Passport number" value="${esc((docs[i]||{}).passport||'')}" oninput="cinDoc(${i},'passport',this.value)">
+    </div>`).join('')}`;
+  } else {
+    const docsDone=(c.docs||[]).filter(d=>d&&d.name).length;
+    const transferTxt=c.transferType==='oneway'?'one-way transfer':c.transferType==='roundtrip'?'round-trip transfer':'no transfer';
+    const rev=(label,val,gstep)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)"><span style="color:var(--soft);font-size:13px">${label}</span><span style="font-size:13px;text-align:right">${val} <button onclick="cinGo(${gstep})" style="border:0;background:none;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer;padding:0 0 0 6px">Edit</button></span></div>`;
+    inner=`<div class="label">STEP 4 OF 4 · PREFERENCES</div>
+    <div class="card"><b style="font-weight:500">Occasion</b><div class="seg" style="flex-wrap:wrap">${['None','Family trip','Golf trip','Corporate retreat','Anniversary','Birthday','Honeymoon'].map(o=>`<button class="${c.occasion===o?'on':''}" onclick="cinOcc('${o}')">${o}</button>`).join('')}</div></div>
+    <div class="card"><b style="font-weight:500">Dietary notes</b><textarea oninput="state.checkin.dietary=this.value" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px;min-height:64px;font-family:var(--ui)" placeholder="Allergies, preferences…">${esc(c.dietary||'')}</textarea></div>
+    <div class="card"><b style="font-weight:600;display:block;margin-bottom:2px">Review before you submit</b>
+      ${rev('Party',`${c.adults} adults${c.children?', '+c.children+' kids':''}`,0)}
+      ${rev('Arrival',`${esc(c.airport||'LRM')}${c.flight?' · '+esc(c.flight):''} · ${transferTxt}`,1)}
+      ${rev('Documents',`${docsDone} of ${total} added`,2)}
+    </div>`;
+  }
+  const last=step===3;
+  const cta=`<div class="cta-bar" style="display:flex;gap:10px">${step>0?`<button class="btn" style="background:#EFE9DC;color:#1F2A24;flex:0 0 36%" onclick="cinBack()">Back</button>`:''}<button class="btn" style="background:var(--accent);color:#fff;flex:1" onclick="cinNext()">${last?'Submit pre check-in':'Continue'}</button></div>`;
+  shell('Pre check-in', bar+'<div style="padding-top:4px">'+inner+'</div>', cta);
+}
+window.cinBack=function(){ if(state.checkin.step>0){ state.checkin.step--; render(); } };
+window.cinGo=function(s){ state.checkin.step=s; render(); };
+window.cinOcc=function(o){ state.checkin.occasion = state.checkin.occasion===o?null:o; render(); };
+window.cinAdj=function(k,d){ state.checkin[k]=Math.max(k==='adults'?1:0,(state.checkin[k]||0)+d); render(); };
+window.cinAir=function(a){ state.checkin.airport=a; render(); };
+window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
+window.cinTransfer=function(t){ state.checkin.transferType = state.checkin.transferType===t?null:t; render(); };
+window.cinDoc=function(i,k,v){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{}; d[i][k]=v; };
+window.cinNext=async function(){
+  if(state.checkin.step<3){ state.checkin.step++; render(); return; }
+  await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});
+  const docs=(state.checkin.docs||[]).filter(d=>d&&((d.name||'').trim()||(d.passport||'').trim())).map(d=>({name:d.name||'',passport:d.passport||''}));
+  if(docs.length){ const gr=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests:docs})}); if(gr.ok&&gr.body.guestList) state.stay.guestList=gr.body.guestList; }
+  state.checkin.done=true; state.checkin.step=0; pop(); toast('Pre check-in submitted — thank you!');
+};
+
+function addonRow(it){
+  const reqs=reqFor('addon',it.id);
+  const pend=reqs.map(reqLine).join('');
+  const rec=it.recommended?` <span style="font-size:10px;background:#EEF3EE;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Recommended</span>`:'';
+  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button><button onclick="askConcierge('${esc(it.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge</button></div></span></div>`;
+}
+function renderAddons(){
+  const list=(state.stay&&state.stay.addOns)||[];
+  const count=Object.values(state.cart).reduce((a,n)=>a+n,0);
+  if(!list.length){ shell('Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
+  const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
+  const inner=cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
+  const cta = count?`<div class="cta-bar"><button class="btn" style="background:var(--accent);color:#fff" onclick="sendAddons()">${count} added · Send to ${esc(state.stay.concierge.name)}</button></div>`:'';
+  shell('Add-ons', inner, cta);
+}
+window.cartAdj=function(id,d){ state.cart[id]=Math.max(0,(state.cart[id]||0)+d); if(!state.cart[id])delete state.cart[id]; render(); };
+window.sendAddons=async function(){
+  const items=Object.entries(state.cart).map(([id,qty])=>({id,qty}));
+  await api('/api/addons',{method:'POST',body:JSON.stringify({items})});
+  state.cart={}; pop(); goTab('concierge'); toast('Sent to your concierge');
+};
+
+function renderArrival(){
+  const s=state.stay,b=s.booking,v=s.villa;
+  const steps=[
+    {t:'Before you arrive',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
+    {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
+    {t:'Land at '+(b.airport||'LRM'),d:'The driver will be waiting just outside customs with a sign showing the client’s name. Our operations department monitors your flight’s arrival and landing time, and the driver will wait for up to 1 hour after you land. After that time, an additional charge applies.'},
+    {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
+    {t:'Resort fee',d:'Please take into account that a resort fee applies:<br>• US$30 per adult, per day (12 years of age and older)<br>• US$15 per child, per day (between 4–12 years old)<br>• Children 3 years of age and under are granted free access.'},
+    {t:'Arrive at '+esc(v.name),d:'Your concierge welcomes you at the villa and hands over the keys and Wi-Fi in person. Check-in is from '+(b.checkInTime||'3:00 PM')+'.'},
+  ];
+  const mapQuery=encodeURIComponent((v.internalName?v.internalName+', ':'')+'Casa de Campo, La Romana, Dominican Republic');
+  const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/03/Casa_de_Campo_Dominica_Republic28.jpg') center/cover;color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.75)">ROUTE</div>
+      <div class="display" style="font-size:24px;margin:4px 0">${esc(b.airport||'LRM')} → ${esc(v.name)}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">≈ 15 min · 12 mi</div>
+      <div style="display:flex;gap:9px;margin-top:14px"><a href="https://www.google.com/maps/search/?api=1&query=${mapQuery}" target="_blank" rel="noopener" style="background:#F3ECDD;color:#1F2A24;border-radius:11px;padding:10px 14px;font-size:13px;text-decoration:none">Open in Maps</a><button onclick="goTab('concierge')" style="border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Message concierge</button></div>
+    </div>
+    <div class="sec-title">Step by step</div>
+    ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
+    <div class="sec-title">On arrival</div>
+    <div class="grid2"><div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Handed over in person'}</span></div><div class="tile"><b>Check-in</b><span>${esc(b.checkInTime||'3:00 PM')}</span></div></div>`;
+  shell('Getting there', inner);
+}
+
+function renderCheckout(){
+  const s=state.stay,b=s.booking;
+  const list=['Settle any pending bills with our concierge','Leave villa, golf cart or car keys at the villa','Confirm your departure transfer time','Pack chargers, safe contents & documents'];
+  const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp') center/cover;color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.75)">CHECK-OUT</div>
+      <div class="display" style="font-size:26px;margin:4px 0">By ${esc(b.checkOutTime||'11:00 AM')}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.depart?fmtDate(b.depart):''}</div>
+      <button onclick="goTab('concierge')" style="margin-top:12px;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Request late checkout</button>
+    </div>
+    <div class="sec-title">Before you go</div>
+    ${list.map((t,i)=>`<div class="check ${state.checklist[i]?'on':''}" onclick="toggleCheck(${i})"><span class="box">✓</span><span class="t">${esc(t)}</span></div>`).join('')}
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:14px"><b style="font-size:14px">Departure transfer</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">Your driver arrives at the villa <b>15 minutes before</b> the scheduled pick-up and waits a maximum of <b>30 minutes</b>. After that it’s considered a no-show and the paid fare is forfeited. Any pick-up time change must be requested at least <b>24 hours</b> in advance.</div></div>
+    <a class="btn" href="https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:18px;background:var(--gold);color:#fff;text-decoration:none">Leave a review</a>`;
+  shell('Checkout', inner);
+}
+window.toggleCheck=function(i){ state.checklist[i]=!state.checklist[i]; render(); };
+
+/* ---------------- GOOD TO KNOW (guide) ---------------- */
+function renderGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">GOOD TO KNOW</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Your villa &amp; resort guide</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">Everything to make your stay seamless.</div>
+    </div>
+    ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
+    ${card('Tipping','We recommend a minimum tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay. Dominican Pesos are also welcome. ATMs are at the Casa de Campo Hotel, Minitas Beach and the Marina.')}
+    ${card('Wi-Fi',(state.stay.wifiName||state.stay.wifiPassword)?`Network: <b>${esc(state.stay.wifiName||'—')}</b><br>Password: <b>${esc(state.stay.wifiPassword||'—')}</b>`:'Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.')}
+    ${card('Getting around','Google Maps and Waze both work inside Casa de Campo — we recommend pinning your villa for easy reference. If you rented a golf cart, snap a photo of it for quick identification.')}
+    ${card('Groceries &amp; shopping','The Marina has wine &amp; spirits shops, a fresh bakery and the El Nacional supermarket. Larger supermarkets are in La Romana, just outside the resort.')}
+    ${card('Check-out','Check-out is at <b>11:00&nbsp;AM</b>. For a late check-out, please let us know in advance.')}
+    ${card('Dinner &amp; activity reservations','To add or change dinner or activity reservations, contact the Owner’s Club at <a href="tel:+18095233165" style="color:var(--accent)">+1 809-523-3165</a> (villa phone ext. 3165 or 3166), or just message your concierge.')}
+    ${card('Emergency numbers','General emergencies — <a href="tel:911" style="color:var(--accent)">911</a><br>Fire department — <b>5555</b><br>Resort security — <b>5193 / 5194</b>')}
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">Your concierge</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">María Fernanda Becker · Concierge Director<br><a href="https://wa.me/18297638801" target="_blank" rel="noopener" style="color:var(--accent)">+1 829 763 8801</a> — WhatsApp &amp; iMessage</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Message concierge</button>
+    </div>`;
+  shell('Good to know', inner);
+}
+
+/* ---------------- GUEST REGISTRATION LIST ---------------- */
+function renderGuestList(){
+  const s=state.stay;
+  if(!state._gl){ const ex=(s.guestList&&s.guestList.length)?s.guestList:[{name:'',passport:''}]; state._gl=ex.map(g=>({name:g.name||'',passport:g.passport||''})); }
+  glView();
+}
+function glView(){
+  const inp='flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:15px;font-family:var(--ui);background:#fff;box-sizing:border-box';
+  const rows=state._gl.map((g,i)=>`<div style="display:flex;gap:8px;margin-top:9px;align-items:center"><input placeholder="Full name" value="${esc(g.name)}" oninput="glSet(${i},'name',this.value)" style="${inp}"><input placeholder="Passport no." value="${esc(g.passport)}" oninput="glSet(${i},'passport',this.value)" style="${inp}">${state._gl.length>1?`<button onclick="glDel(${i})" style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;color:#9E5B43;font-size:18px">×</button>`:''}</div>`).join('');
+  const inner=`
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-top:4px">
+      <div style="font-size:13.5px;color:var(--soft);line-height:1.55">Add every guest's <b>full name</b> and <b>passport number</b> (no photos). We use this to pre-register your group with Casa de Campo — you'll receive a Registration Number for check-in.</div>
+    </div>
+    ${rows}
+    <button onclick="glAdd()" style="margin-top:11px;background:none;border:1px dashed var(--line);border-radius:11px;padding:11px;width:100%;color:var(--accent);font-size:14px;cursor:pointer">+ Add another guest</button>
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="glSave()">Submit guest list</button>`;
+  shell('Guest registration', inner);
+}
+window.glSet=function(i,k,v){ if(state._gl&&state._gl[i]) state._gl[i][k]=v; };
+window.glAdd=function(){ state._gl.push({name:'',passport:''}); glView(); };
+window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:''}); glView(); };
+window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').trim()||(g.passport||'').trim()); const r=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests})}); if(r.ok&&r.body.guestList){ state.stay.guestList=r.body.guestList; state._gl=null; toast('Guest list sent to your concierge'); pop(); } else toast('Could not send — please try again'); };
+
+/* ---------------- MY PLAN (itinerary) ---------------- */
+function renderPlan(){
+  const s=state.stay,b=s.booking;
+  const reqs=(reqList()||[]).slice().filter(r=>r).sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
+  const pill=(r)=>r.status==='confirmed'
+    ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${r.price?' · '+esc(r.price):''}</span>`
+    :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
+  const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><b>${esc(r.title||'Request')}</b>${pill(r)}</div><span>${esc(meta||'Date to be confirmed')}</span></span></div>`; };
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
+      <div class="display" style="font-size:24px;margin:4px 0 4px">${esc(s.villa.name)}</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.arrive?fmtDate(b.arrive):''} – ${b.depart?fmtDate(b.depart):''}${b.nights?' · '+b.nights+' nights':''}</div>
+    </div>
+    <div class="sec-title">Your stay</div>
+    <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
+    <div class="sec-title">Requests &amp; bookings</div>
+    ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>`;
+  shell('My plan', inner);
+}
+
+/* ---------------- DINING GUIDE ---------------- */
+function renderDiningGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const pick=(occ,rest,loc)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div style="font-size:13px;color:var(--soft);flex:1">${occ}</div><div style="text-align:right;flex:0 0 auto"><div style="font-size:13.5px;font-weight:500">${rest}</div><div style="font-size:11.5px;color:var(--soft)">${loc}</div></div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">DINING GUIDE</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Where to eat at Casa de Campo</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">12 restaurants &amp; 9 bars — from Altos de Chavón fine dining to beachfront lunches and golf-view breakfasts.</div>
+    </div>
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">We book your tables</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reservations are strongly recommended at every sit-down restaurant — especially in peak season (Dec–April). Tell your concierge which nights and which restaurants, and we'll confirm everything before you arrive.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge to book</button>
+    </div>
+    <div class="sec-title">Where to eat, by occasion</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('Special occasion dinner','La Caña','Main hotel')}
+      ${pick('Sunset dinner with views','Minitas Beach Club','Minitas Beach')}
+      ${pick('Marina evening with energy','SBG','Marina')}
+      ${pick('Family dinner, no fuss','Chilango Taquería','Altos de Chavón')}
+      ${pick('Fine Italian in a village','La Piazzetta','Altos de Chavón')}
+      ${pick('Something genuinely different','Causa · Peruvian','Marina')}
+      ${pick('Early breakfast, golf views','Lago','Teeth of the Dog')}
+      ${pick('Post-golf lunch & drinks','19th Hole Bar','Teeth of the Dog')}
+      ${pick('Casual pizza, any evening','Limoncello / Massa','Marina / resort')}
+      ${pick('Pre-concert drinks','Onno’s','Altos de Chavón')}
+      ${pick('Street-food lunch','Brasa food truck','Resort grounds')}
+      ${pick('Whole week sorted','Private chef in villa','Your villa')}
+    </div>
+    ${card('Plan your dining week','For a 7-night stay we suggest: <b>2 nights in Altos de Chavón</b> (Chilango + La Piazzetta), <b>1–2 at the Marina</b> (SBG or Causa), <b>1 night at Minitas Beach Club</b> for the sunset, <b>1 night at La Caña</b>, and <b>2–3 nights in your villa</b> with a private chef — the meals guests remember most.')}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all restaurants</button>`;
+  shell('Dining guide', inner);
+}
+
+/* ---------------- BOOT ---------------- */
+/* tiny cross-origin diagnostic: lets the embedding page see how far boot got
+   (the app runs inside a 3rd-party iframe on /my-stay/, where we otherwise
+   can't read into it). Harmless when not embedded. */
+function bootPing(s){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('cph:'+s,'*'); }catch(e){} }
+bootPing('js-start');
+(async function(){
+  try{
+    state.token = loadToken();              // restore a previous session if present
+    bootPing('fetching');
+    let r;
+    try{ r = await api('/api/stay'); }
+    catch(netErr){ bootPing('fetch-failed'); r = {ok:false, body:{}}; }
+    if(r.ok && r.body.stay){
+      state.stay=r.body.stay;
+      if(r.body.token) saveToken(r.body.token);   // sliding window: refresh on each visit
+      const flag=document.getElementById('modeFlag');
+      if(flag && state.stay.source==='mock') flag.textContent='DEMO DATA';
+      bootPing('app');
+      bootIntoApp();
+    } else {
+      saveToken(null);                       // stale/expired token — clear it
+      bootPing('login');
+      renderLogin();
+    }
+  }catch(err){
+    /* never leave the guest on a blank screen — fall back to the sign-in view */
+    bootPing('error');
+    try{ renderLogin(); }catch(e2){ try{ document.getElementById('app').innerHTML='<div style="padding:40px;color:#fff;font:15px system-ui">Unable to load right now. Please reload.</div>'; }catch(e3){} }
+  }
+})();
+</script>
+</body>
+</html>
