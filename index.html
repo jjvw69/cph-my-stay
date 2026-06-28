@@ -190,7 +190,7 @@ try{ if(window.parent && window.parent !== window) document.documentElement.clas
 
 const SEAL = "https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
 
-const state = { stay:null, token:null, tab:'home', stack:[], cart:{}, checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
+const state = { stay:null, token:null, tab:'home', stack:[], checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
 const $app = document.getElementById('app');
 const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
@@ -311,7 +311,6 @@ function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
   const d=daysUntil(b.arrive);
   const checkinDone = !!state.checkin.done;
-  const cartCount = Object.values(state.cart).reduce((a,n)=>a+n,0);
   $app.innerHTML = `
   <div class="view enter">
     <div class="appbar">
@@ -336,7 +335,7 @@ function renderHome(){
       </div>
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
-      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>${cartCount?cartCount+' in your plan':'Transfers, provisioning, experiences'}</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
@@ -806,19 +805,11 @@ function addonRow(it){
 }
 function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];
-  const count=Object.values(state.cart).reduce((a,n)=>a+n,0);
   if(!list.length){ shell('Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
   const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
   const inner=cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
-  const cta = count?`<div class="cta-bar"><button class="btn" style="background:var(--accent);color:#fff" onclick="sendAddons()">${count} added · Send to ${esc(state.stay.concierge.name)}</button></div>`:'';
-  shell('Add-ons', inner, cta);
+  shell('Add-ons', inner);
 }
-window.cartAdj=function(id,d){ state.cart[id]=Math.max(0,(state.cart[id]||0)+d); if(!state.cart[id])delete state.cart[id]; render(); };
-window.sendAddons=async function(){
-  const items=Object.entries(state.cart).map(([id,qty])=>({id,qty}));
-  await api('/api/addons',{method:'POST',body:JSON.stringify({items})});
-  state.cart={}; pop(); goTab('concierge'); toast('Sent to your concierge');
-};
 
 function renderArrival(){
   const s=state.stay,b=s.booking,v=s.villa;
