@@ -370,7 +370,7 @@ function renderExplore(){
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><span class="ttl">Explore</span></div>
-    <div style="padding:0 22px"><div class="seg">${cats.map(c=>`<button class="${c===cur?'on':''}" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
+    <div style="padding:0 22px"><div class="seg" style="flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${cats.map(c=>`<button class="${c===cur?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="setExCat('${c}')">${c}</button>`).join('')}</div></div>
     <div class="scroll" style="padding-top:6px">
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
