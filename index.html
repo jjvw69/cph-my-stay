@@ -393,7 +393,7 @@ function renderExplore(){
     <div style="padding:0 22px"><div class="seg" style="flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${cats.map(([lbl,val])=>`<button class="${val===cur?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="setExCat('${val}')">${lbl}</button>`).join('')}</div></div>
     <div class="scroll" style="padding-top:6px">
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
-      ${(cur==='Golf')?`<a href="https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/" target="_blank" rel="noopener" style="width:100%;box-sizing:border-box;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center;text-decoration:none">⛳ Golf course guide — all three courses<span>→</span></a>`:''}
+      ${(cur==='Golf')?`<button onclick="push('golfguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">⛳ Golf guide — three courses compared<span>→</span></button>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
         <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
@@ -644,6 +644,7 @@ function renderPushed(v){
   if(v==='guestlist') return renderGuestList();
   if(v==='plan') return renderPlan();
   if(v==='discover') return renderDiscover();
+  if(v==='golfguide') return renderGolfGuide();
 }
 
 function shell(title, inner, cta){
@@ -873,6 +874,60 @@ function renderDiningGuide(){
     ${card('Plan your dining week','For a 7-night stay we suggest: <b>2 nights in Altos de Chavón</b> (Chilango + La Piazzetta), <b>1–2 at the Marina</b> (SBG or Causa), <b>1 night at Minitas Beach Club</b> for the sunset, <b>1 night at La Caña</b>, and <b>2–3 nights in your villa</b> with a private chef — the meals guests remember most.')}
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all restaurants</button>`;
   shell('Dining guide', inner);
+}
+
+/* ---------------- GOLF GUIDE ---------------- */
+function renderGolfGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.6;margin-top:6px">${d}</div></div>`;
+  const fact=(k,v)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line)"><span style="font-size:12.5px;color:var(--soft)">${k}</span><span style="font-size:12.5px;font-weight:500;text-align:right">${v}</span></div>`;
+  const courseCard=(name,tag,facts,desc)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:15.5px">${name}</b><span style="font-size:11px;color:var(--accent);font-weight:500;white-space:nowrap">${tag}</span></div>
+    <div style="font-size:13px;color:var(--soft);line-height:1.55;margin-top:5px">${desc}</div>
+    <div style="margin-top:8px">${facts.map(([k,v])=>fact(k,v)).join('')}</div>
+  </div>`;
+  const pick=(occ,course)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div style="font-size:13px;color:var(--soft);flex:1">${occ}</div><div style="font-size:13.5px;font-weight:500;text-align:right;flex:0 0 auto">${course}</div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">GOLF GUIDE</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Three Pete Dye courses</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">Casa de Campo has been called the Caribbean&rsquo;s greatest golf resort &mdash; three genuinely distinct Pete Dye courses on one property. Here&rsquo;s how they compare, and the order we&rsquo;d play them.</div>
+    </div>
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">We book your tee times</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Tee times are a standard concierge service for villa guests. In peak season (Dec&ndash;April), Teeth of the Dog books up <b>2&ndash;4 weeks ahead</b> &mdash; tell us your dates before you arrive and we&rsquo;ll secure them.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge to book</button>
+    </div>
+
+    <div class="sec-title">The three courses</div>
+    ${courseCard('Teeth of the Dog','Bucket-list',[['Setting','7 oceanfront holes'],['Difficulty','Very challenging'],['Green fee 2026','$750 / person'],['Book','2&ndash;4 weeks ahead']],`Widely ranked the <b>greatest course in the Caribbean</b> and a perennial world Top 100. Seven holes play right along the Caribbean Sea over jagged coral &mdash; hole 7, over the ocean, is one of the most photographed par 3s in golf. Reopened Dec 2025 after a $15M restoration, playing better than ever. Caddie mandatory.`)}
+    ${courseCard('Dye Fore','Views &amp; drama',[['Setting','Cliff-top · 27 holes'],['Difficulty','Challenging'],['Views','Chav&oacute;n River valley'],['Book','5&ndash;7 days ahead']],`Carved into the cliffs above the Chav&oacute;n River, 90m below &mdash; among the most spectacular settings in the hemisphere. A 27-hole layout (Chav&oacute;n, Marina, Lakes) played as different combinations. Easy to pair with lunch up at Altos de Chav&oacute;n.`)}
+    ${courseCard('The Links','Strategy &amp; rhythm',[['Setting','Rolling inland'],['Difficulty','Most accessible'],['Best for','Repeat &amp; group play'],['Book','Often same week']],`Inspired by British &amp; Scottish links &mdash; no ocean or cliff drama, but a clever strategic course that rewards repeat play. The most forgiving of the three, the best round for mixed-ability groups, and ideal for warming up.`)}
+
+    <div class="sec-title">The order we&rsquo;d play them</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('Day 1 &mdash; fresh, before you&rsquo;ve acclimatised','The Links')}
+      ${pick('Day 2 &mdash; full energy for the elevation','Dye Fore')}
+      ${pick('Day 3 &mdash; the marquee round, fully settled','Teeth of the Dog')}
+    </div>
+    ${card('Shorter trips','Only one round? <b>Teeth of the Dog</b> is non-negotiable. Two days? Teeth of the Dog, then Dye Fore. Golf as one activity among many on a family trip? <b>The Links</b> plays fastest and is the least exhausting.')}
+
+    <div class="sec-title">Which course is right for you?</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('Once-in-a-lifetime round','Teeth of the Dog')}
+      ${pick('Most spectacular single hole','Teeth of the Dog · 7')}
+      ${pick('Dramatic views, no ocean holes','Dye Fore')}
+      ${pick('Combine golf with Altos de Chav&oacute;n','Dye Fore')}
+      ${pick('First time / want to warm up','The Links')}
+      ${pick('Higher-index, enjoyable round','The Links')}
+      ${pick('Group with mixed abilities','The Links')}
+    </div>
+    ${card('Good to know','Green fees include a cart (Teeth of the Dog also includes range balls). The resort access fee does <b>not</b> cover green fees. Caddies are mandatory on Teeth of the Dog, recommended on Dye Fore, optional on The Links. Rental sets (Titleist, Callaway) are available at every pro shop.')}
+
+    <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:16px">
+      <a href="https://www.casadecampoteetimes.com/book.php?t=17825874558980c33587c662969cb3b50dfe47ff521726892188e08d20a5126428b7e6324810cdc4084f" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;background:var(--accent);color:#fff;border-radius:11px;padding:12px 14px;font-size:13.5px;font-weight:500;text-decoration:none">Book your Tee Time</a>
+      <a href="https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:13px;color:var(--accent);text-decoration:none">Full guide</a>
+    </div>`;
+  shell('Golf guide', inner);
 }
 
 /* ---------------- DISCOVER (resort & DR) ---------------- */
