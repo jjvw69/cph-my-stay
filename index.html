@@ -244,7 +244,28 @@ function renderLogin(prefill){
 }
 
 /* ---------------- APP SHELL ---------------- */
-function bootIntoApp(){ state.tab='home'; state.stack=[]; loadConversation(); startPolling(); render(); }
+function bootIntoApp(){ state.tab='home'; state.stack=[]; hydrateCheckin(); loadConversation(); startPolling(); render(); }
+/* Restore the guest's submitted pre check-in (or sensibly prefill from the booking) so it survives
+ * reload/logout — mirrors loadConversation for the chat. Fully rebuilds state.checkin per stay so a
+ * previous guest's answers never leak into a new sign-in. */
+function hydrateCheckin(){
+  const s=state.stay; if(!s) return;
+  const gc=s.guestCheckin, b=s.booking||{};
+  if(gc){
+    state.checkin={ step:0,
+      adults:(gc.adults!=null?gc.adults:(b.adults||2)),
+      children:(gc.children!=null?gc.children:(b.children||0)),
+      airport: gc.airport||b.airport||'LRM',
+      flight: gc.flight||'', transferType: gc.transferType||null,
+      occasion: gc.occasion||null, dietary: gc.dietary||'',
+      docs:(s.guestList||[]).map(g=>({name:g.name||'',passport:g.passport||''})),
+      done:true };
+  } else {
+    state.checkin={ step:0, adults:(b.adults||2), children:(b.children||0),
+      airport: b.airport||'LRM', flight: b.flight||'',
+      transferType:null, occasion:null, dietary:'', docs:[], done:false };
+  }
+}
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
 function loadConversation(){
   const s=state.stay; if(!s) return;
