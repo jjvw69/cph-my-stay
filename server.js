@@ -122,6 +122,7 @@ function sendEmail(subject,text,ref){
   }catch(e){ console.error('[notify] email threw',e.message); }
 }
 async function guestRemoveRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); return store.removeGuestRequest(s.ref,String(b.id||''))?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+async function guestGuestList(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const list=store.setGuestList(s.ref, Array.isArray(b.guests)?b.guests:[]); if(list===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[guestlist] %s (%d guests)',s.ref,list.length); return sendJSON(res,200,{ok:true,guestList:list}); }
 
 // ============================ STAFF API ============================
 async function staffLogin(req,res){
@@ -151,6 +152,7 @@ async function route(req,res){
   if(m==='GET' &&url==='/api/messages') return guestMessages(req,res);
   if(m==='POST'&&url==='/api/request') return guestAddRequest(req,res);
   if(m==='POST'&&url==='/api/request/remove') return guestRemoveRequest(req,res);
+  if(m==='POST'&&url==='/api/guestlist') return guestGuestList(req,res);
 
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);
@@ -161,6 +163,8 @@ async function route(req,res){
     if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.ADDON_CATALOG,concierges:store.CONCIERGES});
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
+    const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);
+    if(cm&&m==='POST'){ const b=await readBody(req); const r=store.confirmRequest(cm[1],cm[2],String(b.price||'')); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const sm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/messages$/);

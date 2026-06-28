@@ -267,6 +267,8 @@ function blankStay() {
     welcomeMessage: '',
     requests: [],
     messages: [],
+    guestList: [],
+    wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
 }
@@ -283,7 +285,7 @@ function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
@@ -313,6 +315,7 @@ function addRequest(reference, body) {
     guests: Math.max(0, Math.min(99, Number(body.guests) || 0)),
     note: norm(body.note).slice(0, 300),
     status: 'pending',
+    price: '',
     createdAt: Date.now(),
   };
   s.requests.push(req); s.updatedAt = Date.now(); persistStays(); return req;
@@ -328,6 +331,22 @@ function removeStaffRequest(stayId, requestId) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return false;
   const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
   s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
+}
+/** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */
+function setGuestList(reference, guests) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  if (!Array.isArray(guests)) return null;
+  s.guestList = guests.slice(0, 40)
+    .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
+    .filter(g => g.name || g.passport);
+  s.updatedAt = Date.now(); persistStays(); return s.guestList;
+}
+/** Concierge confirms a request from the Console and sets the final price. */
+function confirmRequest(stayId, requestId, price) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  r.status = 'confirmed'; r.price = norm(price).slice(0, 30);
+  s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest sends a concierge chat message — persisted on the stay so the conversation survives reloads/logout. */
 function addGuestMessage(reference, text) {
@@ -382,9 +401,11 @@ function toGuestStay(s) {
     villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: String(s.staffIncluded || v.staff || 'Chef · Butler · Housekeeper').split(/\s*·\s*|\s*,\s*/).filter(Boolean), description: '' },
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
+    wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
+    guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
     addOns: ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
-    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, time: r.time, guests: r.guests, note: r.note, status: r.status, createdAt: r.createdAt })),
+    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
   };
 }
@@ -413,7 +434,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

@@ -67,6 +67,10 @@
   .reqx{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;color:#33493B;cursor:pointer}
   .reqmeta{font-size:13px;color:var(--soft);margin-top:6px}
   .reqnote{font-size:13px;color:var(--ink,#33493B);margin-top:5px;font-style:italic}
+  .reqok{display:inline-block;font-size:11px;background:var(--okbg);color:var(--oktx);border:1px solid #cfe0c8;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap}
+  .reqconfirm{display:flex;gap:8px;margin-top:10px}
+  .reqconfirm input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13.5px;font-family:var(--ui);background:#fff}
+  .reqconfirm button{white-space:nowrap;padding:8px 14px;font-size:13px;border-radius:9px}
   .center{padding:22px 26px}
   .center .ehd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
   .center h2{font-family:var(--display);font-weight:600;font-size:28px}
@@ -293,11 +297,16 @@ function renderEditor(){
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
       <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div></div>
 
+    ${(cur.guestList&&cur.guestList.length)?`<div class="sec"><h3>Guest registration list <span class="reqcount">${cur.guestList.length}</span></h3>
+      <div class="reqlist">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
+      <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
+
     ${(cur.requests&&cur.requests.length)?`<div class="sec"><h3>Guest requests <span class="reqcount">${cur.requests.length}</span></h3>
       <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem">
-        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b>${esc(r.title||'')}</b><button class="reqx" onclick="dismissReq('${r.id}')">Mark done</button></div>
+        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b>${esc(r.title||'')}</b>${r.status==='confirmed'?`<span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>`:''}<button class="reqx" onclick="dismissReq('${r.id}')">Mark done</button></div>
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
+        ${r.status!=='confirmed'?`<div class="reqconfirm"><input id="px_${r.id}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm &amp; send price</button></div>`:''}
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
@@ -317,6 +326,7 @@ function renderEditor(){
 }
 window.set=set;
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
+window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } renderEditor(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
