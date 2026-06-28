@@ -200,6 +200,9 @@ const EXPLORE_SCENES = [
   { id:'rumcigar', cat:'Activities', name:'Rum & Cigar Tasting', meta:'In-villa · curated', desc:'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/manos-1024x949.jpg.webp', more:'https://www.casadecampo.com.do/experiences/' },
   { id:'yoga', cat:'Activities', name:'Private Yoga', meta:'In-villa · wellness', desc:'A private sunrise yoga session on your terrace or the beach with a certified instructor.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/Minitas_-Beach-scaled.jpg.webp', more:'https://www.casadecampo.com.do/rejuvenate/' },
   { id:'yacht-charter', cat:'Activities', name:'Yacht Charters', meta:'Marina · private charter', desc:'Private motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina — half-day, full-day, sunset cruises and island trips.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg', more:'https://www.casadecampo.com.do/experiences/marina/' },
+  // ---- Nightlife ----
+  { id:'genesis', cat:'Nightlife', name:'Genesis Nightclub', meta:'Altos de Chavón · late night', desc:'The resort’s nightclub in the clifftop village — DJs, dancing and bottle service into the early hours.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
+  { id:'live-music', cat:'Nightlife', name:'Live Music & Bars', meta:'La Caña · SBG · Onno’s', desc:'Live bands and DJ sets at the resort’s signature bars — rum, cigars and music after dinner.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/onnosres.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
 ];
 
 // ----------------------------------------------------------------- persistence
