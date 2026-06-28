@@ -911,8 +911,22 @@ if(document.documentElement.classList.contains('embedded')){
   if(document.readyState==='complete') { _kick(); }
   window.addEventListener('load', function(){ _kick(); setTimeout(_kick,60); setTimeout(_kick,200); setTimeout(_kick,500); setTimeout(_kick,1000); });
   document.addEventListener('visibilitychange', _kick);
-  // self-heal on the guest's first interaction, just in case the load-time kicks missed.
   ['scroll','pointerdown','touchstart','focusin'].forEach(function(ev){ window.addEventListener(ev,_kick,{once:true,passive:true}); });
+
+  /* The display-toggle above can't always force the browser to repaint a 3rd-party iframe
+     after the busy initial page load — only a fresh frame navigation reliably paints. So,
+     exactly once per visit, reload the frame shortly after load (when the parent page has
+     settled). Guarded by a URL flag so it can never loop. */
+  try{
+    var _u = new URL(location.href);
+    if(_u.searchParams.get('_p') !== '1'){
+      _u.searchParams.set('_p','1');
+      var _reloaded=false;
+      var _selfHeal=function(){ if(_reloaded) return; _reloaded=true; try{ location.replace(_u.toString()); }catch(e){ try{ location.reload(); }catch(e2){} } };
+      if(document.readyState==='complete'){ setTimeout(_selfHeal, 450); }
+      else { window.addEventListener('load', function(){ setTimeout(_selfHeal, 450); }); }
+    }
+  }catch(e){}
 }
 </script>
 </body>
