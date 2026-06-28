@@ -896,38 +896,10 @@ bootPing('js-start');
   }
 })();
 
-/* Inside a 3rd-party iframe (the /my-stay/ page) the app's content lays out correctly but
-   the browser can fail to PAINT it on the busy initial page load, leaving a blank frame
-   until something forces a repaint. Force that repaint ourselves: briefly toggle the body
-   display + nudge a compositing layer. Only runs when embedded; harmless top-level. */
-function cphRepaint(){
-  try{
-    var b=document.body; if(b){ var d=b.style.display; b.style.display='none'; void b.offsetHeight; b.style.display=d||''; }
-    var de=document.documentElement; if(de){ de.style.transform='translateZ(0)'; void de.offsetHeight; de.style.transform=''; }
-  }catch(e){}
-}
-if(document.documentElement.classList.contains('embedded')){
-  var _kick=function(){ cphRepaint(); };
-  if(document.readyState==='complete') { _kick(); }
-  window.addEventListener('load', function(){ _kick(); setTimeout(_kick,60); setTimeout(_kick,200); setTimeout(_kick,500); setTimeout(_kick,1000); });
-  document.addEventListener('visibilitychange', _kick);
-  ['scroll','pointerdown','touchstart','focusin'].forEach(function(ev){ window.addEventListener(ev,_kick,{once:true,passive:true}); });
-
-  /* The display-toggle above can't always force the browser to repaint a 3rd-party iframe
-     after the busy initial page load — only a fresh frame navigation reliably paints. So,
-     exactly once per visit, reload the frame shortly after load (when the parent page has
-     settled). Guarded by a URL flag so it can never loop. */
-  try{
-    var _u = new URL(location.href);
-    if(_u.searchParams.get('_p') !== '1'){
-      _u.searchParams.set('_p','1');
-      var _reloaded=false;
-      var _selfHeal=function(){ if(_reloaded) return; _reloaded=true; try{ location.replace(_u.toString()); }catch(e){ try{ location.reload(); }catch(e2){} } };
-      if(document.readyState==='complete'){ setTimeout(_selfHeal, 450); }
-      else { window.addEventListener('load', function(){ setTimeout(_selfHeal, 450); }); }
-    }
-  }catch(e){}
-}
+/* Note: when embedded in the /my-stay/ page, that page nudges this frame once on load so
+   the browser paints it (an iframe first-paint quirk that can't be forced from inside the
+   frame). The fill-the-frame layout above (html.embedded rules) keeps this app filling the
+   frame cleanly. */
 </script>
 </body>
 </html>
