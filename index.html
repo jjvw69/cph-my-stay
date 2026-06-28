@@ -854,18 +854,34 @@ function renderDiningGuide(){
 }
 
 /* ---------------- BOOT ---------------- */
+/* tiny cross-origin diagnostic: lets the embedding page see how far boot got
+   (the app runs inside a 3rd-party iframe on /my-stay/, where we otherwise
+   can't read into it). Harmless when not embedded. */
+function bootPing(s){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('cph:'+s,'*'); }catch(e){} }
+bootPing('js-start');
 (async function(){
-  state.token = loadToken();              // restore a previous session if present
-  const r = await api('/api/stay');
-  const flag=document.getElementById('modeFlag');
-  if(r.ok && r.body.stay){
-    state.stay=r.body.stay;
-    if(r.body.token) saveToken(r.body.token);   // sliding window: refresh on each visit
-    if(state.stay.source==='mock') flag.textContent='DEMO DATA';
-    bootIntoApp();
-  } else {
-    saveToken(null);                       // stale/expired token — clear it
-    renderLogin();
+  try{
+    state.token = loadToken();              // restore a previous session if present
+    bootPing('fetching');
+    let r;
+    try{ r = await api('/api/stay'); }
+    catch(netErr){ bootPing('fetch-failed'); r = {ok:false, body:{}}; }
+    if(r.ok && r.body.stay){
+      state.stay=r.body.stay;
+      if(r.body.token) saveToken(r.body.token);   // sliding window: refresh on each visit
+      const flag=document.getElementById('modeFlag');
+      if(flag && state.stay.source==='mock') flag.textContent='DEMO DATA';
+      bootPing('app');
+      bootIntoApp();
+    } else {
+      saveToken(null);                       // stale/expired token — clear it
+      bootPing('login');
+      renderLogin();
+    }
+  }catch(err){
+    /* never leave the guest on a blank screen — fall back to the sign-in view */
+    bootPing('error');
+    try{ renderLogin(); }catch(e2){ try{ document.getElementById('app').innerHTML='<div style="padding:40px;color:#fff;font:15px system-ui">Unable to load right now. Please reload.</div>'; }catch(e3){} }
   }
 })();
 </script>
