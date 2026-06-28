@@ -268,6 +268,7 @@ function blankStay() {
     requests: [],
     messages: [],
     guestList: [],
+    guestCheckin: null,
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
@@ -340,6 +341,24 @@ function setGuestList(reference, guests) {
     .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
     .filter(g => g.name || g.passport);
   s.updatedAt = Date.now(); persistStays(); return s.guestList;
+}
+/** Guest submits pre check-in (airport, transfer, party, flight, occasion, dietary) — persist
+ *  it on the stay so the concierge sees it in the Console. Does NOT overwrite staff fields. */
+function saveCheckin(reference, data) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  data = data || {};
+  const tt = data.transferType === 'oneway' ? 'oneway' : data.transferType === 'roundtrip' ? 'roundtrip' : '';
+  s.guestCheckin = {
+    airport: norm(data.airport).slice(0, 8),
+    transferType: tt,
+    adults: Math.max(0, Math.min(40, parseInt(data.adults, 10) || 0)),
+    children: Math.max(0, Math.min(40, parseInt(data.children, 10) || 0)),
+    flight: norm(data.flight).slice(0, 120),
+    occasion: norm(data.occasion).slice(0, 60),
+    dietary: norm(data.dietary).slice(0, 600),
+    submittedAt: Date.now(),
+  };
+  s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
 /** Concierge confirms a request from the Console and sets the final price. */
 function confirmRequest(stayId, requestId, price) {
@@ -434,7 +453,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
