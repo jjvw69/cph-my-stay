@@ -30,6 +30,12 @@
        box-shadow:0 0 60px rgba(0,0,0,.35)}
   @media(min-width:480px){ body{display:flex;align-items:center;justify-content:center}
     #app{height:920px;max-height:96dvh;min-height:0;border-radius:28px} }
+  /* When embedded in an iframe (e.g. the /my-stay/ page), fill the frame instead of
+     floating a fixed-height card. The fixed/viewport-height card can paint blank on the
+     first load inside a third-party iframe; filling the frame avoids that entirely. */
+  html.embedded, html.embedded body{height:100%;min-height:100%}
+  html.embedded body{display:block}
+  html.embedded #app{max-width:none;height:auto;min-height:100%;max-height:none;border-radius:0;box-shadow:none;overflow:visible}
 
   .view{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
   .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 120px}
@@ -177,6 +183,11 @@
 <div class="mode-flag" id="modeFlag"></div>
 
 <script>
+/* Detect iframe embedding (the live guest entry point is the /my-stay/ page, which
+   frames this app). Mark <html> so the CSS fills the frame instead of floating a
+   fixed-height card — the card can paint blank on first load inside a 3rd-party iframe. */
+try{ if(window.parent && window.parent !== window) document.documentElement.classList.add('embedded'); }catch(e){ document.documentElement.classList.add('embedded'); }
+
 const SEAL = "https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
 
 const state = { stay:null, token:null, tab:'home', stack:[], cart:{}, checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
@@ -884,6 +895,21 @@ bootPing('js-start');
     try{ renderLogin(); }catch(e2){ try{ document.getElementById('app').innerHTML='<div style="padding:40px;color:#fff;font:15px system-ui">Unable to load right now. Please reload.</div>'; }catch(e3){} }
   }
 })();
+
+/* Repaint once the page is fully loaded / resized. Inside a 3rd-party iframe the very
+   first paint can land before layout settles and leave the app visually blank; re-running
+   the current view (preserving any typed login input) fixes it without a reload. */
+function reflowApp(){
+  try{
+    if(state.stay){ render(); return; }
+    if(document.getElementById('login')){
+      const ref=document.getElementById('ref'), last=document.getElementById('last');
+      renderLogin({ ref: ref?ref.value:'', last: last?last.value:'' });
+    }
+  }catch(e){}
+}
+window.addEventListener('load', function(){ reflowApp(); setTimeout(reflowApp,80); setTimeout(reflowApp,400); });
+var __reflowT; window.addEventListener('resize', function(){ clearTimeout(__reflowT); __reflowT=setTimeout(reflowApp,150); });
 </script>
 </body>
 </html>
