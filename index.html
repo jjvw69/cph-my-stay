@@ -413,6 +413,97 @@ const EXPLORE=[
 ];
 /* Prefer the resort scenes (with photos) sent with the stay; fall back to the built-in list. */
 function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
+/* ---------------- IN-APP GUIDES (built from the CPH blog) ---------------- */
+const GUIDE_CONTENT = {
+  'marina': {
+    eyebrow:'AMENITY · MARINA',
+    title:'Casa de Campo Marina',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg',
+    intro:'A Mediterranean-style yacht harbour at the heart of the resort — a walkable waterfront of dining, boutiques and nightlife, and the launch point for days on the water.',
+    sections:[
+      {h:'A world-class harbour', p:'Designed in the style of an Italian fishing village, the Marina berths hundreds of yachts — from day boats to superyachts — along its paseos and plazas.'},
+      {h:'Dine &amp; stroll', p:'The waterfront is lined with restaurants and bars — La Casita, Causa, SBG, Peperoni, Limoncello and more — perfect for a sunset dinner or an evening walk past the boutiques and galleries.'},
+      {h:'Out on the water', p:'Private yacht and catamaran charters, sport-fishing and day trips to Catalina and Saona all depart from the Marina. Ask your concierge to arrange any of it.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo-marina-guide/'
+  },
+  'altos': {
+    eyebrow:'AMENITY · ALTOS DE CHAVÓN',
+    title:'Altos de Chavón',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/altos-de-chavon-web.jpg',
+    intro:'A re-created 16th-century Mediterranean village set on a cliff above the Chavón River — the cultural heart of Casa de Campo.',
+    sections:[
+      {h:'A village carved in stone', p:'Built by hand from coral stone in the 1970s, its cobbled lanes wind past artisan workshops, galleries and sweeping river views.'},
+      {h:'The Amphitheatre', p:'A 5,000-seat Grecian-style amphitheatre — inaugurated by Frank Sinatra — that has hosted global stars from Sting to Andrea Bocelli.'},
+      {h:'Culture &amp; dining', p:'Visit the Regional Museum of Archaeology and St. Stanislaus Church, browse the boutiques, then dine at La Piazzetta, Chilango or Café Marietta.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/altos-de-chavon-complete-guide/'
+  },
+  'minitas-beach': {
+    eyebrow:'AMENITY · MINITAS BEACH',
+    title:'Minitas Beach',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp',
+    intro:'The resort’s only private beach — a sheltered cove of soft white sand and calm, swimmable Caribbean water.',
+    sections:[
+      {h:'The beach', p:'A protected, family-friendly cove with gentle water, sun loungers and full beach-club service.'},
+      {h:'Beach Club &amp; dining', p:'The Minitas Beach Club serves Mediterranean-Caribbean menus on the sand, with food trucks, a juice bar and beach bars alongside.'},
+      {h:'On the water', p:'Non-motorized water sports — kayaks, paddleboards, snorkelling and small sailboats — plus banana-boat rides. Rent a cabana for the day.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/minitas-beach-guide/'
+  },
+  'teeth-of-the-dog': {
+    eyebrow:'GOLF · TEETH OF THE DOG',
+    title:'Teeth of the Dog',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic45.webp',
+    intro:'Pete Dye’s oceanfront masterpiece — consistently ranked the #1 course in the Caribbean.',
+    sections:[
+      {h:'Seven holes on the sea', p:'Seven of the eighteen holes hug the Caribbean shoreline, with the surf in play and unforgettable views.'},
+      {h:'The name', p:'Named for the jagged coral rock — “diente de perro” — that Pete Dye routed the course around by hand.'},
+      {h:'Playing it', p:'Freshly restored and reopened in 2026. Reserve tee times through the pro shop; caddies are recommended. Your concierge can book your round.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/teeth-of-the-dog-golf-course-the-complete-visitor-guide/'
+  },
+  'dye-fore': {
+    eyebrow:'GOLF · DYE FORE',
+    title:'Dye Fore',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic19-small.webp',
+    intro:'A clifftop 27 holes above the Chavón River and the Marina — some of the most dramatic golf in the Caribbean.',
+    sections:[
+      {h:'Three nines', p:'The Chavón, Marina and Lakes nines combine for play up to roughly 7,770 yards, with holes perched high above the river gorge.'},
+      {h:'The views', p:'Towering clifftop tees look out over the Chavón River, Altos de Chavón and out to the sea.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/'
+  },
+  'the-links': {
+    eyebrow:'GOLF · THE LINKS',
+    title:'The Links',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/02/hole16_2.jpg.jpeg',
+    intro:'Pete Dye’s inland, Scottish-links-inspired 18 — strategic, playable and built for repeat rounds.',
+    sections:[
+      {h:'Inland links golf', p:'Rolling terrain, lakes and clever bunkering make this a versatile complement to the oceanfront Teeth of the Dog.'},
+      {h:'Great for every level', p:'More forgiving off the tee than its famous sibling, it’s a favourite for a relaxed round. Book through the pro shop or your concierge.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/'
+  }
+};
+window.openGuide=function(id){ state._cguide=id; push('cguide'); };
+function moreLink(e){
+  if(GUIDE_CONTENT[e.id]) return `<button onclick="openGuide('${esc(e.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">More info →</button>`;
+  if(e.more) return `<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info →</a>`;
+  return '';
+}
+function renderCGuide(id){
+  const g=GUIDE_CONTENT[id]; if(!g){ pop(); return; }
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const inner=`
+    <div class="hero ${g.hero?'':'ph'}" style="height:172px;border-radius:16px;margin-top:4px${g.hero?`;background-image:url('${esc(g.hero)}')`:''}"></div>
+    <div class="label eyebrow" style="margin-top:14px">${esc(g.eyebrow||'CASA DE CAMPO')}</div>
+    <h2 class="villa" style="font-size:26px;margin:2px 0 6px">${esc(g.title)}</h2>
+    <div style="font-size:14px;color:var(--soft);line-height:1.55">${g.intro}</div>
+    ${g.sections.map(s=>card(s.h,s.p)).join('')}
+    ${g.link?`<a class="btn" href="${esc(g.link)}" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:18px;background:var(--accent);color:#fff;text-decoration:none">Read the full guide →</a>`:''}`;
+  shell(g.title, inner);
+}
 function renderExplore(){
   const cats=[['All','All'],['Dine','Dining'],['Golf','Golf'],['Experiences','Activities'],['Amenity','Amenities']];
   const cur=state._exCat||'All';
@@ -434,8 +525,8 @@ function renderExplore(){
           <div class="display" style="font-size:22px">${esc(e.name)}</div>
           <div class="loc" style="margin:4px 0 8px">${esc(e.meta)}</div>
           <div style="font-size:13.5px;color:var(--soft);line-height:1.5">${esc(e.desc)}</div>
-          ${e.info?(e.more?`<div style="margin-top:14px"><a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info →</a></div>`:''):(e.cat==='Golf'
-            ? `<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px">${e.more?`<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:11px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info</a>`:''}<a href="https://www.casadecampoteetimes.com/book.php?t=17825874558980c33587c662969cb3b50dfe47ff521726892188e08d20a5126428b7e6324810cdc4084f" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;background:var(--accent);color:#fff;border-radius:11px;padding:12px 14px;font-size:13.5px;font-weight:500;text-decoration:none">Book your Tee Time</a></div>`
+          ${e.info?`<div style="margin-top:14px">${moreLink(e)}</div>`:(e.cat==='Golf'
+            ? `<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:14px">${moreLink(e)}<a href="https://www.casadecampoteetimes.com/book.php?t=17825874558980c33587c662969cb3b50dfe47ff521726892188e08d20a5126428b7e6324810cdc4084f" target="_blank" rel="noopener" style="flex:1;min-width:150px;text-align:center;background:var(--accent);color:#fff;border-radius:11px;padding:12px 14px;font-size:13.5px;font-weight:500;text-decoration:none">Book your Tee Time</a></div>`
             : reqFor('explore',e.id).map(reqLine).join('')+`<div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:13px">${e.menu?`<a href="${esc(e.menu)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">Menu</a>`:''}${e.more?`<a href="${esc(e.more)}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:13px;color:var(--accent);text-decoration:none">More info</a>`:''}<button onclick="openReq('explore','${esc(e.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px">Add to itinerary</button></div>`
           )}
         </div></div>`).join('')}
@@ -815,6 +906,7 @@ function renderPushed(v){
   if(v==='golfguide') return renderGolfGuide();
   if(v==='realestate') return renderRealEstate();
   if(v==='resortmap') return renderResortMap();
+  if(v==='cguide') return renderCGuide(state._cguide);
 }
 
 function shell(title, inner, cta){
