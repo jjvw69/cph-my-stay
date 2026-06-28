@@ -279,7 +279,7 @@ function summaryStay(s) {
   const v = getVilla(s.villaId);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
-    requests: (s.requests || []).length };
+    source: s.source || '', requests: (s.requests || []).length };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }

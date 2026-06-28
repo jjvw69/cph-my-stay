@@ -57,6 +57,9 @@
   .pill.draft{background:var(--drbg);color:var(--drtx)}
   .pill.needsinfo{background:var(--nibg);color:var(--nitx)}
   .reqbadge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#9E5B43;color:#fff}
+  .srcpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;vertical-align:middle}
+  .srcpill.direct{background:#E4EEE6;color:#3F6B4E}
+  .srcpill.partner{background:#EFEADD;color:#6E5C39;border:1px solid #E2D9C6}
   .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
@@ -228,10 +231,12 @@ function renderList(){
     const dates=(s.checkin||'?')+' – '+(s.checkout||'?');
     const pill=(s.status||'draft').replace(/\s/g,'').toLowerCase();
     const reqB=s.requests?`<span class="reqbadge">${s.requests} request${s.requests==1?'':'s'}</span>`:'';
+    const isDirect=/direct/i.test(s.source||'');
+    const srcB=s.source?`<span class="srcpill ${isDirect?'direct':'partner'}">${isDirect?'Direct':esc(s.source)}</span>`:'';
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''}" onclick="selectStay('${s.id}')">
       <div class="g">${esc(s.guest)}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}</div>`;
+      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}</div>`;
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
