@@ -321,6 +321,7 @@ function renderEditor(){
       <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem">
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b>${esc(r.title||'')}</b>${r.status==='confirmed'?`<span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>`:''}<button class="reqx" onclick="dismissReq('${r.id}')">Mark done</button></div>
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
+        ${r.createdAt?`<div class="reqmeta" style="color:#9AA49B">Requested ${fmtReqDate(r.createdAt)}</div>`:''}
         ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
         ${r.status!=='confirmed'?`<div class="reqconfirm"><input id="px_${r.id}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm &amp; send price</button></div>`:''}
       </div>`).join('')}</div>
@@ -357,6 +358,7 @@ window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnI
 /* ---- preview ---- */
 function nights(a,b){ const d1=new Date(a),d2=new Date(b); if(isNaN(d1)||isNaN(d2))return null; return Math.max(0,Math.round((d2-d1)/864e5)); }
 function daysUntil(a){ const d=new Date(a+'T00:00:00'); if(isNaN(d))return null; return Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/864e5)); }
+function fmtReqDate(ts){ try{ const d=new Date(ts); if(isNaN(d))return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
 function renderPreview(){
   if(!cur){ document.getElementById('preview').innerHTML='<div class="empty">No stay selected.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{};
