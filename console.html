@@ -76,6 +76,13 @@
   .futx span{font-size:12px;color:var(--soft)}
   .todaybtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:#33493B;color:#fff;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;margin-bottom:12px;cursor:pointer}
   .todaybtn.alert{background:#9E5B43}
+  .homebtns{display:flex;gap:8px;margin-bottom:12px}
+  .homebtns .todaybtn{margin-bottom:0;flex:1}
+  .todaybtn.inbox{background:#5B6E5F}
+  .todaybtn.on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+  .hb-badge{background:rgba(255,255,255,.28);border-radius:20px;padding:1px 8px;font-size:12px;margin-left:4px}
+  .ibx-prev{flex-basis:100%;font-size:12.5px;color:var(--soft);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .tr-tag.grey{background:#EFEBE0;color:#8B8475}
   /* ---- Today overview (center) ---- */
   .today-head{font-family:var(--display);font-weight:600;font-size:26px;color:var(--ink)}
   .today-date{font-size:13px;color:var(--soft);margin:2px 0 16px}
@@ -300,7 +307,7 @@
   <div class="cols">
     <div class="col left">
       <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="newStay">＋ New</button></span></div>
-      <button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today’s overview</button>
+      <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn inbox" id="inboxBtn" onclick="showInbox()">✉ Inbox</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
         <button class="lchip on" data-f="all" onclick="setFilter('all')">All</button>
@@ -354,7 +361,7 @@ async function enter(staff){
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
 
 /* ---- list ---- */
-async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderToday(); }
+async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderHome(); }
 
 /* ============ live sync ============ */
 let POLL=null, lastSyncAt=0;
@@ -362,7 +369,7 @@ function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,1
 async function syncNow(){
   if(document.hidden) return;
   let ok=true;
-  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderToday(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
+  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
   if(cur){ const c=await refreshCurrent(); if(c===false) ok=false; }
   markSynced(ok);
 }
@@ -447,12 +454,37 @@ window.selectStay=async function(id){
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+unreadMsgs(s)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
-function refreshTodayBtn(){ const n=todayAlertCount(); const b=document.getElementById('todayBtn'); if(b){ b.classList.toggle('alert',n>0); b.innerHTML='▦ Today’s overview'+(n?` <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px">${n}</span>`:''); } const tp=document.getElementById('topPending'); if(tp){ tp.classList.toggle('show',n>0); tp.textContent=n?(n+' need action'):''; } }
+function refreshTodayBtn(){
+  const n=todayAlertCount(); const unread=(LIST||[]).reduce((a,s)=>a+unreadMsgs(s),0);
+  const b=document.getElementById('todayBtn'); if(b){ b.classList.toggle('alert',n>0); b.innerHTML='▦ Today'+(n?` <span class="hb-badge">${n}</span>`:''); }
+  const ib=document.getElementById('inboxBtn'); if(ib){ ib.innerHTML='✉ Inbox'+(unread?` <span class="hb-badge">${unread}</span>`:''); }
+  const tp=document.getElementById('topPending'); if(tp){ tp.classList.toggle('show',n>0); tp.textContent=n?(n+' need action'):''; }
+  if(typeof refreshHomeBtns==='function') refreshHomeBtns();
+}
+let centerView='today';
+function renderHome(){ if(centerView==='inbox') renderInbox(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
+function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); }
 window.showToday=function(){
-  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch to the overview?')) return;
-  cur=null; setDirty(false); renderList(); renderToday();
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); centerView='today'; renderList(); renderHome();
   setView(true);
 };
+window.showInbox=function(){
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); centerView='inbox'; renderList(); renderHome();
+  setView(true);
+};
+function renderInbox(){
+  const el=document.getElementById('editor'); if(!el) return;
+  const L=(LIST||[]).filter(s=>(s.guestMsgs||0)>0).slice().sort((a,b)=>(b.lastMsgAt||0)-(a.lastMsgAt||0));
+  const rows=L.map(s=>{ const u=unreadMsgs(s); const prev=s.lastMsgText?((s.lastMsgFrom==='guest'?'':'You: ')+'“'+esc(s.lastMsgText)+'”'):'';
+    return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}${u?' <span class="unread-dot"></span>':''}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')}</span>${prev?`<span class="ibx-prev">${prev}</span>`:''}</span>${u?`<span class="tr-tag amber">${u} new</span>`:`<span class="tr-tag grey">${s.lastMsgAt?fmtAgo(s.lastMsgAt):''}</span>`}</button>`; }).join('');
+  el.innerHTML=`
+    <button class="backlist" onclick="backToList()">← All stays</button>
+    <div class="today-head">Inbox</div>
+    <div class="today-date">All guest conversations · newest first</div>
+    ${L.length?rows:`<div class="today-clear">No guest messages yet.</div>`}`;
+}
 function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.checkin?' · '+esc(s.checkin):'')); return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${m}</span></span>${tag||''}</button>`; }
 let arrWin=7;
 window.setArrWin=function(n){ arrWin=n; renderArrivalsPanel(); };
@@ -503,7 +535,6 @@ function renderToday(){
     ${sec('Unread guest messages','msgs', msgs.map(s=>{const u=unreadMsgs(s);return todayRow(s,`<span class="tr-tag amber">${u} new message${u==1?'':'s'}</span>`);}))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
-  renderArrivalsPanel();
 }
 
 /* ---- editor ---- */
@@ -770,7 +801,7 @@ window.printStay=function(){
 
 /* ---- save / publish ---- */
 function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
-window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderToday(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
+window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
 window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Published — guest link is live'); } };

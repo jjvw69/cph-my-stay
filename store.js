@@ -302,7 +302,10 @@ function summaryStay(s) {
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
     source: s.source || '', followUpDate: s.followUpDate || '', followUpNote: s.followUpNote || '', requests: (s.requests || []).length,
     pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled').length,
-    guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0 };
+    guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0,
+    lastMsgAt: ((s.messages || [])[(s.messages || []).length - 1] || {}).at || 0,
+    lastMsgText: String(((s.messages || [])[(s.messages || []).length - 1] || {}).text || '').slice(0, 90),
+    lastMsgFrom: ((s.messages || [])[(s.messages || []).length - 1] || {}).from || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
