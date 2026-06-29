@@ -201,6 +201,9 @@ const $app = document.getElementById('app');
 const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const jsq = s => String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
+window.copyTxt=function(t,label){ const done=()=>toast((label||'Copied')+' copied'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); };
+function fallbackCopy(t,done){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done&&done(); }catch(e){ toast('Could not copy — please copy it manually'); } }
 
 /* keep the guest signed in across reloads — persist the session token in this
    app's own (iframe-origin) storage. Wrapped in try/catch in case a strict
@@ -1752,6 +1755,28 @@ window.glAdd=function(){ state._gl.push({name:'',passport:''}); glView(); };
 window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:''}); glView(); };
 window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').trim()||(g.passport||'').trim()); const r=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests})}); if(r.ok&&r.body.guestList){ state.stay.guestList=r.body.guestList; state._gl=null; toast('Guest list sent to your concierge'); pop(); } else toast('Could not send — please try again'); };
 
+/* Zelle pay block — shown under a request once the concierge confirms it WITH a price.
+   Zelle has no API, so we display-and-instruct: recipient email, amount, a memo to match the
+   payment, and one-tap copy for each. Recipient is fixed to the CPH Zelle account. */
+const ZELLE_EMAIL='janjvanwelie@gmail.com';
+function zelleAmt(p){ const m=String(p||'').replace(/[^0-9.]/g,''); return m||''; }
+function zelleRow(lbl,disp,copyVal,copyLabel){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="color:#6E7B71;white-space:nowrap">${lbl}</span><span style="display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end"><b style="overflow-wrap:anywhere;text-align:right">${esc(disp)}</b><button onclick="copyTxt('${jsq(copyVal)}','${jsq(copyLabel)}')" style="border:0;background:#EDE6F8;color:#6D1ED4;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Copy</button></span></div>`;
+}
+function zelleBox(r){
+  if(!r||r.status!=='confirmed'||!r.price) return '';
+  const amt=zelleAmt(r.price);
+  const ref=(state.stay&&state.stay.booking&&state.stay.booking.reference)||'';
+  const memo=[ref,(r.title||'')].filter(Boolean).join(' · ');
+  return `<div style="margin-top:10px;border:1px solid #E2DAF0;background:#F7F4FC;border-radius:12px;padding:12px 13px">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6D1ED4;text-transform:uppercase;margin-bottom:6px">Pay securely by Zelle</div>
+    ${zelleRow('Send to',ZELLE_EMAIL,ZELLE_EMAIL,'Email')}
+    ${zelleRow('Amount',esc(r.price),amt,'Amount')}
+    ${memo?zelleRow('Memo',memo,memo,'Memo'):''}
+    <div style="font-size:11.5px;color:#8A8597;margin-top:8px;line-height:1.5">Open your bank's app, choose Zelle, and send to the email above. Add the memo so we can match your payment. Your concierge confirms once it's received — no card details are ever entered here.</div>
+  </div>`;
+}
+
 /* ---------------- MY PLAN (itinerary) ---------------- */
 function renderPlan(){
   const s=state.stay,b=s.booking;
@@ -1760,7 +1785,7 @@ function renderPlan(){
     ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${r.price?' · '+esc(r.price):''}</span>`
     :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
   const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><span style="display:block;margin-top:6px">${esc(meta||'Date to be confirmed')}</span><button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:8px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><span style="display:block;margin-top:6px">${esc(meta||'Date to be confirmed')}</span>${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:8px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
