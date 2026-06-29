@@ -484,7 +484,7 @@ function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); m
 function pick(k,v){ cur[k]=v; renderEditor(); renderPreview(); markDirty(); }
 window.pick=pick;
 /* Prefill the editable villa fields from a saved listing; staff can still edit any field after. */
-function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.villaInternal=x.internalName||''; cur.staffIncluded=x.staff||cur.staffIncluded||'Chef · Butler · Housekeeper'; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
+function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.villaInternal=x.internalName||''; cur.villaNumber=cur.villaNumber||x.internalName||''; cur.staffIncluded=x.staff||cur.staffIncluded||'Chef · Butler · Housekeeper'; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
 window.pickVilla=pickVilla;
 let dirty=false;
 function setDirty(v){ dirty=v; const t=document.getElementById('dirtyTag'); if(t)t.style.display=v?'inline-flex':'none'; const s=document.getElementById('saveBtn'); if(s)s.classList.toggle('hot',v); }
@@ -616,7 +616,7 @@ function renderEditor(){
       <div class="counter">The guest sees your replies live in their app chat.</div></div>
 
     <div class="sec"><h3>Stay details (shown to guest)</h3><div class="grid">
-      <div class="f"><label>Villa number</label><input value="${esc(cur.villaNumber||'')}" oninput="set('villaNumber',this.value)" placeholder="e.g. 12345"></div>
+      <div class="f"><label>Villa number</label><input value="${esc(cur.villaNumber||cur.villaInternal||'')}" oninput="set('villaNumber',this.value)" placeholder="From internal property name"></div>
       <div class="f"><label>Registration number</label><input value="${esc(cur.registrationNumber||'')}" oninput="set('registrationNumber',this.value)" placeholder="From Casa de Campo"></div>
       <div class="f"><label>Wi-Fi network name</label><input value="${esc(cur.wifiName||'')}" oninput="set('wifiName',this.value)"></div>
       <div class="f"><label>Wi-Fi password</label><input value="${esc(cur.wifiPassword||'')}" oninput="set('wifiPassword',this.value)"></div>
@@ -738,7 +738,7 @@ window.printStay=function(){
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderToday(); document.getElementById('preview').innerHTML='<div class="empty">Select a stay to see its guest activity.</div>'; setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
