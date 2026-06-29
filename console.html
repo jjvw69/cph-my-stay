@@ -737,6 +737,7 @@ function stayVitals(s){
       ${stat('Nights',nights!=null?String(nights):'—')}
       ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
       ${stat('Guest app',(s.guestLastSeen?guestPulse(s.guestLastSeen).replace(/·\s*/,''):'not opened yet'),'')}
+      ${stat('Owner',s.assigneeId?esc((BOOT.concierges.find(c=>c.id===s.assigneeId)||{}).name||'—'):'<span class="v-amber">Unassigned</span>')}
     </div>
     <div class="vrow">
       ${stat('Airport',esc(s.airport||'—'))}
@@ -893,6 +894,11 @@ function renderEditor(){
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
       <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea></div>
     </div></div>
+
+    <div class="sec"><h3>Team &amp; internal notes</h3><div class="grid">
+      <div class="f"><label>Assigned to (internal owner)</label><select onchange="set('assigneeId',this.value)"><option value="">— Unassigned —</option>${BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===cur.assigneeId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+      <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
+    </div></div>
     <div class="msave"><button class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button></div>`;
   collapsibleSections();
 }
@@ -1007,7 +1013,7 @@ window.printStay=function(){
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
