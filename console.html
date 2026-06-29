@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>Concierge Console · Caribbean Paradise Homes</title>
+<meta name="theme-color" content="#16241E">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CPH Console">
+<link rel="apple-touch-icon" href="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/cropped-CPH-Logo-Only-FB-270x270.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -269,9 +275,15 @@
   /* Portrait iPad & narrower: two columns, hide the preview. */
   @media(max-width:1023px){ .cols{grid-template-columns:280px 1fr} .right{display:none} }
   .backlist{display:none}
+  .botnav{display:none}
   @media(max-width:760px){
     #app,.topbar,.cols,.col,.center,.ehd,.ebtns,.sec,.grid{min-width:0;max-width:100%}
-    .cols{display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+    .cols{display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:66px}
+    .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:300;background:#fff;border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+    .botnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:none;color:var(--soft);font-size:10.5px;font-family:var(--ui);cursor:pointer;padding:4px 0}
+    .botnav button .ic{font-size:19px;line-height:1.05}
+    .botnav button.on{color:var(--accent);font-weight:600}
+    #app.editing .botnav{display:none}
     .col{height:auto;overflow:visible;border:0}
     .col.left{display:block}
     .col.center,.col.right{display:none}
@@ -353,12 +365,18 @@
     <div class="col center" id="editor"><div class="empty">Select a stay on the left, or create a new one.</div></div>
     <div class="col right" id="preview"><div class="empty">No stay selected.</div></div>
   </div>
+  <nav class="botnav">
+    <button onclick="showToday()"><span class="ic">▦</span>Today</button>
+    <button onclick="showInbox()"><span class="ic">✉</span>Inbox</button>
+    <button onclick="backToList()"><span class="ic">≣</span>Stays</button>
+  </nav>
 </div>
 <div class="toast" id="toast"></div>
 
 <script>
 const SEAL="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
 document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=SEAL;
+if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = working copy
 
@@ -518,7 +536,7 @@ function renderList(){
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ setView(false); };
+window.backToList=function(){ setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); renderList(); renderEditor(); renderPreview(); setView(true); } };
@@ -534,7 +552,8 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ if(centerView==='inbox') renderInbox(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); botNavActive(); if(centerView==='inbox') renderInbox(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
+function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const btns=n.querySelectorAll('button'); const idx=cur?-1:(centerView==='inbox'?1:0); btns.forEach((b,i)=>b.classList.toggle('on',i===idx)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
@@ -768,6 +787,7 @@ function chatPanelFull(s){
 }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
+  { const _a=document.getElementById('app'); if(_a)_a.classList.add('editing'); botNavActive(); }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
   const pill=(cur.status||'draft').replace(/\s/g,'').toLowerCase();
   const addonChips=BOOT.addons.map(a=>{

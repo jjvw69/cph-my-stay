@@ -37,6 +37,17 @@ const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
 // restarts/cold-starts). The console polls this and offers a Reload when it changes.
 const APP_VER = crypto.createHash('md5').update(Buffer.concat([INDEX_HTML, CONSOLE_HTML])).digest('hex').slice(0, 10);
 
+// ---- PWA: installable Concierge Console (manifest + minimal service worker) ----
+const MANIFEST_JSON = JSON.stringify({
+  name:'CPH Concierge Console', short_name:'CPH Console', description:'Caribbean Paradise Homes — staff console for guest stays.',
+  start_url:'/console', scope:'/console', display:'standalone', orientation:'any',
+  background_color:'#16241E', theme_color:'#16241E',
+  icons:[{ src:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/cropped-CPH-Logo-Only-FB-270x270.jpg', sizes:'270x270', type:'image/jpeg', purpose:'any maskable' }]
+});
+const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+  + "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+  + "self.addEventListener('fetch',function(e){/* network passthrough — installability shell only */});\n";
+
 // ---- Server-Sent Events: push instant console updates (no more 18s lag) ----
 const sseClients = new Set();
 function broadcastStaff(obj){ const s='data: '+JSON.stringify(obj||{type:'changed'})+'\n\n'; for(const r of sseClients){ try{ r.write(s); }catch(e){} } }
@@ -239,6 +250,8 @@ async function route(req,res){
   }
 
   // pages
+  if(m==='GET'&&url==='/sw.js'){ res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-cache','Service-Worker-Allowed':'/'}); return res.end(SW_JS); }
+  if(m==='GET'&&url==='/manifest.webmanifest'){ res.writeHead(200,{'Content-Type':'application/manifest+json; charset=utf-8','Cache-Control':'no-cache'}); return res.end(MANIFEST_JSON); }
   if(m==='GET'&&(url==='/console'||url.startsWith('/console'))) return sendHTML(res,CONSOLE_HTML);
   if(m==='GET') return sendHTML(res,INDEX_HTML);
   res.writeHead(405); res.end('Method not allowed');
