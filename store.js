@@ -309,6 +309,44 @@ function summaryStay(s) {
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
+
+// ---------------------------------------------- scheduled guest message automations
+function daysFromToday(iso) { const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return null; const t = new Date(new Date().toDateString()); return Math.round((d - t) / 864e5); }
+function pushAutoMsg(s, text) { if (!Array.isArray(s.messages)) s.messages = []; s.messages.push({ id: genId(), from: 'concierge', text: norm(text).slice(0, 1000), at: Date.now(), auto: true }); s.updatedAt = Date.now(); }
+/** Runs the pre-arrival / arrival / post-stay message sequence. Each message sends once per stay
+ *  (tracked in s.autoSent). Returns the sent items so the server can also email/WhatsApp the guest. */
+function runAutomations() {
+  const sent = [];
+  stays.forEach(s => {
+    if (s.status !== 'published' || !s.checkin) return;
+    s.autoSent = s.autoSent || {};
+    const dIn = daysFromToday(s.checkin);
+    const dOut = s.checkout ? daysFromToday(s.checkout) : null;
+    const name = (s.leadName || '').split(' ')[0] || 'there';
+    const conc = ((CONCIERGES.find(c => c.id === s.conciergeId) || CONCIERGES[0] || {}).name) || 'your concierge';
+    // 1) Pre check-in reminder — 1–7 days before arrival, only if not yet submitted
+    if (dIn != null && dIn >= 1 && dIn <= 7 && !s.guestCheckin && !s.autoSent.precheckin) {
+      const text = `Hi ${name}, your arrival on ${s.checkin} is coming up. Please complete your pre check-in in the app so we can arrange your airport transfer and have your villa ready.`;
+      pushAutoMsg(s, text); s.autoSent.precheckin = true;
+      sent.push({ stayId: s.id, ref: s.reference, email: s.email || '', phone: s.phone || '', subject: 'Complete your pre check-in', text });
+    }
+    // 2) Arrival-day welcome
+    if (dIn === 0 && !s.autoSent.arrival) {
+      const wifi = s.wifiName ? ` Wi-Fi: ${s.wifiName}${s.wifiPassword ? ' / ' + s.wifiPassword : ''}.` : '';
+      const text = `Welcome to Casa de Campo, ${name}! Your villa is ready.${wifi} ${conc} is on hand for anything you need — just message here.`;
+      pushAutoMsg(s, text); s.autoSent.arrival = true;
+      sent.push({ stayId: s.id, ref: s.reference, email: s.email || '', phone: s.phone || '', subject: 'Welcome — your villa is ready', text });
+    }
+    // 3) Post-stay thank-you — the day after checkout (or later)
+    if (dOut != null && dOut <= -1 && !s.autoSent.poststay) {
+      const text = `Thank you for staying with us, ${name}. It was a pleasure hosting you at Casa de Campo. If you have a moment we'd love your feedback, and we hope to welcome you back soon.`;
+      pushAutoMsg(s, text); s.autoSent.poststay = true;
+      sent.push({ stayId: s.id, ref: s.reference, email: s.email || '', phone: s.phone || '', subject: 'Thank you for your stay', text });
+    }
+  });
+  if (sent.length) persistStays();
+  return sent;
+}
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
@@ -526,7 +564,7 @@ module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
-  listStays, getStay, exportAll, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, runAutomations, createStay, saveStay, publishStay, deleteStay,
   addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),

@@ -559,7 +559,7 @@ function activityTimeline(s){
     if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
     if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
   });
-  (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):'You'}: ${esc(m.text)}`}); });
+  (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):(m.auto?'Auto-message':'You')}: ${esc(m.text)}`}); });
   ev.sort((a,b)=>(b.at||0)-(a.at||0));
   if(!ev.length) return '';
   const seenTl=(getSeen()[s.id]||{}).tl||0; const fresh=Math.max(0,ev.length-seenTl);
@@ -670,7 +670,7 @@ function renderEditor(){
 
     <div class="sec"><h3>Concierge chat ${cur.messages&&cur.messages.length?`<span class="reqcount">${cur.messages.length}</span>`:''}</h3>
       <div class="reqlist">${(cur.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
-        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):'You'}</div>
+        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):(mm.auto?'Auto-message ✦':'You')}</div>
         <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
       </div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>'}</div>
       <div class="tmpl">${['On it — looking into this now.','Confirmed ✓ — the details are in your app.','Welcome! Anything you need, just message here.','Your airport transfer is all arranged.','I’ll follow up shortly with options and pricing.'].map(t=>`<button data-t="${esc(t)}" onclick="fillMsg(this.dataset.t)">${esc(t)}</button>`).join('')}</div>

@@ -149,7 +149,17 @@ async function staffLogin(req,res){
 }
 function requireStaff(req,res){ const s=staffSession(req); if(!s){ sendJSON(res,401,{ok:false,error:'Not signed in.'}); return null; } return s; }
 
+// Run scheduled guest-message automations, throttled to once every 15 min (covers Render spin-downs:
+// fires whenever any request comes in). Also posts the message in-app and emails/WhatsApps the guest if configured.
+let _lastAuto=0;
+function maybeRunAutomations(){
+  const now=Date.now(); if(now-_lastAuto < 15*60*1000) return; _lastAuto=now;
+  try{ const sent=store.runAutomations(); sent.forEach(it=>notifyGuest(it,it.subject,it.text)); if(sent.length) console.log('[auto] sent %d scheduled message(s)',sent.length); }
+  catch(e){ console.error('[auto] error',e.message); }
+}
+
 async function route(req,res){
+  maybeRunAutomations();
   const url=req.url.split('?')[0];
   const m=req.method;
 
@@ -205,3 +215,5 @@ async function route(req,res){
 
 const server=http.createServer((req,res)=>{ route(req,res).catch(err=>{ console.error('[server]',err); try{sendJSON(res,500,{ok:false,error:'Server error'});}catch(e){} }); });
 server.listen(PORT,()=>console.log(`CPH My Stay on :${PORT} | data=${store.DATA_DIR} | ${JSON.stringify(store._counts())}`));
+setTimeout(()=>{ _lastAuto=0; maybeRunAutomations(); }, 8000);
+setInterval(()=>{ _lastAuto=0; maybeRunAutomations(); }, 60*60*1000);
