@@ -407,6 +407,7 @@ function addRequest(reference, body) {
     note: norm(body.note).slice(0, 300),
     status: 'pending',
     price: '',
+    suggestedPrice: norm(body.suggestedPrice).slice(0, 30),
     createdAt: Date.now(),
   };
   s.requests.push(req); s.updatedAt = Date.now(); persistStays(); return req;

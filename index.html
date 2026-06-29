@@ -1404,6 +1404,15 @@ window.openReq=function(type,refId){
 };
 window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
 window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+/* Suggested starting price for a request, from the resort's published rates and the guest's
+   selection. Carried to the console so confirming is one tap — the concierge can still edit it. */
+function suggestedPriceFor(refId,o){ o=o||{};
+  if(refId==='transfer'){ const T={'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]}; const p=T[o.svc]; return p?('$'+(o.trip==='Round-trip'?p[1]:p[0])):''; }
+  if(refId==='golfcart'){ const per=(o.cartTypeRaw==='6-seater')?105:80; const q=Math.max(1,Number(o.cartQty)||1); return '$'+(per*q)+'/day'; }
+  if(refId==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; return C[o.svc]?('$'+C[o.svc]+'/day'):''; }
+  if(refId==='catalina') return '$48/adult';
+  return (SERVICE_INFO[refId]&&SERVICE_INFO[refId].defaultPrice)||'';
+}
 window.submitReq=async function(type,refId){
   const date=(document.getElementById('rqDate')||{}).value||'';
   const endDate=(document.getElementById('rqEnd')||{}).value||'';
@@ -1411,13 +1420,15 @@ window.submitReq=async function(type,refId){
   const cartQty=(document.getElementById('rqQty')||{}).value||'';
   const cartType=(cartQty&&cartTypeRaw)?(cartQty+' × '+cartTypeRaw):cartTypeRaw;
   const trip=(document.getElementById('rqTrip')||{}).value||'';
-  const serviceLevel=[trip,(document.getElementById('rqService')||{}).value||''].filter(Boolean).join(' · ');
+  const svc=(document.getElementById('rqService')||{}).value||'';
+  const serviceLevel=[trip,svc].filter(Boolean).join(' · ');
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
   const route=(document.getElementById('rqRoute')||{}).value||'';
   const noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
   const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
-  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut})});
+  const suggestedPrice=suggestedPriceFor(refId,{svc,trip,guests,cartQty,cartTypeRaw});
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,suggestedPrice})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
 };
