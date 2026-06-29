@@ -1028,7 +1028,12 @@ const SERVICE_INFO = {
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
     selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
-    rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Helicopter, private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
+    rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
+  },
+  yacht: {
+    notePlaceholder:'Date(s), number of guests, the occasion, and a specific yacht if you have one in mind…',
+    selects:`<label class="reqlbl">Charter type</label><select id="rqService"><option>Day charter</option><option>Sunset cruise</option><option>Island trip (Saona / Catalina / Palmilla)</option><option>Deep-sea fishing</option><option>Multi-day charter</option><option>Not sure — recommend for me</option></select><label class="reqlbl">Preferred yacht (optional)</label><select id="rqRoute"><option>No preference — recommend for me</option><option>Azimut 86 · Andrea — up to 16</option><option>Azimut 60 — up to 18</option><option>Princess 60 — up to 12</option><option>Majesty 56 · Georyana 3 — up to 16</option><option>Azimut 55 · Ancoral — up to 15</option><option>Powerplay 54 · Liquid — up to 22</option><option>Hatteras 53 · sport fishing — up to 16</option><option>Other (tell us below)</option></select>`,
+    rates:`<b>PRIVATE YACHT CHARTERS · CASA DE CAMPO MARINA</b><div class="rtnote">Luxury, cruising and sport-fishing vessels from 35 to 86 ft. Full days from roughly US$1,775, up to the flagship Azimut 86 at US$6,875/day. Crew, fuel and limited drinks included; 28% tax/service and gratuity extra. <a href="https://caribbeanparadisehomes.com/guest-services/yacht-charters/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">View the full fleet &amp; prices →</a></div>`
   },
   transfer: {
     range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
