@@ -158,6 +158,21 @@
   .ebtns button{font-size:14px;padding:9px 14px;border-radius:10px}
   .b-out{border:1px solid var(--line);background:#fff;color:var(--ink)}
   .b-fill{background:var(--accent);color:#fff}
+  .vitals{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
+  .vrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:7px 0;border-bottom:1px solid #EFF1EC}
+  .vrow:first-child{padding-top:0}
+  .vstat{display:flex;flex-direction:column;min-width:0}
+  .vk{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft)}
+  .vv{font-size:14.5px;font-weight:600;color:var(--ink);margin-top:1px}
+  .v-green{color:#3F6B4E}
+  .v-amber{color:#9E5B43}
+  .v-soft{color:var(--soft);font-weight:500}
+  .vpill{font-size:11.5px;border-radius:20px;padding:2px 10px;font-weight:600}
+  .vpill.amber{background:#FCF3EC;color:#9E5B43;border:1px solid #E4C58C}
+  .vpill.calm{background:#F1F4EF;color:#3F6B4E}
+  .vready{display:flex;flex-wrap:wrap;gap:7px;padding-top:9px}
+  .vchip{font-size:11.5px;border-radius:20px;padding:3px 10px;background:#F4F2EC;color:#9AA49B;border:1px solid var(--line)}
+  .vchip.on{background:#EAF1EA;color:#3F6B4E;border-color:#cfe0c8}
   .sec{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -628,7 +643,50 @@ function reqSuggestedPrice(r){
   if(ref==='golfcart'){ const m=ct.match(/(\d+)\s*[×x]\s*4-seater/i)||ct.match(/(\d+)\s*[×x]\s*6-seater/i); const qty=m?Number(m[1]):1; const six=/6-seater/.test(ct); return '$'+((six?105:80)*qty)+'/day'; }
   if(ref==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; const svc=sl.split(' · ').pop(); if(C[svc]) return '$'+C[svc]+'/day'; }
   if(ref==='catalina') return '$48/adult';
+  if(ref==='nannies'||ref==='family-nannies'){ if(/evening|babysitt|night/i.test(sl)) return '$20/hr'; if(/nanny|daytime|day/i.test(sl)) return '$26/hr'; }
+  if(ref==='equestrian'||ref==='horseback-tour'){ const E={'Horseback ride':'$65/hr','Pony ride (kids 4–6)':'$50','Riding / jumping lesson':'$100','Polo lesson':'$150','Donkey polo':'$65/person','Ranch horseback tour':'$300/person'}; if(E[sl]) return E[sl]; if(/peligro|ranch/i.test(sl)) return '$300/person'; }
   return r.suggestedPrice||'';
+}
+/* At-a-glance stay summary at the top of the editor: arrival countdown + nights + party vs
+   capacity + guest activity, the driver/arrival brief, the money picture, and what's still
+   outstanding. Everything the concierge needs to read the stay in one look. */
+function stayVitals(s){
+  const today=new Date(new Date().toDateString());
+  const dd=(iso)=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?null:Math.round((x-today)/86400000); };
+  const din=s.checkin?dd(s.checkin):null, dout=s.checkout?dd(s.checkout):null;
+  let arr,arrCls='v-soft'; if(din==null) arr='Dates TBD'; else if(din>0){ arr='Arrives in '+din+' day'+(din===1?'':'s'); if(din<=3)arrCls='v-amber'; } else if(dout!=null&&dout>=0){ arr='In-house'; arrCls='v-green'; } else { arr='Departed'; }
+  const nights=(s.checkin&&s.checkout)?Math.max(0,Math.round((new Date(s.checkout+'T00:00:00')-new Date(s.checkin+'T00:00:00'))/86400000)):null;
+  const party=(Number(s.adults)||0)+(Number(s.children)||0);
+  const cap=Number(s.villaSleeps||((BOOT.villas.find(v=>v.id===s.villaId)||{}).sleeps))||null;
+  const partyTxt=party+(cap?(' / '+cap):'')+' guest'+(party===1?'':'s')+(cap&&party>cap?' ⚠ over capacity':'');
+  const reqs=s.requests||[]; const num=p=>parseFloat((''+(p||'')).replace(/[^0-9.]/g,''))||0;
+  const confirmed=reqs.filter(r=>r.status==='confirmed');
+  const rev=confirmed.reduce((a,r)=>a+num(r.price),0);
+  const awaiting=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled').length;
+  const unread=unreadMsgs(s);
+  const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
+  const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
+  const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))]];
+  const actionBits=[]; if(awaiting)actionBits.push(`<span class="vpill amber">${awaiting} awaiting price</span>`); if(unread)actionBits.push(`<span class="vpill amber">${unread} unread message${unread===1?'':'s'}</span>`); if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
+  return `<div class="vitals">
+    <div class="vrow">
+      ${stat('Arrival',esc(arr),arrCls)}
+      ${stat('Nights',nights!=null?String(nights):'—')}
+      ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
+      ${stat('Guest app',(s.guestLastSeen?guestPulse(s.guestLastSeen).replace(/·\s*/,''):'not opened yet'),'')}
+    </div>
+    <div class="vrow">
+      ${stat('Airport',esc(s.airport||'—'))}
+      ${stat('Flight',esc(s.flight||'—'))}
+      ${stat('Transfer',s.transferArranged?'<span class="v-green">Arranged</span>':'Not arranged')}
+    </div>
+    <div class="vrow">
+      ${stat('Confirmed add-ons',confirmed.length+' · $'+rev,'v-green')}
+      ${stat('To collect (Zelle)','$'+rev)}
+      <div class="vstat" style="flex:1"><span class="vk">Action needed</span><span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px">${actionBits.join('')}</span></div>
+    </div>
+    <div class="vready">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
+  </div>`;
 }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
@@ -642,6 +700,8 @@ function renderEditor(){
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+
+    ${stayVitals(cur)}
 
     ${activityTimeline(cur)}
 
