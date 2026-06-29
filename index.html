@@ -342,7 +342,7 @@ function renderHome(){
       </div>
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
-      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange Villa Add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).filter(r=>r&&r.status!=='cancelled').length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
@@ -1523,14 +1523,14 @@ function addonRow(it){
   const reqs=reqFor('addon',it.id);
   const pend=reqs.map(reqLine).join('');
   const rec=it.recommended?` <span style="font-size:10px;background:#EEF3EE;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Recommended</span>`:'';
-  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button></div></span></div>`;
+  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button><button onclick="askConcierge('${esc(it.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge</button></div></span></div>`;
 }
 function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];
-  if(!list.length){ shell('Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
+  if(!list.length){ shell('Villa Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
   const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
   const inner=cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
-  shell('Add-ons', inner);
+  shell('Villa Add-ons', inner);
 }
 
 function renderArrival(){
@@ -1647,7 +1647,7 @@ function renderPlan(){
     <div class="sec-title">Your stay</div>
     <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
     <div class="sec-title">Requests &amp; bookings</div>
-    ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
+    ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Villa Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>
     <button class="btn" style="margin-top:10px;background:#EFE9DC;color:#1F2A24" onclick="printItinerary()">Print / save as PDF</button>`;
   shell('My plan', inner);
