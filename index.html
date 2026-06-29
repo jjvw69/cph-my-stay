@@ -1121,7 +1121,7 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
 const SERVICE_INFO = {
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
-    selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
+    selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">Trip</label><select id="rqTrip"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
     rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
   },
   yacht: {
@@ -1139,7 +1139,7 @@ const SERVICE_INFO = {
   transfer: {
     range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
-    selects:`<label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
+    selects:`<label class="reqlbl">Trip</label><select id="rqTrip"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
     rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
       <div class="rth">LRM → Casa de Campo</div>
       <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
@@ -1410,7 +1410,8 @@ window.submitReq=async function(type,refId){
   const cartTypeRaw=(document.getElementById('rqCart')||{}).value||'';
   const cartQty=(document.getElementById('rqQty')||{}).value||'';
   const cartType=(cartQty&&cartTypeRaw)?(cartQty+' × '+cartTypeRaw):cartTypeRaw;
-  const serviceLevel=(document.getElementById('rqService')||{}).value||'';
+  const trip=(document.getElementById('rqTrip')||{}).value||'';
+  const serviceLevel=[trip,(document.getElementById('rqService')||{}).value||''].filter(Boolean).join(' · ');
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
   const route=(document.getElementById('rqRoute')||{}).value||'';
