@@ -387,7 +387,7 @@ function markViewed(stay){ if(!stay||!stay.id)return; const m=getSeen(); m[stay.
 function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?seen.req:0) || (s.guestMsgs||0)>(seen?seen.msg:0); }
 function unreadMsgs(s){ const seen=getSeen()[s.id]; return Math.max(0,(s.guestMsgs||0)-(seen?seen.msg:0)); }
 function tlMarkViewed(d){ if(!d||!d.open||!cur)return; const m=getSeen(); m[cur.id]=Object.assign(m[cur.id]||{},{tl:tlEventCount(cur)}); setSeen(m); const b=d.querySelector('.reqcount'); if(b)b.style.display='none'; }
-function tlEventCount(s){ let n=0; (s.requests||[]).forEach(r=>{ if(r.createdAt)n++; if(r.status==='confirmed')n++; if(r.status==='cancelled')n++; }); n+=(s.messages||[]).length; return n; }
+function tlEventCount(s){ let n=0; (s.requests||[]).forEach(r=>{ if(r.createdAt)n++; if(r.status==='confirmed')n++; if(r.status==='done')n++; if(r.status==='cancelled')n++; }); n+=(s.messages||[]).length; return n; }
 async function api(path,opts={}){ const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts)); let j={}; try{j=await r.json();}catch(e){} return {status:r.status,ok:r.ok&&j.ok!==false,body:j}; }
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2400); }
 
@@ -663,6 +663,7 @@ function activityTimeline(s){
   (s.requests||[]).forEach(r=>{
     if(r.createdAt) ev.push({at:r.createdAt,cls:'g',what:`Guest requested <b>${esc(r.title||'a service')}</b>`});
     if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
+    if(r.status==='done') ev.push({at:r.doneAt||r.createdAt,cls:'ok',what:`Marked done <b>${esc(r.title||'')}</b>`});
     if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
   });
   (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):(m.auto?'Auto-message':'You')}: ${esc(m.text)}`}); });
@@ -744,7 +745,7 @@ function stayVitals(s){
   const reqs=s.requests||[]; const num=p=>parseFloat((''+(p||'')).replace(/[^0-9.]/g,''))||0;
   const confirmed=reqs.filter(r=>r.status==='confirmed');
   const rev=confirmed.reduce((a,r)=>a+num(r.price),0);
-  const awaiting=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled').length;
+  const awaiting=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done').length;
   const unread=unreadMsgs(s);
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
@@ -882,14 +883,14 @@ function renderEditor(){
       <div class="counter">Meals the guest would like ready on arrival${cur.mealPlan.updatedAt?' · updated '+fmtReqDate(cur.mealPlan.updatedAt):''} — arrange groceries or a private chef.</div></div>`:''}
 
     ${(cur.requests&&cur.requests.length)?`<div class="sec"><h3>Guest requests <span class="reqcount">${cur.requests.length}</span></h3>
-      <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem"${r.status==='cancelled'?' style="opacity:.72"':''}>
-        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${r.status==='cancelled'?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="dismissReq('${r.id}')">${r.status==='cancelled'?'Clear log':'Mark done'}</button>${r.status!=='cancelled'?`<button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`:''}</div>
-        ${r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span></div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
+      <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem"${(r.status==='cancelled'||r.status==='done')?' style="opacity:.72"':''}>
+        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="clearLog('${r.id}')">Clear log</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
+        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span></div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${r.createdAt?`<div class="reqmeta" style="color:#9AA49B">Requested ${fmtReqDate(r.createdAt)}</div>`:''}
         ${r.status==='cancelled'&&r.cancelledAt?`<div class="reqmeta" style="color:#9A2B2B">⊘ Cancelled by guest ${fmtReqDate(r.cancelledAt)}</div>`:''}
         ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
-        ${(r.status!=='confirmed'&&r.status!=='cancelled')?`<div class="reqconfirm"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm &amp; send price</button></div>${reqSuggestedPrice(r)?`<div class="reqmeta" style="color:#9AA49B;margin-top:4px">Suggested from resort rates — edit if needed</div>`:''}`:''}
+        ${(r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done')?`<div class="reqconfirm"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm &amp; send price</button></div>${reqSuggestedPrice(r)?`<div class="reqmeta" style="color:#9AA49B;margin-top:4px">Suggested from resort rates — edit if needed</div>`:''}`:''}
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
@@ -926,7 +927,11 @@ window.set=set;
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
-window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Marked done'); } else toast('Could not update'); };
+/* Mark done = keep the request as a record (status 'done'), logged in the timeline. */
+window.markDoneReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid+'/done',{method:'POST'}); if(r.ok){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='done'; rq.doneAt=(r.body.request&&r.body.request.doneAt)||Date.now(); } if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.pending=Math.max(0,(it.pending||0)-1); renderList(); refreshTodayBtn&&refreshTodayBtn(); toast('Marked done — kept in the log'); } else toast('Could not update'); };
+window.dismissReq=window.markDoneReq; // back-compat alias
+/* Clear log = permanently remove a done/cancelled record from the list. */
+window.clearLog=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Cleared from log'); } else toast('Could not update'); };
 window.deleteReq=async function(rid){ if(!cur)return; const rq=(cur.requests||[]).find(x=>x.id===rid); const nm=(rq&&rq.title)?('"'+rq.title+'"'):'this request'; if(!confirm('Delete '+nm+' permanently? This removes it for you and the guest and cannot be undone.'))return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); if(typeof refreshMetrics==='function')refreshMetrics(); toast('Request deleted'); } else toast('Could not delete'); };
 window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); refreshMetrics(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };

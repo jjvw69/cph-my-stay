@@ -301,7 +301,7 @@ function summaryStay(s) {
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
     source: s.source || '', followUpDate: s.followUpDate || '', followUpNote: s.followUpNote || '', requests: (s.requests || []).length,
-    pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled').length,
+    pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled' && r.status !== 'done').length,
     guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0,
     lastMsgAt: ((s.messages || [])[(s.messages || []).length - 1] || {}).at || 0,
     lastMsgText: String(((s.messages || [])[(s.messages || []).length - 1] || {}).text || '').slice(0, 90),
@@ -426,6 +426,13 @@ function removeStaffRequest(stayId, requestId) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return false;
   const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
   s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
+}
+/** Staff marks a request done (arranged). We KEEP it as a record (status='done') so it stays
+ *  visible/greyed and logged in the activity timeline, instead of vanishing. */
+function markRequestDone(stayId, requestId) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  r.status = 'done'; r.doneAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
  *  reloads and shows in the Concierge Console. */
@@ -605,7 +612,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
