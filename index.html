@@ -1025,6 +1025,11 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
   const x=confirmed?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
   return `<span class="reqpill${confirmed?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
 const SERVICE_INFO = {
+  privatetravel: {
+    notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
+    selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Helicopter transfer</option><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
+    rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Helicopter, private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
+  },
   transfer: {
     range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
