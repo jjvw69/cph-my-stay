@@ -1036,6 +1036,17 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select>`,
     rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   },
+  arrivalmeals: {
+    notePlaceholder:'Dishes or cuisine you would like, number of guests, any dietary needs or allergies…',
+    selects:`<label class="reqlbl">Which meal</label><select id="rqService"><option>Breakfast / Desayuno</option><option>Lunch / Comida</option><option>Dinner / Cena</option><option>All-day / multiple meals</option></select>`,
+    rates:`<b>ARRIVAL MEALS</b><div class="rtnote">Tell us the meal, date and time, and the dishes you'd like. We can have everything ready for your arrival or arrange a private chef to cook in your villa — your concierge confirms options and pricing.</div>`
+  },
+  nannies: {
+    noGuests:true,
+    selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Daytime nanny</option><option>Evening babysitting</option></select>`,
+    notePlaceholder:'Children and ages, dates and times, anything we should know…',
+    rates:`<b>NANNY &amp; BABYSITTING</b><div class="rtnote"><b>Daytime nanny</b> — US$26 / hour.<br><b>Evening babysitting</b> (4 p.m.–12 a.m., 3-hour minimum) — US$20 / hour for up to two children, US$10 / hour for a third. After 11:30 p.m. an extra US$20 taxi fee is paid directly to the nanny.<br>Cash only, paid to the nanny; prices include tax &amp; service. Nannies are First Aid &amp; CPR trained and speak English &amp; Spanish. 24 hours' notice to book or cancel.</div>`
+  },
   transfer: {
     range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',

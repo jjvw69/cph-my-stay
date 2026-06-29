@@ -27,6 +27,7 @@ const ADDON_CATALOG = [
   { id: 'yacht',         category: 'Travel & transfers',    name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
   // Provisioning
   { id: 'grocery',       category: 'Provisioning',          name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
+  { id: 'arrivalmeals',  category: 'Provisioning',          name: 'Arrival meals',                      desc: 'Meals ready when you arrive — breakfast, lunch or dinner. A private chef can be arranged.' },
   // (Experiences moved to the Explore → Experiences directory)
   // In-villa services
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
