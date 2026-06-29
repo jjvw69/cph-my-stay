@@ -435,6 +435,13 @@ function markRequestDone(stayId, requestId) {
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
   r.status = 'done'; r.doneAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
 }
+/** Staff reopens a previously done (or cancelled) request so it can be edited / re-arranged.
+ *  Returns it to the active queue: clears the done/cancelled status and timestamp. */
+function reopenRequest(stayId, requestId) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  r.status = ''; r.doneAt = ''; r.cancelledAt = ''; r.reopenedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
+}
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
  *  reloads and shows in the Concierge Console. */
 function saveGrocery(reference, data) {
@@ -613,7 +620,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

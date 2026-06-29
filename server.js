@@ -236,6 +236,8 @@ async function route(req,res){
     if(cm&&m==='POST'){ const b=await readBody(req); const r=store.confirmRequest(cm[1],cm[2],String(b.price||'')); if(r){ const st=store.getStay(cm[1]); notifyGuest(st,`Your request is confirmed — ${r.title}`,['Good news — your concierge has confirmed your request.','',`${r.title}${r.price?' · '+r.price:''}`,r.date?`When: ${r.date}${r.time?' '+r.time:''}`:'','','See the details in your My Stay app.'].filter(Boolean).join('\n')); } return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const dm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/done$/);
     if(dm&&m==='POST'){ const r=store.markRequestDone(dm[1],dm[2]); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const ro=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/reopen$/);
+    if(ro&&m==='POST'){ const r=store.reopenRequest(ro[1],ro[2]); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const sm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/messages$/);
