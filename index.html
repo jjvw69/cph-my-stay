@@ -1084,6 +1084,11 @@ const SERVICE_INFO = {
     notePlaceholder:'Quantity, ages, dates needed, anything specific…',
     selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Baby playpen</option><option>Other</option></select>`
   },
+  'staff': {
+    noGuests:true,
+    notePlaceholder:'Which staff, how many, dates and times, number of diners if a chef…',
+    selects:`<label class="reqlbl">Staff needed</label><select id="rqService"><option>Private chef</option><option>Waiters</option><option>Driver</option><option>Butler</option><option>Housekeeper</option><option>Nanny</option><option>Other</option></select>`
+  },
   tennis: {
     menu:'https://www.casadecampo.com.do/experiences/racquet-center/',
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Tennis — court rental</option><option>Tennis — private lesson</option><option>Tennis — group clinic</option><option>Padel — court rental</option><option>Padel — lesson</option><option>Racquet / paddle rental</option><option>Other</option></select>`,
@@ -1518,7 +1523,7 @@ function addonRow(it){
   const reqs=reqFor('addon',it.id);
   const pend=reqs.map(reqLine).join('');
   const rec=it.recommended?` <span style="font-size:10px;background:#EEF3EE;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Recommended</span>`:'';
-  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button><button onclick="askConcierge('${esc(it.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge</button></div></span></div>`;
+  return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button></div></span></div>`;
 }
 function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];

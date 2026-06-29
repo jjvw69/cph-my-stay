@@ -25,14 +25,12 @@ const ADDON_CATALOG = [
   { id: 'carrental',     category: 'Travel & transfers',    name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
   { id: 'golfcart',      category: 'Travel & transfers',    name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
   { id: 'yacht',         category: 'Travel & transfers',    name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
-  // Provisioning & dining
-  { id: 'grocery',       category: 'Provisioning & dining', name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
-  { id: 'dining',        category: 'Provisioning & dining', name: 'Restaurant & activity reservations', desc: "Bookings at the resort's restaurants and activities." },
-  { id: 'catering',      category: 'Provisioning & dining', name: 'Private chef & catering',            desc: 'In-villa dining and catering for any occasion.' },
+  // Provisioning
+  { id: 'grocery',       category: 'Provisioning',          name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
   // (Experiences moved to the Explore → Experiences directory)
   // In-villa services
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
-  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra butlers, housekeepers or a nanny.' },
+  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
 ];
 
 const CONCIERGES = [
