@@ -762,7 +762,6 @@ function stayVitals(s){
       ${stat('Nights',nights!=null?String(nights):'—')}
       ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
       ${stat('Guest app',(s.guestLastSeen?guestPulse(s.guestLastSeen).replace(/·\s*/,''):'not opened yet'),'')}
-      ${stat('Owner',s.assigneeId?esc((BOOT.concierges.find(c=>c.id===s.assigneeId)||{}).name||'—'):'<span class="v-amber">Unassigned</span>')}
     </div>
     <div class="vrow">
       ${stat('Airport',esc(s.airport||'—'))}
@@ -941,8 +940,7 @@ function renderEditor(){
       <div class="f full counter">Internal only — the guest never sees this.</div>
     </div></div>
 
-    <div class="sec"><h3>Team &amp; internal notes</h3><div class="grid">
-      <div class="f"><label>Assigned to (internal owner)</label><select onchange="set('assigneeId',this.value)"><option value="">— Unassigned —</option>${BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===cur.assigneeId?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="sec"><h3>Internal notes</h3><div class="grid">
       <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
     </div></div>
     <div class="msave"><button class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button></div>`;
