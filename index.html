@@ -1027,7 +1027,7 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
 const SERVICE_INFO = {
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
-    selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Helicopter transfer</option><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
+    selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
     rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Helicopter, private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
   },
   transfer: {
@@ -1281,8 +1281,9 @@ window.openReq=function(type,refId){
   const guestsBlock = info.noGuests ? '' : `<label class="reqlbl">How many guests</label>
     <div class="reqstep"><button type="button" onclick="rqAdj(-1)">−</button><span id="rqG">0</span><button type="button" onclick="rqAdj(1)">+</button></div>`;
   const ov=document.createElement('div'); ov.className='reqov'; ov.onclick=e=>{ if(e.target===ov) closeReq(); };
-  ov.innerHTML=`<div class="reqbox">
-    <div class="reqh">${esc(reqTitle(type,refId))}</div>
+  ov.innerHTML=`<div class="reqbox" style="position:relative">
+    <button onclick="closeReq()" aria-label="Close" style="position:absolute;top:12px;right:14px;width:30px;height:30px;border:0;background:#EFE9DC;color:#1F2A24;border-radius:50%;font-size:19px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3">×</button>
+    <div class="reqh" style="padding-right:36px">${esc(reqTitle(type,refId))}</div>
     <div class="reqsub">Let your concierge know — they'll confirm availability and final pricing.</div>
     ${ratesBlock}
     ${menuBlock}
