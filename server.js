@@ -33,6 +33,9 @@ const NOTIFY_FROM = process.env.NOTIFY_FROM || 'My Stay <onboarding@resend.dev>'
 const APP_URL = process.env.APP_URL || 'https://cph-my-stay.onrender.com';
 const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'index.html'));
 const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
+// Content hash of the app files — changes only when a new build is deployed (stable across
+// restarts/cold-starts). The console polls this and offers a Reload when it changes.
+const APP_VER = crypto.createHash('md5').update(Buffer.concat([INDEX_HTML, CONSOLE_HTML])).digest('hex').slice(0, 10);
 
 if (!SESSION_SECRET) console.warn('[WARN] SESSION_SECRET is not set — set a long random value in production.');
 
@@ -180,6 +183,7 @@ async function route(req,res){
   if(url==='/healthz') return sendJSON(res,200,{ok:true,store:store._counts(),time:new Date().toISOString()});
 
   // guest api
+  if(m==='GET' &&url==='/api/version') return sendJSON(res,200,{ok:true,ver:APP_VER});
   if(m==='POST'&&url==='/api/login') return guestLogin(req,res);
   if(m==='POST'&&url==='/api/logout'){ clearCookie(res,'cph_stay'); return sendJSON(res,200,{ok:true}); }
   if(m==='GET' &&url==='/api/stay') return guestStay(req,res);

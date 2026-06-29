@@ -394,13 +394,30 @@ async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.bod
 
 /* ============ live sync ============ */
 let POLL=null, lastSyncAt=0;
-function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,18000); setInterval(updateSyncAge,10000); }
+function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,18000); setInterval(updateSyncAge,10000); checkVersion(); }
+/* The live sync refreshes DATA but not the app's CODE — an open console tab keeps running the
+   JS it loaded with. So we watch the deployed build hash and offer a Reload when a new version
+   ships, so staff aren't left on stale code (e.g. missing a new rate auto-fill). */
+let _APPVER=null;
+async function checkVersion(){
+  try{ const r=await api('/api/version'); const v=r&&r.body&&r.body.ver; if(!v) return;
+    if(_APPVER===null){ _APPVER=v; return; }
+    if(v!==_APPVER) showReloadBar();
+  }catch(e){}
+}
+function showReloadBar(){
+  if(document.getElementById('verbar')) return;
+  const b=document.createElement('div'); b.id='verbar';
+  b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#16241E;color:#fff;padding:11px 16px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:14px;box-shadow:0 -2px 14px rgba(0,0,0,.3)';
+  b.innerHTML='✦ A new version of the console is available. <button onclick="location.reload()" style="background:#fff;color:#16241E;border:0;border-radius:8px;padding:7px 16px;font-size:13.5px;font-weight:600;cursor:pointer">Reload now</button>';
+  document.body.appendChild(b);
+}
 async function syncNow(){
   if(document.hidden) return;
   let ok=true;
   try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); await refreshMetrics(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
   if(cur){ const c=await refreshCurrent(); if(c===false) ok=false; }
-  markSynced(ok);
+  markSynced(ok); checkVersion();
 }
 async function refreshCurrent(){
   if(!cur) return;
