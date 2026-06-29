@@ -37,6 +37,17 @@ const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
 // restarts/cold-starts). The console polls this and offers a Reload when it changes.
 const APP_VER = crypto.createHash('md5').update(Buffer.concat([INDEX_HTML, CONSOLE_HTML])).digest('hex').slice(0, 10);
 
+// ---- Server-Sent Events: push instant console updates (no more 18s lag) ----
+const sseClients = new Set();
+function broadcastStaff(obj){ const s='data: '+JSON.stringify(obj||{type:'changed'})+'\n\n'; for(const r of sseClients){ try{ r.write(s); }catch(e){} } }
+function sseHandler(req,res){
+  res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
+  res.write('retry: 4000\n\n'); res.write('data: {"type":"hello"}\n\n');
+  sseClients.add(res);
+  const ka=setInterval(()=>{ try{ res.write(': ka\n\n'); }catch(e){ } }, 25000);
+  req.on('close',()=>{ clearInterval(ka); sseClients.delete(res); });
+}
+
 if (!SESSION_SECRET) console.warn('[WARN] SESSION_SECRET is not set — set a long random value in production.');
 
 // ---- signed tokens (HMAC-SHA256) ----
@@ -76,10 +87,10 @@ async function guestLogin(req,res){
   return sendJSON(res,200,{ok:true,stay:r.stay,token});
 }
 function guestStay(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const stay=store.getPublishedByRefForSession(s.ref); if(!stay) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); store.touchGuestSeen(s.ref); const token=sign({t:'g',ref:s.ref},GUEST_HOURS); return sendJSON(res,200,{ok:true,stay,token}); }
-async function guestMessage(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const m=store.addGuestMessage(s.ref,String(b.text||'')); if(!m) return sendJSON(res,400,{ok:false,error:'Empty message.'}); console.log('[message] %s "%s"',s.ref,String(m.text).slice(0,40)); notifyMessage(store.getPublishedByRefForSession(s.ref),m.text); return sendJSON(res,200,{ok:true,message:m}); }
+async function guestMessage(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const m=store.addGuestMessage(s.ref,String(b.text||'')); if(!m) return sendJSON(res,400,{ok:false,error:'Empty message.'}); console.log('[message] %s "%s"',s.ref,String(m.text).slice(0,40)); notifyMessage(store.getPublishedByRefForSession(s.ref),m.text); broadcastStaff({type:'message'}); return sendJSON(res,200,{ok:true,message:m}); }
 function guestMessages(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const msgs=store.getMessagesByRef(s.ref); if(!msgs) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); store.touchGuestSeen(s.ref); return sendJSON(res,200,{ok:true,messages:msgs}); }
 function guestRequests(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const reqs=store.getRequestsByRef(s.ref); if(!reqs) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); store.touchGuestSeen(s.ref); return sendJSON(res,200,{ok:true,requests:reqs}); }
-async function guestAddRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.addRequest(s.ref,b); if(!r) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[request] %s %s "%s"',s.ref,r.type,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); return sendJSON(res,200,{ok:true,request:r}); }
+async function guestAddRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.addRequest(s.ref,b); if(!r) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[request] %s %s "%s"',s.ref,r.type,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); broadcastStaff({type:'request'}); return sendJSON(res,200,{ok:true,request:r}); }
 
 // Notify the concierge when a guest submits a request — WhatsApp (Twilio) and/or email (Resend).
 // No-op (logs only) until at least one channel's env vars are set.
@@ -136,11 +147,11 @@ function sendEmailTo(to,subject,text,ref){
     rq.on('error',e=>console.error('[notify] email error',e.message)); rq.write(body); rq.end();
   }catch(e){ console.error('[notify] email threw',e.message); }
 }
-async function guestRemoveRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); return store.removeGuestRequest(s.ref,String(b.id||''))?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
-async function guestGuestList(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const list=store.setGuestList(s.ref, Array.isArray(b.guests)?b.guests:[]); if(list===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[guestlist] %s (%d guests)',s.ref,list.length); return sendJSON(res,200,{ok:true,guestList:list}); }
-async function guestCheckinSave(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const c=store.saveCheckin(s.ref,b); if(!c) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[checkin] %s airport=%s transfer=%s party=%d+%d',s.ref,c.airport||'-',c.transferType||'-',c.adults,c.children); return sendJSON(res,200,{ok:true,received:true}); }
-async function guestSaveGrocery(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGrocery(s.ref, b||{}); if(g===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[grocery] %s (%d items)',s.ref,(g.items||[]).length); return sendJSON(res,200,{ok:true,grocery:g}); }
-async function guestSaveMealPlan(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const mp=store.saveMealPlan(s.ref, b||{}); if(mp===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[mealplan] %s',s.ref); return sendJSON(res,200,{ok:true,mealPlan:mp}); }
+async function guestRemoveRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const okr=store.removeGuestRequest(s.ref,String(b.id||'')); if(okr) broadcastStaff({type:'update'}); return okr?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+async function guestGuestList(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const list=store.setGuestList(s.ref, Array.isArray(b.guests)?b.guests:[]); if(list===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[guestlist] %s (%d guests)',s.ref,list.length); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,guestList:list}); }
+async function guestCheckinSave(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const c=store.saveCheckin(s.ref,b); if(!c) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[checkin] %s airport=%s transfer=%s party=%d+%d',s.ref,c.airport||'-',c.transferType||'-',c.adults,c.children); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,received:true}); }
+async function guestSaveGrocery(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGrocery(s.ref, b||{}); if(g===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[grocery] %s (%d items)',s.ref,(g.items||[]).length); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,grocery:g}); }
+async function guestSaveMealPlan(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const mp=store.saveMealPlan(s.ref, b||{}); if(mp===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[mealplan] %s',s.ref); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,mealPlan:mp}); }
 
 // ---- Inbound WhatsApp/SMS (Twilio webhook). Lands the guest's reply in the right stay's chat. ----
 // Configure Twilio: the WhatsApp number's "When a message comes in" → POST {APP_URL}/api/twilio/inbound
@@ -149,7 +160,7 @@ async function twilioInbound(req,res){
   const from=b.From||b.from||''; const body=b.Body||b.body||'';
   // Guard: only lands if the sender's number matches a published stay's guest phone.
   const r=store.addGuestMessageByPhone(from,body,/whatsapp/i.test(from)?'whatsapp':'sms');
-  if(r) console.log('[wa-in] %s → stay %s "%s"',from,r.stay.id,String(body).slice(0,40));
+  if(r){ console.log('[wa-in] %s → stay %s "%s"',from,r.stay.id,String(body).slice(0,40)); broadcastStaff({type:'message'}); }
   else console.log('[wa-in] no matching published stay for %s',from);
   res.writeHead(200,{'Content-Type':'text/xml'}); res.end('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
 }
@@ -204,6 +215,7 @@ async function route(req,res){
   if(m==='GET' &&url==='/api/staff/me'){ const s=staffSession(req); return sendJSON(res,200,{ok:!!s,staff:s?{name:s.email,email:s.email,role:s.role}:null}); }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
+    if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);
     if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.ADDON_CATALOG,concierges:store.CONCIERGES});
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
     if(m==='GET' &&url==='/api/staff/metrics') return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()});

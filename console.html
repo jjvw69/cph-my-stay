@@ -383,6 +383,7 @@ async function enter(staff){
   await refreshMetrics();
   await loadList();
   startPolling();
+  try{ if('Notification' in window && Notification.permission==='default') Notification.requestPermission(); }catch(e){}
   const ps=new URLSearchParams(location.search).get('stay'); if(ps) selectStay(ps);
 }
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
@@ -394,7 +395,25 @@ async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.bod
 
 /* ============ live sync ============ */
 let POLL=null, lastSyncAt=0;
-function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,18000); setInterval(updateSyncAge,10000); checkVersion(); }
+function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,18000); setInterval(updateSyncAge,10000); checkVersion(); startSSE(); }
+/* Instant updates via Server-Sent Events — the moment a guest sends a request/message (or
+   another staff edits), the server pushes an event and we refresh right away instead of
+   waiting up to 18s. The 18s poll stays as a fallback. EventSource auto-reconnects. */
+let _ES=null;
+function startSSE(){
+  if(typeof EventSource==='undefined') return;
+  try{ if(_ES){ _ES.close(); } _ES=new EventSource('/api/staff/events');
+    _ES.onmessage=(ev)=>{ let d={}; try{ d=JSON.parse(ev.data); }catch(_){ } if(!d||d.type==='hello') return; syncNow(); if(document.hidden) notifyDesktop(d); else chime(); };
+    _ES.onerror=()=>{};
+  }catch(e){}
+}
+function notifyDesktop(d){
+  try{ if(!('Notification' in window)||Notification.permission!=='granted') return;
+    const t=d.type==='message'?'New guest message':d.type==='request'?'New guest request':'Guest update';
+    const n=new Notification('My Stay · '+t,{body:'Open the Concierge Console to view.',tag:'cph-mystay'});
+    n.onclick=()=>{ window.focus(); try{ n.close(); }catch(e){} };
+  }catch(e){}
+}
 /* The live sync refreshes DATA but not the app's CODE — an open console tab keeps running the
    JS it loaded with. So we watch the deployed build hash and offer a Reload when a new version
    ships, so staff aren't left on stale code (e.g. missing a new rate auto-fill). */
