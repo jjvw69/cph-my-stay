@@ -1462,7 +1462,27 @@ function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHT
 /* poll for concierge replies so they appear live without a reload */
 let _pollTimer=null;
 function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollUpdates, 9000); }
-function pollUpdates(){ pollMessages(); pollRequests(); }
+function pollUpdates(){ pollMessages(); pollRequests(); pollStay(); }
+/* poll the whole stay so concierge edits to static details (Wi-Fi, villa/registration number,
+   dates, times, welcome, transfer) AND guest-owned data the concierge can see (grocery, meals,
+   guest list, pre check-in) appear live — requests + messages are handled by their own pollers. */
+let _staySig=null;
+async function pollStay(){
+  if(!state.stay||!state.token) return;
+  const r=await api('/api/stay'); if(!r.ok||!r.body||!r.body.stay) return;
+  const f=r.body.stay, s=state.stay;
+  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin]);
+  if(sig===_staySig) return; _staySig=sig;
+  // merge static + guest-owned fields (leave requests/messages to their pollers)
+  s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
+  ['wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
+  s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin;
+  if(document.querySelector('.reqov')) return;          // don't disrupt an open request modal
+  const top=state.stack.length?state.stack[state.stack.length-1]:null;
+  // only repaint read-only views — never while the guest is mid-form
+  if(!top && (state.tab==='home'||state.tab==='stay')) render();
+  else if(top==='plan'||top==='arrival'||top==='guide') render();
+}
 function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
 async function pollMessages(){
   if(!state.stay||!state.token) return;
