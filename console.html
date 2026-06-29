@@ -169,6 +169,9 @@
   .emode{display:inline-flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px;background:#fff}
   .emode button{border:0;background:#fff;color:var(--soft);padding:8px 18px;font-size:13.5px;font-family:var(--ui);cursor:pointer}
   .emode button.on{background:var(--accent);color:#fff;font-weight:600}
+  @media(min-width:1024px){ .emode{display:none} }
+  .right .chatscroll{max-height:46vh}
+  .right .chatwrap{margin-top:2px}
   .chatwrap{display:flex;flex-direction:column}
   .chatscroll{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
   .chatcompose{display:flex;gap:8px;margin-top:11px}
@@ -806,6 +809,7 @@ function chatPanelFull(s){
 }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
+  if(window.innerWidth>=1024) editorMode='edit'; // on wide screens chat lives in the right column
   { const _a=document.getElementById('app'); if(_a)_a.classList.add('editing'); botNavActive(); }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
   const pill=(cur.status||'draft').replace(/\s/g,'').toLowerCase();
@@ -823,8 +827,6 @@ function renderEditor(){
   document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
     ${stayAlerts(cur)}
-
-    ${activityTimeline(cur)}
 
     <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
       <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
@@ -913,20 +915,9 @@ function renderEditor(){
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
-    <div class="sec"><h3>Concierge chat ${cur.messages&&cur.messages.length?`<span style="font-weight:400;color:var(--soft);font-size:11.5px;letter-spacing:0;text-transform:none;margin-left:6px">${cur.messages.length} message${cur.messages.length==1?'':'s'} · ${(cur.messages||[]).filter(m=>m.from==='guest').length} from guest</span>`:''}</h3>
-      <div class="reqlist">${(cur.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
-        <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?(esc(cur.leadName||'Guest')+(mm.via==='whatsapp'?' · WhatsApp':mm.via==='sms'?' · SMS':'')):(mm.auto?'Auto-message ✦':'You')}</div>
-        <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
-      </div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>'}</div>
-      <div class="tmpl">${['On it — looking into this now.','Confirmed ✓ — the details are in your app.','Welcome! Anything you need, just message here.','Your airport transfer is all arranged.','I’ll follow up shortly with options and pricing.'].map(t=>`<button data-t="${esc(t)}" onclick="fillMsg(this.dataset.t)">${esc(t)}</button>`).join('')}</div>
-      <div style="display:flex;gap:8px;margin-top:11px"><input id="staffMsg" placeholder="Reply to ${esc(cur.leadName||'the guest')}…" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--ui)" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()" style="padding:10px 18px">Send</button></div>
-      <div class="counter">The guest sees your replies live in their app chat.</div></div>
-
     <div class="sec"><h3>Stay details (shown to guest)</h3><div class="grid">
       <div class="f"><label>Villa number</label><input value="${esc(cur.villaNumber||cur.villaInternal||'')}" oninput="set('villaNumber',this.value)" placeholder="From internal property name"></div>
       <div class="f"><label>Registration number</label><input value="${esc(cur.registrationNumber||'')}" oninput="set('registrationNumber',this.value)" placeholder="From Casa de Campo"></div>
-      <div class="f"><label>Wi-Fi network name</label><input value="${esc(cur.wifiName||'')}" oninput="set('wifiName',this.value)"></div>
-      <div class="f"><label>Wi-Fi password</label><input value="${esc(cur.wifiPassword||'')}" oninput="set('wifiPassword',this.value)"></div>
     </div></div>
 
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
@@ -961,7 +952,7 @@ window.reopenReq=async function(rid){ if(!cur)return; const id=cur.id; const r=a
 window.clearLog=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Cleared from log'); } else toast('Could not update'); };
 window.deleteReq=async function(rid){ if(!cur)return; const rq=(cur.requests||[]).find(x=>x.id===rid); const nm=(rq&&rq.title)?('"'+rq.title+'"'):'this request'; if(!confirm('Delete '+nm+' permanently? This removes it for you and the guest and cannot be undone.'))return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); if(typeof refreshMetrics==='function')refreshMetrics(); toast('Request deleted'); } else toast('Could not delete'); };
 window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); refreshMetrics(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
-window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
+window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); if(window.innerWidth>=1024){ renderPreview(); const el2=document.getElementById('staffMsg'); if(el2)el2.focus(); } else renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 
@@ -1014,12 +1005,15 @@ function renderPreview(){
       </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
     </div>
 
-    ${guestMsgs.length?`<div class="act-sec"><div class="act-h">Latest guest message</div>
+    ${window.innerWidth>=1024
+      ? `<div class="act-sec"><div class="act-h">Concierge chat ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</div>${chatPanelFull(cur)}</div>`
+      : (guestMsgs.length?`<div class="act-sec"><div class="act-h">Latest guest message</div>
       <div class="act-card"><div class="act-meta" style="margin:0 0 6px">From ${esc(cur.leadName||'guest')}:</div>
         <div class="act-msg">“${esc(guestMsgs[guestMsgs.length-1].text)}”</div>
-        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:''}
+        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:'')}
 
     <div class="glink"><div class="label">Guest link</div><div class="box"><input id="glink" readonly value="caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button onclick="copyLink()">Copy</button></div></div>`;
+  const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight;
 }
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 window.jumpChat=function(){ setView(true); const el=document.getElementById('staffMsg'); if(el){ try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} el.focus(); } };
