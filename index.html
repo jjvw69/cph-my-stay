@@ -322,11 +322,15 @@ function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
   const d=daysUntil(b.arrive);
   const checkinDone = !!state.checkin.done;
+  const guestInitials=(function(){ const g=s.guest||{}; const fn=(g.firstName||'').trim(), ln=(g.lastName||g.family||'').trim(); const i=((fn[0]||'')+(ln[0]||'')).toUpperCase(); return i || (g.family||'G').slice(0,2).toUpperCase(); })();
   $app.innerHTML = `
   <div class="view enter">
     <div class="appbar">
       <div class="brand"><img src="${SEAL}" alt=""><b>Caribbean<br>Paradise Homes</b></div>
-      <button class="avatar" onclick="openAcct()">${esc(s.concierge.avatarInitials||'C')}</button>
+      <div style="display:flex;align-items:center;gap:11px">
+        <button onclick="signOut()" style="background:none;border:0;color:var(--soft);font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:var(--ui)">Sign out ›</button>
+        <button class="avatar" onclick="openAcct()">${esc(guestInitials)}</button>
+      </div>
     </div>
     <div class="scroll">
       <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
@@ -365,8 +369,7 @@ function renderHome(){
       <div class="teasers">
         ${(()=>{const ex=exploreData();const A=ex.filter(e=>e.cat==='Activities'),M=ex.filter(e=>e.cat==='Amenities');let p=[];for(let k=0;k<Math.max(A.length,M.length)&&p.length<4;k++){if(A[k])p.push(A[k]);if(M[k]&&p.length<4)p.push(M[k]);}if(p.length<4)ex.filter(e=>e.cat==='Golf'||e.cat==='Dining').forEach(e=>{if(p.length<4&&p.indexOf(e)<0)p.push(e);});return p.map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('');})()}
       </div>
-      <button onclick="signOut()" style="display:block;margin:26px auto 6px;background:none;border:0;color:#8A958C;font-size:13px;text-decoration:underline;cursor:pointer">Sign out</button>
-      <div style="max-width:384px;margin:24px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
+      <div style="max-width:384px;margin:28px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
     </div>
     ${tabBar('home')}
   </div>`;
@@ -1106,7 +1109,7 @@ function renderExplore(){
     ${tabBar('explore')}
   </div>`;
 }
-window.setExCat=function(c){ state._exCat=c; state._exPage=0; render(); };
+window.setExCat=function(c){ state._exCat=c; state._exPage=0; render(); requestAnimationFrame(function(){ const seg=document.getElementById('exSeg'); if(seg){ const on=seg.querySelector('button.on'); if(on){ const left=on.offsetLeft-(seg.clientWidth/2)+(on.offsetWidth/2); try{seg.scrollTo({left:left,behavior:'smooth'});}catch(e){seg.scrollLeft=left;} } } const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; }); };
 window.setExPage=function(n){ state._exPage=Math.max(0,n); render(); const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
 
