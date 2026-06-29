@@ -358,6 +358,10 @@ function renderEditor(){
       <div class="reqlist">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
+    ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`<div class="sec"><h3>Grocery pre-stocking <span class="reqcount">${(cur.grocery.items||[]).length}</span></h3>
+      <div class="reqlist">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
+      <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div></div>`:''}
+
     ${(cur.requests&&cur.requests.length)?`<div class="sec"><h3>Guest requests <span class="reqcount">${cur.requests.length}</span></h3>
       <div class="reqlist">${cur.requests.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(r=>`<div class="reqitem"${r.status==='cancelled'?' style="opacity:.72"':''}>
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${r.status==='cancelled'?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="dismissReq('${r.id}')">${r.status==='cancelled'?'Clear log':'Mark done'}</button></div>

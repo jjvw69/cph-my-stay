@@ -31,6 +31,8 @@ const ADDON_CATALOG = [
   // In-villa services
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
   { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
+  { id: 'yoga',          category: 'In-villa services',     name: 'Private Yoga',                       desc: 'A private sunrise yoga session on your terrace or the beach with a certified instructor.' },
+  { id: 'nannies',       category: 'In-villa services',     name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
 ];
 
 const CONCIERGES = [
@@ -189,14 +191,12 @@ const EXPLORE_SCENES = [
   { id:'cave', cat:'Outside', name:'Las Maravillas Cave', meta:'La Romana · half day', desc:'Explore a 100,000-year-old cave of Taíno rock art — the first natural museum of its kind in the West Indies.', img:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Maravillas-Cave.jpg', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   { id:'santo-domingo', cat:'Outside', name:'Santo Domingo City Tour', meta:'Capital · full day', desc:'Discover the oldest city in the New World — museums, cathedrals and historic landmarks of the capital.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/cph-santo-domingo-fixed.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   { id:'cigar', cat:'Outside', name:'Cigar Factory Tour', meta:'Tabacalera de García', desc:"Tour the world's largest hand-rolled cigar factory — home of Montecristo, Romeo y Julieta and more.", img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/manos-1024x949.jpg.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
-  { id:'rum', cat:'Activities', name:'Rum Factory · Ron Barceló', meta:'Distillery tour', desc:"Tour one of the country's most prestigious rum distilleries, founded in 1930 (adults only).", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/cph-rum-fixed.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
+  { id:'rum', cat:'Outside', name:'Rum Factory · Ron Barceló', meta:'Distillery tour', desc:"Tour one of the country's most prestigious rum distilleries, founded in 1930 (adults only).", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/cph-rum-fixed.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   // ---- Family programs & childcare ----
   { id:'family-programs', cat:'Activities', name:'Family Programs', meta:"Supervised kids' camps · 1–17", desc:'Award-winning supervised programs by age group — Toddlers (1–3), Kidz (4–6), Casa Tweens (7–12) and Bonche 4 Teens (13–17): playground, arts & crafts, beach Olympics, sports, kayaking, horseback riding and more.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91245.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  { id:'family-nannies', cat:'Activities', name:'Nannies & Babysitting', meta:'Childcare · day or night', desc:'Professionally trained nannies (First Aid & CPR, English/Spanish) for daytime supervision or evening babysitting.', img:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Nanny-Services-2025.jpeg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
   // ---- In-villa experiences (arranged by your concierge) ----
   { id:'entertainment', cat:'Activities', name:'Live Entertainment', meta:'In-villa · events', desc:'Musicians, DJs and performers to set the mood for a dinner, celebration or party at your villa.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
   { id:'rumcigar', cat:'Activities', name:'Rum & Cigar Tasting', meta:'In-villa · curated', desc:'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/manos-1024x949.jpg.webp', more:'https://www.casadecampo.com.do/experiences/' },
-  { id:'yoga', cat:'Activities', name:'Private Yoga', meta:'In-villa · wellness', desc:'A private sunrise yoga session on your terrace or the beach with a certified instructor.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/Minitas_-Beach-scaled.jpg.webp', more:'https://www.casadecampo.com.do/rejuvenate/' },
   { id:'yacht-charter', cat:'Activities', name:'Yacht Charters', meta:'Marina · private charter', desc:'Private motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina — half-day, full-day, sunset cruises and island trips.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg', more:'https://www.casadecampo.com.do/experiences/marina/' },
   // ---- Nightlife ----
   { id:'genesis', cat:'Nightlife', info:true, name:'Genesis Nightclub', meta:'Altos de Chavón · late night', desc:'The resort’s nightclub in the clifftop village — DJs, dancing and bottle service into the early hours.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
@@ -354,6 +354,23 @@ function removeStaffRequest(stayId, requestId) {
   const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
   s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
 }
+/** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
+ *  reloads and shows in the Concierge Console. */
+function saveGrocery(reference, data) {
+  const s = findPublishedStayByRef(reference); if (!s) return null;
+  data = data || {};
+  const items = Array.isArray(data.items) ? data.items.slice(0, 500).map(it => ({
+    category: norm(it && it.category).slice(0, 60),
+    name: norm(it && it.name).slice(0, 80),
+    qty: Math.max(1, Math.min(99, parseInt(it && it.qty, 10) || 1)),
+  })).filter(it => it.name) : [];
+  const other = {};
+  if (data.other && typeof data.other === 'object') {
+    Object.keys(data.other).slice(0, 60).forEach(k => { const v = norm(data.other[k]).slice(0, 300); if (v) other[norm(k).slice(0, 60)] = v; });
+  }
+  s.grocery = { items, other, note: norm(data.note).slice(0, 600), updatedAt: Date.now() };
+  s.updatedAt = Date.now(); persistStays(); return s.grocery;
+}
 /** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */
 function setGuestList(reference, guests) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
@@ -457,6 +474,7 @@ function toGuestStay(s) {
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
+    grocery: s.grocery || null,
   };
 }
 
@@ -484,7 +502,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

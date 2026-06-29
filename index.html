@@ -1031,9 +1031,10 @@ const SERVICE_INFO = {
     rates:`<b>LUXURY PRIVATE TRAVEL</b><div class="rtnote">Private jet and luxury ground transfers. Pricing varies by aircraft or vehicle, route and passengers — your concierge will source options and send a quote.</div>`
   },
   yacht: {
-    notePlaceholder:'Date(s), number of guests, the occasion, and a specific yacht if you have one in mind…',
-    selects:`<label class="reqlbl">Charter type</label><select id="rqService"><option>Day charter</option><option>Sunset cruise</option><option>Island trip (Saona / Catalina / Palmilla)</option><option>Deep-sea fishing</option><option>Multi-day charter</option><option>Not sure — recommend for me</option></select><label class="reqlbl">Preferred yacht (optional)</label><select id="rqRoute"><option>No preference — recommend for me</option><option>Azimut 86 · Andrea — up to 16</option><option>Azimut 60 — up to 18</option><option>Princess 60 — up to 12</option><option>Majesty 56 · Georyana 3 — up to 16</option><option>Azimut 55 · Ancoral — up to 15</option><option>Powerplay 54 · Liquid — up to 22</option><option>Hatteras 53 · sport fishing — up to 16</option><option>Other (tell us below)</option></select>`,
-    rates:`<b>PRIVATE YACHT CHARTERS · CASA DE CAMPO MARINA</b><div class="rtnote">Luxury, cruising and sport-fishing vessels from 35 to 86 ft. Full days from roughly US$1,775, up to the flagship Azimut 86 at US$6,875/day. Crew, fuel and limited drinks included; 28% tax/service and gratuity extra. <a href="https://caribbeanparadisehomes.com/guest-services/yacht-charters/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline">View the full fleet &amp; prices →</a></div>`
+    menu:'https://www.casadecampo.com.do/experiences/marina/',
+    notePlaceholder:'Number of guests, date, duration, destination (Catalina, Saona, coastal cruise…), any preferences…',
+    selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select>`,
+    rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   },
   transfer: {
     range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
@@ -1398,6 +1399,7 @@ function renderPushed(v){
   if(v==='guide') return renderGuide();
   if(v==='dineguide') return renderDiningGuide();
   if(v==='guestlist') return renderGuestList();
+  if(v==='grocerylist') return renderGroceryList();
   if(v==='plan') return renderPlan();
   if(v==='discover') return renderDiscover();
   if(v==='golfguide') return renderGolfGuide();
@@ -1532,6 +1534,10 @@ function addonRow(it){
   const reqs=reqFor('addon',it.id);
   const pend=reqs.map(reqLine).join('');
   const rec=it.recommended?` <span style="font-size:10px;background:#EEF3EE;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Recommended</span>`:'';
+  if(it.id==='grocery'){
+    const saved=(state.stay&&state.stay.grocery&&state.stay.grocery.items&&state.stay.grocery.items.length)?` <span style="font-size:10px;background:#E2EAE0;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">${state.stay.grocery.items.length} items saved</span>`:'';
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openGrocery()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your grocery list →':'Build your grocery list →'}</button></div></span></div>`;
+  }
   return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button><button onclick="askConcierge('${esc(it.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge</button></div></span></div>`;
 }
 function renderAddons(){
@@ -1733,6 +1739,91 @@ window.printItinerary=function(){
   try{ win.focus(); }catch(e){}
   setTimeout(function(){ try{ win.print(); }catch(e){} }, 500);
 };
+
+/* ---------------- GROCERY PRE-STOCKING LIST ---------------- */
+const GROCERY_CATALOG=[
+  {t:'Breakfast / Desayuno', items:['Cereal','Oats / Avena','Eggs / Huevos','Bacon / Tocineta','Sausages / Salchichas','Coffee / Café','Decaf Coffee / Café Descafeinado','Tea / Té','Decaf Tea / Té Descafeinado','Creamer / Crema para Café']},
+  {t:'Dairy / Lácteos', items:['Whole Milk / Leche Entera','Skim Milk / Leche Semi-Descremada','Low-fat Milk / Leche Descremada','Almond Milk / Leche de Almendra','Soy Milk / Leche de Soya','Butter / Mantequilla','Yogurt / Yogur']},
+  {t:'Cheese / Quesos', items:['Cream cheese / Crema','Cheddar','Swiss / Suizo','Brie','Camembert','Mozzarella','Parmesan']},
+  {t:'Table Items / Artículos de Mesa', items:['Ketchup','Mustard / Mostaza','Mayonnaise / Mayonesa','Salt / Sal','Pepper / Pimienta','Vinegar / Vinagre','Salad Dressing / Salsa para Ensalada','Olive Oil / Aceite de Oliva','BBQ Sauce / Salsa BBQ','Soy Sauce / Salsa de Soya']},
+  {t:'Breads / Panes', items:['Sliced Bread White / Pan Blanco','Sliced Bread Whole Wheat / Pan Integral','Baguette','Pita','Hamburger buns','Hot Dog buns','Bagels']},
+  {t:'Frozen / Congelados', items:['French Fries / Papas Fritas','Empanadas']},
+  {t:'Pasta', items:['Spaghetti','Penne','Macaroni']},
+  {t:'Pasta Sauce / Salsa para Pastas', items:['Pesto','Marinara / Tomate','Bolognese / Carne','Cheese / Queso']},
+  {t:'Sweets / Dulce', items:['Jam / Mermelada','Sugar / Azúcar','Splenda','Pancake Mix','Pancake Syrup / Sirop','Peanut Butter / Mantequilla de Maní','Ice Cream / Helado']},
+  {t:'Snacks / Picadera', items:['Pretzels','Peanuts / Maní','Cashews / Cajuil','Potato Chips / Papitas','Popcorn','Oreo','Ritz','Tostitos','Salsa']},
+  {t:'Meats / Carnes', items:['Whole Chicken / Pollo Entero','Chicken Breast / Pechuga de Pollo','Ground Beef / Carne Molida','Churrasco','Beef Steak / Filete de Res','Hamburgers','Hot Dogs','Ham / Jamón','Pork Chops / Chuletas']},
+  {t:'Fish / Pescado', items:['Salmon','Mahi Mahi / Dorado','Shrimp / Camarones','Tuna']},
+  {t:'Drinks / Bebidas', items:['Apple Juice / Manzana','Orange Juice / Naranja','Cranberry','Coca Cola','Coca Cola (diet)','Sprite / 7Up','Sprite / 7Up (diet)','Club Soda','Tonic Water / Agua Tónica','Sparkling Water / Agua con Gas','Beer / Cerveza','Beer Light / Cerveza Light','Whiskey','Vodka','Tequila','White Wine / Vino Blanco','Red Wine / Vino Tinto']},
+  {t:'Fruits / Frutas (Seasonal)', items:['Bananas / Guineo','Apples / Manzanas','Grapes / Uvas','Melon','Pineapple / Piña','Papaya / Lechoza','Lemons / Limones','Mango']},
+  {t:'Vegetables / Vegetales', items:['Lettuce / Lechuga','Avocado / Aguacate','Tomatoes / Tomate','Onions / Cebolla','Garlic / Ajo','Carrots / Zanahoria','Broccoli / Brócoli','Potatoes / Papas','Plantains / Plátanos','Peppers / Pimientos','Zucchini / Calabacín']},
+  {t:'Pantry / Otros', items:['Rice / Arroz','Beans / Habichuelas','Vegetable Oil / Aceite Vegetal']},
+  {t:'Cleaning / Limpieza', items:['Laundry Detergent / Detergente (Tide)']},
+];
+window.openGrocery=function(){
+  const g=(state.stay&&state.stay.grocery)||null;
+  state._groc={picked:{},other:{},note:(g&&g.note)||''};
+  if(g&&Array.isArray(g.items)) g.items.forEach(it=>{ state._groc.picked[it.category+'||'+it.name]=it.qty; });
+  if(g&&g.other) state._groc.other=Object.assign({},g.other);
+  push('grocerylist');
+};
+function grocRerender(){ const sc=document.querySelector('.scroll'); const y=sc?sc.scrollTop:0; render(); const s2=document.querySelector('.scroll'); if(s2)s2.scrollTop=y; }
+window.grocToggle=function(cat,name){ const k=cat+'||'+name; const p=state._groc.picked; if(p[k]!=null)delete p[k]; else p[k]=1; grocRerender(); };
+window.grocQty=function(cat,name,d){ const k=cat+'||'+name; const p=state._groc.picked; p[k]=Math.max(1,Math.min(99,(p[k]||1)+d)); grocRerender(); };
+window.grocOther=function(cat,v){ state._groc.other[cat]=v; };
+function grocText(){
+  const G=state._groc||{picked:{},other:{}}; const s=state.stay; const L=[];
+  L.push('GROCERY PRE-STOCKING'); L.push((s.villa.name||'')+(s.guest.family?(' — '+s.guest.family+' family'):''));
+  if(s.booking&&s.booking.arrive) L.push('Arrival: '+fmtDate(s.booking.arrive)); L.push('');
+  GROCERY_CATALOG.forEach(c=>{ const picks=c.items.filter(n=>G.picked[c.t+'||'+n]!=null); const oth=(G.other&&G.other[c.t])||'';
+    if(!picks.length&&!oth) return; L.push(c.t.toUpperCase());
+    picks.forEach(n=>L.push('- '+n+' ×'+G.picked[c.t+'||'+n])); if(oth)L.push('- Other: '+oth); L.push(''); });
+  if(G.note) L.push('NOTES: '+G.note);
+  return L.join('\n');
+}
+window.grocSave=async function(){
+  const G=state._groc||{picked:{},other:{}}; const items=[];
+  GROCERY_CATALOG.forEach(c=>c.items.forEach(n=>{ const q=G.picked[c.t+'||'+n]; if(q!=null)items.push({category:c.t,name:n,qty:q}); }));
+  const r=await api('/api/grocery',{method:'POST',body:JSON.stringify({items,other:G.other||{},note:G.note||''})});
+  if(r.ok&&r.body.grocery){ state.stay.grocery=r.body.grocery; toast('Grocery list saved — your concierge can see it'); } else toast('Could not save — please try again');
+};
+window.grocWhatsApp=function(){ const ph=(((state.stay.concierge&&state.stay.concierge.phone)||'')+'').replace(/[^0-9]/g,'')||'18297638801'; window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(grocText()),'_blank'); };
+window.grocEmail=function(){ const subj='Grocery pre-stocking — '+(state.stay.villa.name||'')+' ('+(state.stay.guest.family||state.stay.guest.lastName||'')+')'; window.location.href='mailto:concierge@caribbeanparadisehomes.com?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(grocText()); };
+window.grocPrint=function(){
+  const body=grocText().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Grocery list</title>'
+    +'<style>*{box-sizing:border-box}body{margin:0;color:#1F2A24;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}.wrap{max-width:680px;margin:0 auto;padding:26px 22px;font-size:14px;line-height:1.55}@media print{.noprint{display:none!important}}@page{margin:14mm}</style></head>'
+    +'<body><div class="wrap">'+body+'<button onclick="window.print()" class="noprint" style="margin:26px auto 0;display:block;background:#16241E;color:#fff;border:0;border-radius:11px;padding:12px 20px;font-size:15px;cursor:pointer">Print / Save as PDF</button></div></body></html>';
+  const win=window.open('','_blank'); if(!win){ toast('Allow pop-ups, then tap Print again'); return; }
+  win.document.open(); win.document.write(html); win.document.close(); try{ win.focus(); }catch(e){}
+  setTimeout(function(){ try{ win.print(); }catch(e){} }, 500);
+};
+function renderGroceryList(){
+  const G=state._groc||{picked:{},other:{},note:''};
+  const cats=GROCERY_CATALOG.map(c=>{
+    const rows=c.items.map(name=>{ const key=c.t+'||'+name; const qty=G.picked[key]; const on=qty!=null;
+      return `<div onclick="grocToggle('${esc(c.t)}','${esc(name)}')" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);cursor:pointer">`
+        +`<span style="width:21px;height:21px;border-radius:6px;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:${on?'var(--accent)':'#fff'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex:0 0 auto">${on?'✓':''}</span>`
+        +`<span style="flex:1;font-size:13.5px;color:var(--ink)">${esc(name)}</span>`
+        +(on?`<span onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:8px;flex:0 0 auto"><button onclick="grocQty('${esc(c.t)}','${esc(name)}',-1)" style="width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:17px;color:var(--accent);line-height:1">−</button><span style="min-width:16px;text-align:center;font-size:13.5px">${qty}</span><button onclick="grocQty('${esc(c.t)}','${esc(name)}',1)" style="width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:17px;color:var(--accent);line-height:1">+</button></span>`:'')
+        +`</div>`;
+    }).join('');
+    const ov=esc((G.other&&G.other[c.t])||'');
+    return `<div class="card" style="padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${esc(c.t)}</b>${rows}<input value="${ov}" oninput="grocOther('${esc(c.t)}',this.value)" placeholder="Other / brand / notes…" style="width:100%;margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div>`;
+  }).join('');
+  const inner=`
+    <div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:4px">Tick what you'd like pre-stocked and set quantities. Save it to keep it on your phone, then print it or send it to your concierge by WhatsApp or email. Casa de Campo has two supermarkets on site — El Nacional at the Marina and El Mercadito in Altos de Chavón.</div>
+    ${cats}
+    <label class="reqlbl" style="margin-top:14px">Anything else / allergies</label>
+    <textarea oninput="state._groc.note=this.value" rows="2" placeholder="Special requests, allergies, preferred brands…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(G.note||'')}</textarea>
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="grocSave()">Save list</button>
+    <div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap">
+      <button onclick="grocPrint()" style="flex:1;min-width:110px;background:#EFE9DC;color:#1F2A24;border-radius:11px;padding:11px 12px;font-size:13px">Print / PDF</button>
+      <button onclick="grocWhatsApp()" style="flex:1;min-width:110px;background:#25D366;color:#fff;border-radius:11px;padding:11px 12px;font-size:13px">WhatsApp</button>
+      <button onclick="grocEmail()" style="flex:1;min-width:110px;background:#EFE9DC;color:#1F2A24;border-radius:11px;padding:11px 12px;font-size:13px">Email</button>
+    </div>`;
+  shell('Grocery list', inner);
+}
 
 /* ---------------- DINING GUIDE ---------------- */
 function renderDiningGuide(){
