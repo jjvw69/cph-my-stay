@@ -71,6 +71,28 @@
   .futx{display:flex;flex-direction:column;min-width:0}
   .futx b{font-size:13.5px}
   .futx span{font-size:12px;color:var(--soft)}
+  .todaybtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:#33493B;color:#fff;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;margin-bottom:12px;cursor:pointer}
+  .todaybtn.alert{background:#9E5B43}
+  /* ---- Today overview (center) ---- */
+  .today-head{font-family:var(--display);font-weight:600;font-size:26px;color:var(--ink)}
+  .today-date{font-size:13px;color:var(--soft);margin:2px 0 16px}
+  .today-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px;margin-bottom:8px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+  .stat.hot{border-color:#E4C58C;background:#FCF7EC}
+  .stat .num{font-family:var(--display);font-size:30px;line-height:1;color:var(--accent)}
+  .stat.hot .num{color:#9E5B43}
+  .stat .lbl{font-size:12px;color:var(--soft);margin-top:5px}
+  .today-sec{margin-top:22px}
+  .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:9px}
+  .today-row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;text-align:left;width:100%}
+  .today-row:hover{border-color:var(--accent)}
+  .today-row .tr-g{font-size:14.5px;font-weight:600;color:var(--ink)}
+  .today-row .tr-m{font-size:12.5px;color:var(--soft);margin-top:2px}
+  .today-row .tr-tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600;border-radius:20px;padding:3px 11px;white-space:nowrap}
+  .tr-tag.amber{background:#FBF1D8;color:#9A7B36}
+  .tr-tag.red{background:#F3DADA;color:#9A2B2B}
+  .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
+  .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
@@ -236,7 +258,8 @@
   </div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Upcoming stays</span><button class="newbtn" id="newStay">＋ New</button></div>
+      <div class="hd"><span class="label">Concierge desk</span><button class="newbtn" id="newStay">＋ New</button></div>
+      <button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today’s overview</button>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div id="stayList"></div>
     </div>
@@ -274,7 +297,7 @@ async function enter(staff){
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
 
 /* ---- list ---- */
-async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); if(sel) selectStay(sel); }
+async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderToday(); }
 
 /* ============ live sync ============ */
 let POLL=null, lastSyncAt=0;
@@ -282,7 +305,7 @@ function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,1
 async function syncNow(){
   if(document.hidden) return;
   let ok=true;
-  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); } else ok=false; }catch(e){ ok=false; }
+  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderToday(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
   if(cur){ const c=await refreshCurrent(); if(c===false) ok=false; }
   markSynced(ok);
 }
@@ -357,6 +380,53 @@ window.backToList=function(){ setView(false); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); renderList(); renderEditor(); renderPreview(); setView(true); } };
+
+/* ---- Today overview (cross-stay operations view) ---- */
+function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+(s.guestMsgs||0)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
+function refreshTodayBtn(){ const b=document.getElementById('todayBtn'); if(!b)return; const n=todayAlertCount(); b.classList.toggle('alert',n>0); b.innerHTML='▦ Today’s overview'+(n?` <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px">${n}</span>`:''); }
+window.showToday=function(){
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch to the overview?')) return;
+  cur=null; setDirty(false); renderList(); renderToday();
+  const p=document.getElementById('preview'); if(p)p.innerHTML='<div class="empty">Select a stay to see its guest activity.</div>';
+  setView(true);
+};
+function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.checkin?' · '+esc(s.checkin):'')); return `<button class="today-row" onclick="selectStay('${s.id}')"><span><span class="tr-g">${esc(s.guest)}</span><span class="tr-m">${m}</span></span>${tag||''}</button>`; }
+function renderToday(){
+  const el=document.getElementById('editor'); if(!el) return;
+  const today=todayStr(), tom=addDays(today,1); const L=LIST||[];
+  const arrToday=L.filter(s=>s.checkin===today);
+  const arrTom=L.filter(s=>s.checkin===tom);
+  const pending=L.filter(s=>(s.pending||0)>0);
+  const msgs=L.filter(s=>(s.guestMsgs||0)>0);
+  const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
+  const draftsSoon=L.filter(s=>s.status==='draft'&&s.checkin&&daysUntil(s.checkin)!=null&&daysUntil(s.checkin)<=7).sort((a,b)=>(a.checkin||'').localeCompare(b.checkin||''));
+  const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
+  const totMsgs=msgs.reduce((a,s)=>a+(s.guestMsgs||0),0);
+  const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const stat=(num,lbl,hot)=>`<div class="stat ${hot&&num>0?'hot':''}"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  const sec=(title,rows)=>rows.length?`<div class="today-sec"><h3>${title}</h3>${rows.join('')}</div>`:'';
+  const nothing=!arrToday.length&&!arrTom.length&&!pending.length&&!msgs.length&&!fudue.length&&!draftsSoon.length;
+  el.innerHTML=`
+    <button class="backlist" onclick="backToList()">← All stays</button>
+    <div class="today-head">Today’s overview</div>
+    <div class="today-date">${dstr}</div>
+    <div class="today-stats">
+      ${stat(arrToday.length,'Arriving today')}
+      ${stat(totPending,'Awaiting confirmation',true)}
+      ${stat(totMsgs,'Guest messages',true)}
+      ${stat(fudue.length,'Follow-ups due',true)}
+      ${stat(draftsSoon.length,'Drafts arriving ≤7d',true)}
+    </div>
+    ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
+    ${sec('Arriving today', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
+    ${sec('Arriving tomorrow', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
+    ${sec('Awaiting confirmation', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
+    ${sec('Guest messages', msgs.map(s=>todayRow(s,`<span class="tr-tag amber">${s.guestMsgs} message${s.guestMsgs==1?'':'s'}</span>`)))}
+    ${sec('Follow-ups due', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
+    ${sec('Drafts arriving soon', draftsSoon.map(s=>{const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag red">in ${d}d · draft</span>`);}))}`;
+  refreshTodayBtn();
+}
 
 /* ---- editor ---- */
 function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
@@ -563,7 +633,7 @@ window.jumpChat=function(){ setView(true); const el=document.getElementById('sta
 
 /* ---- save / publish ---- */
 function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
-window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
+window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderToday(); document.getElementById('preview').innerHTML='<div class="empty">Select a stay to see its guest activity.</div>'; setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
 window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Published — guest link is live'); } };
