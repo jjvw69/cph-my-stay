@@ -20,7 +20,7 @@ const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
 // Concierge services & experiences (from caribbeanparadisehomes.com/guest-services). No rates shown — handled by the concierge.
 const ADDON_CATALOG = [
   // Travel & transfers (in the order they appear on caribbeanparadisehomes.com/guest-services)
-  { id: 'privatetravel', category: 'Travel & transfers',    name: 'Luxury private travel',              desc: 'Private jet, chauffeured cars and bespoke transfers.' },
+  { id: 'privatetravel', category: 'Travel & transfers',    name: 'Luxury private travel',              desc: 'Private jet charters, group flights and air ambulance.' },
   { id: 'transfer',      category: 'Travel & transfers',    name: 'Private airport transfer',           desc: 'Meet & greet at the airport and a private drive to your villa.' },
   { id: 'carrental',     category: 'Travel & transfers',    name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
   { id: 'golfcart',      category: 'Travel & transfers',    name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
