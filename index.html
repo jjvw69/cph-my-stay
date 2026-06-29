@@ -1862,6 +1862,18 @@ window.printItinerary=function(){
       <thead><tr style="text-align:left;color:#8A938B;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase"><th style="padding:4px 0;font-weight:600">Item</th><th style="padding:4px 0;font-weight:600">When</th><th style="padding:4px 0;font-weight:600;text-align:right">Status</th></tr></thead>
       <tbody>${reqs.map(reqRow).join('')}</tbody></table>`:`<div style="font-size:13px;color:#6B756C;padding-top:6px">Nothing arranged yet.</div>`}
 
+    ${(function(){ const gc=s.grocery; if(!gc||!((gc.items&&gc.items.length)||gc.note)) return '';
+      const by={}; (gc.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});
+      const rows=Object.keys(by).map(cat=>`<tr><td style="padding:6px 14px 6px 0;color:#33403A;font-weight:600;vertical-align:top;border-top:1px solid #EEF1EC;white-space:nowrap">${esc(cat)}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</td></tr>`).join('');
+      const noteRow=gc.note?`<tr><td style="padding:6px 14px 6px 0;color:#33403A;font-weight:600;vertical-align:top;border-top:1px solid #EEF1EC">Notes / allergies</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc(gc.note)}</td></tr>`:'';
+      return `<h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Provisioning</h2><table style="width:100%;font-size:13.5px;border-collapse:collapse">${rows}${noteRow}</table>`;
+    })()}
+    ${(function(){ const mp=s.mealPlan; if(!mp) return ''; const keys=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']]; const any=keys.some(([k])=>mp[k]&&(mp[k].date||mp[k].time||mp[k].guests||mp[k].desc)); if(!any) return '';
+      const rows=keys.map(([k,lbl])=>{const m=mp[k]||{}; if(!(m.date||m.time||m.guests||m.desc))return ''; const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guests':''].filter(Boolean).join(' · '); return `<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;vertical-align:top;border-top:1px solid #EEF1EC;white-space:nowrap">${lbl}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc([meta,m.desc].filter(Boolean).join(' — '))}</td></tr>`;}).join('');
+      const noteRow=mp.note?`<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;border-top:1px solid #EEF1EC">Notes / dietary</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc(mp.note)}</td></tr>`:'';
+      return `<h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Arrival meals</h2><table style="width:100%;font-size:13.5px;border-collapse:collapse">${rows}${noteRow}</table>`;
+    })()}
+
     <h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Getting there</h2>
     <ol style="font-size:13px;line-height:1.55;color:#33403A;padding-left:18px;margin:4px 0 0">
       <li style="margin-bottom:7px"><b>Before you arrive —</b> Fill out the Dominican Republic E‑Ticket at eticket.migracion.gob.do. Your address in the DR: Casa de Campo, La Romana, Province La Romana, Section Central Romana, Dominican Republic.</li>
