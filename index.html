@@ -1334,12 +1334,10 @@ function renderConcierge(){
     state.messages=[{from:'them',t: wm || `Hi ${s.guest.firstName||'there'}, I'm ${s.concierge.name}, your concierge. How can I help make your stay perfect?`}];
   }
   const seed=state._seed||''; state._seed=null;   // prefill the composer so the guest sends a REAL message (no fake auto-reply)
-  const quick=['Airport transfer','Restaurant booking','Grocery pre-stock','Late checkout'];
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
     <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
-    <div class="qrow"><div class="seg">${quick.map(q=>`<button onclick="quickReply('${esc(q)}')" style="white-space:nowrap">${q}</button>`).join('')}</div></div>
     <div class="composer"><input id="cmsg" value="${esc(seed)}" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
     ${tabBar('concierge',true)}
   </div>`;
