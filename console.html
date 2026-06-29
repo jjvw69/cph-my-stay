@@ -96,6 +96,27 @@
   .tr-tag.red{background:#F3DADA;color:#9A2B2B}
   .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
+  /* ---- #6 quick wins ---- */
+  .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+  .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
+  .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .topPending{display:none;background:#9E5B43;color:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .topPending.show{display:inline-block}
+  .tmpl{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .tmpl button{font-size:12.5px;border:1px solid var(--line);background:#FBF8F1;border-radius:18px;padding:6px 12px;color:var(--accent);cursor:pointer}
+  /* ---- #5 activity timeline ---- */
+  .tl{position:relative;margin-top:10px;padding-left:6px}
+  .tl-row{position:relative;padding:0 0 13px 20px;border-left:2px solid var(--line)}
+  .tl-row:last-child{border-left-color:transparent}
+  .tl-dot{position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+  .tl-dot.g{background:#9E5B43}.tl-dot.ok{background:#3F6B4E}.tl-dot.no{background:#9A2B2B}.tl-dot.s{background:#33493B}
+  .tl-when{font-size:11.5px;color:var(--soft)}
+  .tl-what{font-size:13.5px;color:var(--ink);margin-top:1px}
+  .tl-what b{font-weight:600}
+  details.sec summary{list-style:none}
+  details.sec summary::-webkit-details-marker{display:none}
+  details.sec[open] summary span[style*=float]{display:none}
+  .msave{display:none}
   .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
@@ -217,6 +238,10 @@
     .grid{grid-template-columns:1fr}
     .f.full{grid-column:auto}
     .left{padding:14px 12px}
+    /* sticky save bar on the mobile stay detail */
+    #app.view-detail .msave{display:flex;position:fixed;left:0;right:0;bottom:0;gap:9px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-top:1px solid var(--line);z-index:40;backdrop-filter:blur(6px)}
+    #app.view-detail .msave button{flex:1;min-height:46px;border-radius:11px;font-size:15px}
+    #app.view-detail .col.center{padding-bottom:78px}
   }
   /* Touch devices (iPad): larger tap targets and comfortable spacing. */
   @media(pointer:coarse){
@@ -254,6 +279,7 @@
   <div class="topbar">
     <div class="brand"><img id="seal2" alt=""><b>Caribbean Paradise Homes<br><span style="font-weight:400;color:var(--soft);font-size:12.5px">Concierge Console</span></b></div>
     <div class="right">
+      <button class="topPending" id="topPending" onclick="showToday()" title="Open Today’s overview"></button>
       <span class="sync" id="syncTag" title="Auto-syncs with the guest app"><span class="dot" id="syncDot"></span> <span id="syncTxt">Console live</span></span>
       <span class="who" id="who"></span>
       <button class="b-out" style="padding:6px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px" id="signout">Sign out</button>
@@ -264,6 +290,12 @@
       <div class="hd"><span class="label">Concierge desk</span><button class="newbtn" id="newStay">＋ New</button></div>
       <button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today’s overview</button>
       <input class="search" id="search" placeholder="Search guest or villa…">
+      <div class="lfilter">
+        <button class="lchip on" data-f="all" onclick="setFilter('all')">All</button>
+        <button class="lchip" data-f="published" onclick="setFilter('published')">Published</button>
+        <button class="lchip" data-f="draft" onclick="setFilter('draft')">Draft</button>
+        <button class="lchip" data-f="needs info" onclick="setFilter('needs info')">Needs info</button>
+      </div>
       <div id="stayList"></div>
     </div>
     <div class="col center" id="editor"><div class="empty">Select a stay on the left, or create a new one.</div></div>
@@ -339,12 +371,14 @@ async function refreshCurrent(){
 function snapshotInputs(rootId){
   const root=document.getElementById(rootId); if(!root) return null;
   const vals={}; root.querySelectorAll('input,textarea').forEach(el=>{ if(el.id) vals[el.id]=el.value; });
+  const open={}; root.querySelectorAll('details[id]').forEach(d=>{ open[d.id]=d.open; });
   const a=document.activeElement; const focus=(a&&root.contains(a)&&a.id)?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null;
-  return {vals,focus,scroll:root.scrollTop};
+  return {vals,open,focus,scroll:root.scrollTop};
 }
 function restoreInputs(rootId,snap){
   if(!snap) return; const root=document.getElementById(rootId); if(!root) return;
   Object.keys(snap.vals).forEach(id=>{ const el=document.getElementById(id); if(el&&'value' in el) el.value=snap.vals[id]; });
+  if(snap.open) Object.keys(snap.open).forEach(id=>{ const d=document.getElementById(id); if(d) d.open=snap.open[id]; });
   if(snap.scroll!=null) root.scrollTop=snap.scroll;
   if(snap.focus){ const el=document.getElementById(snap.focus.id); if(el){ try{ el.focus(); if(snap.focus.s!=null&&el.setSelectionRange) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(e){} } }
 }
@@ -362,9 +396,11 @@ window.addEventListener('focus',()=>{ syncNow(); });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncNow(); });
 document.getElementById('search').addEventListener('input',renderList);
 document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ await loadList(r.body.stay.id); } };
+let listFilter='all';
+window.setFilter=function(f){ listFilter=f; document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f)); renderList(); };
 function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
-  const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q));
+  const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q)).filter(s=>listFilter==='all'||(s.status||'draft')===listFilter);
   const el=document.getElementById('stayList');
   const today=todayStr();
   // Follow-ups that are due today or overdue, across all stays (not filtered by search).
@@ -395,7 +431,7 @@ window.selectStay=async function(id){
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+(s.guestMsgs||0)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
-function refreshTodayBtn(){ const b=document.getElementById('todayBtn'); if(!b)return; const n=todayAlertCount(); b.classList.toggle('alert',n>0); b.innerHTML='▦ Today’s overview'+(n?` <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px">${n}</span>`:''); }
+function refreshTodayBtn(){ const n=todayAlertCount(); const b=document.getElementById('todayBtn'); if(b){ b.classList.toggle('alert',n>0); b.innerHTML='▦ Today’s overview'+(n?` <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px">${n}</span>`:''); } const tp=document.getElementById('topPending'); if(tp){ tp.classList.toggle('show',n>0); tp.textContent=n?(n+' need action'):''; } }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch to the overview?')) return;
   cur=null; setDirty(false); renderList(); renderToday();
@@ -452,6 +488,21 @@ window.pickVilla=pickVilla;
 let dirty=false;
 function setDirty(v){ dirty=v; const t=document.getElementById('dirtyTag'); if(t)t.style.display=v?'inline-flex':'none'; const s=document.getElementById('saveBtn'); if(s)s.classList.toggle('hot',v); }
 function markDirty(){ setDirty(true); }
+window.fillMsg=function(t){ const el=document.getElementById('staffMsg'); if(!el)return; el.value=t; el.focus(); };
+function fmtAgo(ts){ if(!ts)return ''; const s=Math.floor((Date.now()-ts)/1000); if(s<60)return 'just now'; const m=Math.floor(s/60); if(m<60)return m+'m ago'; const h=Math.floor(m/60); if(h<24)return h+'h ago'; return Math.floor(h/24)+'d ago'; }
+function activityTimeline(s){
+  const ev=[];
+  (s.requests||[]).forEach(r=>{
+    if(r.createdAt) ev.push({at:r.createdAt,cls:'g',what:`Guest requested <b>${esc(r.title||'a service')}</b>`});
+    if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
+    if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
+  });
+  (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):'You'}: ${esc(m.text)}`}); });
+  ev.sort((a,b)=>(b.at||0)-(a.at||0));
+  if(!ev.length) return '';
+  const rows=ev.map(e=>`<div class="tl-row"><span class="tl-dot ${e.cls}"></span><div class="tl-when">${fmtReqDate(e.at)} · ${fmtAgo(e.at)}</div><div class="tl-what">${e.what}</div></div>`).join('');
+  return `<details id="tlDetails" class="sec"><summary style="cursor:pointer;outline:none"><h3 style="display:inline">Activity timeline <span class="reqcount">${ev.length}</span></h3><span style="float:right;color:var(--soft);font-size:12.5px">tap to expand</span></summary><div class="tl">${rows}</div></details>`;
+}
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
@@ -464,6 +515,8 @@ function renderEditor(){
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+
+    ${activityTimeline(cur)}
 
     <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
       <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
@@ -547,6 +600,7 @@ function renderEditor(){
         <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?esc(cur.leadName||'Guest'):'You'}</div>
         <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
       </div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>'}</div>
+      <div class="tmpl">${['On it — looking into this now.','Confirmed ✓ — the details are in your app.','Welcome! Anything you need, just message here.','Your airport transfer is all arranged.','I’ll follow up shortly with options and pricing.'].map(t=>`<button data-t="${esc(t)}" onclick="fillMsg(this.dataset.t)">${esc(t)}</button>`).join('')}</div>
       <div style="display:flex;gap:8px;margin-top:11px"><input id="staffMsg" placeholder="Reply to ${esc(cur.leadName||'the guest')}…" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--ui)" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()" style="padding:10px 18px">Send</button></div>
       <div class="counter">The guest sees your replies live in their app chat.</div></div>
 
@@ -561,14 +615,15 @@ function renderEditor(){
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
       <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea></div>
-    </div></div>`;
+    </div></div>
+    <div class="msave"><button class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button></div>`;
 }
 window.set=set;
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Marked done'); } else toast('Could not update'); };
-window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } if(!dirty)renderEditor(); renderPreview(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
+window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };

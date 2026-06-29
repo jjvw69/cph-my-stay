@@ -420,7 +420,7 @@ function saveCheckin(reference, data) {
 function confirmRequest(stayId, requestId, price) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
-  r.status = 'confirmed'; r.price = norm(price).slice(0, 30);
+  r.status = 'confirmed'; r.price = norm(price).slice(0, 30); r.confirmedAt = Date.now();
   s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest sends a concierge chat message — persisted on the stay so the conversation survives reloads/logout. */
