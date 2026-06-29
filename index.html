@@ -267,12 +267,13 @@ function hydrateCheckin(){
       airport: gc.airport||b.airport||'LRM',
       flight: gc.flight||'', transferType: gc.transferType||null,
       occasion: gc.occasion||null, dietary: gc.dietary||'',
+      childAges:(gc.childAges||[]).slice(),
       docs:(s.guestList||[]).map(g=>({name:g.name||'',passport:g.passport||''})),
       done:true };
   } else {
     state.checkin={ step:0, adults:(b.adults||2), children:(b.children||0),
       airport: b.airport||'LRM', flight: b.flight||'',
-      transferType:null, occasion:null, dietary:'', docs:[], done:false };
+      transferType:null, occasion:null, dietary:'', childAges:[], docs:[], done:false };
   }
 }
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
@@ -1137,9 +1138,9 @@ const SERVICE_INFO = {
     rates:`<b>NANNY &amp; BABYSITTING</b><div class="rtnote"><b>Daytime nanny</b> — US$26 / hour.<br><b>Evening babysitting</b> (4 p.m.–12 a.m., 3-hour minimum) — US$20 / hour for up to two children, US$10 / hour for a third. After 11:30 p.m. an extra US$20 taxi fee is paid directly to the nanny.<br>Cash only, paid to the nanny; prices include tax &amp; service. Nannies are First Aid &amp; CPR trained and speak English &amp; Spanish. 24 hours' notice to book or cancel.</div>`
   },
   transfer: {
-    range:true, fromLabel:'Arrival date', toLabel:'Departure date', noTime:true,
+    tripDates:true, toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
-    selects:`<label class="reqlbl">Trip</label><select id="rqTrip"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
+    selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
     rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
       <div class="rth">LRM → Casa de Campo</div>
       <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
@@ -1379,6 +1380,8 @@ window.openReq=function(type,refId){
   const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
   const selectsBlock = info.selects || '';
   const dateBlock = info.noDate ? ''
+    : info.tripDates
+    ? `<div class="reqrange"><div><label class="reqlbl" id="rqDateLbl">Transfer date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div id="rqEndWrap" style="display:none"><label class="reqlbl">${info.toLabel||'Departure date'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
     : info.range
     ? `<div class="reqrange"><div><label class="reqlbl">${info.fromLabel||'From'}</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div><label class="reqlbl">${info.toLabel||'To'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
     : `<label class="reqlbl">Preferred date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}">`;
@@ -1403,6 +1406,8 @@ window.openReq=function(type,refId){
   $app.appendChild(ov);
 };
 window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
+/* Transfer: one-way shows a single date; round-trip reveals the departure date too. */
+window.rqTripChange=function(){ const round=((document.getElementById('rqTrip')||{}).value||'')==='Round-trip'; const w=document.getElementById('rqEndWrap'); if(w)w.style.display=round?'':'none'; const l=document.getElementById('rqDateLbl'); if(l)l.textContent=round?'Arrival date':'Transfer date'; };
 window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
 /* Suggested starting price for a request, from the resort's published rates and the guest's
    selection. Carried to the console so confirming is one tap — the concierge can still edit it. */
@@ -1415,7 +1420,8 @@ function suggestedPriceFor(refId,o){ o=o||{};
 }
 window.submitReq=async function(type,refId){
   const date=(document.getElementById('rqDate')||{}).value||'';
-  const endDate=(document.getElementById('rqEnd')||{}).value||'';
+  let endDate=(document.getElementById('rqEnd')||{}).value||'';
+  { const _w=document.getElementById('rqEndWrap'); if(_w&&_w.style.display==='none') endDate=''; } // one-way transfer: no departure date
   const cartTypeRaw=(document.getElementById('rqCart')||{}).value||'';
   const cartQty=(document.getElementById('rqQty')||{}).value||'';
   const cartType=(cartQty&&cartTypeRaw)?(cartQty+' × '+cartTypeRaw):cartTypeRaw;
@@ -1614,9 +1620,11 @@ function renderCheckin(){
   const step=c.step; const total=(c.adults||1)+(c.children||0);
   const bar=`<div style="display:flex;gap:5px;padding:0 22px 4px">${steps.map((_,i)=>`<div style="flex:1;height:4px;border-radius:3px;background:${i<=step?'var(--accent)':'var(--line)'}"></div>`).join('')}</div>`;
   let inner='';
-  if(step===0){ inner=`<div class="label">STEP 1 OF 3 · GUEST PARTY</div>
+  if(step===0){ const ages=(c.childAges||(c.childAges=[])); ages.length=c.children; for(let i=0;i<c.children;i++){ if(ages[i]==null) ages[i]=''; }
+    inner=`<div class="label">STEP 1 OF 3 · GUEST PARTY</div>
     <div class="card"><b style="font-weight:500">Adults</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('adults',-1)">−</button><span class="display" style="font-size:24px">${c.adults}</span><button onclick="cinAdj('adults',1)">+</button></div></div>
-    <div class="card"><b style="font-weight:500">Children</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>`;
+    <div class="card"><b style="font-weight:500">Children</b><div style="font-size:12.5px;color:var(--soft);margin-top:3px">Under 18 years old</div><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>
+    ${c.children>0?`<div class="card"><b style="font-weight:500">Children's ages</b><div style="font-size:12.5px;color:var(--soft);margin:3px 0 4px">Enter each child's age (in years)</div>${Array.from({length:c.children}).map((_,i)=>`<div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span style="font-size:13.5px;color:var(--soft);min-width:62px">Child ${i+1}</span><input type="number" min="0" max="17" inputmode="numeric" value="${esc(String(ages[i]!=null?ages[i]:''))}" oninput="cinAge(${i},this.value)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:11px;font-family:var(--ui)" placeholder="Age"></div>`).join('')}</div>`:''}`;
   } else if(step===1){ const docs=c.docs||(c.docs=[]);
     inner=`<div class="label">STEP 2 OF 3 · TRAVEL DOCUMENTS</div>
     <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">List each guest's full name and passport number for resort registration.</div>
@@ -1630,9 +1638,9 @@ function renderCheckin(){
     const rev=(label,val,gstep)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)"><span style="color:var(--soft);font-size:13px">${label}</span><span style="font-size:13px;text-align:right">${val} <button onclick="cinGo(${gstep})" style="border:0;background:none;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer;padding:0 0 0 6px">Edit</button></span></div>`;
     inner=`<div class="label">STEP 3 OF 3 · PREFERENCES</div>
     <div class="card"><b style="font-weight:500">Occasion</b><div class="seg" style="flex-wrap:wrap">${['None','Family trip','Golf trip','Corporate retreat','Anniversary','Birthday','Honeymoon'].map(o=>`<button class="${c.occasion===o?'on':''}" onclick="cinOcc('${o}')">${o}</button>`).join('')}</div></div>
-    <div class="card"><b style="font-weight:500">Dietary notes</b><textarea oninput="state.checkin.dietary=this.value" style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px;min-height:64px;font-family:var(--ui)" placeholder="Allergies, preferences…">${esc(c.dietary||'')}</textarea></div>
+    <div class="card" style="background:#F6F3EC;border:1px solid var(--line)"><div style="font-size:12.5px;color:var(--soft);line-height:1.5">Allergies &amp; dietary needs are collected with your <b>grocery pre-stocking</b> and <b>arrival meals</b> — add them there so your concierge has the details alongside your food choices.</div></div>
     <div class="card"><b style="font-weight:600;display:block;margin-bottom:2px">Review before you submit</b>
-      ${rev('Party',`${c.adults} adults${c.children?', '+c.children+' kids':''}`,0)}
+      ${rev('Party',`${c.adults} adults${c.children?', '+c.children+' kids'+((c.childAges||[]).some(a=>a!=='')?' (ages '+(c.childAges||[]).filter(a=>a!=='').join(', ')+')':''):''}`,0)}
       ${rev('Documents',`${docsDone} of ${total} added`,1)}
     </div>`;
   }
@@ -1644,6 +1652,7 @@ window.cinBack=function(){ if(state.checkin.step>0){ state.checkin.step--; rende
 window.cinGo=function(s){ state.checkin.step=s; render(); };
 window.cinOcc=function(o){ state.checkin.occasion = state.checkin.occasion===o?null:o; render(); };
 window.cinAdj=function(k,d){ state.checkin[k]=Math.max(k==='adults'?1:0,(state.checkin[k]||0)+d); render(); };
+window.cinAge=function(i,v){ const a=state.checkin.childAges||(state.checkin.childAges=[]); a[i]=String(v).replace(/[^0-9]/g,'').slice(0,2); };
 window.cinAir=function(a){ state.checkin.airport=a; render(); };
 window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
 window.cinTransfer=function(t){ state.checkin.transferType = state.checkin.transferType===t?null:t; render(); };

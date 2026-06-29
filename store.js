@@ -490,6 +490,7 @@ function saveCheckin(reference, data) {
     transferType: tt,
     adults: Math.max(0, Math.min(40, parseInt(data.adults, 10) || 0)),
     children: Math.max(0, Math.min(40, parseInt(data.children, 10) || 0)),
+    childAges: Array.isArray(data.childAges) ? data.childAges.slice(0, 40).map(a => { const n = parseInt(a, 10); return (Number.isFinite(n) && n >= 0 && n <= 17) ? n : ''; }) : [],
     flight: norm(data.flight).slice(0, 120),
     occasion: norm(data.occasion).slice(0, 60),
     dietary: norm(data.dietary).slice(0, 600),
