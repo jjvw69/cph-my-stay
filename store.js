@@ -305,6 +305,7 @@ function summaryStay(s) {
     guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0 };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
+function exportAll() { return stays; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
@@ -470,6 +471,7 @@ function toGuestStay(s) {
   const offered = new Set(s.offeredAddOnIds || []);
   return {
     source: 'console',
+    stayId: s.id,
     guest: { firstName: (s.leadName || '').split(' ')[0] || '', lastName: s.lastName || '', family: s.lastName || s.leadName || 'Guest', email: s.email || '', phone: s.phone || '' },
     booking: {
       reference: s.reference, status: s.status,
@@ -521,7 +523,7 @@ module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
-  listStays, getStay, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, createStay, saveStay, publishStay, deleteStay,
   addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),

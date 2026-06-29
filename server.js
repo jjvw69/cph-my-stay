@@ -87,7 +87,7 @@ function notifyConcierge(stay,r){
     `${r.type==='addon'?'Add-on':'Itinerary'}: ${r.title}`,
     `When: ${r.date||'—'}   Time: ${r.time||'—'}   Guests: ${r.guests||'—'}`,
     r.note?`Note: ${r.note}`:'', villa?`Villa: ${villa}`:'','',
-    `Console: ${APP_URL}/console`,
+    `Open this stay: ${APP_URL}/console${stay&&stay.stayId?('?stay='+stay.stayId):''}`,
   ].filter(Boolean).join('\n');
   let sent=false;
   if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
@@ -97,27 +97,38 @@ function notifyConcierge(stay,r){
 // Notify the concierge of a new guest CHAT message.
 function notifyMessage(stay,msgText){
   const ref=stay&&stay.booking?stay.booking.reference:''; const guest=stay&&stay.guest?(stay.guest.family||stay.guest.firstName||'Guest'):'Guest'; const villa=stay&&stay.villa?stay.villa.name:'';
-  const text=[`New guest message`,`${guest} (booking ${ref})`,'',`"${msgText}"`,villa?`Villa: ${villa}`:'','',`Reply in Console: ${APP_URL}/console`].filter(Boolean).join('\n');
+  const text=[`New guest message`,`${guest} (booking ${ref})`,'',`"${msgText}"`,villa?`Villa: ${villa}`:'','',`Reply: ${APP_URL}/console${stay&&stay.stayId?('?stay='+stay.stayId):''}`].filter(Boolean).join('\n');
   let sent=false;
   if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
   if(RESEND_API_KEY){ sendEmail(`New guest message (${ref})`,text,ref); sent=true; }
   if(!sent) console.log('[notify] disabled — %s messaged (%s)',guest,ref);
 }
+// Notify the GUEST (e.g. request confirmed, or stay published) — email and/or WhatsApp to the guest's own contact.
+function toWhatsAppNum(p){ const d=String(p||'').replace(/[^\d]/g,''); return d.length>=8?('whatsapp:+'+d):''; }
+function notifyGuest(stay,subject,text){
+  if(!stay) return; const email=String(stay.email||'').trim(); const phone=toWhatsAppNum(stay.phone); const ref=stay.reference||'';
+  let sent=false;
+  if(RESEND_API_KEY && email){ sendEmailTo(email,subject,text,ref); sent=true; }
+  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM && phone){ sendWhatsAppTo(phone,text,ref); sent=true; }
+  if(!sent) console.log('[notify-guest] skipped (no channel or no guest contact) — %s',ref);
+}
 function withWa(n){ return n.indexOf('whatsapp:')===0?n:('whatsapp:'+n); }
-function sendWhatsApp(text,ref){
+function sendWhatsApp(text,ref){ sendWhatsAppTo(CONCIERGE_WHATSAPP,text,ref); }
+function sendWhatsAppTo(to,text,ref){
   try{
-    const form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(CONCIERGE_WHATSAPP))+'&Body='+encodeURIComponent(text);
+    const form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(to))+'&Body='+encodeURIComponent(text);
     const auth='Basic '+Buffer.from(TWILIO_SID+':'+TWILIO_TOKEN).toString('base64');
     const https=require('https');
     const rq=https.request('https://api.twilio.com/2010-04-01/Accounts/'+TWILIO_SID+'/Messages.json',{method:'POST',headers:{'Authorization':auth,'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] whatsapp failed',resp.statusCode,d):console.log('[notify] whatsapp sent re %s',ref); }); });
     rq.on('error',e=>console.error('[notify] whatsapp error',e.message)); rq.write(form); rq.end();
   }catch(e){ console.error('[notify] whatsapp threw',e.message); }
 }
-function sendEmail(subject,text,ref){
+function sendEmail(subject,text,ref){ sendEmailTo(NOTIFY_EMAIL,subject,text,ref); }
+function sendEmailTo(to,subject,text,ref){
   try{
-    const body=JSON.stringify({from:NOTIFY_FROM,to:[NOTIFY_EMAIL],subject,text});
+    const body=JSON.stringify({from:NOTIFY_FROM,to:[to],subject,text});
     const https=require('https');
-    const rq=https.request('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] email failed',resp.statusCode,d):console.log('[notify] emailed %s re %s',NOTIFY_EMAIL,ref); }); });
+    const rq=https.request('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] email failed',resp.statusCode,d):console.log('[notify] emailed %s re %s',to,ref); }); });
     rq.on('error',e=>console.error('[notify] email error',e.message)); rq.write(body); rq.end();
   }catch(e){ console.error('[notify] email threw',e.message); }
 }
@@ -167,9 +178,10 @@ async function route(req,res){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.ADDON_CATALOG,concierges:store.CONCIERGES});
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
+    if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);
-    if(cm&&m==='POST'){ const b=await readBody(req); const r=store.confirmRequest(cm[1],cm[2],String(b.price||'')); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    if(cm&&m==='POST'){ const b=await readBody(req); const r=store.confirmRequest(cm[1],cm[2],String(b.price||'')); if(r){ const st=store.getStay(cm[1]); notifyGuest(st,`Your request is confirmed — ${r.title}`,['Good news — your concierge has confirmed your request.','',`${r.title}${r.price?' · '+r.price:''}`,r.date?`When: ${r.date}${r.time?' '+r.time:''}`:'','','See the details in your My Stay app.'].filter(Boolean).join('\n')); } return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const sm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/messages$/);
@@ -178,7 +190,7 @@ async function route(req,res){
     if(mm){
       const id=mm[1];
       if(m==='GET'){ const st=store.getStay(id); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
-      if(m==='POST'&&mm[2]==='/publish'){ const st=store.publishStay(id); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+      if(m==='POST'&&mm[2]==='/publish'){ const wasPublished=(store.getStay(id)||{}).status==='published'; const st=store.publishStay(id); if(st&&!wasPublished){ notifyGuest(st,'Your My Stay is ready',['Your villa concierge has prepared your personalised My Stay.','',`Booking ${st.reference} — open it any time at:`,`${APP_URL}/my-stay?b=${st.reference}`,'','Sign in with your booking reference and lead-guest last name.'].join('\n')); } return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='PUT'){ const patch=await readBody(req); const st=store.saveStay(id,patch); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='DELETE'){ return store.deleteStay(id)?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     }

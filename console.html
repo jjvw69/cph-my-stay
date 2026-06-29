@@ -287,7 +287,7 @@
   </div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><button class="newbtn" id="newStay">＋ New</button></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="newStay">＋ New</button></span></div>
       <button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today’s overview</button>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -334,6 +334,7 @@ async function enter(staff){
   const b=await api('/api/staff/bootstrap'); if(b.ok) BOOT=b.body;
   await loadList();
   startPolling();
+  const ps=new URLSearchParams(location.search).get('stay'); if(ps) selectStay(ps);
 }
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
 
@@ -514,7 +515,7 @@ function renderEditor(){
   document.getElementById('editor').innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
-      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
 
     ${activityTimeline(cur)}
 
@@ -696,6 +697,35 @@ function renderPreview(){
 }
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 window.jumpChat=function(){ setView(true); const el=document.getElementById('staffMsg'); if(el){ try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} el.focus(); } };
+window.doExport=async function(){ try{ const r=await fetch('/api/staff/export',{credentials:'same-origin'}); if(!r.ok){ toast('Export failed'); return; } const blob=await r.blob(); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u); toast('Backup downloaded'); }catch(e){ toast('Export failed'); } };
+window.printStay=function(){
+  if(!cur) return; const s=cur;
+  const v=BOOT.villas.find(x=>x.id===s.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===s.conciergeId)||{};
+  const row=(k,val)=>val?`<tr><th>${esc(k)}</th><td>${esc(val)}</td></tr>`:'';
+  const reqs=(s.requests||[]).filter(r=>r.status!=='cancelled').map(r=>`<li><b>${esc(r.title||'')}</b> — ${esc(r.status==='confirmed'?('confirmed'+(r.price?' · '+r.price:'')):'pending')}${r.date?' · '+esc(r.date):''}${r.time?' '+esc(r.time):''}${r.guests?' · '+esc(r.guests)+' guests':''}${r.note?'<br><i>“'+esc(r.note)+'”</i>':''}</li>`).join('')||'<li>None</li>';
+  const groc=(s.grocery&&s.grocery.items&&s.grocery.items.length)?('<ul>'+(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});return Object.keys(by).map(cat=>'<li><b>'+esc(cat)+':</b> '+by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')+'</li>').join('');})(s.grocery)+(s.grocery.note?'<li><b>Notes:</b> '+esc(s.grocery.note)+'</li>':'')+'</ul>'):'<p>None submitted.</p>';
+  const meals=(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))?('<ul>'+[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']].map(([k,l])=>{const m=s.mealPlan[k]||{};if(!(m.date||m.time||m.guests||m.desc))return '';return '<li><b>'+l+':</b> '+[m.date,m.time,m.guests?m.guests+' guests':''].filter(Boolean).map(esc).join(' · ')+(m.desc?' — '+esc(m.desc):'')+'</li>';}).join('')+'</ul>'):'<p>None submitted.</p>';
+  const gl=(s.guestList&&s.guestList.length)?('<ol>'+s.guestList.map(g=>'<li>'+esc(g.name||'—')+' — passport '+esc(g.passport||'—')+'</li>').join('')+'</ol>'):'<p>Not submitted.</p>';
+  const gc=s.guestCheckin;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Stay summary — ${esc(s.leadName||s.reference||'')}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.5}
+    h1{font-size:24px;margin:0 0 2px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#5B6E5F;border-bottom:1px solid #E6DDCC;padding-bottom:4px;margin:22px 0 8px}
+    .ref{color:#8B8475;font-size:13px;margin-bottom:6px}table{border-collapse:collapse;width:100%}th{text-align:left;width:200px;color:#5B6E5F;font-weight:600;vertical-align:top;padding:3px 8px 3px 0;font-size:13.5px}td{padding:3px 0;font-size:13.5px}
+    ul,ol{margin:6px 0;padding-left:20px}li{font-size:13.5px;margin:3px 0}@media print{body{margin:0}}</style></head>
+    <body>
+    <h1>${esc(s.leadName||'Guest')}</h1>
+    <div class="ref">Booking ${esc(s.reference||'')} · ${esc((s.status||'').toUpperCase())} · printed ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+    <h2>Guest &amp; party</h2><table>${row('Lead guest',s.leadName)}${row('Email',s.email)}${row('Phone',s.phone)}${row('Party',((Number(s.adults)||0)+' adults'+(s.children?', '+s.children+' children':'')))}${row('Source',s.source)}</table>
+    <h2>Villa &amp; stay</h2><table>${row('Villa',s.villaName||v.name)}${row('Internal name',s.villaInternal||v.internalName)}${row('Area',s.villaArea||v.area)}${row('Bedrooms / sleeps',[(s.villaSuites||v.suites),((s.villaSleeps||v.sleeps)?'sleeps '+(s.villaSleeps||v.sleeps):'')].filter(Boolean).join(' · '))}${row('Villa staff',s.staffIncluded)}${row('Check-in',[s.checkin,s.checkinTime].filter(Boolean).join(' · '))}${row('Check-out',[s.checkout,s.checkoutTime].filter(Boolean).join(' · '))}${row('Villa number',s.villaNumber)}${row('Registration #',s.registrationNumber)}${row('Wi-Fi',[s.wifiName,s.wifiPassword].filter(Boolean).join(' / '))}</table>
+    <h2>Arrival &amp; transfer</h2><table>${row('Airport',s.airport)}${row('Flight',s.flight)}${row('Private transfer',s.transferArranged?'Arranged':'Not arranged')}${gc?row('Guest submitted',[gc.airport,gc.flight,gc.transferType==='roundtrip'?'round-trip':gc.transferType==='oneway'?'one-way':'',gc.occasion].filter(Boolean).join(' · ')):''}${gc&&gc.dietary?row('Dietary',gc.dietary):''}</table>
+    <h2>Requests</h2><ul>${reqs}</ul>
+    <h2>Grocery pre-stocking</h2>${groc}
+    <h2>Arrival meals</h2>${meals}
+    <h2>Guest registration</h2>${gl}
+    <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',s.welcomeMessage)}</table>
+    </body></html>`;
+  const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
+};
 
 /* ---- save / publish ---- */
 function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
