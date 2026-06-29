@@ -201,6 +201,17 @@
   /* ---- live Guest Activity panel ---- */
   .apv-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:14px}
   .apv-villa{font-family:var(--display);font-weight:600;font-size:19px;color:var(--ink);line-height:1.15}
+  .apv-rev{font-size:12.5px;color:#3F6B4E;font-weight:600;margin-top:6px}
+  .ups-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:18px}
+  .ups-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:10px}
+  .ups-row{display:flex;gap:18px;flex-wrap:wrap}
+  .ups-stat .ups-num{font-family:var(--display);font-size:24px;color:var(--accent);line-height:1}
+  .ups-stat .ups-lbl{font-size:11.5px;color:var(--soft);margin-top:3px}
+  .ups-svc{margin-top:13px;border-top:1px solid var(--line);padding-top:10px}
+  .ups-svc-h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:6px}
+  .ups-svc-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+  .ups-svc-name{color:var(--ink)}
+  .ups-svc-meta{color:var(--soft);white-space:nowrap}
   .apv-sub{font-size:12.5px;color:var(--soft);margin-top:3px}
   .pulse{font-weight:600}
   .pulse.on{color:#3F6B4E}
@@ -354,6 +365,7 @@ async function enter(staff){
   document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='flex';
   document.getElementById('who').textContent=staff.name||staff.email;
   const b=await api('/api/staff/bootstrap'); if(b.ok) BOOT=b.body;
+  await refreshMetrics();
   await loadList();
   startPolling();
   const ps=new URLSearchParams(location.search).get('stay'); if(ps) selectStay(ps);
@@ -361,6 +373,8 @@ async function enter(staff){
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
 
 /* ---- list ---- */
+let METRICS=null;
+async function refreshMetrics(){ try{ const r=await api('/api/staff/metrics'); if(r.ok) METRICS=r.body.metrics; }catch(e){} }
 async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderHome(); }
 
 /* ============ live sync ============ */
@@ -369,7 +383,7 @@ function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,1
 async function syncNow(){
   if(document.hidden) return;
   let ok=true;
-  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
+  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); await refreshMetrics(); if(!cur){ const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; } } else ok=false; }catch(e){ ok=false; }
   if(cur){ const c=await refreshCurrent(); if(c===false) ok=false; }
   markSynced(ok);
 }
@@ -503,6 +517,20 @@ function renderArrivalsPanel(){
 }
 let todayGroups={};
 window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) return; if(arr.length===1){ selectStay(arr[0].id); return; } const sec=document.getElementById('tsec-'+key); if(sec){ try{sec.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){ sec.scrollIntoView(); } } };
+function upsellCard(){
+  const m=METRICS; if(!m || (!m.confirmed && !m.pending)) return '';
+  const top=(m.byService||[]).slice(0,4);
+  return `<div class="ups-card">
+    <div class="ups-h">Upsell performance</div>
+    <div class="ups-row">
+      <div class="ups-stat"><div class="ups-num">$${(m.totalRevenue||0).toLocaleString()}</div><div class="ups-lbl">Add-on revenue</div></div>
+      <div class="ups-stat"><div class="ups-num">${m.confirmed||0}</div><div class="ups-lbl">Confirmed</div></div>
+      <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
+      ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Pending</div></div>`:''}
+    </div>
+    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">Top converting</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.confirmed}/${e.requested} booked · $${(e.revenue||0).toLocaleString()}</span></div>`).join('')}</div>`:''}
+  </div>`;
+}
 function renderToday(){
   const el=document.getElementById('editor'); if(!el) return;
   const today=todayStr(), tom=addDays(today,1); const L=LIST||[];
@@ -528,6 +556,7 @@ function renderToday(){
       ${stat(totMsgs,'Unread messages','msgs',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
     </div>
+    ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
@@ -696,7 +725,7 @@ window.set=set;
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
 window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Marked done'); } else toast('Could not update'); };
-window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
+window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); refreshMetrics(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
@@ -742,6 +771,7 @@ function renderPreview(){
       <div class="apv-villa">${esc(vName)}</div>
       <div class="apv-sub">${d==null?'Dates not set':('Arriving in '+d+' day'+(d===1?'':'s'))}${n!=null?' · '+n+' night'+(n===1?'':'s'):''}</div>
       <div class="apv-sub">✉ ${esc(c.name||'Concierge —')} <span style="white-space:nowrap">${guestPulse(cur.guestLastSeen)}</span></div>
+      ${(function(){const rev=reqs.filter(r=>r.status==='confirmed').reduce((a,r)=>a+(Number(String(r.price||'').replace(/[^0-9.]/g,''))||0),0);const cn=reqs.filter(r=>r.status==='confirmed').length;return rev>0?`<div class="apv-rev">✦ $${rev.toLocaleString()} confirmed add-ons · ${cn} booked</div>`:'';})()}
     </div>
 
     <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>

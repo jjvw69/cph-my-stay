@@ -305,10 +305,36 @@ function summaryStay(s) {
     guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0,
     lastMsgAt: ((s.messages || [])[(s.messages || []).length - 1] || {}).at || 0,
     lastMsgText: String(((s.messages || [])[(s.messages || []).length - 1] || {}).text || '').slice(0, 90),
-    lastMsgFrom: ((s.messages || [])[(s.messages || []).length - 1] || {}).from || '' };
+    lastMsgFrom: ((s.messages || [])[(s.messages || []).length - 1] || {}).from || '',
+    revenue: stayRevenue(s), confirmed: (s.requests || []).filter(r => r.status === 'confirmed').length };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
+
+// ------------------------------------------------------- upsell / revenue metrics
+function parsePrice(p) { const n = Number(String(p == null ? '' : p).replace(/[^0-9.]/g, '')); return isFinite(n) ? n : 0; }
+function stayRevenue(s) { return (s.requests || []).filter(r => r.status === 'confirmed').reduce((a, r) => a + parsePrice(r.price), 0); }
+/** Aggregate add-on/experience conversion + revenue across all stays, for the console Upsell panel. */
+function upsellMetrics() {
+  let totalRevenue = 0, confirmed = 0, pending = 0, totalReq = 0, staysWithConfirmed = 0, published = 0;
+  const svc = {};
+  stays.forEach(s => {
+    if (s.status === 'published') published++;
+    let stayConfirmed = 0;
+    (s.requests || []).forEach(r => {
+      if (r.status === 'cancelled') return;
+      totalReq++;
+      const key = (r.title || 'Other').trim();
+      const e = svc[key] || (svc[key] = { title: key, requested: 0, confirmed: 0, revenue: 0 });
+      e.requested++;
+      if (r.status === 'confirmed') { confirmed++; stayConfirmed++; const v = parsePrice(r.price); totalRevenue += v; e.confirmed++; e.revenue += v; }
+      else if (r.status === 'pending') pending++;
+    });
+    if (stayConfirmed > 0) staysWithConfirmed++;
+  });
+  const byService = Object.values(svc).sort((a, b) => (b.revenue - a.revenue) || (b.confirmed - a.confirmed) || (b.requested - a.requested));
+  return { totalRevenue, confirmed, pending, totalReq, staysWithConfirmed, published, attachRate: published ? Math.round(staysWithConfirmed / published * 100) : 0, byService };
+}
 
 // ---------------------------------------------- scheduled guest message automations
 function daysFromToday(iso) { const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return null; const t = new Date(new Date().toDateString()); return Math.round((d - t) / 864e5); }
@@ -564,7 +590,7 @@ module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
-  listStays, getStay, exportAll, runAutomations, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
   addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),

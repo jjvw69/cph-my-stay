@@ -188,6 +188,7 @@ async function route(req,res){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.ADDON_CATALOG,concierges:store.CONCIERGES});
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
+    if(m==='GET' &&url==='/api/staff/metrics') return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()});
     if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);
