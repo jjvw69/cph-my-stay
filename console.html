@@ -325,8 +325,11 @@ let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = workin
 /* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
 function getSeen(){ try{ return JSON.parse(localStorage.getItem('cph_console_seen')||'{}')||{}; }catch(e){ return {}; } }
 function setSeen(m){ try{ localStorage.setItem('cph_console_seen',JSON.stringify(m)); }catch(e){} }
-function markViewed(stay){ if(!stay||!stay.id)return; const m=getSeen(); m[stay.id]={req:(stay.requests||[]).length,msg:(stay.messages||[]).filter(x=>x.from==='guest').length}; setSeen(m); }
+function markViewed(stay){ if(!stay||!stay.id)return; const m=getSeen(); m[stay.id]=Object.assign(m[stay.id]||{},{req:(stay.requests||[]).length,msg:(stay.messages||[]).filter(x=>x.from==='guest').length}); setSeen(m); }
 function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?seen.req:0) || (s.guestMsgs||0)>(seen?seen.msg:0); }
+function unreadMsgs(s){ const seen=getSeen()[s.id]; return Math.max(0,(s.guestMsgs||0)-(seen?seen.msg:0)); }
+function tlMarkViewed(d){ if(!d||!d.open||!cur)return; const m=getSeen(); m[cur.id]=Object.assign(m[cur.id]||{},{tl:tlEventCount(cur)}); setSeen(m); const b=d.querySelector('.reqcount'); if(b)b.style.display='none'; }
+function tlEventCount(s){ let n=0; (s.requests||[]).forEach(r=>{ if(r.createdAt)n++; if(r.status==='confirmed')n++; if(r.status==='cancelled')n++; }); n+=(s.messages||[]).length; return n; }
 async function api(path,opts={}){ const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts)); let j={}; try{j=await r.json();}catch(e){} return {status:r.status,ok:r.ok&&j.ok!==false,body:j}; }
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2400); }
 
@@ -443,7 +446,7 @@ window.selectStay=async function(id){
 
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+(s.guestMsgs||0)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
+function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+unreadMsgs(s)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
 function refreshTodayBtn(){ const n=todayAlertCount(); const b=document.getElementById('todayBtn'); if(b){ b.classList.toggle('alert',n>0); b.innerHTML='▦ Today’s overview'+(n?` <span style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:12px">${n}</span>`:''); } const tp=document.getElementById('topPending'); if(tp){ tp.classList.toggle('show',n>0); tp.textContent=n?(n+' need action'):''; } }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch to the overview?')) return;
@@ -474,11 +477,11 @@ function renderToday(){
   const arrToday=L.filter(s=>s.checkin===today);
   const arrTom=L.filter(s=>s.checkin===tom);
   const pending=L.filter(s=>(s.pending||0)>0);
-  const msgs=L.filter(s=>(s.guestMsgs||0)>0);
+  const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
   todayGroups={arrToday,pending,msgs,fudue};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
-  const totMsgs=msgs.reduce((a,s)=>a+(s.guestMsgs||0),0);
+  const totMsgs=msgs.reduce((a,s)=>a+unreadMsgs(s),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
@@ -490,14 +493,14 @@ function renderToday(){
     <div class="today-stats">
       ${stat(arrToday.length,'Arriving today','arrToday')}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
-      ${stat(totMsgs,'Guest messages','msgs',true)}
+      ${stat(totMsgs,'Unread messages','msgs',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
     </div>
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
-    ${sec('Guest messages','msgs', msgs.map(s=>todayRow(s,`<span class="tr-tag amber">${s.guestMsgs} message${s.guestMsgs==1?'':'s'}</span>`)))}
+    ${sec('Unread guest messages','msgs', msgs.map(s=>{const u=unreadMsgs(s);return todayRow(s,`<span class="tr-tag amber">${u} new message${u==1?'':'s'}</span>`);}))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
   renderArrivalsPanel();
@@ -528,8 +531,9 @@ function activityTimeline(s){
   (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):'You'}: ${esc(m.text)}`}); });
   ev.sort((a,b)=>(b.at||0)-(a.at||0));
   if(!ev.length) return '';
+  const seenTl=(getSeen()[s.id]||{}).tl||0; const fresh=Math.max(0,ev.length-seenTl);
   const rows=ev.map(e=>`<div class="tl-row"><span class="tl-dot ${e.cls}"></span><div class="tl-when">${fmtReqDate(e.at)} · ${fmtAgo(e.at)}</div><div class="tl-what">${e.what}</div></div>`).join('');
-  return `<details id="tlDetails" class="sec"><summary style="cursor:pointer;outline:none"><h3 style="display:inline">Activity timeline <span class="reqcount">${ev.length}</span></h3><span class="tl-hint tl-hint-closed">tap to expand ▾</span><span class="tl-hint tl-hint-open">tap to collapse ▴</span></summary><div class="tl">${rows}</div></details>`;
+  return `<details id="tlDetails" class="sec" ontoggle="tlMarkViewed(this)"><summary style="cursor:pointer;outline:none"><h3 style="display:inline">Activity timeline ${fresh?`<span class="reqcount">${fresh} new</span>`:''}</h3><span class="tl-hint tl-hint-closed">tap to expand ▾</span><span class="tl-hint tl-hint-open">tap to collapse ▴</span></summary><div class="tl">${rows}</div></details>`;
 }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
