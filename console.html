@@ -171,6 +171,11 @@
   .chatscroll{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
   .chatcompose{display:flex;gap:8px;margin-top:11px}
   .chatcompose input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14.5px;font-family:var(--ui)}
+  .alertbar{border-radius:12px;padding:11px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
+  .alertbar b{font-weight:600}
+  .alertbar .ab-sub{color:inherit;opacity:.8}
+  .alertbar.occ{background:#FBF4E4;border:1px solid #E6CF92;color:#7A5A1E}
+  .alertbar.diet{background:#FCEDE6;border:1px solid #E3B49C;color:#8A3D22}
   .vitals{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
   .vrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:7px 0;border-bottom:1px solid #EFF1EC}
   .vrow:first-child{padding-top:0}
@@ -766,11 +771,23 @@ function stayVitals(s){
     </div>
     <div class="vrow">
       ${stat('Confirmed add-ons',confirmed.length+' · $'+rev,'v-green')}
-      ${stat('To collect (Zelle)','$'+rev)}
+      ${stat('Add-ons to collect','$'+rev)}
+      ${stat('Payment',s.paymentStatus?`<span class="${s.paymentStatus==='Paid in full'?'v-green':(s.paymentStatus==='Unpaid'||s.paymentStatus==='Balance due')?'v-amber':''}">${esc(s.paymentStatus)}${(s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''}</span>`:'—')}
       <div class="vstat" style="flex:1"><span class="vk">Action needed</span><span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px">${actionBits.join('')}</span></div>
     </div>
     <div class="vready">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
   </div>`;
+}
+/* Top-of-editor alerts: VIP occasion + a consolidated dietary/allergy flag (gathered from
+   pre check-in, grocery notes and meal notes — the things staff must NOT miss). */
+function stayAlerts(s){
+  const gc=s.guestCheckin||{};
+  const occ=String(gc.occasion||'').trim();
+  const diet=[gc.dietary,(s.grocery&&s.grocery.note),(s.mealPlan&&s.mealPlan.note)].map(x=>String(x||'').trim()).filter(Boolean);
+  let h='';
+  if(occ) h+=`<div class="alertbar occ">🎉 <b>Occasion:</b> ${esc(occ)} <span class="ab-sub">— a welcome touch (cake, décor, champagne) goes a long way.</span></div>`;
+  if(diet.length) h+=`<div class="alertbar diet">⚠ <b>Dietary &amp; allergies:</b> ${diet.map(esc).join(' · ')} <span class="ab-sub">— brief the chef &amp; check provisioning.</span></div>`;
+  return h;
 }
 /* Center-column mode: 'edit' (full stay editor) or 'chat' (full-height conversation). */
 let editorMode='edit';
@@ -804,6 +821,7 @@ function renderEditor(){
   if(editorMode==='chat'){ document.getElementById('editor').innerHTML=head+chatPanelFull(cur); const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight; return; }
   document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
+    ${stayAlerts(cur)}
 
     ${activityTimeline(cur)}
 
@@ -914,6 +932,13 @@ function renderEditor(){
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
       <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
       <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea></div>
+    </div></div>
+
+    <div class="sec"><h3>Payment &amp; balance</h3><div class="grid">
+      <div class="f"><label>Payment status</label><select onchange="set('paymentStatus',this.value)"><option value="">—</option>${['Unpaid','Deposit paid','Balance due','Paid in full'].map(o=>`<option ${cur.paymentStatus===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div class="f"><label>Balance due</label><input value="${esc(cur.balanceDue||'')}" oninput="set('balanceDue',this.value)" placeholder="e.g. $2,400 by Jul 1"></div>
+      <div class="f full"><label>Security deposit</label><input value="${esc(cur.securityDeposit||'')}" oninput="set('securityDeposit',this.value)" placeholder="e.g. $1,000 held · refundable on checkout"></div>
+      <div class="f full counter">Internal only — the guest never sees this.</div>
     </div></div>
 
     <div class="sec"><h3>Team &amp; internal notes</h3><div class="grid">
@@ -1027,7 +1052,7 @@ window.printStay=function(){
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','paymentStatus','balanceDue','securityDeposit']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;

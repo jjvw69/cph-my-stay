@@ -290,6 +290,7 @@ function blankStay() {
     guestCheckin: null,
     followUpDate: '', followUpNote: '',
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
+    paymentStatus: '', balanceDue: '', securityDeposit: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
 }
@@ -307,7 +308,7 @@ function summaryStay(s) {
     lastMsgText: String(((s.messages || [])[(s.messages || []).length - 1] || {}).text || '').slice(0, 90),
     lastMsgFrom: ((s.messages || [])[(s.messages || []).length - 1] || {}).from || '',
     revenue: stayRevenue(s), confirmed: (s.requests || []).filter(r => r.status === 'confirmed').length,
-    assigneeId: s.assigneeId || '' };
+    assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
@@ -377,7 +378,7 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','paymentStatus','balanceDue','securityDeposit'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
