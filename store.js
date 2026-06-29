@@ -34,6 +34,8 @@ const ADDON_CATALOG = [
   { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
   { id: 'yoga',          category: 'In-villa services',     name: 'Private Yoga',                       desc: 'A private sunrise yoga session on your terrace or the beach with a certified instructor.' },
   { id: 'nannies',       category: 'In-villa services',     name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
+  { id: 'entertainment', category: 'In-villa services',     name: 'Live Entertainment',                 desc: 'Musicians, DJs and performers to set the mood for a dinner, celebration or evening at your villa.' },
+  { id: 'rumcigar',      category: 'In-villa services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
 ];
 
 const CONCIERGES = [
@@ -195,9 +197,7 @@ const EXPLORE_SCENES = [
   { id:'rum', cat:'Outside', name:'Rum Factory · Ron Barceló', meta:'Distillery tour', desc:"Tour one of the country's most prestigious rum distilleries, founded in 1930 (adults only).", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/cph-rum-fixed.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   // ---- Family programs & childcare ----
   { id:'family-programs', cat:'Activities', name:'Family Programs', meta:"Supervised kids' camps · 1–17", desc:'Award-winning supervised programs by age group — Toddlers (1–3), Kidz (4–6), Casa Tweens (7–12) and Bonche 4 Teens (13–17): playground, arts & crafts, beach Olympics, sports, kayaking, horseback riding and more.', img:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91245.jpg', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  // ---- In-villa experiences (arranged by your concierge) ----
-  { id:'entertainment', cat:'Activities', name:'Live Entertainment', meta:'In-villa · events', desc:'Musicians, DJs and performers to set the mood for a dinner, celebration or party at your villa.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
-  { id:'rumcigar', cat:'Activities', name:'Rum & Cigar Tasting', meta:'In-villa · curated', desc:'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa.', img:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/manos-1024x949.jpg.webp', more:'https://www.casadecampo.com.do/experiences/' },
+  // ---- In-villa experiences moved to Villa Add-ons > In-villa services (entertainment, rumcigar) ----
   { id:'yacht-charter', cat:'Activities', name:'Yacht Charters', meta:'Marina · private charter', desc:'Private motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina — half-day, full-day, sunset cruises and island trips.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg', more:'https://www.casadecampo.com.do/experiences/marina/' },
   // ---- Nightlife ----
   { id:'genesis', cat:'Nightlife', info:true, name:'Genesis Nightclub', meta:'Altos de Chavón · late night', desc:'The resort’s nightclub in the clifftop village — DJs, dancing and bottle service into the early hours.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
