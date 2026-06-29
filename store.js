@@ -300,7 +300,9 @@ function summaryStay(s) {
   const v = getVilla(s.villaId);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
-    source: s.source || '', followUpDate: s.followUpDate || '', followUpNote: s.followUpNote || '', requests: (s.requests || []).length };
+    source: s.source || '', followUpDate: s.followUpDate || '', followUpNote: s.followUpNote || '', requests: (s.requests || []).length,
+    pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled').length,
+    guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0 };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
@@ -505,6 +507,11 @@ function getPublishedByRefForSession(reference) {
   const s = stays.find(x => x.status === 'published' && norm(x.reference).toLowerCase() === ref);
   return s ? toGuestStay(s) : null;
 }
+/** Record that the guest app polled/opened this booking — ephemeral (not persisted), powers the console "guest active" pulse. */
+function touchGuestSeen(reference) {
+  const s = findPublishedStayByRef(reference);
+  if (s) s.guestLastSeen = Date.now();
+}
 
 // init
 ensureDir();
@@ -516,6 +523,6 @@ module.exports = {
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
   addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
-  toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
+  toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

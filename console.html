@@ -133,6 +133,32 @@
   .pv-greet{font-size:14px;color:var(--soft);margin-top:10px}
   .pv-greet b{color:var(--ink)}
   .pv-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-top:8px;font-size:14px}
+  /* ---- live Guest Activity panel ---- */
+  .apv-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:14px}
+  .apv-villa{font-family:var(--display);font-weight:600;font-size:19px;color:var(--ink);line-height:1.15}
+  .apv-sub{font-size:12.5px;color:var(--soft);margin-top:3px}
+  .pulse{font-weight:600}
+  .pulse.on{color:#3F6B4E}
+  .pulse.off{color:#9A7B36}
+  .act-sec{margin-bottom:16px}
+  .act-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:8px}
+  .act-n{background:#33493B;color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0}
+  .act-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
+  .act-card.warn{border-color:#E4C58C;background:#FCF7EC}
+  .act-title{font-size:14px;font-weight:600;color:var(--ink)}
+  .act-meta{font-size:12.5px;color:var(--soft);margin-top:3px}
+  .act-msg{font-size:13.5px;color:var(--ink);line-height:1.45}
+  .act-row{display:flex;gap:7px;margin-top:9px}
+  .act-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;font-family:var(--ui);background:#fff}
+  .act-row .b-fill{padding:8px 13px;white-space:nowrap}
+  .act-jump{margin-top:9px;padding:8px 13px;font-size:13px}
+  .act-empty{font-size:13px;color:var(--soft);background:#fff;border:1px dashed var(--line);border-radius:12px;padding:12px;text-align:center}
+  .rd-row{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);padding:5px 0}
+  .rd-ic{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:0 0 auto}
+  .rd-ic.ok{background:#E2EFE0;color:#3F6B4E}
+  .rd-ic.no{background:#F0EBDF;color:#B6A98C}
+  .dirtytag{display:none;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#9A7B36;background:#FBF1D8;border:1px solid #ECD9A6;border-radius:9px;padding:5px 10px}
+  .b-fill.hot{box-shadow:0 0 0 3px rgba(169,140,90,.25)}
   .glink{margin-top:14px}
   .glink .box{display:flex;gap:8px;margin-top:5px}
   .glink input{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:11.5px;background:#fff}
@@ -203,7 +229,7 @@
   <div class="topbar">
     <div class="brand"><img id="seal2" alt=""><b>Caribbean Paradise Homes<br><span style="font-weight:400;color:var(--soft);font-size:12.5px">Concierge Console</span></b></div>
     <div class="right">
-      <span class="sync"><span class="dot"></span> Console live</span>
+      <span class="sync" id="syncTag" title="Auto-syncs with the guest app"><span class="dot" id="syncDot"></span> <span id="syncTxt">Console live</span></span>
       <span class="who" id="who"></span>
       <button class="b-out" style="padding:6px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px" id="signout">Sign out</button>
     </div>
@@ -243,11 +269,64 @@ async function enter(staff){
   document.getElementById('who').textContent=staff.name||staff.email;
   const b=await api('/api/staff/bootstrap'); if(b.ok) BOOT=b.body;
   await loadList();
+  startPolling();
 }
 document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logout',{method:'POST'}); location.reload(); };
 
 /* ---- list ---- */
 async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); if(sel) selectStay(sel); }
+
+/* ============ live sync ============ */
+let POLL=null, lastSyncAt=0;
+function startPolling(){ if(POLL)clearInterval(POLL); POLL=setInterval(syncNow,18000); setInterval(updateSyncAge,10000); }
+async function syncNow(){
+  if(document.hidden) return;
+  let ok=true;
+  try{ const r=await api('/api/staff/stays'); if(r.ok){ LIST=(r.body&&r.body.stays)||[]; renderList(); } else ok=false; }catch(e){ ok=false; }
+  if(cur){ const c=await refreshCurrent(); if(c===false) ok=false; }
+  markSynced(ok);
+}
+async function refreshCurrent(){
+  if(!cur) return;
+  let r; try{ r=await api('/api/staff/stays/'+cur.id); }catch(e){ return false; }
+  if(!r.ok||!r.body.stay) return false;
+  const fresh=r.body.stay;
+  const guestMsgCount=m=>(m||[]).filter(x=>x.from==='guest').length;
+  const newReqs=(fresh.requests||[]).length-((cur.requests||[]).length);
+  const newMsgs=guestMsgCount(fresh.messages)-guestMsgCount(cur.messages);
+  // Merge: never clobber the editable form while the staffer has unsaved edits.
+  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen'].forEach(k=>{ cur[k]=fresh[k]; }); }
+  else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
+  // Re-render, preserving any in-progress typing/scroll.
+  if(!dirty){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
+  const pS=snapshotInputs('preview'); renderPreview(); restoreInputs('preview',pS);
+  if(newReqs>0){ toast('New request from '+(cur.leadName||'guest')); chime(); }
+  else if(newMsgs>0){ toast('New message from '+(cur.leadName||'guest')); chime(); }
+}
+function snapshotInputs(rootId){
+  const root=document.getElementById(rootId); if(!root) return null;
+  const vals={}; root.querySelectorAll('input,textarea').forEach(el=>{ if(el.id) vals[el.id]=el.value; });
+  const a=document.activeElement; const focus=(a&&root.contains(a)&&a.id)?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null;
+  return {vals,focus,scroll:root.scrollTop};
+}
+function restoreInputs(rootId,snap){
+  if(!snap) return; const root=document.getElementById(rootId); if(!root) return;
+  Object.keys(snap.vals).forEach(id=>{ const el=document.getElementById(id); if(el&&'value' in el) el.value=snap.vals[id]; });
+  if(snap.scroll!=null) root.scrollTop=snap.scroll;
+  if(snap.focus){ const el=document.getElementById(snap.focus.id); if(el){ try{ el.focus(); if(snap.focus.s!=null&&el.setSelectionRange) el.setSelectionRange(snap.focus.s,snap.focus.e); }catch(e){} } }
+}
+function markSynced(ok){ if(ok) lastSyncAt=Date.now(); updateSyncAge(); }
+function updateSyncAge(){
+  const dot=document.getElementById('syncDot'), txt=document.getElementById('syncTxt'); if(!dot||!txt) return;
+  if(!lastSyncAt){ txt.textContent='Console live'; return; }
+  const s=Math.floor((Date.now()-lastSyncAt)/1000); const stale=s>50;
+  dot.style.background=stale?'#C8852F':'#5B9E6F';
+  txt.textContent=s<5?'Synced just now':('Synced '+(s<60?s+'s':Math.floor(s/60)+'m')+' ago');
+}
+let _AC=null;
+function chime(){ try{ _AC=_AC||new (window.AudioContext||window.webkitAudioContext)(); const o=_AC.createOscillator(),g=_AC.createGain(); o.type='sine'; o.frequency.value=880; o.connect(g); g.connect(_AC.destination); g.gain.value=0.05; o.start(); o.frequency.setValueAtTime(1175,_AC.currentTime+0.09); setTimeout(()=>{try{o.stop();}catch(e){}},180); }catch(e){} }
+window.addEventListener('focus',()=>{ syncNow(); });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncNow(); });
 document.getElementById('search').addEventListener('input',renderList);
 document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ await loadList(r.body.stay.id); } };
 function renderList(){
@@ -275,7 +354,9 @@ function renderList(){
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
 window.backToList=function(){ setView(false); };
-window.selectStay=async function(id){ const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; renderList(); renderEditor(); renderPreview(); setView(true); } };
+window.selectStay=async function(id){
+  if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
+  const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); renderList(); renderEditor(); renderPreview(); setView(true); } };
 
 /* ---- editor ---- */
 function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
@@ -287,7 +368,9 @@ window.pick=pick;
 /* Prefill the editable villa fields from a saved listing; staff can still edit any field after. */
 function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.villaInternal=x.internalName||''; cur.staffIncluded=x.staff||cur.staffIncluded||'Chef · Butler · Housekeeper'; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
 window.pickVilla=pickVilla;
-let dirty=false; function markDirty(){ dirty=true; }
+let dirty=false;
+function setDirty(v){ dirty=v; const t=document.getElementById('dirtyTag'); if(t)t.style.display=v?'inline-flex':'none'; const s=document.getElementById('saveBtn'); if(s)s.classList.toggle('hot',v); }
+function markDirty(){ setDirty(true); }
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
@@ -299,7 +382,7 @@ function renderEditor(){
   document.getElementById('editor').innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
-      <div class="ebtns"><button class="b-out" onclick="saveDraft()">Save</button><button class="b-fill" onclick="publish()">Publish</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
 
     <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
       <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
@@ -403,8 +486,8 @@ window.set=set;
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
-window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ await loadList(id); toast('Marked done'); } else toast('Could not update'); };
-window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } renderEditor(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
+window.dismissReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Marked done'); } else toast('Could not update'); };
+window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; } if(!dirty)renderEditor(); renderPreview(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
@@ -415,38 +498,75 @@ function daysUntil(a){ const d=new Date(a+'T00:00:00'); if(isNaN(d))return null;
 function fmtReqDate(ts){ try{ const d=new Date(ts); if(isNaN(d))return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } }
 function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDay(iso){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return iso; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function guestPulse(ts){
+  if(!ts) return '<span class="pulse off">· not opened yet</span>';
+  const m=Math.floor((Date.now()-ts)/60000);
+  const t=m<1?'just now':m<60?(m+'m ago'):m<1440?(Math.floor(m/60)+'h ago'):(Math.floor(m/1440)+'d ago');
+  return '<span class="pulse '+(m<30?'on':'off')+'">· opened '+t+'</span>';
+}
+/* The right column = live Guest Activity panel (needs-action, messages, readiness, pulse). */
 function renderPreview(){
-  if(!cur){ document.getElementById('preview').innerHTML='<div class="empty">No stay selected.</div>'; return; }
-  const v=BOOT.villas.find(x=>x.id===cur.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{};
-  const vName=cur.villaName||v.name||'—', vArea=cur.villaArea||v.area||'Casa de Campo', vView=cur.villaView||v.view||'', vHero=cur.heroPhoto||v.hero||'', vInternal=cur.villaInternal||v.internalName||'';
+  const host=document.getElementById('preview'); if(!host) return;
+  if(!cur){ host.innerHTML='<div class="empty">No stay selected.</div>'; return; }
+  const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{}, v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
+  const vName=cur.villaName||v.name||'—';
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
   const d=daysUntil(cur.checkin), n=nights(cur.checkin,cur.checkout);
-  const offered=(cur.offeredAddOnIds||[]).length;
-  document.getElementById('preview').innerHTML=`
-    <div class="label">What the guest sees</div>
+  const reqs=(cur.requests||[]);
+  const pending=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled');
+  const cancelled=reqs.filter(r=>r.status==='cancelled');
+  const guestMsgs=(cur.messages||[]).filter(m=>m.from==='guest');
+  const gc=cur.guestCheckin;
+  const ready=[
+    ['Pre check-in submitted', !!gc],
+    ['Grocery list', !!(cur.grocery&&cur.grocery.items&&cur.grocery.items.length)],
+    ['Arrival meals', !!(cur.mealPlan&&['breakfast','lunch','dinner'].some(k=>cur.mealPlan[k]&&(cur.mealPlan[k].date||cur.mealPlan[k].desc)))],
+    ['Guest registration', !!(cur.guestList&&cur.guestList.length)],
+    ['Transfer arranged', !!cur.transferArranged],
+    ['Wi-Fi handover set', !!(cur.wifiName||cur.wifiHandover)],
+  ];
+  const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
+  host.innerHTML=`
+    <div class="label">Guest activity</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
-    <div class="phone"><div class="screen">
-      <div class="pv-hero" ${vHero?`style="background-image:url('${esc(vHero)}')"`:''}></div>
-      <div class="pv-body">
-        <div class="pv-eyebrow">Your stay · ${esc(vArea.toUpperCase())}</div>
-        <div class="pv-villa">${esc(vName)}</div>
-        <div class="pv-loc">${esc([vInternal||vArea,vView].filter(Boolean).join(' · '))}</div>
-        <div class="pv-count"><div><div class="label">Arriving in</div><span class="big">${d==null?'–':d}</span> days<div class="s">${cur.checkin||''}${cur.checkinTime?' · '+esc(cur.checkinTime):''}</div></div><div style="text-align:right"><div class="big">${n==null?'–':n}</div><div class="s">nights</div></div></div>
-        <div class="pv-greet">Welcome, the <b>${esc(cur.lastName||cur.leadName||'—')}</b> family.</div>
-        <div class="pv-row">✦ ${offered} add-on${offered===1?'':'s'} offered</div>
-        <div class="pv-row">✉ Concierge: ${esc(c.name||'—')}</div>
-      </div>
-    </div></div>
+    <div class="apv-head">
+      <div class="apv-villa">${esc(vName)}</div>
+      <div class="apv-sub">${d==null?'Dates not set':('Arriving in '+d+' day'+(d===1?'':'s'))}${n!=null?' · '+n+' night'+(n===1?'':'s'):''}</div>
+      <div class="apv-sub">✉ ${esc(c.name||'Concierge —')} <span style="white-space:nowrap">${guestPulse(cur.guestLastSeen)}</span></div>
+    </div>
+
+    <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>
+      ${pending.length?pending.map(r=>`<div class="act-card warn">
+        <div class="act-title">${esc(r.title||'Request')}</div>
+        <div class="act-meta">${reqMeta(r)}${r.createdAt?' · '+fmtReqDate(r.createdAt):''}</div>
+        ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
+        <div class="act-row"><input id="pa_${r.id}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm</button></div>
+      </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
+    </div>
+
+    ${guestMsgs.length?`<div class="act-sec"><div class="act-h">Guest messages <span class="act-n">${guestMsgs.length}</span></div>
+      <div class="act-card"><div class="act-meta" style="margin:0 0 6px">Latest from ${esc(cur.leadName||'guest')}:</div>
+        <div class="act-msg">“${esc(guestMsgs[guestMsgs.length-1].text)}”</div>
+        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:''}
+
+    <div class="act-sec"><div class="act-h">Pre-arrival readiness</div>
+      ${ready.map(([lbl,ok])=>`<div class="rd-row"><span class="rd-ic ${ok?'ok':'no'}">${ok?'✓':'○'}</span>${esc(lbl)}</div>`).join('')}
+    </div>
+
+    ${cancelled.length?`<div class="act-sec"><div class="act-h">Cancelled by guest <span class="act-n">${cancelled.length}</span></div>
+      ${cancelled.map(r=>`<div class="rd-row" style="color:#9A2B2B"><span class="rd-ic no" style="background:#F3DADA;color:#9A2B2B">⊘</span>${esc(r.title||'Request')}</div>`).join('')}</div>`:''}
+
     <div class="glink"><div class="label">Guest link</div><div class="box"><input id="glink" readonly value="caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button onclick="copyLink()">Copy</button></div></div>`;
 }
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
+window.jumpChat=function(){ setView(true); const el=document.getElementById('staffMsg'); if(el){ try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} el.focus(); } };
 
 /* ---- save / publish ---- */
 function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote']; const o={}; k.forEach(x=>o[x]=cur[x]); return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; await loadList(); renderEditor(); renderPreview(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
-async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Saved'); } }
+async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
-window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; dirty=false; await loadList(cur.id); toast('Published — guest link is live'); } };
+window.publish=async function(){ if(!cur)return; await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(payload())}); const r=await api('/api/staff/stays/'+cur.id+'/publish',{method:'POST'}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Published — guest link is live'); } };
 
 boot();
 </script>
