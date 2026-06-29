@@ -956,7 +956,7 @@ function renderPreview(){
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
   const d=daysUntil(cur.checkin), n=nights(cur.checkin,cur.checkout);
   const reqs=(cur.requests||[]);
-  const pending=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled');
+  const pending=reqs.filter(r=>r.status!=='done'&&r.status!=='cancelled');
   const cancelled=reqs.filter(r=>r.status==='cancelled');
   const guestMsgs=(cur.messages||[]).filter(m=>m.from==='guest');
   const gc=cur.guestCheckin;
@@ -979,7 +979,9 @@ function renderPreview(){
         <div class="act-title">${esc(r.title||'Request')}</div>
         <div class="act-meta">${reqMeta(r)}${r.createdAt?' · '+fmtReqDate(r.createdAt):''}</div>
         ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
-        <div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm</button></div>
+        ${r.status==='confirmed'
+          ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(r.price):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
+          : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}')">Confirm</button></div>`}
       </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
     </div>
 

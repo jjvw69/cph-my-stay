@@ -2164,6 +2164,7 @@ function renderGolfGuide(){
 /* ---------------- REAL ESTATE (Forbes Global Properties) ---------------- */
 function renderRealEstate(){
   const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.6;margin-top:6px">${d}</div></div>`;
+  const listing=(name,url,img,price,specs)=>`<a href="${url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:9px"><div style="height:152px;background:#e9e4d8 url('${img}') center/cover no-repeat"></div><div style="padding:13px 15px"><b style="font-size:15px;color:var(--ink)">${name}</b><div style="font-size:12.5px;color:var(--soft);margin-top:2px">Casa de Campo · Dominican Republic</div><div style="font-size:13.5px;color:var(--accent);font-weight:600;margin-top:6px">${price}</div><div style="font-size:12.5px;color:var(--soft);margin-top:4px">${specs}</div><div style="font-size:12.5px;color:var(--accent);margin-top:9px">View on Forbes Global Properties ›</div></div></a>`;
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">REAL ESTATE &middot; FORBES GLOBAL PROPERTIES</div>
@@ -2184,6 +2185,9 @@ function renderRealEstate(){
       </div>
       <div style="font-size:12px;color:var(--soft);margin-top:9px;line-height:1.6">jvanwelie@dominicanrepublicfgp.com<br>+1 809 697 4404</div>
     </div>
+    <div class="sec-title">My Casa de Campo listings</div>
+    ${listing('Costamar 10','https://dominicanrepublicfgp.com/properties/costamar-10/','https://dominicanrepublicfgp.com/wp-content/uploads/2026/01/12-1.webp','Price upon request','6 beds &middot; 6 baths &middot; 23,681 sq ft &middot; oceanfront')}
+    ${listing('Vereda 16','https://dominicanrepublicfgp.com/properties/vereda-16/','https://dominicanrepublicfgp.com/wp-content/uploads/2026/02/e95fb21e-97a5-4ac2-81c6-da0316e0e982-scaled.jpg','US$4,300,000','6 beds &middot; 6 baths &middot; 10,760 sq ft')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Arrange a viewing</b>
       <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reach out to Jan directly to tour a villa or explore buying &mdash; or browse the current listings.</div>
