@@ -922,7 +922,6 @@ function renderEditor(){
 
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
-      <div class="f"><label>Wi-Fi handover</label><input value="${esc(cur.wifiHandover)}" oninput="set('wifiHandover',this.value)"></div>
       <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea></div>
     </div></div>
 
@@ -987,7 +986,6 @@ function renderPreview(){
     ['Arrival meals', !!(cur.mealPlan&&['breakfast','lunch','dinner'].some(k=>cur.mealPlan[k]&&(cur.mealPlan[k].date||cur.mealPlan[k].desc)))],
     ['Guest registration', !!(cur.guestList&&cur.guestList.length)],
     ['Transfer arranged', !!cur.transferArranged],
-    ['Wi-Fi handover set', !!(cur.wifiName||cur.wifiHandover)],
   ];
   const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
   // Slimmed to its unique value: the live action queue + a reply shortcut + the guest link.
