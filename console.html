@@ -894,7 +894,7 @@ function renderEditor(){
       </div>`).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''}
 
-    <div class="sec"><h3>Concierge chat ${cur.messages&&cur.messages.length?`<span class="reqcount">${cur.messages.length}</span>`:''}</h3>
+    <div class="sec"><h3>Concierge chat ${cur.messages&&cur.messages.length?`<span style="font-weight:400;color:var(--soft);font-size:11.5px;letter-spacing:0;text-transform:none;margin-left:6px">${cur.messages.length} message${cur.messages.length==1?'':'s'} · ${(cur.messages||[]).filter(m=>m.from==='guest').length} from guest</span>`:''}</h3>
       <div class="reqlist">${(cur.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
         <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?(esc(cur.leadName||'Guest')+(mm.via==='whatsapp'?' · WhatsApp':mm.via==='sms'?' · SMS':'')):(mm.auto?'Auto-message ✦':'You')}</div>
         <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div>
@@ -972,15 +972,11 @@ function renderPreview(){
     ['Wi-Fi handover set', !!(cur.wifiName||cur.wifiHandover)],
   ];
   const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
+  // Slimmed to its unique value: the live action queue + a reply shortcut + the guest link.
+  // (Status, villa, arrival, money, guest-activity and readiness all live in the vitals bar now.)
   host.innerHTML=`
-    <div class="label">Guest activity</div>
+    <div class="label">Action panel</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
-    <div class="apv-head">
-      <div class="apv-villa">${esc(vName)}</div>
-      <div class="apv-sub">${d==null?'Dates not set':('Arriving in '+d+' day'+(d===1?'':'s'))}${n!=null?' · '+n+' night'+(n===1?'':'s'):''}</div>
-      <div class="apv-sub">✉ ${esc(c.name||'Concierge —')} <span style="white-space:nowrap">${guestPulse(cur.guestLastSeen)}</span></div>
-      ${(function(){const rev=reqs.filter(r=>r.status==='confirmed').reduce((a,r)=>a+(Number(String(r.price||'').replace(/[^0-9.]/g,''))||0),0);const cn=reqs.filter(r=>r.status==='confirmed').length;return rev>0?`<div class="apv-rev">✦ $${rev.toLocaleString()} confirmed add-ons · ${cn} booked</div>`:'';})()}
-    </div>
 
     <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>
       ${pending.length?pending.map(r=>`<div class="act-card warn">
@@ -991,17 +987,10 @@ function renderPreview(){
       </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
     </div>
 
-    ${guestMsgs.length?`<div class="act-sec"><div class="act-h">Guest messages <span class="act-n">${guestMsgs.length}</span></div>
-      <div class="act-card"><div class="act-meta" style="margin:0 0 6px">Latest from ${esc(cur.leadName||'guest')}:</div>
+    ${guestMsgs.length?`<div class="act-sec"><div class="act-h">Latest guest message</div>
+      <div class="act-card"><div class="act-meta" style="margin:0 0 6px">From ${esc(cur.leadName||'guest')}:</div>
         <div class="act-msg">“${esc(guestMsgs[guestMsgs.length-1].text)}”</div>
         <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:''}
-
-    <div class="act-sec"><div class="act-h">Pre-arrival readiness</div>
-      ${ready.map(([lbl,ok])=>`<div class="rd-row"><span class="rd-ic ${ok?'ok':'no'}">${ok?'✓':'○'}</span>${esc(lbl)}</div>`).join('')}
-    </div>
-
-    ${cancelled.length?`<div class="act-sec"><div class="act-h">Cancelled by guest <span class="act-n">${cancelled.length}</span></div>
-      ${cancelled.map(r=>`<div class="rd-row" style="color:#9A2B2B"><span class="rd-ic no" style="background:#F3DADA;color:#9A2B2B">⊘</span>${esc(r.title||'Request')}</div>`).join('')}</div>`:''}
 
     <div class="glink"><div class="label">Guest link</div><div class="box"><input id="glink" readonly value="caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button onclick="copyLink()">Copy</button></div></div>`;
 }
