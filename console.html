@@ -66,9 +66,11 @@
   .pill.draft{background:var(--drbg);color:var(--drtx)}
   .pill.needsinfo{background:var(--nibg);color:var(--nitx)}
   .reqbadge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#9E5B43;color:#fff}
-  .srcpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;vertical-align:middle}
-  .srcpill.direct{background:#E4EEE6;color:#3F6B4E}
-  .srcpill.partner{background:#EFEADD;color:#6E5C39;border:1px solid #E2D9C6}
+  .srcpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px}
+  .srcpill.direct{background:#E8EEF5;color:#3E5675;border:1px solid #D4DEEC}
+  .srcpill.partner{background:#F1E9F2;color:#6E4A72;border:1px solid #E1D0E4}
+  .pillrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+  .pillrow .pill,.pillrow .srcpill,.pillrow .reqbadge,.pillrow .fupill{margin:0;vertical-align:middle}
   .fupill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#E7EBE6;color:#5B6B5F}
   .fupill.due{background:#F4E4C7;color:#8A5A1E}
   .fupill.over{background:#F2D7CF;color:#9E3B2A}
@@ -537,7 +539,7 @@ function renderList(){
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
       <div class="g">${esc(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}</div>`;
+      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}</div></div>`;
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
