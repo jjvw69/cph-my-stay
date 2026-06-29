@@ -49,6 +49,9 @@
   .newbtn{font-size:14px;color:var(--accent);font-weight:500}
   .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;margin-bottom:12px}
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
+  .staycard.unread{border-color:#E4B9B0;box-shadow:inset 3px 0 0 #C0392B}
+  .staycard .g{display:flex;align-items:center}
+  .unread-dot{width:9px;height:9px;border-radius:50%;background:#C0392B;display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
@@ -274,6 +277,12 @@ const SEAL="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/
 document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=SEAL;
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = working copy
+
+/* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
+function getSeen(){ try{ return JSON.parse(localStorage.getItem('cph_console_seen')||'{}')||{}; }catch(e){ return {}; } }
+function setSeen(m){ try{ localStorage.setItem('cph_console_seen',JSON.stringify(m)); }catch(e){} }
+function markViewed(stay){ if(!stay||!stay.id)return; const m=getSeen(); m[stay.id]={req:(stay.requests||[]).length,msg:(stay.messages||[]).filter(x=>x.from==='guest').length}; setSeen(m); }
+function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?seen.req:0) || (s.guestMsgs||0)>(seen?seen.msg:0); }
 async function api(path,opts={}){ const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts)); let j={}; try{j=await r.json();}catch(e){} return {status:r.status,ok:r.ok&&j.ok!==false,body:j}; }
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2400); }
 
@@ -323,6 +332,7 @@ async function refreshCurrent(){
   // Re-render, preserving any in-progress typing/scroll.
   if(!dirty){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
   const pS=snapshotInputs('preview'); renderPreview(); restoreInputs('preview',pS);
+  markViewed(cur); renderList();
   if(newReqs>0){ toast('New request from '+(cur.leadName||'guest')); chime(); }
   else if(newMsgs>0){ toast('New message from '+(cur.leadName||'guest')); chime(); }
 }
@@ -369,8 +379,9 @@ function renderList(){
     const srcB=s.source?`<span class="srcpill ${isDirect?'direct':'partner'}">${isDirect?'Direct':esc(s.source)}</span>`:'';
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
-    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''}" onclick="selectStay('${s.id}')">
-      <div class="g">${esc(s.guest)}</div>
+    const unread=isUnread(s);
+    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
+      <div class="g">${esc(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
       <span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}</div>`;
   }).join('');
@@ -379,7 +390,7 @@ function setView(detail){ const a=document.getElementById('app'); if(a)a.classLi
 window.backToList=function(){ setView(false); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
-  const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); renderList(); renderEditor(); renderPreview(); setView(true); } };
+  const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); renderList(); renderEditor(); renderPreview(); setView(true); } };
 
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
