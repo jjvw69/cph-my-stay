@@ -1036,11 +1036,6 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select>`,
     rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   },
-  arrivalmeals: {
-    notePlaceholder:'Dishes or cuisine you would like, number of guests, any dietary needs or allergies…',
-    selects:`<label class="reqlbl">Which meal</label><select id="rqService"><option>Breakfast / Desayuno</option><option>Lunch / Comida</option><option>Dinner / Cena</option><option>All-day / multiple meals</option></select>`,
-    rates:`<b>ARRIVAL MEALS</b><div class="rtnote">Tell us the meal, date and time, and the dishes you'd like. We can have everything ready for your arrival or arrange a private chef to cook in your villa — your concierge confirms options and pricing.</div>`
-  },
   nannies: {
     noGuests:true,
     selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Daytime nanny</option><option>Evening babysitting</option></select>`,
@@ -1411,6 +1406,7 @@ function renderPushed(v){
   if(v==='dineguide') return renderDiningGuide();
   if(v==='guestlist') return renderGuestList();
   if(v==='grocerylist') return renderGroceryList();
+  if(v==='mealplan') return renderMealsPlan();
   if(v==='plan') return renderPlan();
   if(v==='discover') return renderDiscover();
   if(v==='golfguide') return renderGolfGuide();
@@ -1548,6 +1544,10 @@ function addonRow(it){
   if(it.id==='grocery'){
     const saved=(state.stay&&state.stay.grocery&&state.stay.grocery.items&&state.stay.grocery.items.length)?` <span style="font-size:10px;background:#E2EAE0;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">${state.stay.grocery.items.length} items saved</span>`:'';
     return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openGrocery()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your grocery list →':'Build your grocery list →'}</button></div></span></div>`;
+  }
+  if(it.id==='arrivalmeals'){
+    const mp=state.stay&&state.stay.mealPlan; const saved=(mp&&['breakfast','lunch','dinner'].some(k=>mp[k]&&(mp[k].date||mp[k].time||mp[k].guests||mp[k].desc)))?` <span style="font-size:10px;background:#E2EAE0;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Saved</span>`:'';
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openMeals()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your arrival meals →':'Plan your arrival meals →'}</button></div></span></div>`;
   }
   return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap"><button onclick="openReq('addon','${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent)">Add to itinerary</button><button onclick="askConcierge('${esc(it.name)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge</button></div></span></div>`;
 }
@@ -1834,6 +1834,60 @@ function renderGroceryList(){
       <button onclick="grocEmail()" style="flex:1;min-width:110px;background:#EFE9DC;color:#1F2A24;border-radius:11px;padding:11px 12px;font-size:13px">Email</button>
     </div>`;
   shell('Grocery list', inner);
+}
+
+/* ---------------- ARRIVAL MEALS (PDF-style: breakfast / lunch / dinner) ---------------- */
+const MEALS_DEF=[['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
+window.openMeals=function(){
+  const mp=(state.stay&&state.stay.mealPlan)||{};
+  state._meals={note:mp.note||''}; MEALS_DEF.forEach(([k])=>{ state._meals[k]=Object.assign({},mp[k]); });
+  push('mealplan');
+};
+window.mealMeal=function(key,field,val){ if(!state._meals[key])state._meals[key]={}; state._meals[key][field]=val; };
+function mealsText(){
+  const M=state._meals||{}; const s=state.stay; const L=[];
+  L.push('ARRIVAL MEALS'); L.push((s.villa.name||'')+(s.guest.family?(' — '+s.guest.family+' family'):'')); L.push('');
+  MEALS_DEF.forEach(([k,lbl])=>{ const m=M[k]||{}; if(m.date||m.time||m.guests||m.desc){ L.push(lbl.toUpperCase());
+    const meta=[m.date?('Date: '+m.date):'',m.time?('Time: '+m.time):'',m.guests?('Guests: '+m.guests):''].filter(Boolean).join(' · '); if(meta)L.push(meta);
+    if(m.desc)L.push('Dishes: '+m.desc); L.push(''); } });
+  if(M.note) L.push('NOTES: '+M.note);
+  return L.join('\n');
+}
+window.mealsSave=async function(){
+  const M=state._meals||{}; const body={note:M.note||''}; MEALS_DEF.forEach(([k])=>{ body[k]=M[k]||{}; });
+  const r=await api('/api/mealplan',{method:'POST',body:JSON.stringify(body)});
+  if(r.ok&&r.body.mealPlan){ state.stay.mealPlan=r.body.mealPlan; toast('Arrival meals saved — your concierge can see it'); } else toast('Could not save — please try again');
+};
+window.mealsWhatsApp=function(){ const ph=(((state.stay.concierge&&state.stay.concierge.phone)||'')+'').replace(/[^0-9]/g,'')||'18297638801'; window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(mealsText()),'_blank'); };
+window.mealsEmail=function(){ const subj='Arrival meals — '+(state.stay.villa.name||'')+' ('+(state.stay.guest.family||state.stay.guest.lastName||'')+')'; window.location.href='mailto:concierge@caribbeanparadisehomes.com?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(mealsText()); };
+window.mealsPrint=function(){
+  const body=mealsText().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Arrival meals</title>'
+    +'<style>*{box-sizing:border-box}body{margin:0;color:#1F2A24;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}.wrap{max-width:680px;margin:0 auto;padding:26px 22px;font-size:14px;line-height:1.55}@media print{.noprint{display:none!important}}@page{margin:14mm}</style></head>'
+    +'<body><div class="wrap">'+body+'<button onclick="window.print()" class="noprint" style="margin:26px auto 0;display:block;background:#16241E;color:#fff;border:0;border-radius:11px;padding:12px 20px;font-size:15px;cursor:pointer">Print / Save as PDF</button></div></body></html>';
+  const win=window.open('','_blank'); if(!win){ toast('Allow pop-ups, then tap Print again'); return; }
+  win.document.open(); win.document.write(html); win.document.close(); try{ win.focus(); }catch(e){}
+  setTimeout(function(){ try{ win.print(); }catch(e){} }, 500);
+};
+function renderMealsPlan(){
+  const M=state._meals||{};
+  const blocks=MEALS_DEF.map(([k,lbl])=>{ const m=M[k]||{};
+    return `<div class="card" style="padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${lbl}</b>
+      <div style="display:flex;gap:9px;margin-top:9px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><label class="reqlbl">Date</label><input type="date" value="${esc(m.date||'')}" oninput="mealMeal('${k}','date',this.value)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="flex:1;min-width:90px"><label class="reqlbl">Time</label><input value="${esc(m.time||'')}" oninput="mealMeal('${k}','time',this.value)" placeholder="e.g. 8 AM" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="width:78px"><label class="reqlbl">Guests</label><input value="${esc(m.guests||'')}" oninput="mealMeal('${k}','guests',this.value)" inputmode="numeric" placeholder="#" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div></div>
+      <label class="reqlbl" style="margin-top:9px">Meal / dishes</label><textarea rows="2" oninput="mealMeal('${k}','desc',this.value)" placeholder="What you'd like for ${esc(lbl.split(' / ')[0].toLowerCase())}…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(m.desc||'')}</textarea></div>`;
+  }).join('');
+  const inner=`
+    <div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:4px">Tell us about any meals you'd like ready for your arrival — fill in the ones you want and leave the rest blank. A private chef can be arranged, or your concierge can have everything stocked and prepared. Save it to keep it on your phone, then send it by WhatsApp or email.</div>
+    ${blocks}
+    <label class="reqlbl" style="margin-top:14px">Notes / dietary &amp; allergies</label>
+    <textarea oninput="state._meals.note=this.value" rows="2" placeholder="Allergies, dietary needs, preferences…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(M.note||'')}</textarea>
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="mealsSave()">Save meals</button>
+    <div style="display:flex;gap:9px;margin-top:10px;flex-wrap:wrap">
+      <button onclick="mealsPrint()" style="flex:1;min-width:110px;background:#EFE9DC;color:#1F2A24;border-radius:11px;padding:11px 12px;font-size:13px">Print / PDF</button>
+      <button onclick="mealsWhatsApp()" style="flex:1;min-width:110px;background:#25D366;color:#fff;border-radius:11px;padding:11px 12px;font-size:13px">WhatsApp</button>
+      <button onclick="mealsEmail()" style="flex:1;min-width:110px;background:#EFE9DC;color:#1F2A24;border-radius:11px;padding:11px 12px;font-size:13px">Email</button>
+    </div>`;
+  shell('Arrival meals', inner);
 }
 
 /* ---------------- DINING GUIDE ---------------- */

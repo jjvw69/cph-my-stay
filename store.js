@@ -372,6 +372,17 @@ function saveGrocery(reference, data) {
   s.grocery = { items, other, note: norm(data.note).slice(0, 600), updatedAt: Date.now() };
   s.updatedAt = Date.now(); persistStays(); return s.grocery;
 }
+/** Guest submits/updates their arrival-meals plan (breakfast / lunch / dinner each with date,
+ *  time, guests and dishes). Persisted on the stay; shows in the Concierge Console. */
+function saveMealPlan(reference, data) {
+  const s = findPublishedStayByRef(reference); if (!s) return null; data = data || {};
+  const out = { updatedAt: Date.now(), note: norm(data.note).slice(0, 600) };
+  ['breakfast', 'lunch', 'dinner'].forEach(k => {
+    const m = data[k] || {};
+    out[k] = { date: norm(m.date).slice(0, 20), time: norm(m.time).slice(0, 20), guests: norm(m.guests).slice(0, 10), desc: norm(m.desc).slice(0, 500) };
+  });
+  s.mealPlan = out; s.updatedAt = Date.now(); persistStays(); return out;
+}
 /** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */
 function setGuestList(reference, guests) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
@@ -476,6 +487,7 @@ function toGuestStay(s) {
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     grocery: s.grocery || null,
+    mealPlan: s.mealPlan || null,
   };
 }
 
@@ -503,7 +515,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
