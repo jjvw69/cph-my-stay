@@ -158,6 +158,13 @@
   .ebtns button{font-size:14px;padding:9px 14px;border-radius:10px}
   .b-out{border:1px solid var(--line);background:#fff;color:var(--ink)}
   .b-fill{background:var(--accent);color:#fff}
+  .emode{display:inline-flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px;background:#fff}
+  .emode button{border:0;background:#fff;color:var(--soft);padding:8px 18px;font-size:13.5px;font-family:var(--ui);cursor:pointer}
+  .emode button.on{background:var(--accent);color:#fff;font-weight:600}
+  .chatwrap{display:flex;flex-direction:column}
+  .chatscroll{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+  .chatcompose{display:flex;gap:8px;margin-top:11px}
+  .chatcompose input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14.5px;font-family:var(--ui)}
   .vitals{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
   .vrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:7px 0;border-bottom:1px solid #EFF1EC}
   .vrow:first-child{padding-top:0}
@@ -744,6 +751,20 @@ function stayVitals(s){
     <div class="vready">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
   </div>`;
 }
+/* Center-column mode: 'edit' (full stay editor) or 'chat' (full-height conversation). */
+let editorMode='edit';
+window.setEditorMode=function(m){ editorMode=(m==='chat')?'chat':'edit'; renderEditor(); if(editorMode==='chat'){ const el=document.getElementById('staffMsg'); if(el)el.focus(); } };
+function chatPanelFull(s){
+  const msgs=(s.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
+    <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?(esc(s.leadName||'Guest')+(mm.via==='whatsapp'?' · WhatsApp':mm.via==='sms'?' · SMS':'')):(mm.auto?'Auto-message ✦':'You')}<span style="float:right;font-weight:400;color:#9AA49B">${mm.at?fmtReqDate(mm.at):''}</span></div>
+    <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div></div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>';
+  return `<div class="chatwrap">
+    <div id="chatScroll" class="chatscroll">${msgs}</div>
+    <div class="tmpl">${['On it — looking into this now.','Confirmed ✓ — the details are in your app.','Welcome! Anything you need, just message here.','Your airport transfer is all arranged.','I’ll follow up shortly with options and pricing.'].map(t=>`<button data-t="${esc(t)}" onclick="fillMsg(this.dataset.t)">${esc(t)}</button>`).join('')}</div>
+    <div class="chatcompose"><input id="staffMsg" placeholder="Reply to ${esc(s.leadName||'the guest')}…" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()">Send</button></div>
+    <div class="counter" style="margin-top:6px">The guest sees your replies live in their app chat. WhatsApp/SMS replies land here too.</div>
+  </div>`;
+}
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
   const v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
@@ -752,11 +773,14 @@ function renderEditor(){
     const on=(cur.offeredAddOnIds||[]).includes(a.id);
     return `<button class="chip ${on?'on':''}" onclick="toggleAddon('${a.id}')">${esc(a.name)}</button>`;
   }).join('');
-  document.getElementById('editor').innerHTML=`
+  const _mc=cur.messages&&cur.messages.length?' · '+cur.messages.length:'';
+  const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
-
+    <div class="emode"><button class="${editorMode==='edit'?'on':''}" onclick="setEditorMode('edit')">✎ Edit</button><button class="${editorMode==='chat'?'on':''}" onclick="setEditorMode('chat')">✉ Conversation${_mc}</button></div>`;
+  if(editorMode==='chat'){ document.getElementById('editor').innerHTML=head+chatPanelFull(cur); const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight; return; }
+  document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
 
     ${activityTimeline(cur)}
