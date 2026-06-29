@@ -499,6 +499,18 @@ function addGuestMessage(reference, text) {
   const m = { id: genId(), from: 'guest', text: t, at: Date.now() };
   s.messages.push(m); s.updatedAt = Date.now(); persistStays(); return m;
 }
+/** Match an inbound phone number (e.g. from a WhatsApp webhook) to a published stay by the guest's phone. */
+function digitsOf(p) { return String(p == null ? '' : p).replace(/\D/g, ''); }
+function findStayByGuestPhone(phone) { const a = digitsOf(phone).slice(-10); if (a.length < 8) return null; return stays.find(s => s.status === 'published' && digitsOf(s.phone).slice(-10) === a) || null; }
+/** Append a guest message that arrived over an external channel (WhatsApp/SMS) to the right stay's chat. */
+function addGuestMessageByPhone(phone, text, via) {
+  const s = findStayByGuestPhone(phone); if (!s) return null;
+  if (!Array.isArray(s.messages)) s.messages = [];
+  const t = norm(text).slice(0, 1000); if (!t) return null;
+  const m = { id: genId(), from: 'guest', text: t, at: Date.now(), via: via || 'whatsapp' };
+  s.messages.push(m); s.updatedAt = Date.now(); s.guestLastSeen = Date.now(); persistStays();
+  return { stay: s, message: m };
+}
 /** Concierge replies from the Console (keyed by stay id). */
 function addStaffMessage(stayId, text) {
   const s = getStay(stayId); if (!s) return null;
@@ -591,7 +603,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

@@ -47,6 +47,7 @@ function setCookie(res,name,token,hours){ const a=[`${name}=${encodeURIComponent
 function clearCookie(res,name){ res.setHeader('Set-Cookie',`${name}=; HttpOnly; Path=/; Max-Age=0`+(SECURE?'; Secure':'')); }
 
 function readBody(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>2e6){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); try{resolve(d?JSON.parse(d):{});}catch{resolve({});} }); req.on('error',()=>resolve({})); }); }
+function readForm(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>2e5){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); const o={}; d.split('&').forEach(p=>{ if(!p)return; const i=p.indexOf('='); const k=i<0?p:p.slice(0,i); const v=i<0?'':p.slice(i+1); try{ o[decodeURIComponent(k.replace(/\+/g,' '))]=decodeURIComponent(v.replace(/\+/g,' ')); }catch(e){} }); resolve(o); }); req.on('error',()=>resolve({})); }); }
 function sendJSON(res,code,obj){ const s=JSON.stringify(obj); res.writeHead(code,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(s)}); res.end(s); }
 function sendHTML(res,buf){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Expires':'0'}); res.end(buf); }
 
@@ -138,6 +139,18 @@ async function guestCheckinSave(req,res){ const s=guestSession(req); if(!s) retu
 async function guestSaveGrocery(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGrocery(s.ref, b||{}); if(g===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[grocery] %s (%d items)',s.ref,(g.items||[]).length); return sendJSON(res,200,{ok:true,grocery:g}); }
 async function guestSaveMealPlan(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const mp=store.saveMealPlan(s.ref, b||{}); if(mp===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[mealplan] %s',s.ref); return sendJSON(res,200,{ok:true,mealPlan:mp}); }
 
+// ---- Inbound WhatsApp/SMS (Twilio webhook). Lands the guest's reply in the right stay's chat. ----
+// Configure Twilio: the WhatsApp number's "When a message comes in" → POST {APP_URL}/api/twilio/inbound
+async function twilioInbound(req,res){
+  const b=await readForm(req);
+  const from=b.From||b.from||''; const body=b.Body||b.body||'';
+  // Guard: only lands if the sender's number matches a published stay's guest phone.
+  const r=store.addGuestMessageByPhone(from,body,/whatsapp/i.test(from)?'whatsapp':'sms');
+  if(r) console.log('[wa-in] %s → stay %s "%s"',from,r.stay.id,String(body).slice(0,40));
+  else console.log('[wa-in] no matching published stay for %s',from);
+  res.writeHead(200,{'Content-Type':'text/xml'}); res.end('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
+}
+
 // ============================ STAFF API ============================
 async function staffLogin(req,res){
   if(throttled('s:'+ip(req))) return sendJSON(res,429,{ok:false,error:'Too many attempts. Please wait a few minutes.'});
@@ -179,6 +192,7 @@ async function route(req,res){
   if(m==='POST'&&url==='/api/guestlist') return guestGuestList(req,res);
   if(m==='POST'&&url==='/api/grocery') return guestSaveGrocery(req,res);
   if(m==='POST'&&url==='/api/mealplan') return guestSaveMealPlan(req,res);
+  if(m==='POST'&&url==='/api/twilio/inbound') return twilioInbound(req,res);
 
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);
@@ -196,7 +210,7 @@ async function route(req,res){
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const sm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/messages$/);
-    if(sm&&m==='POST'){ const b=await readBody(req); const msg=store.addStaffMessage(sm[1],String(b.text||'')); return msg?sendJSON(res,200,{ok:true,message:msg}):sendJSON(res,400,{ok:false,error:'Empty or not found'}); }
+    if(sm&&m==='POST'){ const b=await readBody(req); const msg=store.addStaffMessage(sm[1],String(b.text||'')); if(msg){ const st=store.getStay(sm[1]); const ph=st?toWhatsAppNum(st.phone):''; if(ph&&TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM){ sendWhatsAppTo(ph,msg.text,(st.reference||'')); } } return msg?sendJSON(res,200,{ok:true,message:msg}):sendJSON(res,400,{ok:false,error:'Empty or not found'}); }
     const mm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)(\/publish)?$/);
     if(mm){
       const id=mm[1];
