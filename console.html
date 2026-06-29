@@ -615,13 +615,16 @@ function activityTimeline(s){
    each renderEditor; the live-sync engine already preserves details[id].open
    (snapshotInputs/restoreInputs), so a section stays open/closed across refreshes.
    Sections carry a stable id derived from their heading so state persists. */
-const COLLAPSED_DEFAULT = {}; // heading-slug -> start collapsed (rest start open)
+// Sections that should START collapsed ("tap to expand"); all others start open.
+const COLLAPSED_DEFAULT = { 'csec-grocery-pre-stocking':1, 'csec-add-ons-offered-to-guest':1, 'csec-concierge-chat':1 };
 function secSlug(t){ return 'csec-'+String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,44); }
 function collapsibleSections(){
   const ed=document.getElementById('editor'); if(!ed) return;
   ed.querySelectorAll('div.sec').forEach(div=>{
     const h3=div.querySelector(':scope > h3'); if(!h3) return;
-    const slug=secSlug(h3.textContent);
+    // stable slug from the heading TEXT only (strip live count badges so the key never shifts)
+    const lab=h3.cloneNode(true); lab.querySelectorAll('.reqcount,.tl-hint').forEach(e=>e.remove());
+    const slug=secSlug(lab.textContent);
     const det=document.createElement('details'); det.className='sec'; det.id=slug;
     det.open=!COLLAPSED_DEFAULT[slug];
     const sum=document.createElement('summary'); sum.style.cssText='cursor:pointer;outline:none';
