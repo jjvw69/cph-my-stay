@@ -267,13 +267,14 @@ function hydrateCheckin(){
       airport: gc.airport||b.airport||'LRM',
       flight: gc.flight||'', transferType: gc.transferType||null,
       occasion: gc.occasion||null, dietary: gc.dietary||'',
+      transportMode: gc.transportMode||null, transportCompany: gc.transportCompany||'', transportArrival: gc.transportArrival||'', transportDeparture: gc.transportDeparture||'',
       childAges:(gc.childAges||[]).slice(),
       docs:(s.guestList||[]).map(g=>({name:g.name||'',passport:g.passport||''})),
       done:true };
   } else {
     state.checkin={ step:0, adults:(b.adults||2), children:(b.children||0),
       airport: b.airport||'LRM', flight: b.flight||'',
-      transferType:null, occasion:null, dietary:'', childAges:[], docs:[], done:false };
+      transferType:null, occasion:null, dietary:'', transportMode:null, transportCompany:'', transportArrival:'', transportDeparture:'', childAges:[], docs:[], done:false };
   }
 }
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
@@ -1698,35 +1699,46 @@ function setupMapZoom(){
 }
 
 function renderCheckin(){
-  const c=state.checkin; const steps=['Guest party','Travel documents','Preferences'];
+  const c=state.checkin; const steps=['Guest party','Travel documents','Transportation','Preferences'];
   const step=c.step; const total=(c.adults||1)+(c.children||0);
   const bar=`<div style="display:flex;gap:5px;padding:0 22px 4px">${steps.map((_,i)=>`<div style="flex:1;height:4px;border-radius:3px;background:${i<=step?'var(--accent)':'var(--line)'}"></div>`).join('')}</div>`;
   let inner='';
   if(step===0){ const ages=(c.childAges||(c.childAges=[])); ages.length=c.children; for(let i=0;i<c.children;i++){ if(ages[i]==null) ages[i]=''; }
-    inner=`<div class="label">STEP 1 OF 3 · GUEST PARTY</div>
+    inner=`<div class="label">STEP 1 OF 4 · GUEST PARTY</div>
     <div class="card"><b style="font-weight:500">Adults</b><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('adults',-1)">−</button><span class="display" style="font-size:24px">${c.adults}</span><button onclick="cinAdj('adults',1)">+</button></div></div>
     <div class="card"><b style="font-weight:500">Children</b><div style="font-size:12.5px;color:var(--soft);margin-top:3px">Under 18 years old</div><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>
     ${c.children>0?`<div class="card"><b style="font-weight:500">Children's ages</b><div style="font-size:12.5px;color:var(--soft);margin:3px 0 4px">Enter each child's age (in years)</div>${Array.from({length:c.children}).map((_,i)=>`<div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span style="font-size:13.5px;color:var(--soft);min-width:62px">Child ${i+1}</span><input type="number" min="0" max="17" inputmode="numeric" value="${esc(String(ages[i]!=null?ages[i]:''))}" oninput="cinAge(${i},this.value)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:11px;font-family:var(--ui)" placeholder="Age"></div>`).join('')}</div>`:''}`;
   } else if(step===1){ const docs=c.docs||(c.docs=[]);
-    inner=`<div class="label">STEP 2 OF 3 · TRAVEL DOCUMENTS</div>
+    inner=`<div class="label">STEP 2 OF 4 · TRAVEL DOCUMENTS</div>
     <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">List each guest's full name and passport number for resort registration.</div>
     ${Array.from({length:total}).map((_,i)=>`<div class="card">
       <b style="font-weight:500;font-size:12px;letter-spacing:.05em;color:var(--soft);text-transform:uppercase">Guest ${i+1}</b>
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Full name (as on passport)" value="${esc((docs[i]||{}).name||'')}" oninput="cinDoc(${i},'name',this.value)">
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Passport number" value="${esc((docs[i]||{}).passport||'')}" oninput="cinDoc(${i},'passport',this.value)">
     </div>`).join('')}`;
+  } else if(step===2){ const tm=c.transportMode||'';
+    inner=`<div class="label">STEP 3 OF 4 · TRANSPORTATION</div>
+    <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">How would you like to handle your airport transfer to and from the villa?</div>
+    <div class="seg" style="flex-wrap:wrap"><button class="${tm==='organize'?'on':''}" onclick="cinTransport('organize')">Organize it for me</button><button class="${tm==='self'?'on':''}" onclick="cinTransport('self')">I'll arrange it myself</button></div>
+    ${tm==='organize'?`<div class="card" style="margin-top:12px"><div style="font-size:13.5px;color:var(--ink);line-height:1.55">Perfect — we'll arrange a private airport transfer and meet you on arrival. Add your flight details and we'll confirm everything before you travel.</div><button onclick="openReq('addon','transfer')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:10px 14px;font-size:13px;border:0;cursor:pointer">Add airport transfer details →</button></div>`:''}
+    ${tm==='self'?`<div class="card" style="margin-top:12px;background:#FBF2EC;border:1px solid #E3C4B6"><b style="font-size:13.5px;color:#9E5B43">Important — resort access</b><div style="font-size:13px;color:var(--ink);line-height:1.55;margin-top:4px">You must use a transport company that is authorized to enter Casa de Campo — for <b>both your arrival and your departure</b>. If you're not sure whether your company has resort access, please contact your concierge before booking.</div></div>
+    <div class="card"><b style="font-weight:500">Transport company</b><input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Company name" value="${esc(c.transportCompany||'')}" oninput="cinSet('transportCompany',this.value)"></div>
+    <div class="card"><b style="font-weight:500">Arrival details</b><input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Arrival flight · date · time" value="${esc(c.transportArrival||'')}" oninput="cinSet('transportArrival',this.value)"></div>
+    <div class="card"><b style="font-weight:500">Departure details</b><input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Departure flight · date · time" value="${esc(c.transportDeparture||'')}" oninput="cinSet('transportDeparture',this.value)"></div>`:''}`;
   } else {
     const docsDone=(c.docs||[]).filter(d=>d&&d.name).length;
+    const transp=c.transportMode==='organize'?'We arrange it':c.transportMode==='self'?('Self'+(c.transportCompany?' · '+c.transportCompany:'')):'Not set';
     const rev=(label,val,gstep)=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)"><span style="color:var(--soft);font-size:13px">${label}</span><span style="font-size:13px;text-align:right">${val} <button onclick="cinGo(${gstep})" style="border:0;background:none;color:var(--accent);font-size:13px;text-decoration:underline;cursor:pointer;padding:0 0 0 6px">Edit</button></span></div>`;
-    inner=`<div class="label">STEP 3 OF 3 · PREFERENCES</div>
+    inner=`<div class="label">STEP 4 OF 4 · PREFERENCES</div>
     <div class="card"><b style="font-weight:500">Occasion</b><div class="seg" style="flex-wrap:wrap">${['None','Family trip','Golf trip','Corporate retreat','Anniversary','Birthday','Honeymoon'].map(o=>`<button class="${c.occasion===o?'on':''}" onclick="cinOcc('${o}')">${o}</button>`).join('')}</div></div>
     <div class="card" style="background:#F6F3EC;border:1px solid var(--line)"><div style="font-size:12.5px;color:var(--soft);line-height:1.5">Allergies &amp; dietary needs are collected with your <b>grocery pre-stocking</b> and <b>arrival meals</b> — add them there so your concierge has the details alongside your food choices.</div></div>
     <div class="card"><b style="font-weight:600;display:block;margin-bottom:2px">Review before you submit</b>
       ${rev('Party',`${c.adults} adults${c.children?', '+c.children+' kids'+((c.childAges||[]).some(a=>a!=='')?' (ages '+(c.childAges||[]).filter(a=>a!=='').join(', ')+')':''):''}`,0)}
       ${rev('Documents',`${docsDone} of ${total} added`,1)}
+      ${rev('Transport',transp,2)}
     </div>`;
   }
-  const last=step===2;
+  const last=step===3;
   const cta=`<div class="cta-bar" style="display:flex;gap:10px">${step>0?`<button class="btn" style="background:#EFE9DC;color:#1F2A24;flex:0 0 36%" onclick="cinBack()">Back</button>`:''}<button class="btn" style="background:var(--accent);color:#fff;flex:1" onclick="cinNext()">${last?'Submit pre check-in':'Continue'}</button></div>`;
   shell('Pre check-in', bar+'<div style="padding-top:4px">'+inner+'</div>', cta);
 }
@@ -1739,8 +1751,10 @@ window.cinAir=function(a){ state.checkin.airport=a; render(); };
 window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
 window.cinTransfer=function(t){ state.checkin.transferType = state.checkin.transferType===t?null:t; render(); };
 window.cinDoc=function(i,k,v){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{}; d[i][k]=v; };
+window.cinTransport=function(m){ state.checkin.transportMode = state.checkin.transportMode===m?null:m; render(); };
+window.cinSet=function(k,v){ state.checkin[k]=v; };
 window.cinNext=async function(){
-  if(state.checkin.step<2){ state.checkin.step++; render(); return; }
+  if(state.checkin.step<3){ state.checkin.step++; render(); return; }
   await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});
   const docs=(state.checkin.docs||[]).filter(d=>d&&((d.name||'').trim()||(d.passport||'').trim())).map(d=>({name:d.name||'',passport:d.passport||''}));
   if(docs.length){ const gr=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests:docs})}); if(gr.ok&&gr.body.guestList) state.stay.guestList=gr.body.guestList; }

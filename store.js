@@ -553,6 +553,10 @@ function saveCheckin(reference, data) {
     flight: norm(data.flight).slice(0, 120),
     occasion: norm(data.occasion).slice(0, 60),
     dietary: norm(data.dietary).slice(0, 600),
+    transportMode: (data.transportMode === 'organize' || data.transportMode === 'self') ? data.transportMode : '',
+    transportCompany: norm(data.transportCompany).slice(0, 120),
+    transportArrival: norm(data.transportArrival).slice(0, 160),
+    transportDeparture: norm(data.transportDeparture).slice(0, 160),
     submittedAt: Date.now(),
   };
   // Keep the staff-facing arrival fields in sync with what the guest actually submitted,

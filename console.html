@@ -866,6 +866,9 @@ function renderEditor(){
       <div class="f"><label>Arrival airport</label><div class="seg">${['LRM','PUJ','SDQ'].map(a=>`<button class="${cur.airport===a?'on':''}" onclick="pick('airport','${a}')">${a}</button>`).join('')}</div></div>
       <div class="f"><label>Flight</label><input value="${esc(cur.flight)}" oninput="set('flight',this.value)"></div>
       <div class="f full"><div class="toggle"><div class="sw ${cur.transferArranged?'on':''}" onclick="pick('transferArranged',!cur.transferArranged)"></div> Private airport transfer arranged</div></div>
+      ${(function(){ const gc=cur.guestCheckin; if(!gc||!gc.transportMode) return ''; const self=gc.transportMode==='self';
+        return `<div class="f full"><label>Guest transport choice (pre check-in)</label><div class="reqmeta" style="margin-top:4px;line-height:1.5;${self?'color:#9E5B43':''}">${self?'<b>Guest is arranging transport themselves</b> — confirm their company has resort access for arrival &amp; departure.':'<b>Guest asked us to organize the transfer.</b>'}${self&&gc.transportCompany?'<br>Company: <b>'+esc(gc.transportCompany)+'</b>':''}${self&&gc.transportArrival?'<br>Arrival: '+esc(gc.transportArrival):''}${self&&gc.transportDeparture?'<br>Departure: '+esc(gc.transportDeparture):''}</div></div>`;
+      })()}
     </div></div>
 
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
@@ -1041,7 +1044,7 @@ window.printStay=function(){
     <div class="ref">Booking ${esc(s.reference||'')} · ${esc((s.status||'').toUpperCase())} · printed ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
     <h2>Guest &amp; party</h2><table>${row('Lead guest',s.leadName)}${row('Email',s.email)}${row('Phone',s.phone)}${row('Party',((Number(s.adults)||0)+' adults'+(s.children?', '+s.children+' children':'')))}${row('Source',s.source)}</table>
     <h2>Villa &amp; stay</h2><table>${row('Villa',s.villaName||v.name)}${row('Internal name',s.villaInternal||v.internalName)}${row('Area',s.villaArea||v.area)}${row('Bedrooms / sleeps',[(s.villaSuites||v.suites),((s.villaSleeps||v.sleeps)?'sleeps '+(s.villaSleeps||v.sleeps):'')].filter(Boolean).join(' · '))}${row('Villa staff',s.staffIncluded)}${row('Check-in',[s.checkin,s.checkinTime].filter(Boolean).join(' · '))}${row('Check-out',[s.checkout,s.checkoutTime].filter(Boolean).join(' · '))}${row('Villa number',s.villaNumber)}${row('Registration #',s.registrationNumber)}${row('Wi-Fi',[s.wifiName,s.wifiPassword].filter(Boolean).join(' / '))}</table>
-    <h2>Arrival &amp; transfer</h2><table>${row('Airport',s.airport)}${row('Flight',s.flight)}${row('Private transfer',s.transferArranged?'Arranged':'Not arranged')}${gc?row('Guest submitted',[gc.airport,gc.flight,gc.transferType==='roundtrip'?'round-trip':gc.transferType==='oneway'?'one-way':'',gc.occasion].filter(Boolean).join(' · ')):''}${gc&&gc.dietary?row('Dietary',gc.dietary):''}</table>
+    <h2>Arrival &amp; transfer</h2><table>${row('Airport',s.airport)}${row('Flight',s.flight)}${row('Private transfer',s.transferArranged?'Arranged':'Not arranged')}${gc&&gc.transportMode?row('Guest transport',gc.transportMode==='self'?('Self-arranged'+(gc.transportCompany?' · '+gc.transportCompany:'')+(gc.transportArrival?' · arr '+gc.transportArrival:'')+(gc.transportDeparture?' · dep '+gc.transportDeparture:'')):'We organize it'):''}${gc?row('Guest submitted',[gc.airport,gc.flight,gc.transferType==='roundtrip'?'round-trip':gc.transferType==='oneway'?'one-way':'',gc.occasion].filter(Boolean).join(' · ')):''}${gc&&gc.dietary?row('Dietary',gc.dietary):''}</table>
     <h2>Requests</h2><ul>${reqs}</ul>
     <h2>Grocery pre-stocking</h2>${groc}
     <h2>Arrival meals</h2>${meals}
