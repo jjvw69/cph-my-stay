@@ -869,7 +869,26 @@ function renderEditor(){
     </div></div>
 
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
-      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div></div>
+      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div>
+      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+        <h3 style="font-size:14px;margin:0 0 4px">Services &amp; suppliers</h3>
+        <div class="counter" style="margin:0 0 10px">Supplier is internal — guests never see it. Custom services appear in every guest’s plan and are bookable.</div>
+        ${BOOT.addons.map(a=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
+          <div style="flex:1;min-width:0"><b style="font-size:13px">${esc(a.name)}</b>${a.custom?` <span style="font-size:10px;background:#F3ECDD;color:#7A5A2E;border-radius:6px;padding:1px 6px;white-space:nowrap">custom${a.price?' · '+esc(a.price):''}</span>`:''}<div style="font-size:11px;color:var(--soft)">${esc(a.category||'')}</div></div>
+          <input value="${esc(a.supplier||'')}" placeholder="Supplier" onchange="setServiceSupplier('${a.id}',this.value)" style="flex:0 0 148px;width:148px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;background:#fff">
+          ${a.custom?`<button onclick="deleteCustomServiceUI('${a.id}','${esc(a.name)}')" title="Delete service" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:9px;padding:7px 10px;font-size:13px;cursor:pointer">✕</button>`:''}
+        </div>`).join('')}
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:600;list-style:none">+ Add custom service</summary>
+          <div style="display:grid;gap:8px;margin-top:11px">
+            <input id="svcName" placeholder="Service name (e.g. Private sushi chef night)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+            <input id="svcPrice" placeholder="Price shown to guest (e.g. US$450)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+            <input id="svcDesc" placeholder="Short description guests will read" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+            <input id="svcSupplier" placeholder="Supplier (internal — optional)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+            <button onclick="addCustomServiceUI()" style="justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Add service</button>
+          </div>
+        </details>
+      </div></div>
 
     ${(cur.guestList&&cur.guestList.length)?`<div class="sec"><h3>Guest registration list <span class="reqcount">${cur.guestList.length}</span></h3>
       <div class="reqlist">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
@@ -934,6 +953,10 @@ window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElem
 window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); if(window.innerWidth>=1024){ renderPreview(); const el2=document.getElementById('staffMsg'); if(el2)el2.focus(); } else renderEditor(); } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
+async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(b.ok&&b.body&&b.body.addons) BOOT.addons=b.body.addons; renderEditor(); renderPreview(); }
+window.setServiceSupplier=async function(id,val){ const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({supplier:val})}); if(!r.ok){ alert(r.body.error||'Could not save supplier.'); return; } const a=BOOT.addons.find(x=>x.id===id); if(a)a.supplier=String(val||'').trim(); };
+window.addCustomServiceUI=async function(){ const name=(document.getElementById('svcName')||{}).value||''; const price=(document.getElementById('svcPrice')||{}).value||''; const desc=(document.getElementById('svcDesc')||{}).value||''; const supplier=(document.getElementById('svcSupplier')||{}).value||''; if(!name.trim()){ alert('Enter a service name.'); return; } const r=await api('/api/staff/services',{method:'POST',body:JSON.stringify({name,price,desc,supplier})}); if(!r.ok){ alert(r.body.error||'Could not add service.'); return; } await refreshServices(); toast&&toast('Service added — it now appears in every guest’s plan.'); };
+window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
 
 /* ---- preview ---- */
 function nights(a,b){ const d1=new Date(a),d2=new Date(b); if(isNaN(d1)||isNaN(d2))return null; return Math.max(0,Math.round((d2-d1)/864e5)); }

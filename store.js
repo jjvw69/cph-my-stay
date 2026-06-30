@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const STAYS_FILE = path.join(DATA_DIR, 'stays.json');
 const STAFF_FILE = path.join(DATA_DIR, 'staff.json');
+const SERVICES_FILE = path.join(DATA_DIR, 'services.json');
 
 // ---------------------------------------------------------------- seed catalogs
 // Concierge services & experiences (from caribbeanparadisehomes.com/guest-services). No rates shown — handled by the concierge.
@@ -227,6 +228,57 @@ let stays = readJSON(STAYS_FILE, []);
 let staff = readJSON(STAFF_FILE, []);
 function persistStays() { writeJSON(STAYS_FILE, stays); }
 function persistStaff() { writeJSON(STAFF_FILE, staff); }
+
+// ----- custom services + per-service suppliers (concierge-managed, persisted) -----
+// services = { customAddOns:[{id,category,name,price,desc,supplier}], suppliers:{ [builtinId]: 'Vendor name' } }
+let services = readJSON(SERVICES_FILE, { customAddOns: [], suppliers: {} });
+if (!services.customAddOns) services.customAddOns = [];
+if (!services.suppliers) services.suppliers = {};
+function persistServices() { writeJSON(SERVICES_FILE, services); }
+/** Built-in catalog (with any supplier override) + custom services. supplier is INTERNAL — never sent to guests. */
+function allAddOns() {
+  const builtins = ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: '', supplier: services.suppliers[a.id] || '', custom: false }));
+  const customs = (services.customAddOns || []).map(a => ({ id: a.id, category: a.category || 'Bespoke services', name: a.name, desc: a.desc || '', price: a.price || '', supplier: a.supplier || '', custom: true }));
+  return builtins.concat(customs);
+}
+/** What the console needs (includes supplier + price + custom flag). */
+function listServicesForStaff() { return allAddOns(); }
+function addCustomService(b) {
+  const name = String((b && b.name) || '').trim();
+  if (!name) return null;
+  const item = {
+    id: 'svc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    category: String((b && b.category) || 'Bespoke services').trim() || 'Bespoke services',
+    name, price: String((b && b.price) || '').trim(),
+    desc: String((b && b.desc) || '').trim(), supplier: String((b && b.supplier) || '').trim(),
+  };
+  services.customAddOns.push(item); persistServices(); return item;
+}
+function updateService(id, b) {
+  id = String(id || '');
+  const custom = services.customAddOns.find(a => a.id === id);
+  if (custom) {
+    if (b.name != null) custom.name = String(b.name).trim() || custom.name;
+    if (b.price != null) custom.price = String(b.price).trim();
+    if (b.desc != null) custom.desc = String(b.desc).trim();
+    if (b.category != null) custom.category = String(b.category).trim() || custom.category;
+    if (b.supplier != null) custom.supplier = String(b.supplier).trim();
+    persistServices(); return custom;
+  }
+  // built-in: only the supplier is editable
+  if (ADDON_CATALOG.some(a => a.id === id)) {
+    if (b.supplier != null) { const v = String(b.supplier).trim(); if (v) services.suppliers[id] = v; else delete services.suppliers[id]; persistServices(); }
+    return { id, supplier: services.suppliers[id] || '', custom: false };
+  }
+  return null;
+}
+function deleteCustomService(id) {
+  id = String(id || '');
+  const n = services.customAddOns.length;
+  services.customAddOns = services.customAddOns.filter(a => a.id !== id);
+  if (services.customAddOns.length === n) return false;
+  persistServices(); return true;
+}
 
 // --------------------------------------------------------------------- helpers
 const norm = s => String(s == null ? '' : s).trim();
@@ -589,7 +641,7 @@ function toGuestStay(s) {
     welcomeMessage: s.welcomeMessage || '',
     wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
-    addOns: ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, recommended: offered.has(a.id) })),
+    addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
@@ -625,6 +677,7 @@ seedStaffFromEnv();
 
 module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
+  allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
