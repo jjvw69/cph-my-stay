@@ -2164,7 +2164,18 @@ function renderGolfGuide(){
 /* ---------------- REAL ESTATE (Villas In Casa) ---------------- */
 function renderRealEstate(){
   const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.6;margin-top:6px">${d}</div></div>`;
-  const neigh=(name,url,img,price,desc)=>`<a href="${url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:9px"><div style="height:150px;background:#e9e4d8 url('${img}') center/cover no-repeat"></div><div style="padding:13px 15px"><b style="font-size:15px;color:var(--ink)">${name}</b><div style="font-size:12.5px;color:var(--soft);margin-top:2px">Casa de Campo&reg; &middot; Dominican Republic</div><div style="font-size:13.5px;color:var(--accent);font-weight:600;margin-top:6px">${price}</div><div style="font-size:12.5px;color:var(--soft);line-height:1.55;margin-top:5px">${desc}</div><div style="font-size:12.5px;color:var(--accent);margin-top:9px">Explore the guide ›</div></div></a>`;
+  const nrow=(name,url,price,desc)=>`<a href="${url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-top:8px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:14.5px;color:var(--ink)">${name} ›</b><span style="font-size:12.5px;color:var(--accent);font-weight:600;white-space:nowrap">${price}</span></div><div style="font-size:12.5px;color:var(--soft);line-height:1.5;margin-top:3px">${desc}</div></a>`;
+  const advisor=(name,title,photo,email,wa,phone)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:9px">
+      <div style="display:flex;align-items:center;gap:13px">
+        <img src="${photo}" alt="${esc(name)}" style="width:58px;height:58px;border-radius:50%;object-fit:cover;flex:0 0 auto;border:1px solid var(--line);filter:grayscale(100%)">
+        <div><b style="font-size:15px">${esc(name)}</b><div style="font-size:12.5px;color:var(--soft);margin-top:2px">${esc(title)}</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:12px">
+        <a href="mailto:${email}" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">Email</a>
+        <a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">WhatsApp / iMessage</a>
+      </div>
+      <div style="font-size:12px;color:var(--soft);margin-top:9px;line-height:1.6">${email}<br>${phone}</div>
+    </div>`;
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">REAL ESTATE &middot; VILLAS IN CASA</div>
@@ -2173,22 +2184,20 @@ function renderRealEstate(){
     </div>
     ${card('An independent buyer&rsquo;s guide', `<b>Villas In Casa</b>, operated by <b>Caribbean Paradise Homes</b>, has been at Casa de Campo&reg; since 2003. Honest, informed guidance on neighborhoods, pricing, ownership costs and how to buy &mdash; independent insight, no pressure, with answers usually within 24 hours.`)}
     ${card('From golf-view villas to oceanfront estates', `Entry villas and condos start under <b>US$1.5M</b>; golf- and ocean-view homes typically run <b>US$2M&ndash;$4M</b>; oceanfront and trophy estates reach <b>US$8M and beyond</b>. Foreigners have the same ownership rights as Dominican citizens, and most purchases close in <b>60&ndash;90 days</b>.`)}
-    <div class="sec-title">Your advisor</div>
-    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:2px">
-      <div style="display:flex;align-items:center;gap:13px">
-        <img src="https://dominicanrepublicfgp.com/wp-content/uploads/2025/12/WhatsApp-Image-2026-06-25-at-15.41.09.jpeg" alt="Jan van Welie" style="width:58px;height:58px;border-radius:50%;object-fit:cover;flex:0 0 auto;border:1px solid var(--line)">
-        <div><b style="font-size:15px">Jan van Welie</b><div style="font-size:12.5px;color:var(--soft);margin-top:2px">Real Estate Consultant</div></div>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:12px">
-        <a href="mailto:jan@caribbeanparadisehomes.com" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">Email</a>
-        <a href="https://wa.me/18096974404" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);text-decoration:none">WhatsApp / iMessage</a>
-      </div>
-      <div style="font-size:12px;color:var(--soft);margin-top:9px;line-height:1.6">jan@caribbeanparadisehomes.com<br>+1 809 697 4404</div>
-    </div>
+    <div class="sec-title">Your advisors</div>
+    ${advisor('Jan van Welie','Real Estate Consultant','https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2025/11/5f20927db7114219.jpeg','jan@caribbeanparadisehomes.com','18096974404','+1 809 697 4404')}
+    ${advisor('Ivonna Sosa','Real Estate Consultant','https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2025/11/WhatsApp-Image-2025-11-20-at-16.13.33.jpeg','ivonna@caribbeanparadisehomes.com','18093900072','+1 809 390 0072')}
     <div class="sec-title">Neighborhoods to explore</div>
-    ${neigh('Barranca','https://villasincasa.com/barranca-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Barranca_19_Casa_de_Campo_Caribbean_Paradise_Homes22.jpg','US$3.4M &ndash; $6M','The classic interior neighborhood &mdash; mature gardens, larger lots and established family villas, minutes from the resort core.')}
-    ${neigh('Cacique','https://villasincasa.com/cacique-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/06/Cacique24-3.jpeg','From ~US$6M','Beachside living where the resort meets the sea &mdash; walk to Minitas Beach, with the seaside holes of Teeth of the Dog out front.')}
-    ${neigh('Costamar','https://villasincasa.com/costamar-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Costamar_10_Casa_de_Campo_Caribbean_Paradise_Homes_38.jpg','US$14M &ndash; $20M','The south-coast trophy enclave &mdash; private oceanfront estates adjacent to Teeth of the Dog, mostly traded off-market.')}
+    ${nrow('Barranca','https://villasincasa.com/barranca-casa-de-campo/','US$3.4M&ndash;$6M','Classic interior &mdash; mature gardens, larger lots and established family villas near the resort core.')}
+    ${nrow('Cacique','https://villasincasa.com/cacique-casa-de-campo/','From ~US$6M','Beachside between Teeth of the Dog and Minitas Beach &mdash; a walk or short cart to the sand.')}
+    ${nrow('Caleton','https://villasincasa.com/caleton-casa-de-campo/','On request','A small, off-market coastal enclave on the resort&rsquo;s western edge &mdash; sales move privately.')}
+    ${nrow('Costamar','https://villasincasa.com/costamar-casa-de-campo/','US$14M&ndash;$20M','South-coast trophy estates adjacent to Teeth of the Dog &mdash; mostly traded off-market.')}
+    ${nrow('Dye Fore','https://villasincasa.com/dye-fore-casa-de-campo/','US$3M&ndash;$10M+','Cliffside new construction above the Chav&oacute;n River &mdash; modern villas and buildable lots.')}
+    ${nrow('Dye Fore Estates','https://villasincasa.com/dye-fore-estates-casa-de-campo/','US$2.5M&ndash;$7.2M','Premium cliffside parcels on the Chav&oacute;n canyon rim, walking distance to Altos de Chav&oacute;n.')}
+    ${nrow('Los Lagos','https://villasincasa.com/los-lagos-casa-de-campo/','From ~US$3.9M','Quiet south-central interior by The Links &mdash; a short cart ride to Minitas Beach.')}
+    ${nrow('Punta Aguila','https://villasincasa.com/punta-aguila-casa-de-campo/','US$4M&ndash;$35M+','The most exclusive oceanfront peninsula &mdash; private beach, large lots, newer estates.')}
+    ${nrow('Punta Minitas','https://villasincasa.com/punta-minitas-casa-de-campo/','US$5M&ndash;$15M+','Casa de Campo&rsquo;s classic oceanfront peninsula &mdash; the largest beachfront lots, tight inventory.')}
+    ${nrow('Rio Arriba','https://villasincasa.com/rio-arriba-casa-de-campo/','US$8.2M&ndash;$19.5M','Inland luxury near Altos de Chav&oacute;n &mdash; golf frontage and Chav&oacute;n River valley views.')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Arrange a viewing</b>
       <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reach out to Jan directly to tour a villa or explore buying &mdash; or open the full Casa de Campo&reg; buyer&rsquo;s guide.</div>
