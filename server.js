@@ -26,6 +26,9 @@ const TWILIO_SID = process.env.TWILIO_SID || '';
 const TWILIO_TOKEN = process.env.TWILIO_TOKEN || '';
 const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || ''; // e.g. whatsapp:+14155238886
 const CONCIERGE_WHATSAPP = process.env.CONCIERGE_WHATSAPP || '';     // e.g. whatsapp:+18297638801
+// SMS has NO 24h/72h window — set TWILIO_SMS_FROM to a Twilio SMS-capable number to alert the concierge with no restrictions.
+const TWILIO_SMS_FROM = process.env.TWILIO_SMS_FROM || ''; // e.g. +13055551234
+const CONCIERGE_SMS = process.env.CONCIERGE_SMS || CONCIERGE_WHATSAPP.replace(/^whatsapp:/,''); // María's plain number for SMS
 // Email via Resend:
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'concierge@caribbeanparadisehomes.com';
@@ -119,7 +122,7 @@ function notifyConcierge(stay,r){
     `Open this stay: ${APP_URL}/console${stay&&stay.stayId?('?stay='+stay.stayId):''}`,
   ].filter(Boolean).join('\n');
   let sent=false;
-  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
+  if(notifyConciergeAllChannels(text,ref)) sent=true;
   if(RESEND_API_KEY){ sendEmail(`New guest request — ${r.title} (${ref})`,text,ref); sent=true; }
   if(!sent) console.log('[notify] disabled — %s requested "%s" (%s)',guest,r.title,ref);
 }
@@ -128,7 +131,7 @@ function notifyMessage(stay,msgText){
   const ref=stay&&stay.booking?stay.booking.reference:''; const guest=stay&&stay.guest?(stay.guest.family||stay.guest.firstName||'Guest'):'Guest'; const villa=stay&&stay.villa?stay.villa.name:'';
   const text=[`New guest message`,`${guest} (booking ${ref})`,'',`"${msgText}"`,villa?`Villa: ${villa}`:'','',`Reply: ${APP_URL}/console${stay&&stay.stayId?('?stay='+stay.stayId):''}`].filter(Boolean).join('\n');
   let sent=false;
-  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
+  if(notifyConciergeAllChannels(text,ref)) sent=true;
   if(RESEND_API_KEY){ sendEmail(`New guest message (${ref})`,text,ref); sent=true; }
   if(!sent) console.log('[notify] disabled — %s messaged (%s)',guest,ref);
 }
@@ -142,13 +145,25 @@ function notifyGuest(stay,subject,text){
   if(!sent) console.log('[notify-guest] skipped (no channel or no guest contact) — %s',ref);
 }
 function withWa(n){ return n.indexOf('whatsapp:')===0?n:('whatsapp:'+n); }
+// Plain SMS (no WhatsApp window restriction) — used to alert the concierge reliably.
+function sendSmsTo(to,text,ref){
+  try{
+    const form='From='+encodeURIComponent(TWILIO_SMS_FROM)+'&To='+encodeURIComponent(to)+'&Body='+encodeURIComponent(text)+'&StatusCallback='+encodeURIComponent(APP_URL+'/api/twilio/status');
+    const auth='Basic '+Buffer.from(TWILIO_SID+':'+TWILIO_TOKEN).toString('base64');
+    const https=require('https');
+    const rq=https.request('https://api.twilio.com/2010-04-01/Accounts/'+TWILIO_SID+'/Messages.json',{method:'POST',headers:{'Authorization':auth,'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] sms REJECTED',resp.statusCode,d):console.log('[notify] sms queued re %s to=%s',ref,to); }); });
+    rq.on('error',e=>console.error('[notify] sms error',e.message)); rq.write(form); rq.end();
+  }catch(e){ console.error('[notify] sms threw',e.message); }
+}
+function notifyConciergeAllChannels(text,ref){ let sent=false; if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_SMS_FROM&&CONCIERGE_SMS){ sendSmsTo(CONCIERGE_SMS,text,ref); sent=true; } if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; } return sent; }
 function sendWhatsApp(text,ref){ sendWhatsAppTo(CONCIERGE_WHATSAPP,text,ref); }
 function sendWhatsAppTo(to,text,ref){
   try{
-    const form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(to))+'&Body='+encodeURIComponent(text);
+    let form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(to))+'&Body='+encodeURIComponent(text);
+    form+='&StatusCallback='+encodeURIComponent(APP_URL+'/api/twilio/status');
     const auth='Basic '+Buffer.from(TWILIO_SID+':'+TWILIO_TOKEN).toString('base64');
     const https=require('https');
-    const rq=https.request('https://api.twilio.com/2010-04-01/Accounts/'+TWILIO_SID+'/Messages.json',{method:'POST',headers:{'Authorization':auth,'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] whatsapp failed',resp.statusCode,d):console.log('[notify] whatsapp sent re %s',ref); }); });
+    const rq=https.request('https://api.twilio.com/2010-04-01/Accounts/'+TWILIO_SID+'/Messages.json',{method:'POST',headers:{'Authorization':auth,'Content-Type':'application/x-www-form-urlencoded','Content-Length':Buffer.byteLength(form)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ if(resp.statusCode>=300){ console.error('[notify] whatsapp REJECTED',resp.statusCode,d); } else { let sid=''; try{ sid=JSON.parse(d).sid; }catch(_){ } console.log('[notify] whatsapp queued re %s sid=%s to=%s',ref,sid||'?',to); } }); });
     rq.on('error',e=>console.error('[notify] whatsapp error',e.message)); rq.write(form); rq.end();
   }catch(e){ console.error('[notify] whatsapp threw',e.message); }
 }
@@ -167,6 +182,7 @@ async function guestCheckinSave(req,res){ const s=guestSession(req); if(!s) retu
 async function guestSaveGrocery(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGrocery(s.ref, b||{}); if(g===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[grocery] %s (%d items)',s.ref,(g.items||[]).length); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,grocery:g}); }
 async function guestSaveMealPlan(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const mp=store.saveMealPlan(s.ref, b||{}); if(mp===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[mealplan] %s',s.ref); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,mealPlan:mp}); }
 async function guestRespondSentService(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const it=store.respondSentService(s.ref,String(b.id||''),String(b.response||'')); if(!it) return sendJSON(res,404,{ok:false,error:'Not found'}); console.log('[sent-service] %s %s %s',s.ref,it.name,it.status); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,service:it}); }
+function guestTyping(req,res){ const s=guestSession(req); if(s) broadcastStaff({type:'typing',ref:s.ref}); return sendJSON(res,200,{ok:true}); }
 
 // ---- Inbound WhatsApp/SMS (Twilio webhook). Lands the guest's reply in the right stay's chat. ----
 // Configure Twilio: the WhatsApp number's "When a message comes in" → POST {APP_URL}/api/twilio/inbound
@@ -223,7 +239,9 @@ async function route(req,res){
   if(m==='POST'&&url==='/api/grocery') return guestSaveGrocery(req,res);
   if(m==='POST'&&url==='/api/mealplan') return guestSaveMealPlan(req,res);
   if(m==='POST'&&url==='/api/sent-service/respond') return guestRespondSentService(req,res);
+  if(m==='POST'&&url==='/api/typing') return guestTyping(req,res);
   if(m==='POST'&&url==='/api/twilio/inbound') return twilioInbound(req,res);
+  if(m==='POST'&&url==='/api/twilio/status'){ try{ const b=await readForm(req); const st=b.MessageStatus||b.SmsStatus||''; const err=b.ErrorCode||''; if(st==='undelivered'||st==='failed'){ console.error('[notify] whatsapp DELIVERY FAILED status=%s errorCode=%s to=%s sid=%s',st,err,b.To||'',b.MessageSid||''); } else { console.log('[notify] whatsapp status=%s to=%s',st,b.To||''); } }catch(e){} res.writeHead(204); return res.end(); }
 
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);

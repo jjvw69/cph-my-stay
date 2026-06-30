@@ -389,6 +389,7 @@ document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=S
 if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = working copy
+let _sndSvc='', _sndOptVal=''; // "Send a service" form state — kept in module vars so it survives live-sync re-renders
 
 /* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
 function getSeen(){ try{ return JSON.parse(localStorage.getItem('cph_console_seen')||'{}')||{}; }catch(e){ return {}; } }
@@ -438,7 +439,7 @@ let _ES=null;
 function startSSE(){
   if(typeof EventSource==='undefined') return;
   try{ if(_ES){ _ES.close(); } _ES=new EventSource('/api/staff/events');
-    _ES.onmessage=(ev)=>{ let d={}; try{ d=JSON.parse(ev.data); }catch(_){ } if(!d||d.type==='hello') return; syncNow(); if(document.hidden) notifyDesktop(d); else chime(); };
+    _ES.onmessage=(ev)=>{ let d={}; try{ d=JSON.parse(ev.data); }catch(_){ } if(!d||d.type==='hello') return; if(d.type==='typing'){ if(cur&&d.ref===cur.reference) showGuestTyping(); return; } syncNow(); if(document.hidden) notifyDesktop(d); else chime(); };
     _ES.onerror=()=>{};
   }catch(e){}
 }
@@ -802,12 +803,15 @@ function stayAlerts(s){
 /* Center-column mode: 'edit' (full stay editor) or 'chat' (full-height conversation). */
 let editorMode='edit';
 window.setEditorMode=function(m){ editorMode=(m==='chat')?'chat':'edit'; renderEditor(); if(editorMode==='chat'){ const el=document.getElementById('staffMsg'); if(el)el.focus(); } };
+let _typingTimer=null;
+function showGuestTyping(){ const el=document.getElementById('typingInd'); if(!el) return; el.style.display='block'; const sc=document.getElementById('chatScroll'); if(sc) sc.scrollTop=sc.scrollHeight; if(_typingTimer) clearTimeout(_typingTimer); _typingTimer=setTimeout(()=>{ const e2=document.getElementById('typingInd'); if(e2) e2.style.display='none'; },4500); }
 function chatPanelFull(s){
   const msgs=(s.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
     <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?(esc(s.leadName||'Guest')+(mm.via==='whatsapp'?' · WhatsApp':mm.via==='sms'?' · SMS':'')):(mm.auto?'Auto-message ✦':'You')}<span style="float:right;font-weight:400;color:#9AA49B">${mm.at?fmtReqDate(mm.at):''}</span></div>
     <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div></div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>';
   return `<div class="chatwrap">
     <div id="chatScroll" class="chatscroll">${msgs}</div>
+    <div id="typingInd" style="display:none;font-size:12.5px;color:var(--soft);font-style:italic;padding:5px 4px 0">${esc(s.leadName||'Guest')} is typing…</div>
     <div class="tmpl">${['On it — looking into this now.','Confirmed ✓ — the details are in your app.','Welcome! Anything you need, just message here.','Your airport transfer is all arranged.','I’ll follow up shortly with options and pricing.'].map(t=>`<button data-t="${esc(t)}" onclick="fillMsg(this.dataset.t)">${esc(t)}</button>`).join('')}</div>
     <div class="chatcompose"><input id="staffMsg" placeholder="Reply to ${esc(s.leadName||'the guest')}…" onkeydown="if(event.key==='Enter')sendStaffMsg()"><button class="b-fill" onclick="sendStaffMsg()">Send</button></div>
     <div class="counter" style="margin-top:6px">The guest sees your replies live in their app chat. WhatsApp/SMS replies land here too.</div>
@@ -849,7 +853,7 @@ function renderEditor(){
       <div class="f"><label>Adults</label><div class="step"><button onclick="adj('adults',-1)">−</button><span>${cur.adults}</span><button onclick="adj('adults',1)">＋</button></div></div>
       <div class="f"><label>Children</label><div class="step"><button onclick="adj('children',-1)">−</button><span>${cur.children}</span><button onclick="adj('children',1)">＋</button></div></div>
       ${(cur.guestCheckin&&(cur.guestCheckin.childAges||[]).filter(a=>a!==''&&a!=null).length)?`<div class="f full"><label>Children's ages (guest-submitted, under 18)</label><div class="reqmeta" style="margin-top:4px">${(cur.guestCheckin.childAges||[]).filter(a=>a!==''&&a!=null).join(' · ')}</div></div>`:''}
-      <div class="f full glink"><label>Guest's My Stay app link</label><div class="box"><input id="glink2" readonly value="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button type="button" onclick="copyGuestLink()">Copy</button><a href="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}" target="_blank" rel="noopener" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 12px;font-size:13.5px;color:var(--accent);display:inline-flex;align-items:center;text-decoration:none">Open</a></div></div>
+      <div class="f full glink"><label>Guest's My Stay app link</label><div class="box"><input id="glink2" readonly value="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button type="button" onclick="copyGuestLink()">Copy</button><a href="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}" target="_blank" rel="noopener" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 12px;font-size:13.5px;color:var(--accent);display:inline-flex;align-items:center;text-decoration:none">Open</a><button type="button" onclick="sendLoginLink()" style="border:0;background:#25D366;color:#fff;border-radius:9px;padding:0 12px;font-size:13.5px;display:inline-flex;align-items:center;cursor:pointer">Send via WhatsApp</button></div>${cur.guestLastSeen?'':'<div class="reqmeta" style="margin-top:6px;color:#7A5A2E">Guest hasn’t opened the app yet — send them the link so they can sign in.</div>'}</div>
     </div></div>
 
     <div class="sec"><h3>Stay &amp; villa</h3><div class="grid">
@@ -878,26 +882,7 @@ function renderEditor(){
     </div></div>
 
     <div class="sec"><h3>Add-ons offered to guest</h3><div class="chips">${addonChips}</div>
-      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div>
-      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
-        <h3 style="font-size:14px;margin:0 0 4px">Services &amp; suppliers</h3>
-        <div class="counter" style="margin:0 0 10px">Supplier is internal — guests never see it. Custom services appear in every guest’s plan and are bookable.</div>
-        ${BOOT.addons.map(a=>`<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
-          <div style="flex:1;min-width:0"><b style="font-size:13px">${esc(a.name)}</b>${a.custom?` <span style="font-size:10px;background:#F3ECDD;color:#7A5A2E;border-radius:6px;padding:1px 6px;white-space:nowrap">custom${a.price?' · '+esc(a.price):''}</span>`:''}<div style="font-size:11px;color:var(--soft)">${esc(a.category||'')}</div></div>
-          <input value="${esc(a.supplier||'')}" placeholder="Supplier" onchange="setServiceSupplier('${a.id}',this.value)" style="flex:0 0 148px;width:148px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;background:#fff">
-          ${a.custom?`<button onclick="deleteCustomServiceUI('${a.id}','${esc(a.name)}')" title="Delete service" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:9px;padding:7px 10px;font-size:13px;cursor:pointer">✕</button>`:''}
-        </div>`).join('')}
-        <details style="margin-top:12px">
-          <summary style="cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:600;list-style:none">+ Add custom service</summary>
-          <div style="display:grid;gap:8px;margin-top:11px">
-            <input id="svcName" placeholder="Service name (e.g. Private sushi chef night)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-            <input id="svcPrice" placeholder="Price shown to guest (e.g. US$450)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-            <input id="svcDesc" placeholder="Short description guests will read" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-            <input id="svcSupplier" placeholder="Supplier (internal — optional)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-            <button onclick="addCustomServiceUI()" style="justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Add service</button>
-          </div>
-        </details>
-      </div></div>
+      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div></div>
 
     <div class="sec"><h3>Services sent to guest ${(cur.sentServices||[]).length?`<span class="reqcount">${(cur.sentServices||[]).length}</span>`:''}</h3>
       <div class="counter" style="margin:0 0 12px">Push a service straight to the guest's plan with a rate. They confirm or decline in their app, and you'll see their answer here — a two-way confirmation.</div>
@@ -909,8 +894,8 @@ function renderEditor(){
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
         <div style="display:grid;gap:8px">
-          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select>
-          <select id="sndOpt" onchange="(function(v){var p=v.split('||');var r=document.getElementById('sndRate');if(r&&p[1]!=null)r.value=p[1];})(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— option (pick a service first) —</option></select>
+          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
+          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${(SVC_OPTIONS[_sndSvc]||[]).length?'— pick an option —':'— no preset options · type one below —'}</option>${(SVC_OPTIONS[_sndSvc]||[]).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndRate" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndNote" placeholder="Note to the guest (optional)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
@@ -986,8 +971,10 @@ async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(
 window.setServiceSupplier=async function(id,val){ const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({supplier:val})}); if(!r.ok){ alert(r.body.error||'Could not save supplier.'); return; } const a=BOOT.addons.find(x=>x.id===id); if(a)a.supplier=String(val||'').trim(); };
 window.addCustomServiceUI=async function(){ const name=(document.getElementById('svcName')||{}).value||''; const price=(document.getElementById('svcPrice')||{}).value||''; const desc=(document.getElementById('svcDesc')||{}).value||''; const supplier=(document.getElementById('svcSupplier')||{}).value||''; if(!name.trim()){ alert('Enter a service name.'); return; } const r=await api('/api/staff/services',{method:'POST',body:JSON.stringify({name,price,desc,supplier})}); if(!r.ok){ alert(r.body.error||'Could not add service.'); return; } await refreshServices(); toast&&toast('Service added — it now appears in every guest’s plan.'); };
 window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
-window.selSendSvc=function(id){ const sel=document.getElementById('sndOpt'); if(!sel)return; const opts=SVC_OPTIONS[id]||[]; sel.innerHTML='<option value="">'+(opts.length?'— pick an option —':'— no preset options · type one below —')+'</option>'+opts.map(o=>`<option value="${esc(o[0])}||${esc(o[1])}">${esc(o[0])} · ${esc(o[1])}</option>`).join(''); const r=document.getElementById('sndRate'); if(r)r.value=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; };
-window.sendServiceUI=async function(){ if(!cur)return; const id=(document.getElementById('sndSvc')||{}).value||''; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{}; const optSel=(document.getElementById('sndOpt')||{}).value||''; const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(optSel.split('||')[0]||''); const rate=((document.getElementById('sndRate')||{}).value||'').trim(); const note=((document.getElementById('sndNote')||{}).value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify({serviceId:id,name:svc.name||'',option,rate,note})}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
+window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const ref=cur.reference||''; const name=((cur.leadName||'').split(' ')[0])||'there'; const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(ref); const msg='Hi '+name+', here is your Caribbean Paradise Homes “My Stay” link for booking '+ref+':\n'+url+'\n\nOpen it and sign in with your booking reference ('+ref+') and the lead guest’s last name. Any trouble signing in, just reply here and we’ll help.'; if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} alert('No phone number on file for this guest. The login message has been copied to your clipboard — paste it into email or your messaging app.'); return; } window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); };
+window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; const r=document.getElementById('sndRate'); if(r)r.value=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; renderEditor(); };
+window.selSendOpt=function(v){ _sndOptVal=v; const p=String(v||'').split('||'); const r=document.getElementById('sndRate'); if(r&&p[1]!=null)r.value=p[1]; };
+window.sendServiceUI=async function(){ if(!cur)return; const id=_sndSvc; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{}; const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(_sndOptVal.split('||')[0]||''); const rate=((document.getElementById('sndRate')||{}).value||'').trim(); const note=((document.getElementById('sndNote')||{}).value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify({serviceId:id,name:svc.name||'',option,rate,note})}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); _sndSvc=''; _sndOptVal=''; renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
 window.modifySentUI=async function(sid){ if(!cur)return; const ss=(cur.sentServices||[]).find(x=>x.id===sid); if(!ss)return; const option=prompt('Option / how it’s provided:',ss.option||''); if(option===null)return; const rate=prompt('Rate shown to guest:',ss.rate||''); if(rate===null)return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'PUT',body:JSON.stringify({option,rate})}); if(!r.ok){ alert(r.body.error||'Could not update.'); return; } const i=cur.sentServices.findIndex(x=>x.id===sid); if(i>=0)cur.sentServices[i]=r.body.service; renderEditor(); renderPreview(); toast&&toast('Updated — guest will re-confirm.'); };
 window.cancelSentUI=async function(sid,name){ if(!cur)return; if(!confirm('Cancel “'+(name||'this service')+'”? It will be removed from the guest’s plan.')) return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not cancel.'); return; } cur.sentServices=(cur.sentServices||[]).filter(x=>x.id!==sid); renderEditor(); renderPreview(); };
 

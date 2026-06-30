@@ -236,9 +236,10 @@ function renderLogin(prefill){
       <div class="field"><label>Booking reference</label><input id="ref" autocomplete="off" autocapitalize="characters" placeholder="e.g. CDC-2026-0741" value="${esc(prefill&&prefill.ref||'')}"></div>
       <div class="field"><label>Lead guest last name</label><input id="last" autocomplete="off" placeholder="Last name" value="${esc(prefill&&prefill.last||'')}"></div>
       <button class="btn" id="loginBtn">Find my stay</button>
-      <div class="helper">Need help? <a href="tel:+18297638801">+1 (829) 763-8801</a></div>
+      <div class="helper">Can't sign in? <a href="#" onclick="loginWhatsApp();return false;" style="color:inherit;text-decoration:underline">Message us on WhatsApp</a> &middot; <a href="tel:+18297638801">+1 (829) 763-8801</a></div>
     </div>
   </div>`;
+  window.loginWhatsApp=function(){ const ref=((document.getElementById('ref')||{}).value||'').trim(); const last=((document.getElementById('last')||{}).value||'').trim(); const msg='Hi Caribbean Paradise Homes, I am having trouble signing in to My Stay.'+(ref?' My booking reference is '+ref+'.':'')+(last?' Lead guest last name: '+last+'.':''); window.open('https://wa.me/18297638801?text='+encodeURIComponent(msg),'_blank','noopener'); };
   const btn=document.getElementById('loginBtn'), errEl=document.getElementById('loginErr');
   async function go(){
     const reference=document.getElementById('ref').value.trim(), lastName=document.getElementById('last').value.trim();
@@ -319,6 +320,14 @@ function render(){
 
 /* ---------------- HOME ---------------- */
 function heroStyle(url){ return url ? `style="background-image:url('${esc(url)}')"` : ''; }
+function myPlanRow(){
+  const s=state.stay; if(!s) return '';
+  const pend=((s.sentServices||[]).filter(x=>x&&x.status==='sent')).length;
+  const nreq=((s.requests||[]).filter(r=>r&&r.status!=='cancelled')).length;
+  const sub = pend?(pend+' to confirm · arranged for you') : (nreq?(nreq+' request'+(nreq==1?'':'s')+' · transfers, dining & more') : 'Your itinerary & confirmed bookings');
+  const badge = pend?` <span style="font-size:10px;background:#F3ECDD;color:#7A5A2E;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap">${pend} to confirm</span>`:'';
+  return `<button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan${badge}</b><span>${sub}</span></span><span class="arr">→</span></button>`;
+}
 function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
   const d=daysUntil(b.arrive);
@@ -359,7 +368,7 @@ function renderHome(){
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange Villa Add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
-      <button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan</b><span>${(()=>{const n=((state.stay.requests||[]).filter(r=>r&&r.status!=='cancelled').length);return n?n+' request'+(n==1?'':'s')+' · transfers, dining & more':'Your itinerary & confirmed bookings';})()}</span></span><span class="arr">→</span></button>
+      ${myPlanRow()}
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">ℹ</span><span class="tx"><b>Good to know</b><span>Villa guide</span></span><span class="arr">→</span></button>
@@ -412,6 +421,7 @@ function renderStay(){
       </div>
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
+      ${myPlanRow()}
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
@@ -1548,9 +1558,11 @@ function renderConcierge(){
     <div class="composer"><input id="cmsg" value="${esc(seed)}" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
     ${tabBar('concierge',true)}
   </div>`;
-  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();}); if(seed){i.focus();}}
+  const i=document.getElementById('cmsg'); if(i){i.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();}); i.addEventListener('input',pingTyping); if(seed){i.focus();}}
   const m=document.getElementById('msgs'); if(m)m.scrollTop=m.scrollHeight;
 }
+let _typingLast=0;
+function pingTyping(){ const now=Date.now(); if(now-_typingLast<2200) return; _typingLast=now; try{ api('/api/typing',{method:'POST'}); }catch(e){} }
 window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
 window.sendMsg=async function(){
   const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
