@@ -565,6 +565,48 @@ function saveCheckin(reference, data) {
   if (s.guestCheckin.flight) s.flight = s.guestCheckin.flight;
   s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
+// ----- concierge-pushed services (console sends → guest confirms/declines). Two-way sync. -----
+/** Console pushes a service to the guest's plan. */
+function sendService(stayId, b) {
+  const s = getStay(stayId); if (!s) return null;
+  if (!Array.isArray(s.sentServices)) s.sentServices = [];
+  const name = norm(b && b.name).slice(0, 80); if (!name) return null;
+  const item = {
+    id: 'snt' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+    serviceId: norm(b && b.serviceId).slice(0, 60),
+    name,
+    option: norm(b && b.option).slice(0, 120),
+    rate: norm(b && b.rate).slice(0, 40),
+    note: norm(b && b.note).slice(0, 300),
+    status: 'sent', sentAt: Date.now(), respondedAt: 0,
+  };
+  s.sentServices.push(item); s.updatedAt = Date.now(); persistStays(); return item;
+}
+/** Console edits a sent service (option / rate / note). Resets status to 'sent' so the guest re-confirms. */
+function updateSentService(stayId, sid, b) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.sentServices)) return null;
+  const it = s.sentServices.find(x => x.id === sid); if (!it) return null;
+  if (b.option != null) it.option = norm(b.option).slice(0, 120);
+  if (b.rate != null) it.rate = norm(b.rate).slice(0, 40);
+  if (b.note != null) it.note = norm(b.note).slice(0, 300);
+  if (b.name != null) { const n = norm(b.name).slice(0, 80); if (n) it.name = n; }
+  it.status = 'sent'; it.respondedAt = 0; s.updatedAt = Date.now(); persistStays(); return it;
+}
+/** Console cancels (removes) a sent service. */
+function cancelSentService(stayId, sid) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.sentServices)) return false;
+  const n = s.sentServices.length;
+  s.sentServices = s.sentServices.filter(x => x.id !== sid);
+  if (s.sentServices.length === n) return false;
+  s.updatedAt = Date.now(); persistStays(); return true;
+}
+/** Guest confirms or declines a sent service. */
+function respondSentService(reference, sid, response) {
+  const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.sentServices)) return null;
+  const it = s.sentServices.find(x => x.id === sid); if (!it) return null;
+  it.status = response === 'confirmed' ? 'confirmed' : response === 'declined' ? 'declined' : it.status;
+  it.respondedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return it;
+}
 /** Concierge confirms a request from the Console and sets the final price. */
 function confirmRequest(stayId, requestId, price) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
@@ -648,6 +690,7 @@ function toGuestStay(s) {
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
+    sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     grocery: s.grocery || null,
@@ -682,6 +725,7 @@ seedStaffFromEnv();
 module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
+  sendService, updateSentService, cancelSentService, respondSentService,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,

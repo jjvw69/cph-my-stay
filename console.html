@@ -482,7 +482,7 @@ async function refreshCurrent(){
   const newReqs=(fresh.requests||[]).length-((cur.requests||[]).length);
   const newMsgs=guestMsgCount(fresh.messages)-guestMsgCount(cur.messages);
   // Merge: never clobber the editable form while the staffer has unsaved edits.
-  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen'].forEach(k=>{ cur[k]=fresh[k]; }); }
+  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen','sentServices'].forEach(k=>{ cur[k]=fresh[k]; }); }
   else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
   // Re-render, preserving any in-progress typing/scroll.
   if(!dirty){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
@@ -689,7 +689,13 @@ function activityTimeline(s){
    (snapshotInputs/restoreInputs), so a section stays open/closed across refreshes.
    Sections carry a stable id derived from their heading so state persists. */
 // Sections that should START collapsed ("tap to expand"); all others start open.
-const COLLAPSED_DEFAULT = { 'csec-grocery-pre-stocking':1, 'csec-add-ons-offered-to-guest':1, 'csec-concierge-chat':1 };
+const COLLAPSED_DEFAULT = { 'csec-grocery-pre-stocking':1, 'csec-concierge-chat':1 };
+const SVC_OPTIONS = {
+  golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
+  carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
+  transfer:[['LRM → Casa de Campo · Standard','$50 / $90 round-trip'],['LRM → Casa de Campo · Comfort','$80 / $150 round-trip'],['LRM → Casa de Campo · VIP Black','$150 / $280 round-trip'],['PUJ → Casa de Campo · Standard','$125 / $240 round-trip'],['PUJ → Casa de Campo · Comfort','$160 / $300 round-trip'],['PUJ → Casa de Campo · VIP Black','$290 / $560 round-trip'],['SDQ → Casa de Campo · Standard','$140 / $270 round-trip'],['SDQ → Casa de Campo · Comfort','$190 / $360 round-trip'],['SDQ → Casa de Campo · VIP Black','$320 / $620 round-trip']],
+  nannies:[['Daytime nanny','$26 / hour'],['Evening babysitting','$20 / hour']],
+};
 function secSlug(t){ return 'csec-'+String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,44); }
 function collapsibleSections(){
   const ed=document.getElementById('editor'); if(!ed) return;
@@ -893,6 +899,26 @@ function renderEditor(){
         </details>
       </div></div>
 
+    <div class="sec"><h3>Services sent to guest ${(cur.sentServices||[]).length?`<span class="reqcount">${(cur.sentServices||[]).length}</span>`:''}</h3>
+      <div class="counter" style="margin:0 0 12px">Push a service straight to the guest's plan with a rate. They confirm or decline in their app, and you'll see their answer here — a two-way confirmation.</div>
+      <div class="reqlist">${(cur.sentServices||[]).map(ss=>{
+        const badge = ss.status==='confirmed'?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Confirmed</span>`:ss.status==='declined'?`<span style="font-size:11px;background:#F6E5DD;color:#9E5B43;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✕ Declined</span>`:`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Sent · awaiting</span>`;
+        return `<div class="reqitem"><div class="reqtop"><b>${esc(ss.name)}</b>${badge}</div><div class="reqmeta">${[ss.option,ss.rate].filter(Boolean).map(esc).join(' · ')||'—'}${ss.note?'<br>'+esc(ss.note):''}</div>
+          <div style="display:flex;gap:8px;margin-top:8px"><button class="reqx" onclick="modifySentUI('${ss.id}')">Modify</button><button class="reqx" onclick="cancelSentUI('${ss.id}','${esc(ss.name)}')" style="color:#9E5B43;border-color:#E3C4B6">Cancel</button></div></div>`;
+      }).join('')||'<div class="counter" style="margin:0 0 12px">Nothing sent yet.</div>'}</div>
+      <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
+        <div style="display:grid;gap:8px">
+          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}">${esc(a.name)}</option>`).join('')}</select>
+          <select id="sndOpt" onchange="(function(v){var p=v.split('||');var r=document.getElementById('sndRate');if(r&&p[1]!=null)r.value=p[1];})(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— option (pick a service first) —</option></select>
+          <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <input id="sndRate" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <input id="sndNote" placeholder="Note to the guest (optional)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <button onclick="sendServiceUI()" style="justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>
+        </div>
+      </div>
+    </div>
+
     ${(cur.guestList&&cur.guestList.length)?`<div class="sec"><h3>Guest registration list <span class="reqcount">${cur.guestList.length}</span></h3>
       <div class="reqlist">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
@@ -960,6 +986,10 @@ async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(
 window.setServiceSupplier=async function(id,val){ const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({supplier:val})}); if(!r.ok){ alert(r.body.error||'Could not save supplier.'); return; } const a=BOOT.addons.find(x=>x.id===id); if(a)a.supplier=String(val||'').trim(); };
 window.addCustomServiceUI=async function(){ const name=(document.getElementById('svcName')||{}).value||''; const price=(document.getElementById('svcPrice')||{}).value||''; const desc=(document.getElementById('svcDesc')||{}).value||''; const supplier=(document.getElementById('svcSupplier')||{}).value||''; if(!name.trim()){ alert('Enter a service name.'); return; } const r=await api('/api/staff/services',{method:'POST',body:JSON.stringify({name,price,desc,supplier})}); if(!r.ok){ alert(r.body.error||'Could not add service.'); return; } await refreshServices(); toast&&toast('Service added — it now appears in every guest’s plan.'); };
 window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
+window.selSendSvc=function(id){ const sel=document.getElementById('sndOpt'); if(!sel)return; const opts=SVC_OPTIONS[id]||[]; sel.innerHTML='<option value="">'+(opts.length?'— pick an option —':'— no preset options · type one below —')+'</option>'+opts.map(o=>`<option value="${esc(o[0])}||${esc(o[1])}">${esc(o[0])} · ${esc(o[1])}</option>`).join(''); const r=document.getElementById('sndRate'); if(r)r.value=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; };
+window.sendServiceUI=async function(){ if(!cur)return; const id=(document.getElementById('sndSvc')||{}).value||''; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{}; const optSel=(document.getElementById('sndOpt')||{}).value||''; const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(optSel.split('||')[0]||''); const rate=((document.getElementById('sndRate')||{}).value||'').trim(); const note=((document.getElementById('sndNote')||{}).value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify({serviceId:id,name:svc.name||'',option,rate,note})}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
+window.modifySentUI=async function(sid){ if(!cur)return; const ss=(cur.sentServices||[]).find(x=>x.id===sid); if(!ss)return; const option=prompt('Option / how it’s provided:',ss.option||''); if(option===null)return; const rate=prompt('Rate shown to guest:',ss.rate||''); if(rate===null)return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'PUT',body:JSON.stringify({option,rate})}); if(!r.ok){ alert(r.body.error||'Could not update.'); return; } const i=cur.sentServices.findIndex(x=>x.id===sid); if(i>=0)cur.sentServices[i]=r.body.service; renderEditor(); renderPreview(); toast&&toast('Updated — guest will re-confirm.'); };
+window.cancelSentUI=async function(sid,name){ if(!cur)return; if(!confirm('Cancel “'+(name||'this service')+'”? It will be removed from the guest’s plan.')) return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not cancel.'); return; } cur.sentServices=(cur.sentServices||[]).filter(x=>x.id!==sid); renderEditor(); renderPreview(); };
 
 /* ---- preview ---- */
 function nights(a,b){ const d1=new Date(a),d2=new Date(b); if(isNaN(d1)||isNaN(d2))return null; return Math.max(0,Math.round((d2-d1)/864e5)); }
