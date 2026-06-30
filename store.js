@@ -659,6 +659,41 @@ function deleteInvoice(stayId, iid) {
   if (s.invoices.length === n) return false;
   s.updatedAt = Date.now(); persistStays(); return true;
 }
+// ----- yacht charter proposal (concierge sends 2-3 options → guest picks one → concierge arranges + invoices) -----
+function cleanYachtOptions(arr) {
+  return (Array.isArray(arr) ? arr : []).slice(0, 5).map((o, i) => ({
+    id: norm(o && o.id).slice(0, 24) || ('opt' + (i + 1)),
+    name: norm(o && o.name).slice(0, 100),
+    detail: norm(o && o.detail).slice(0, 400),
+    rate: norm(o && o.rate).slice(0, 60),
+  })).filter(o => o.name || o.detail || o.rate);
+}
+/** Console creates/updates the yacht proposal for a stay (one active proposal). Resets the guest's choice. */
+function setYachtProposal(stayId, b) {
+  const s = getStay(stayId); if (!s) return null;
+  const options = cleanYachtOptions(b && b.options);
+  if (!options.length) return null;
+  s.yachtProposal = {
+    id: (s.yachtProposal && s.yachtProposal.id) || ('yp' + Date.now().toString(36)),
+    title: norm(b && b.title).slice(0, 120) || 'Yacht charter options',
+    intro: norm(b && b.intro).slice(0, 400),
+    options,
+    status: 'sent', chosenId: '', sentAt: Date.now(), respondedAt: 0,
+  };
+  s.updatedAt = Date.now(); persistStays(); return s.yachtProposal;
+}
+/** Console withdraws the yacht proposal. */
+function cancelYachtProposal(stayId) {
+  const s = getStay(stayId); if (!s || !s.yachtProposal) return false;
+  s.yachtProposal = null; s.updatedAt = Date.now(); persistStays(); return true;
+}
+/** Guest picks one of the yacht options. */
+function chooseYacht(reference, optionId) {
+  const s = findPublishedStayByRef(reference); if (!s || !s.yachtProposal) return null;
+  const yp = s.yachtProposal; const opt = (yp.options || []).find(o => o.id === optionId); if (!opt) return null;
+  yp.chosenId = opt.id; yp.status = 'chosen'; yp.respondedAt = Date.now();
+  s.updatedAt = Date.now(); persistStays(); return yp;
+}
 /** Concierge confirms a request from the Console and sets the final price. */
 function confirmRequest(stayId, requestId, price) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
@@ -743,6 +778,7 @@ function toGuestStay(s) {
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
+    yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), total: invoiceTotal(x), dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
@@ -780,6 +816,7 @@ module.exports = {
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,
+  setYachtProposal, cancelYachtProposal, chooseYacht,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,

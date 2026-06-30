@@ -483,7 +483,7 @@ async function refreshCurrent(){
   const newReqs=(fresh.requests||[]).length-((cur.requests||[]).length);
   const newMsgs=guestMsgCount(fresh.messages)-guestMsgCount(cur.messages);
   // Merge: never clobber the editable form while the staffer has unsaved edits.
-  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen','sentServices'].forEach(k=>{ cur[k]=fresh[k]; }); }
+  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; }); }
   else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
   // Re-render, preserving any in-progress typing/scroll.
   if(!dirty){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
@@ -959,6 +959,18 @@ function renderEditor(){
       <button onclick="openInvoice('')" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ New invoice</button>
     </div>
 
+    <div class="sec"><h3>Yacht charter proposal</h3>
+      <div class="counter" style="margin:0 0 10px">Send the guest 2–3 yacht/catamaran options to choose from. They pick one in their app; you then arrange it and send an invoice for the deposit/balance.</div>
+      ${(function(){ const yp=cur.yachtProposal; if(!yp) return '<div class="counter" style="margin:0 0 10px">No proposal sent.</div>';
+        const chosen=(yp.options||[]).find(o=>o.id===yp.chosenId);
+        const rows=(yp.options||[]).map(o=>{ const isCh=yp.status==='chosen'&&o.id===yp.chosenId; return `<div class="reqitem" style="${isCh?'border:1px solid #BFD3C2;background:#F1F6F1':''}"><div class="reqtop"><b>${esc(o.name)}</b>${isCh?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">✓ Chosen</span>':(o.rate?`<span style="font-size:12px;color:#6E7B71">${esc(o.rate)}</span>`:'')}</div>${o.detail?`<div class="reqmeta">${esc(o.detail)}</div>`:''}${isCh&&o.rate?`<div class="reqmeta">${esc(o.rate)}</div>`:''}</div>`; }).join('');
+        const head=`<div class="reqtop" style="margin-bottom:8px"><b>${esc(yp.title)}</b>${yp.status==='chosen'?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">Guest chose</span>':'<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Waiting for guest</span>'}</div>`;
+        const actions=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${(yp.status==='chosen'&&chosen)?`<button class="reqx" onclick="openInvoiceFor('${esc(chosen.name)}','${esc(chosen.rate||'')}')" style="color:#33493B;border-color:#BFD3C2">Create invoice</button>`:''}<button class="reqx" onclick="openYacht()">Edit</button><button class="reqx" onclick="withdrawYacht()" style="color:#9E5B43;border-color:#E3C4B6">Withdraw</button></div>`;
+        return head+rows+actions;
+      })()}
+      ${!cur.yachtProposal?`<button onclick="openYacht()" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ New yacht proposal</button>`:''}
+    </div>
+
     <div class="sec"><h3>Internal notes</h3><div class="grid">
       <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
     </div></div>
@@ -1030,6 +1042,34 @@ window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find
     ${iv.note?`<div style="margin-top:14px;font-size:12.5px;color:#54605A;line-height:1.5">${esc(iv.note)}</div>`:''}
     <div style="margin-top:18px;font-size:12px;color:#6B756C;line-height:1.6">Settle by Zelle or bank transfer to the details provided by your concierge, or in cash on arrival. Reference your booking ${esc(cur.reference||'')} with payment. Thank you.</div></body></html>`;
   const w=window.open('','_blank'); if(w){ w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.print();}catch(e){} },350); } };
+
+/* ---------- Yacht charter proposal ---------- */
+let _yacht=null;
+window.closeYacht=function(){ const ov=document.getElementById('ychOv'); if(ov)ov.remove(); _yacht=null; };
+window.openYacht=function(){ if(!cur)return; const yp=cur.yachtProposal; if(yp){ _yacht={title:yp.title||'Yacht charter options',intro:yp.intro||'',options:(yp.options||[]).map(o=>({name:o.name||'',detail:o.detail||'',rate:o.rate||''}))}; } else { _yacht={title:'Yacht charter options',intro:'',options:[{name:'',detail:'',rate:''},{name:'',detail:'',rate:''}]}; } if(!_yacht.options.length)_yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(); };
+window.yachtField=function(i,k,v){ if(!_yacht||!_yacht.options[i])return; _yacht.options[i][k]=v; };
+window.addYachtOpt=function(){ if(!_yacht)return; if(_yacht.options.length>=5){ alert('Up to 5 options.'); return; } _yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(true); };
+window.removeYachtOpt=function(i){ if(!_yacht)return; _yacht.options.splice(i,1); if(!_yacht.options.length)_yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(true); };
+function ychRow(o,i){ const inp='width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;box-sizing:border-box'; const lbl='display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:9px 0 5px';
+  return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">Option ${i+1}</b><button onclick="removeYachtOpt(${i})" style="border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer">Remove</button></div>
+    <label style="${lbl}">Boat / charter name</label><input value="${esc(o.name)}" oninput="yachtField(${i},'name',this.value)" placeholder="e.g. 50ft Azimut · half-day" style="${inp}">
+    <label style="${lbl}">Details (size, crew, duration, route…)</label><textarea oninput="yachtField(${i},'detail',this.value)" rows="2" placeholder="e.g. Up to 12 guests · captain & mate · 4 hours · Catalina Island" style="${inp};resize:vertical">${esc(o.detail)}</textarea>
+    <label style="${lbl}">Rate shown to guest</label><input value="${esc(o.rate)}" oninput="yachtField(${i},'rate',this.value)" placeholder="e.g. US$1,900" style="${inp}"></div>`;
+}
+function renderYachtModal(inner){ let ov=document.getElementById('ychOv'); if(!ov){ ov=document.createElement('div'); ov.id='ychOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeYacht(); }; document.body.appendChild(ov); } const d=_yacht; const inp='width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;box-sizing:border-box'; const lbl='display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:11px 0 5px';
+  if(inner){ const c=document.getElementById('ychOpts'); if(c){ c.innerHTML=(d.options||[]).map((o,i)=>ychRow(o,i)).join(''); return; } }
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${cur&&cur.yachtProposal?'Edit yacht proposal':'New yacht proposal'}</b><button onclick="closeYacht()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+    <label style="${lbl}">Title</label><input id="ychTitle" value="${esc(d.title)}" style="${inp}">
+    <label style="${lbl}">Intro note (optional)</label><textarea id="ychIntro" rows="2" placeholder="A line for the guest — e.g. Here are three options for your charter day…" style="${inp};resize:vertical">${esc(d.intro)}</textarea>
+    <div style="font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:14px 0 4px">Options (2–3 recommended)</div>
+    <div id="ychOpts">${(d.options||[]).map((o,i)=>ychRow(o,i)).join('')}</div>
+    <button onclick="addYachtOpt()" style="width:100%;margin-top:10px;border:1px dashed var(--line);background:#fff;color:var(--accent);border-radius:10px;padding:11px;font-size:13.5px;cursor:pointer">+ Add option</button>
+    <div style="display:flex;gap:9px;margin-top:16px"><button onclick="sendYacht()" style="flex:1;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px;font-size:14px;font-weight:600;cursor:pointer">Send to guest</button><button onclick="closeYacht()" style="flex:0 0 auto;background:#EFE9DC;color:#1F2A24;border:0;border-radius:10px;padding:12px 18px;font-size:14px;cursor:pointer">Cancel</button></div>
+  </div>`;
+}
+window.sendYacht=async function(){ if(!cur||!_yacht)return; const title=((document.getElementById('ychTitle')||{}).value||'').trim()||'Yacht charter options'; const intro=((document.getElementById('ychIntro')||{}).value||'').trim(); const options=(_yacht.options||[]).map(o=>({name:String(o.name||'').trim(),detail:String(o.detail||'').trim(),rate:String(o.rate||'').trim()})).filter(o=>o.name||o.detail||o.rate); if(!options.length){ alert('Add at least one option with a name.'); return; } const r=await api('/api/staff/stays/'+cur.id+'/yacht',{method:'POST',body:JSON.stringify({title,intro,options})}); if(!r.ok||!r.body.yachtProposal){ alert((r.body&&r.body.error)||'Could not send.'); return; } cur.yachtProposal=r.body.yachtProposal; closeYacht(); renderEditor(); renderPreview&&renderPreview(); toast&&toast('Yacht options sent — the guest will pick one in their app.'); };
+window.withdrawYacht=async function(){ if(!cur)return; if(!confirm('Withdraw the yacht proposal? It will be removed from the guest’s plan.')) return; const r=await api('/api/staff/stays/'+cur.id+'/yacht',{method:'DELETE'}); if(!r.ok){ alert((r.body&&r.body.error)||'Could not withdraw.'); return; } cur.yachtProposal=null; renderEditor(); renderPreview&&renderPreview(); };
 
 /* ---- preview ---- */
 function nights(a,b){ const d1=new Date(a),d2=new Date(b); if(isNaN(d1)||isNaN(d2))return null; return Math.max(0,Math.round((d2-d1)/864e5)); }
