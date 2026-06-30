@@ -321,6 +321,7 @@ function heroStyle(url){ return url ? `style="background-image:url('${esc(url)}'
 function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
   const d=daysUntil(b.arrive);
+  const dDepart=daysUntil(b.depart);
   const checkinDone = !!state.checkin.done;
   const guestInitials=(function(){ const g=s.guest||{}; const fn=(g.firstName||'').trim(), ln=(g.lastName||g.family||'').trim(); const i=((fn[0]||'')+(ln[0]||'')).toUpperCase(); return i || (g.family||'G').slice(0,2).toUpperCase(); })();
   $app.innerHTML = `
@@ -333,7 +334,7 @@ function renderHome(){
       </div>
     </div>
     <div class="scroll">
-      <div class="label eyebrow">YOUR STAY · ${esc((v.area||'Casa de Campo').toUpperCase())}</div>
+      <div class="label eyebrow">YOUR STAY · CASA DE CAMPO${v.area&&v.area.toLowerCase()!=='casa de campo'?' · '+esc(v.area.toUpperCase()):''}</div>
       <h2 class="villa">${esc(v.name)}</h2>
       <div class="loc">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
       <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
@@ -347,6 +348,12 @@ function renderHome(){
           <div style="margin-top:6px"><span class="big">${d==null?'–':d}</span><span class="days">days</span></div>
           <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
         <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights</span></div>
+      </div>
+      <div class="card countdown">
+        <div><div class="label">DEPARTING IN</div>
+          <div style="margin-top:6px"><span class="big">${dDepart==null?'–':dDepart}</span><span class="days">days</span></div>
+          <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
+        <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
       </div>
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
@@ -2183,7 +2190,7 @@ function renderRealEstate(){
       <div class="display" style="font-size:24px;margin:4px 0 6px">Own a home in Casa de Campo&reg;</div>
       <div style="font-size:13px;color:rgba(255,255,255,.85)">Fallen for the resort? Villas In Casa is our independent voice on Casa de Campo&reg; real estate, operated by Caribbean Paradise Homes. We help you find, tour and buy your home here &mdash; and, through our villa rental agency, place it in the rental market whenever you&rsquo;re ready.</div>
     </div>
-    ${card('On the ground since 2003', `<b>Caribbean Paradise Homes</b> has worked inside Casa de Campo&reg; since 2003 &mdash; walking the neighborhoods every week and managing 70+ villas as a luxury rental operator, so we know how each enclave actually lives. We work for the buyer: independent, two-sided and local. Expect honest, informed counsel on neighborhoods, pricing, ownership costs and the buying process, a curated shortlist of four to eight properties (listed and off-market), and answers usually within 24 hours.`)}
+    ${card('On the ground since 2003', `<b>Caribbean Paradise Homes</b> has worked inside Casa de Campo&reg; since 2003 &mdash; walking the neighborhoods every week and managing 80+ villas as a luxury rental operator, so we know how each enclave actually lives. We work for the buyer: independent, two-sided and local. Expect honest, informed counsel on neighborhoods, pricing, ownership costs and the buying process, a curated shortlist of four to eight properties (listed and off-market), and answers usually within 24 hours.`)}
     ${card('What it costs to buy', `Entry villas and condos start under <b>US$1.5M</b>; golf- and ocean-view homes typically run <b>US$2M&ndash;$4M</b>; oceanfront and trophy estates reach <b>US$8M and beyond</b>, with the most coveted parcels trading privately. Foreigners hold the same ownership rights as Dominican citizens &mdash; full freehold title, no special permit or residency required &mdash; and most purchases close in <b>60&ndash;90 days</b>. Budget roughly <b>4&ndash;5%</b> in closing costs, plus annual resort and association fees, property tax (IPI), insurance and maintenance.`)}
     ${card('From the first call to the keys', `Our process runs from a discovery conversation to a shortlist, on-site tours, offer and due diligence, closing and resort handover &mdash; then introductions to designers, contractors and our rental program if you want the villa to work between visits. The fastest way to narrow your search is a two- to three-day visit: we drive every relevant neighborhood, tour four to six shortlisted homes, and finish with a clear shortlist by the end of the trip. Whichever enclave fits your brief, we represent you from the first viewing to the final signature &mdash; and stay on call long after the keys change hands, right here on the resort.`)}
     <div class="sec-title">Your advisors</div>
@@ -2198,7 +2205,7 @@ function renderRealEstate(){
     ${neigh('Dye Fore Estates','https://villasincasa.com/dye-fore-estates-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Dye_Fore_Estates_Casa_de_Campo_Caribbean_Paradise_Homes_6.jpg','US$2.5M&ndash;$7.2M','Premium cliffside parcels on the Chav&oacute;n canyon rim, walking distance to Altos de Chav&oacute;n.')}
     ${neigh('Los Lagos','https://villasincasa.com/los-lagos-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/lagos-16.jpeg','From ~US$3.9M','Quiet south-central interior by The Links &mdash; a short cart ride to Minitas Beach.')}
     ${neigh('Punta Aguila','https://villasincasa.com/punta-aguila-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Punta_Aguila_10_Casa_de_Campo_Caribbean_Paradise_Homes_21.jpg','US$4M&ndash;$35M+','The most exclusive oceanfront peninsula &mdash; private beach, large lots, newer estates.')}
-    ${neigh('Punta Minitas','https://villasincasa.com/punta-minitas-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2020/06/cdc13.jpeg','US$5M&ndash;$15M+','Casa de Campo&rsquo;s classic oceanfront peninsula &mdash; the largest beachfront lots, tight inventory.')}
+    ${neigh('Punta Minitas','https://villasincasa.com/punta-minitas-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/DJI_20251205212427_0133_D.jpeg','US$5M&ndash;$15M+','Casa de Campo&rsquo;s classic oceanfront peninsula &mdash; the largest beachfront lots, tight inventory.')}
     ${neigh('Rio Arriba','https://villasincasa.com/rio-arriba-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Rioarriba6-3.jpg','US$8.2M&ndash;$19.5M','Inland luxury near Altos de Chav&oacute;n &mdash; golf frontage and Chav&oacute;n River valley views.')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Arrange a viewing</b>
