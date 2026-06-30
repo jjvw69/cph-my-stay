@@ -524,10 +524,15 @@ function saveGrocery(reference, data) {
 function saveMealPlan(reference, data) {
   const s = findPublishedStayByRef(reference); if (!s) return null; data = data || {};
   const out = { updatedAt: Date.now(), note: norm(data.note).slice(0, 600) };
-  ['breakfast', 'lunch', 'dinner'].forEach(k => {
+  ['snacks', 'breakfast', 'lunch', 'dinner'].forEach(k => {
     const m = data[k] || {};
     out[k] = { date: norm(m.date).slice(0, 20), time: norm(m.time).slice(0, 20), guests: norm(m.guests).slice(0, 10), desc: norm(m.desc).slice(0, 500) };
   });
+  // extra meals the guest added beyond the standard slots (any number of days/meals)
+  out.extra = (Array.isArray(data.extra) ? data.extra : []).slice(0, 16).map(m => ({
+    type: norm(m && m.type).slice(0, 40), date: norm(m && m.date).slice(0, 20), time: norm(m && m.time).slice(0, 20),
+    guests: norm(m && m.guests).slice(0, 10), desc: norm(m && m.desc).slice(0, 500)
+  })).filter(m => m.type || m.date || m.time || m.guests || m.desc);
   s.mealPlan = out; s.updatedAt = Date.now(); persistStays(); return out;
 }
 /** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */

@@ -1822,7 +1822,7 @@ function addonRow(it){
     return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openGrocery()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your grocery list →':'Build your grocery list →'}</button></div></span></div>`;
   }
   if(it.id==='arrivalmeals'){
-    const mp=state.stay&&state.stay.mealPlan; const saved=(mp&&['breakfast','lunch','dinner'].some(k=>mp[k]&&(mp[k].date||mp[k].time||mp[k].guests||mp[k].desc)))?` <span style="font-size:10px;background:#E2EAE0;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Saved</span>`:'';
+    const mp=state.stay&&state.stay.mealPlan; const saved=mealPlanHasAny(mp)?` <span style="font-size:10px;background:#E2EAE0;color:#33493B;border-radius:6px;padding:2px 7px;vertical-align:middle;white-space:nowrap">Saved</span>`:'';
     return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openMeals()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your arrival meals →':'Plan your arrival meals →'}</button></div></span></div>`;
   }
   const guide=GUIDE_CONTENT[it.id]?`<button onclick="openGuide('${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">More info →</button>`:'';
@@ -2002,8 +2002,9 @@ function renderPlan(){
       const rows=Object.keys(by).map(cat=>`<div style="margin-bottom:7px"><b style="font-size:13px">${esc(cat)}</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div></div>`).join('');
       return `<div class="sec-title">Provisioning</div><div class="card" style="padding:14px 15px">${rows}${g.note?`<div style="margin-top:4px"><b style="font-size:13px">Notes / allergies</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(g.note)}</div></div>`:''}<div style="font-size:12px;color:var(--soft);margin-top:9px">Your concierge will have these stocked before you arrive.</div><button onclick="openGrocery()" style="margin-top:11px;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">Edit grocery list →</button></div>`;
     })()}
-    ${(function(){ const mp=s.mealPlan; if(!mp) return ''; const keys=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']]; const any=keys.some(([k])=>mp[k]&&(mp[k].date||mp[k].time||mp[k].guests||mp[k].desc)); if(!any) return '';
-      const rows=keys.map(([k,lbl])=>{const m=mp[k]||{}; if(!(m.date||m.time||m.guests||m.desc))return ''; const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guest'+(m.guests==1?'':'s'):''].filter(Boolean).join(' · '); return `<div style="margin-bottom:7px"><b style="font-size:13px">${lbl}</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(meta||'—')}${m.desc?' · '+esc(m.desc):''}</div></div>`;}).join('');
+    ${(function(){ const mp=s.mealPlan; if(!mealPlanHasAny(mp)) return '';
+      const rowHtml=(lbl,m)=>{ const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guest'+(m.guests==1?'':'s'):''].filter(Boolean).join(' · '); return `<div style="margin-bottom:7px"><b style="font-size:13px">${esc(lbl)}</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(meta||'—')}${m.desc?' · '+esc(m.desc):''}</div></div>`; };
+      let rows=''; MEAL_SUMMARY_KEYS.forEach(([k,lbl])=>{ const m=mp[k]||{}; if(mealItemHas(m)) rows+=rowHtml(lbl,m); }); (mp.extra||[]).forEach(m=>{ if(mealItemHas(m)) rows+=rowHtml(m.type||'Additional meal',m); });
       return `<div class="sec-title">Arrival meals</div><div class="card" style="padding:14px 15px">${rows}${mp.note?`<div style="margin-top:4px"><b style="font-size:13px">Notes / dietary</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(mp.note)}</div></div>`:''}<button onclick="openMeals()" style="margin-top:11px;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">Edit arrival meals →</button></div>`;
     })()}
     ${(function(){ const cs=((s.addOns)||[]).filter(a=>a.custom); if(!cs.length) return '';
@@ -2059,8 +2060,9 @@ window.printItinerary=function(){
       const noteRow=gc.note?`<tr><td style="padding:6px 14px 6px 0;color:#33403A;font-weight:600;vertical-align:top;border-top:1px solid #EEF1EC">Notes / allergies</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc(gc.note)}</td></tr>`:'';
       return `<h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Provisioning</h2><table style="width:100%;font-size:13.5px;border-collapse:collapse">${rows}${noteRow}</table>`;
     })()}
-    ${(function(){ const mp=s.mealPlan; if(!mp) return ''; const keys=[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']]; const any=keys.some(([k])=>mp[k]&&(mp[k].date||mp[k].time||mp[k].guests||mp[k].desc)); if(!any) return '';
-      const rows=keys.map(([k,lbl])=>{const m=mp[k]||{}; if(!(m.date||m.time||m.guests||m.desc))return ''; const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guests':''].filter(Boolean).join(' · '); return `<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;vertical-align:top;border-top:1px solid #EEF1EC;white-space:nowrap">${lbl}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc([meta,m.desc].filter(Boolean).join(' — '))}</td></tr>`;}).join('');
+    ${(function(){ const mp=s.mealPlan; if(!mealPlanHasAny(mp)) return '';
+      const rowHtml=(lbl,m)=>{ const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guests':''].filter(Boolean).join(' · '); return `<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;vertical-align:top;border-top:1px solid #EEF1EC;white-space:nowrap">${esc(lbl)}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc([meta,m.desc].filter(Boolean).join(' — '))}</td></tr>`; };
+      let rows=''; MEAL_SUMMARY_KEYS.forEach(([k,lbl])=>{ const m=mp[k]||{}; if(mealItemHas(m)) rows+=rowHtml(lbl,m); }); (mp.extra||[]).forEach(m=>{ if(mealItemHas(m)) rows+=rowHtml(m.type||'Additional meal',m); });
       const noteRow=mp.note?`<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;border-top:1px solid #EEF1EC">Notes / dietary</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc(mp.note)}</td></tr>`:'';
       return `<h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Arrival meals</h2><table style="width:100%;font-size:13.5px;border-collapse:collapse">${rows}${noteRow}</table>`;
     })()}
@@ -2187,24 +2189,32 @@ function renderGroceryList(){
 }
 
 /* ---------------- ARRIVAL MEALS (PDF-style: breakfast / lunch / dinner) ---------------- */
-const MEALS_DEF=[['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
+const MEALS_DEF=[['snacks','Welcome snacks & drinks'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
+const MEAL_SUMMARY_KEYS=[['snacks','Welcome snacks & drinks'],['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']];
+function mealItemHas(m){ return !!(m&&(m.date||m.time||m.guests||m.desc)); }
+function mealPlanHasAny(mp){ if(!mp) return false; return MEAL_SUMMARY_KEYS.some(([k])=>mealItemHas(mp[k])) || (mp.extra||[]).some(mealItemHas); }
 window.openMeals=function(){
   const mp=(state.stay&&state.stay.mealPlan)||{};
-  state._meals={note:mp.note||''}; MEALS_DEF.forEach(([k])=>{ state._meals[k]=Object.assign({},mp[k]); });
+  state._meals={note:mp.note||'', extra:(mp.extra||[]).map(x=>Object.assign({},x))}; MEALS_DEF.forEach(([k])=>{ state._meals[k]=Object.assign({},mp[k]); });
   push('mealplan');
 };
 window.mealMeal=function(key,field,val){ if(!state._meals[key])state._meals[key]={}; state._meals[key][field]=val; };
+window.mealExtra=function(i,field,val){ if(!state._meals.extra)state._meals.extra=[]; if(!state._meals.extra[i])state._meals.extra[i]={}; state._meals.extra[i][field]=val; };
+window.mealAddExtra=function(){ if(!state._meals.extra)state._meals.extra=[]; state._meals.extra.push({type:'Dinner'}); render(); };
+window.mealRemoveExtra=function(i){ if(state._meals.extra)state._meals.extra.splice(i,1); render(); };
 function mealsText(){
   const M=state._meals||{}; const s=state.stay; const L=[];
   L.push('ARRIVAL MEALS'); L.push((s.villa.name||'')+(s.guest.family?(' — '+s.guest.family+' family'):'')); L.push('');
-  MEALS_DEF.forEach(([k,lbl])=>{ const m=M[k]||{}; if(m.date||m.time||m.guests||m.desc){ L.push(lbl.toUpperCase());
+  const meal=(lbl,m)=>{ if(m.date||m.time||m.guests||m.desc){ L.push(String(lbl).toUpperCase());
     const meta=[m.date?('Date: '+m.date):'',m.time?('Time: '+m.time):'',m.guests?('Guests: '+m.guests):''].filter(Boolean).join(' · '); if(meta)L.push(meta);
-    if(m.desc)L.push('Dishes: '+m.desc); L.push(''); } });
+    if(m.desc)L.push('Dishes: '+m.desc); L.push(''); } };
+  MEALS_DEF.forEach(([k,lbl])=>meal(lbl,M[k]||{}));
+  (M.extra||[]).forEach(m=>meal(m.type||'Additional meal',m));
   if(M.note) L.push('NOTES: '+M.note);
   return L.join('\n');
 }
 window.mealsSave=async function(){
-  const M=state._meals||{}; const body={note:M.note||''}; MEALS_DEF.forEach(([k])=>{ body[k]=M[k]||{}; });
+  const M=state._meals||{}; const body={note:M.note||'', extra:(M.extra||[])}; MEALS_DEF.forEach(([k])=>{ body[k]=M[k]||{}; });
   const r=await api('/api/mealplan',{method:'POST',body:JSON.stringify(body)});
   if(r.ok&&r.body.mealPlan){ state.stay.mealPlan=r.body.mealPlan; toast('Arrival meals saved — your concierge can see it'); } else toast('Could not save — please try again');
 };
@@ -2226,9 +2236,18 @@ function renderMealsPlan(){
       <div style="display:flex;gap:9px;margin-top:9px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><label class="reqlbl">Date</label><input type="date" value="${esc(m.date||'')}" oninput="mealMeal('${k}','date',this.value)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="flex:1;min-width:90px"><label class="reqlbl">Time</label><input value="${esc(m.time||'')}" oninput="mealMeal('${k}','time',this.value)" placeholder="e.g. 8 AM" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="width:78px"><label class="reqlbl">Guests</label><input value="${esc(m.guests||'')}" oninput="mealMeal('${k}','guests',this.value)" inputmode="numeric" placeholder="#" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div></div>
       <label class="reqlbl" style="margin-top:9px">Meal / dishes</label><textarea rows="2" oninput="mealMeal('${k}','desc',this.value)" placeholder="What you'd like for ${esc(lbl.split(' / ')[0].toLowerCase())}…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(m.desc||'')}</textarea></div>`;
   }).join('');
+  const TYPES=['Welcome snacks & drinks','Breakfast','Lunch','Dinner','Other'];
+  const extra=(M.extra||[]);
+  const extraBlocks=extra.map((m,i)=>{ m=m||{};
+    return `<div class="card" style="padding:14px 15px;margin-top:11px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><select onchange="mealExtra(${i},'type',this.value)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:14px;font-weight:600;background:#fff;font-family:inherit;-webkit-appearance:none">${TYPES.map(t=>`<option ${(m.type||'Dinner')===t?'selected':''}>${esc(t)}</option>`).join('')}</select><button onclick="mealRemoveExtra(${i})" style="background:none;border:0;color:#B23B3B;font-size:12.5px;text-decoration:underline;cursor:pointer;white-space:nowrap">Remove</button></div>
+      <div style="display:flex;gap:9px;margin-top:9px;flex-wrap:wrap"><div style="flex:1;min-width:120px"><label class="reqlbl">Date</label><input type="date" value="${esc(m.date||'')}" oninput="mealExtra(${i},'date',this.value)" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="flex:1;min-width:90px"><label class="reqlbl">Time</label><input value="${esc(m.time||'')}" oninput="mealExtra(${i},'time',this.value)" placeholder="e.g. 8 AM" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div><div style="width:78px"><label class="reqlbl">Guests</label><input value="${esc(m.guests||'')}" oninput="mealExtra(${i},'guests',this.value)" inputmode="numeric" placeholder="#" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit"></div></div>
+      <label class="reqlbl" style="margin-top:9px">Meal / dishes</label><textarea rows="2" oninput="mealExtra(${i},'desc',this.value)" placeholder="What you'd like…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(m.desc||'')}</textarea></div>`;
+  }).join('');
   const inner=`
-    <div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:4px">Tell us about any meals you'd like ready for your arrival — fill in the ones you want and leave the rest blank. A private chef can be arranged, or your concierge can have everything stocked and prepared. Save it to keep it on your phone, then send it by WhatsApp or email.</div>
+    <div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:4px">Tell us about any meals you'd like ready for your arrival — fill in the ones you want and leave the rest blank. Add as many extra meals or days as you need. A private chef can be arranged, or your concierge can have everything stocked and prepared. Save it to keep it on your phone, then send it by WhatsApp or email.</div>
     ${blocks}
+    ${extraBlocks}
+    <button onclick="mealAddExtra()" style="width:100%;margin-top:11px;border:1px dashed var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:12px;font-size:13.5px;font-weight:500;cursor:pointer">+ Add another meal</button>
     <label class="reqlbl" style="margin-top:14px">Notes / dietary &amp; allergies</label>
     <textarea oninput="state._meals.note=this.value" rows="2" placeholder="Allergies, dietary needs, preferences…" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;box-sizing:border-box;font-family:inherit">${esc(M.note||'')}</textarea>
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="mealsSave()">Save meals</button>
