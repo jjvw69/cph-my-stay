@@ -345,9 +345,9 @@ function renderHome(){
       </div>
       <div class="card countdown">
         <div><div class="label">ARRIVING IN</div>
-          <div style="margin-top:6px"><span class="big">${d==null?'–':d}</span><span class="days">days</span></div>
+          <div style="margin-top:6px">${d===0?`<span class="big" style="font-size:34px">In-house</span>`:`<span class="big">${d==null?'–':d}</span><span class="days">days</span>`}</div>
           <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
-        <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights</span></div>
+        <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights<br>stay</span></div>
       </div>
       <div class="card countdown">
         <div><div class="label">DEPARTING IN</div>
