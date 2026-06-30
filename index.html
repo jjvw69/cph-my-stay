@@ -411,7 +411,7 @@ function renderStay(){
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
-      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Your concierge</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
     </div>
     ${tabBar('stay')}
@@ -703,7 +703,7 @@ const GUIDE_CONTENT = {
   },
   'equestrian': {
     eyebrow:'SPORT · EQUESTRIAN', title:'Equestrian Center',
-    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/polo_Casa_de_Campo_Nacho_Figueras-1.webp',
+    hero:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Equestrian.jpg',
     intro:'Golf made Casa de Campo famous, but the horses were there almost from the start. In 1974, the resort’s founding year, Indian polo legend Maharajah Jabar Singh was invited to La Romana to establish the sport on what was then a Gulf+Western sugar estate. Fifty-two years later the Equestrian Center and Polo Club remain the centre of gravity for the sport in the Dominican Republic — three tournament fields, a working riding school, and genuine countryside riding across a former sugar plantation.',
     sections:[
       {h:'Ride out', p:'Guided trail rides cross open countryside, working cattle ranches, cane fields and lagoons with resident waterfowl and water buffalo — not a pony circuit around a paddock. Rates run US$40 for 30 minutes, US$65 for an hour and US$99 for two hours, with a private guide at US$50 per hour. English and Western lessons (US$100 for 30 minutes, US$150 an hour) welcome all levels, and children ride independently from age six.'},
@@ -727,7 +727,7 @@ const GUIDE_CONTENT = {
   },
   'horseback-tour': {
     eyebrow:'EXCURSION · HORSEBACK', title:'Horseback Riding Tour',
-    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/polo_Casa_de_Campo_Nacho_Figueras-1.webp',
+    hero:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Horse_Tour.jpg',
     intro:'The standout riding experience at Casa de Campo leaves the resort entirely. The Rancho Peligro tour is a two-hour ride across one of the estate’s working cattle ranches, where Dominican cowboys still move cattle and horse herds through cane fields, pastures and lagoons. It is genuine countryside riding on land that was a working sugar plantation before it was a resort — and the equestrian outing guests most often talk about at dinner.',
     sections:[
       {h:'The ride', p:'This is a real trail across a working ranch, not a pony circuit — open countryside, cane fields, pastures and lagoons with resident waterfowl, led by experienced guides. It suits multi-generational groups particularly well, with grandparents riding at the same unhurried pace as teenagers, and the two hours pass through landscape most resort guests never see.'},
