@@ -376,7 +376,8 @@ function renderHome(){
       <div class="teasers">
         ${(()=>{const ex=exploreData();const A=ex.filter(e=>e.cat==='Activities'),M=ex.filter(e=>e.cat==='Amenities');let p=[];for(let k=0;k<Math.max(A.length,M.length)&&p.length<4;k++){if(A[k])p.push(A[k]);if(M[k]&&p.length<4)p.push(M[k]);}if(p.length<4)ex.filter(e=>e.cat==='Golf'||e.cat==='Dining').forEach(e=>{if(p.length<4&&p.indexOf(e)<0)p.push(e);});return p.map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('');})()}
       </div>
-      <div style="max-width:384px;margin:28px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
+      <a href="https://www.instagram.com/caribbeanparadisehomes/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:8px;max-width:384px;margin:14px auto 0;border:1px solid var(--line);border-radius:13px;padding:12px 14px;background:#fff;color:var(--accent);text-decoration:none;font-size:13.5px;font-weight:500">📸 Follow us on Instagram <span style="color:var(--soft);font-weight:400">@caribbeanparadisehomes</span></a>
+      <div style="max-width:384px;margin:24px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
     </div>
     ${tabBar('home')}
   </div>`;
@@ -431,6 +432,70 @@ const EXPLORE=[
 function exploreData(){ const e=state.stay&&state.stay.explore; return (e&&e.length)?e:EXPLORE; }
 /* ---------------- IN-APP GUIDES (built from the CPH blog) ---------------- */
 const GUIDE_CONTENT = {
+  'alegria': {
+    eyebrow:'DINING · ALTOS DE CHAVÓN', title:'Alegría',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/altos-de-chavon-web.jpg',
+    intro:'Tucked along the Callejón de la Alegría in Altos de Chavón, Alegría is one of the cobbled village’s most rewarding tables — Mediterranean cooking with a Dominican soul, served above a spectacular bend of the Chavón River. Opened in 2022, it pairs a relaxed, art-filled room with one of the best views at the resort: walk in and the gorge simply opens up beneath you.',
+    sections:[
+      {h:'The food', p:'The kitchen, led by Michelin-experienced chef Javier Cabrera, keeps the menu organic and seasonal, but a few signatures stay put: ceviche in coconut and ripe banana, burrata, slow-roast suckling pig, and a coconut fondant to finish. It is confident, ingredient-led cooking that balances the Mediterranean with distinctly Dominican flavours.'},
+      {h:'To drink', p:'Cocktails lean local and playful — the grown-up “Morisoñando Adulto” and a Dominican Moscow Mule built on fresh sugarcane juice are the ones to order as the light drops over the river.'},
+      {h:'A platform for young talent', p:'Part of what makes Alegría special is its team: it works as a launch-pad for young La Romana talent, most of them under 25, cooking at a genuinely high level. There is an energy to the room that reflects that.'},
+      {h:'Good to know', p:'Altos de Chavón is a few minutes by golf cart or car from most villas, and the river-view tables are the ones to ask for, especially at sunset. Reservations are wise in high season — your concierge can book the table and time it around an evening in the village. Reservations: 809-523-1278.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo/altos-de-chavon/'
+  },
+  'dolce-italia': {
+    eyebrow:'DINING · MARINA', title:'Dolce Italia',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg',
+    intro:'In the heart of the Marina Casa de Campo, Dolce Italia brings a genuine corner of Italy to the waterfront. Opened in December 2023 by Liberato De Simone — a Neapolitan who began making pizza at twelve in Castellammare di Stabia — it is equal parts pizzeria, bakery and all-day café, built on artisanal technique and ingredients brought straight from Italy.',
+    sections:[
+      {h:'Pizza &amp; the bakery', p:'The wood-fired pizzas are the heart of the menu, alongside a glass case of artisanal pastries, breads and Italian desserts made in-house. The mozzarella and burrata come from the kitchen’s own “Naturlatte” dairy, made with 100% Italian milk — a detail you taste.'},
+      {h:'The only Marina breakfast', p:'Dolce Italia is the one place on the Marina serving breakfast, from 7:45am — Italian, American and Creole options, with croissants, chocolate bread, sfogliatina and omelets. It is the natural first stop before a day on the water or a slow morning by the harbour.'},
+      {h:'Authenticity', p:'Liberato’s story runs from his first pizzeria in 1995 to branches across the Dominican Republic; the Marina is his latest. The thread throughout is the same: traditional methods and imported Italian ingredients, so every plate tastes of the real thing.'},
+      {h:'Good to know', p:'It sits right on the Marina’s walkable waterfront, easy to fold into a morning coffee, a casual lunch or an evening pizza. For villa nights in, Dolce Italia also offers free home delivery — your concierge can arrange a table or a delivery on 809-658-6532.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo-marina-guide/'
+  },
+  'azimut': {
+    eyebrow:'CAFÉ · MARINA', title:'Café Azimut',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160.jpg',
+    intro:'At the start of the Paseo del Mar in the Marina, Café Azimut — the “café on the corner” — is a relaxed, elegant spot to pause over a good coffee with the boats in view. Run by the IB Nautica group, it was the first Azimut Café in the country.',
+    sections:[
+      {h:'What to expect', p:'Nespresso coffee, fresh juices, soft drinks, water and light snacks, served indoors or out on a deck with lovely views over the Marina. It is a favourite of yacht owners and residents for a morning espresso or an afternoon break between errands on the waterfront.'},
+      {h:'Good to know', p:'Open daily 8am–8pm, right on the Marina’s walkable promenade — easy to drop into before or after lunch and the boutiques. Contact: 809-449-3323.'},
+    ],
+  },
+  'voala': {
+    eyebrow:'CAFÉ · ALTOS DE CHAVÓN', title:'Voalá Café Marché',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/altos-de-chavon-web.jpg',
+    intro:'On Calle Las Piedras in the cobbled village of Altos de Chavón, Voalá Café Marché is a warm, inviting brunch-and-coffee spot that doubles as a gourmet deli and wine shop — a lovely place to slow down between the galleries and the river overlooks.',
+    sections:[
+      {h:'Café, deli &amp; market', p:'Come for coffee and brunch, stay for the gourmet products, charcuterie and a well-chosen wine selection to take back to the villa. The atmosphere is cosy and unhurried, and it is pet-friendly — happy to welcome the family dog.'},
+      {h:'Good to know', p:'Hours run Monday–Friday 8:30am–6:30pm, Saturday 8:30am–8:30pm and Sunday 8:00am–6:00pm. It is an easy stop while exploring Altos de Chavón; your concierge can fold it into a morning in the village.'},
+    ],
+  },
+  'eco-trail': {
+    eyebrow:'AMENITY · RECREATIONAL PARK', title:'Eco Trail &amp; Bike Path',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic19-small.webp',
+    intro:'Casa de Campo’s recreational park is a 65-acre (26-hectare) green corridor set between the Los Altos neighbourhood and the Dye Fore Lakes, a short cart ride from Altos de Chavón. It was created to give residents and guests an accessible, nature-first place to walk, run and cycle — quiet, shaded and away from resort traffic.',
+    sections:[
+      {h:'The loops', p:'Two principal circuits run through the park: a 2.5km loop that threads the whole park and a shorter 1.5km option, on smooth asphalt-and-concrete paths, with secondary gravel walkways branching into the denser woodland. A dedicated pedestrian walkway connects the park directly to the village of Altos de Chavón.'},
+      {h:'Walk, run or ride', p:'The paths suit a gentle morning walk, a run before breakfast, or an easy family bike ride, with bicycle amenities along the way. Open meadows are set aside for picnics, sunbathing, a casual game of football or frisbee, or a quiet stretch of yoga.'},
+      {h:'Nature first', p:'The park was designed around the land rather than over it — endemic Dominican species, including the giant cacti, were preserved in partnership with Santo Domingo’s National Botanical Garden, and a dense band of planting keeps neighbouring streets out of sight and sound.'},
+      {h:'Good to know', p:'It is an easy golf-cart hop from most villas, best enjoyed in the cooler morning or late-afternoon hours. Bring water and sun protection; the route is shaded in stretches but open in others. Your concierge can point you to the nearest entrance and the walkway down to Altos de Chavón.'},
+    ],
+  },
+  'kids-park': {
+    eyebrow:'AMENITY · FOR FAMILIES', title:'Kids Park',
+    hero:'https://www.casadecampo.com.do/wp-content/uploads/2024/01/EJ4B91245.jpg',
+    intro:'Within Casa de Campo’s 65-acre recreational park, near Altos de Chavón, is an open, green space made with families in mind — a children’s playground and wide lawns where younger guests can run, climb and play in a safe, traffic-free setting just minutes from the villas.',
+    sections:[
+      {h:'The playground', p:'The park’s playground gives children a dedicated place to burn energy, surrounded by meadows and mature planting rather than roads. It pairs naturally with the park’s walking and cycling loops, so the whole family can head out together — parents walking or riding while the children play.'},
+      {h:'Room to roam', p:'Beyond the playground, the open meadows are ideal for a picnic, a kick-about, frisbee or simply space to spread out. The setting is calm and green, with a dense vegetation barrier keeping the surroundings quiet.'},
+      {h:'Part of a bigger park', p:'Because it sits inside the recreational park, the kids’ area connects by pedestrian walkway to Altos de Chavón and to the neighbouring communities, making it easy to combine a morning in the village with an afternoon outdoors.'},
+      {h:'Good to know', p:'It is a short golf-cart ride from most villas and best in the cooler parts of the day. Bring water, hats and sunscreen. For organised, fully-supervised activities by age group, ask your concierge about Casa de Campo’s award-winning Family Programs as well.'},
+    ],
+  },
   'marina': {
     eyebrow:'AMENITY · MARINA',
     title:'Casa de Campo Marina',
@@ -1088,7 +1153,7 @@ function renderCGuide(id){
   shell(g.title, inner);
 }
 function renderExplore(){
-  const cats=[['All','All'],['Golf Courses','Golf'],['Dining','Dining'],['Nightlife','Nightlife'],['Resort Amenities','Amenities'],['Resort Experiences','Activities'],['Outside Experiences','Outside']];
+  const cats=[['All','All'],['Golf Courses','Golf'],['Dining','Dining'],['Cafés','Cafe'],['Nightlife','Nightlife'],['Resort Amenities','Amenities'],['Resort Experiences','Activities'],['Outside Experiences','Outside']];
   const cur=state._exCat||'All';
   const _all=exploreData().filter(e=>cur==='All'||e.cat===cur);
   const PER=10, pageCount=Math.max(1,Math.ceil(_all.length/PER));
