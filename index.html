@@ -236,11 +236,11 @@ function guestBusy(){
   const cm=document.getElementById('cmsg'); if(cm && cm.value && cm.value.trim()) return true; // typing a message
   return false;
 }
-function showUpdatePill(){
-  if(document.getElementById('verpill')) return;
-  const b=document.createElement('div'); b.id='verpill';
-  b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:99999;background:#16241E;color:#fff;padding:10px 16px;border-radius:30px;display:flex;align-items:center;gap:12px;font-size:13.5px;box-shadow:0 8px 26px rgba(0,0,0,.32)';
-  b.innerHTML='Update available <button onclick="location.reload()" style="background:#fff;color:#16241E;border:0;border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Refresh</button>';
+function showUpdateBar(){
+  if(document.getElementById('verbar')) return;
+  const b=document.createElement('div'); b.id='verbar';
+  b.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#16241E;color:#fff;padding:13px 16px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:14px;box-shadow:0 -2px 16px rgba(0,0,0,.34)';
+  b.innerHTML='✦ A new version of the app is available. <button onclick="location.reload()" style="background:#fff;color:#16241E;border:0;border-radius:9px;padding:8px 16px;font-size:13.5px;font-weight:600;cursor:pointer">Reload now</button>';
   document.body.appendChild(b);
 }
 async function checkVersion(){
@@ -248,7 +248,7 @@ async function checkVersion(){
     const r=await fetch('/api/version',{cache:'no-store',credentials:'same-origin'});
     const j=await r.json(); const v=j&&j.ver; if(!v) return;
     if(_APPVER===null){ _APPVER=v; return; }
-    if(v!==_APPVER){ _APPVER=v; if(guestBusy()) showUpdatePill(); else location.reload(); }
+    if(v!==_APPVER){ _APPVER=v; showUpdateBar(); }
   }catch(e){}
 }
 document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkVersion(); });
@@ -275,7 +275,7 @@ function renderLogin(prefill){
       <div class="helper">Can't sign in? <a href="#" onclick="loginWhatsApp();return false;" style="color:inherit;text-decoration:underline">Message us on WhatsApp</a></div>
     </div>
   </div>`;
-  window.loginWhatsApp=function(){ const ref=((document.getElementById('ref')||{}).value||'').trim(); const last=((document.getElementById('last')||{}).value||'').trim(); const msg='Hi Caribbean Paradise Homes, I am having trouble signing in to My Stay.'+(ref?' My booking reference is '+ref+'.':'')+(last?' Lead guest last name: '+last+'.':''); window.open('https://wa.me/18297638801?text='+encodeURIComponent(msg),'_blank','noopener'); };
+  window.loginWhatsApp=function(){ const ref=((document.getElementById('ref')||{}).value||'').trim(); const last=((document.getElementById('last')||{}).value||'').trim(); const msg='Hi Caribbean Paradise Homes, I am having trouble signing in to My Stay.'+(ref?' My booking reference is '+ref+'.':'')+(last?' Lead guest last name: '+last+'.':''); const url='https://wa.me/18297638801?text='+encodeURIComponent(msg); try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){try{a.remove();}catch(e){}},0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ location.href=url; } } };
   const btn=document.getElementById('loginBtn'), errEl=document.getElementById('loginErr');
   async function go(){
     const reference=document.getElementById('ref').value.trim(), lastName=document.getElementById('last').value.trim();

@@ -997,7 +997,8 @@ async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(
 window.setServiceSupplier=async function(id,val){ const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({supplier:val})}); if(!r.ok){ alert(r.body.error||'Could not save supplier.'); return; } const a=BOOT.addons.find(x=>x.id===id); if(a)a.supplier=String(val||'').trim(); };
 window.addCustomServiceUI=async function(){ const name=(document.getElementById('svcName')||{}).value||''; const price=(document.getElementById('svcPrice')||{}).value||''; const desc=(document.getElementById('svcDesc')||{}).value||''; const supplier=(document.getElementById('svcSupplier')||{}).value||''; if(!name.trim()){ alert('Enter a service name.'); return; } const r=await api('/api/staff/services',{method:'POST',body:JSON.stringify({name,price,desc,supplier})}); if(!r.ok){ alert(r.body.error||'Could not add service.'); return; } await refreshServices(); toast&&toast('Service added — it now appears in every guest’s plan.'); };
 window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
-window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const ref=cur.reference||''; const name=((cur.leadName||'').split(' ')[0])||'there'; const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(ref); const msg='Hi '+name+', here is your Caribbean Paradise Homes “My Stay” link for booking '+ref+':\n'+url+'\n\nOpen it and sign in with your booking reference ('+ref+') and the lead guest’s last name. Any trouble signing in, just reply here and we’ll help.'; if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} alert('No phone number on file for this guest. The login message has been copied to your clipboard — paste it into email or your messaging app.'); return; } window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank','noopener'); };
+function openExternal(url){ try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){ try{a.remove();}catch(e){} },0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ try{ location.href=url; }catch(__){} } } }
+window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const ref=cur.reference||''; const name=((cur.leadName||'').split(' ')[0])||'there'; const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(ref); const msg='Hi '+name+', here is your Caribbean Paradise Homes “My Stay” link for booking '+ref+':\n'+url+'\n\nOpen it and sign in with your booking reference ('+ref+') and the lead guest’s last name. Any trouble signing in, just reply here and we’ll help.'; const wa = ph ? ('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)) : ('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
 window.recalcBalance=function(){ if(!cur)return; const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const tv=(document.getElementById('payTotal')||{}).value||''; const pv=(document.getElementById('payPaid')||{}).value||''; const by=((document.getElementById('payBy')||{}).value||'').trim(); cur.totalCharge=tv; cur.amountPaid=pv; cur.balanceDueBy=by; const total=num(tv), paid=num(pv); let out='—'; if(tv.trim()||pv.trim()){ const bal=Math.max(0,total-paid); out='$'+bal.toLocaleString('en-US')+(by?' by '+by:''); } cur.balanceDue=(out==='—')?'':out; const el=document.getElementById('payBal'); if(el)el.textContent=out; if(typeof markDirty==='function')markDirty(); };
 window.setSndRate=function(v){ _sndRate=v; };
 window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; renderEditor(); };
@@ -1057,17 +1058,48 @@ window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find
 
 /* ---------- Yacht charter proposal ---------- */
 let _yacht=null;
-/* Casa de Campo Marina charter fleet — picking one auto-fills details + rate (rate stays editable).
-   STARTER LIST: confirm/replace names, specs and rates with the real fleet. */
+/* Casa de Campo Marina charter fleet (caribbeanparadisehomes.com/guest-services/yacht-charters).
+   Picking one auto-fills details + rate (rate stays editable). FD = full day (8h, 9am–5pm),
+   HD = half day (4h). Rates as of March 2025, exclude 28% tax/service & gratuity — confirm availability. */
 const YACHT_CATALOG=[
-  {name:'42ft Sea Ray · half-day', detail:'Up to 10 guests · captain & mate · 4 hours · coastal cruise or Catalina', rate:'US$1,500'},
-  {name:'50ft Azimut · half-day', detail:'Up to 12 guests · captain & mate · 4 hours · Catalina Island', rate:'US$1,900'},
-  {name:'50ft Azimut · full-day', detail:'Up to 12 guests · captain & mate · 8 hours · Saona or Catalina', rate:'US$3,200'},
-  {name:'62ft Sunseeker · full-day', detail:'Up to 15 guests · full crew · 8 hours · Saona Island', rate:'US$4,500'},
-  {name:'Lagoon 50 catamaran · full-day', detail:'Up to 20 guests · full crew · 8 hours · Saona / Catalina · lunch optional', rate:'US$3,800'},
-  {name:'Catamaran · half-day', detail:'Up to 15 guests · captain & mate · 4 hours · coastal cruise & snorkel', rate:'US$2,200'},
-  {name:'Sunset cruise · 2 hours', detail:'Up to 12 guests · captain & mate · 2 hours · sunset along the coast', rate:'US$900'},
-  {name:'Sport-fishing charter · half-day', detail:'Up to 6 anglers · captain & mate · 4 hours · offshore (mahi, marlin, tuna)', rate:'US$1,400'},
+  {name:'Azimut 86 · Andrea', detail:'Up to 16 guests · 86ft · crew of 2 · full day (8h)', rate:'US$6,875 / full day'},
+  {name:'Azimut 60', detail:'Up to 18 guests · 60ft · crew of 2 · full day (8h)', rate:'US$4,500 / full day'},
+  {name:'Prestige 50', detail:'Up to 14 guests · 50ft · crew of 2 · full day (8h)', rate:'US$3,750 / full day'},
+  {name:'Majesty 56 · Georyana 3', detail:'Up to 16 guests · 56ft · crew of 2 · full day (8h)', rate:'US$2,900 / full day'},
+  {name:'Take It Easy 5', detail:'Up to 35 guests · 64ft · crew of 2 · full day (8h)', rate:'US$2,975 / full day'},
+  {name:'Pacific 72 · Summer Wind', detail:'Up to 18 guests · 72ft · crew of 2 · full day (8h)', rate:'US$2,875 / full day'},
+  {name:'Princess 60', detail:'Up to 12 guests · 60ft · crew of 2 · full day (8h)', rate:'US$2,750 / full day'},
+  {name:'Azimut 55 · Ancoral', detail:'Up to 15 guests · 55ft · crew of 2 · full day (8h) · half-day from US$2,200 (Catalina) / US$2,350 (Palmilla)', rate:'US$2,750 / full day'},
+  {name:'Aicon 60 · Libra', detail:'Up to 15 guests · 60ft · crew of 2 · full day (8h) · half-day from US$2,000 (Catalina) / US$2,200 (Palmilla)', rate:'US$2,500 / full day'},
+  {name:'Prestige 42', detail:'Up to 14 guests · 42ft · crew of 2 · full day (8h)', rate:'US$2,500 / full day'},
+  {name:'Alena 56 · Die Alto Dime', detail:'Up to 16 guests · 56ft · crew of 2 · full day (8h)', rate:'US$2,500 / full day'},
+  {name:'Sea Ray 53', detail:'Up to 12 guests · 53ft · crew of 2 · full day (8h)', rate:'US$2,150 / full day'},
+  {name:'Powerplay 54 · Liquid', detail:'Up to 22 guests · 55ft · crew of 2 · full day (8h)', rate:'US$1,985 / full day'},
+  {name:'Tiara 48', detail:'Up to 14 guests · 48ft · crew of 2 · full day (8h)', rate:'US$1,975 / full day'},
+  {name:'Sea Ray 540 · High Adventure', detail:'Up to 12 guests · 54ft · crew of 2 · full day (8h) · half-day from US$1,300 (Catalina) / US$1,500 (Palmilla)', rate:'US$1,875 / full day'},
+  {name:'Hatteras 53 · sport-fishing', detail:'Up to 16 guests · 53ft · crew of 2 · full day (8h) · half-day Catalina US$1,600 / Palmilla US$1,700', rate:'US$1,775 / full day'},
+  {name:'No Worries', detail:'Up to 22 guests · 50ft · crew of 2 · full day (8h) · half-day US$1,485 (Catalina or Palmilla)', rate:'US$1,685 / full day'},
+  {name:'Regal 38', detail:'Up to 10 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,600 / full day'},
+  {name:'Fairline 50', detail:'Up to 12 guests · 50ft · crew of 2 · full day (8h)', rate:'US$1,575 / full day'},
+  {name:'Enjoy', detail:'Up to 35 guests · 48ft · crew of 2 · full day (8h) · half-day from US$1,100 (Catalina) / US$1,250 (Palmilla)', rate:'US$1,575 / full day'},
+  {name:'Rohans 42', detail:'Up to 12 guests · 42ft · crew of 2 · full day (8h)', rate:'US$1,575 / full day'},
+  {name:'Happy Hours', detail:'Up to 20 guests · 44ft · crew of 2 · full day (8h)', rate:'US$1,500 / full day'},
+  {name:'Lose', detail:'Up to 20 guests · 50ft · crew of 2 · full day (8h)', rate:'US$1,500 / full day'},
+  {name:'Marisabel', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,100 (Catalina) / US$1,250 (Palmilla)', rate:'US$1,475 / full day'},
+  {name:'Chris-Craft 43', detail:'Up to 12 guests · 43ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day'},
+  {name:'Meridian 42', detail:'Up to 14 guests · 42ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day'},
+  {name:'Sea Ray 42', detail:'Up to 12 guests · 40ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day'},
+  {name:'Princess 40', detail:'Up to 10 guests · 40ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day'},
+  {name:'Tiara 38', detail:'Up to 10 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,350 / full day'},
+  {name:'Volare', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000 (Catalina) / US$1,150 (Palmilla)', rate:'US$1,350 / full day'},
+  {name:'Lady V', detail:'Up to 12 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000', rate:'US$1,300 / full day'},
+  {name:'Fairline 43 · Aria 1', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000 (Catalina) / US$1,150 (Palmilla)', rate:'US$1,300 / full day'},
+  {name:'Champagne Girl', detail:'Up to 10 guests · 40ft · crew of 2 · full day (8h) · half-day from US$950 (Catalina) / US$1,050 (Palmilla)', rate:'US$1,275 / full day'},
+  {name:'Intrepid 37', detail:'Up to 9 guests · 37ft · crew of 2 · full day (8h)', rate:'US$1,100 / full day'},
+  {name:'Intrepid 36', detail:'Up to 9 guests · 36ft · crew of 2 · full day (8h)', rate:'US$1,050 / full day'},
+  {name:'Happy Wind · sailing', detail:'Up to 14 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,050 / full day'},
+  {name:'Velero 42 · sailing', detail:'Up to 9 guests · 42ft · crew of 2 · full day (8h)', rate:'US$975 / full day'},
+  {name:'Pearson 40 · Mar del Sur · fishing', detail:'Up to 8 guests · 40ft · crew of 2 · full day (8h) · half-day Catalina US$700', rate:'US$900 / full day'},
 ];
 function _yachtTag(o){ const idx=YACHT_CATALOG.findIndex(y=>y.name===o.name); if(idx>=0){ o._cat=idx; o._custom=false; } else if(o.name){ o._cat=null; o._custom=true; } else { o._cat=null; o._custom=false; } return o; }
 window.closeYacht=function(){ const ov=document.getElementById('ychOv'); if(ov)ov.remove(); _yacht=null; };
