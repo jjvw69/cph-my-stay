@@ -349,7 +349,7 @@ function blankStay() {
     guestCheckin: null,
     followUpDate: '', followUpNote: '',
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
-    paymentStatus: '', balanceDue: '', securityDeposit: '',
+    paymentStatus: '', balanceDue: '', securityDeposit: '', totalCharge: '', amountPaid: '', balanceDueBy: '',
     createdAt: Date.now(), updatedAt: Date.now(),
   };
 }
@@ -437,7 +437,7 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','paymentStatus','balanceDue','securityDeposit'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
