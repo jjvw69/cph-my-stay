@@ -1733,7 +1733,7 @@ function renderArrival(){
 
 function renderCheckout(){
   const s=state.stay,b=s.booking;
-  const list=['Settle any pending bills with our concierge or your resort account','Remember to tip the staff — US$35–45 per day, each, in cash','Leave golf cart, car and villa keys at the villa','Remember to pack your chargers, safe contents and documents'];
+  const list=['Settle any pending bills with our concierge or your resort account','Remember to tip the staff directly — US$35–45 per day, each, in cash','Leave golf cart, car and villa keys at the villa','Remember to pack your chargers, safe contents and documents'];
   const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp') center/cover;color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.75)">CHECK-OUT</div>
       <div class="display" style="font-size:26px;margin:4px 0">By ${esc(b.checkOutTime||'11:00 AM')}</div>
