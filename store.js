@@ -30,10 +30,11 @@ const ADDON_CATALOG = [
   { id: 'grocery',       category: 'Provisioning',          name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
   { id: 'arrivalmeals',  category: 'Provisioning',          name: 'Arrival meals',                      desc: 'Meals ready when you arrive — breakfast, lunch or dinner. A private chef can be arranged.' },
   // (Experiences moved to the Explore → Experiences directory)
+  // Spa & wellness
+  { id: 'yoga',          category: 'Spa & wellness',        name: 'Private Yoga',                       desc: 'A private sunrise yoga session on your terrace or the beach with a certified instructor.' },
   // In-villa services
   { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
   { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
-  { id: 'yoga',          category: 'In-villa services',     name: 'Private Yoga',                       desc: 'A private sunrise yoga session on your terrace or the beach with a certified instructor.' },
   { id: 'nannies',       category: 'In-villa services',     name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
   { id: 'entertainment', category: 'In-villa services',     name: 'Live Entertainment',                 desc: 'Musicians, DJs and performers to set the mood for a dinner, celebration or evening at your villa.' },
   { id: 'rumcigar',      category: 'In-villa services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
