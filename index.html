@@ -458,7 +458,7 @@ const GUIDE_CONTENT = {
   },
   'azimut': {
     eyebrow:'CAFÉ · MARINA', title:'Café Azimut',
-    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2012/07/azimut_cafe1.jpg?w=1000&ssl=1',
+    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2012/07/azimut_cafe1.jpg?crop=0,0,60,72&w=1100&ssl=1',
     intro:'At the start of the Paseo del Mar in the Marina, Café Azimut — the “café on the corner” — is a relaxed, elegant spot to pause over a good coffee with the boats in view. Run by the IB Nautica group, it was the first Azimut Café in the country.',
     sections:[
       {h:'What to expect', p:'Nespresso coffee, fresh juices, soft drinks, water and light snacks, served indoors or out on a deck with lovely views over the Marina. It is a favourite of yacht owners and residents for a morning espresso or an afternoon break between errands on the waterfront.'},
@@ -1168,6 +1168,7 @@ function renderExplore(){
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
       ${(cur==='Golf')?`<button onclick="push('golfguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">⛳ Golf guide — three courses compared<span>→</span></button>`:''}
       ${(cur==='Activities')?`<button onclick="push('expguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">🌴 Experiences guide — what to do, by interest<span>→</span></button>`:''}
+      ${(cur==='Amenities')?`<button onclick="push('amenguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">🏖️ Amenities guide — the resort, area by area<span>→</span></button>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
         <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
@@ -1621,6 +1622,7 @@ function renderPushed(v){
   if(v==='discover') return renderDiscover();
   if(v==='golfguide') return renderGolfGuide();
   if(v==='expguide') return renderExperiencesGuide();
+  if(v==='amenguide') return renderAmenitiesGuide();
   if(v==='realestate') return renderRealEstate();
   if(v==='resortmap') return renderResortMap();
   if(v==='cguide') return renderCGuide(state._cguide);
@@ -1810,7 +1812,8 @@ function renderCheckout(){
     <div class="sec-title">Before you go</div>
     ${list.map((t,i)=>`<div class="check ${state.checklist[i]?'on':''}" onclick="toggleCheck(${i})"><span class="box">✓</span><span class="t">${esc(t)}</span></div>`).join('')}
     <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:14px"><b style="font-size:14px">Departure transfer</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">Your driver arrives at the villa <b>15 minutes before</b> the scheduled pick-up and waits a maximum of <b>30 minutes</b>. After that it’s considered a no-show and the paid fare is forfeited. Any pick-up time change must be requested at least <b>24 hours</b> in advance.</div></div>
-    <a class="btn" href="https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:18px;background:var(--gold);color:#fff;text-decoration:none">Leave a review</a>`;
+    <a class="btn" href="https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:18px;background:var(--gold);color:#fff;text-decoration:none">Leave a review</a>
+    <a href="https://www.instagram.com/caribbeanparadisehomes/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:9px;margin-top:10px;border:0;border-radius:13px;padding:13px 14px;background:linear-gradient(45deg,#feda75 0%,#fa7e1e 25%,#d62976 50%,#962fbf 75%,#4f5bd5 100%);color:#fff;text-decoration:none;font-size:13.5px;font-weight:600"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Follow us</a>`;
   shell('Checkout', inner);
 }
 window.toggleCheck=function(i){ state.checklist[i]=!state.checklist[i]; render(); };
@@ -2274,6 +2277,42 @@ function renderExperiencesGuide(){
     ${card('Good to know','Spa treatments, yacht charters and the Catalina excursion book up fastest in peak season (December–April) — reserve before you arrive. Many experiences carry their own fees on top of the resort access fee, and some (the spa hydrothermal circuit, the shooting range) are 18-plus. Your concierge can confirm prices, ages and timing for anything below.')}
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all experiences</button>`;
   shell('Experiences guide', inner);
+}
+
+/* ---------------- RESORT AMENITIES GUIDE ---------------- */
+function renderAmenitiesGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const pick=(occ,place,loc)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div style="font-size:13px;color:var(--soft);flex:1">${occ}</div><div style="text-align:right;flex:0 0 auto"><div style="font-size:13.5px;font-weight:500">${place}</div><div style="font-size:11.5px;color:var(--soft)">${loc}</div></div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">AMENITIES GUIDE</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">The resort, area by area</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">Casa de Campo is really four worlds in one — a private beach, a Mediterranean marina, a clifftop artists’ village and a green recreational park. Here’s what each one is for.</div>
+    </div>
+    <div style="font-size:14px;color:var(--soft);line-height:1.6;margin-top:14px">Beyond your villa, the resort’s amenities cluster into a handful of distinct places, each a short golf-cart ride away. Knowing what each is best for — and when to go — is the difference between a good week and a seamless one.</div>
+    ${card('Minitas Beach','The resort’s only beach — a sheltered, west-facing crescent of soft sand and calm, swimmable water, raked and serviced daily. It’s the heart of resort daytime life: sun loungers and umbrellas, the Minitas Beach Club for Mediterranean-Caribbean lunches, and water sports off the sand (paddleboards, kayaks, Hobie Cats, snorkelling). Because it faces west, it’s also the best sunset on the property — worth timing a drink or dinner around.')}
+    ${card('Casa de Campo Marina','Designed by Gianfranco Fini to feel like an Italian Riviera village, the Marina is the resort’s social waterfront — superyachts on one side, the Plaza Portofino’s restaurants, boutiques and cafés on the other. It’s where evenings come alive: a long sunset dinner among the boats, a gelato along the Paseo del Mar, or the departure point for yacht charters and the Catalina Island trip.')}
+    ${card('Altos de Chavón','A recreation of a 16th-century Mediterranean village, hand-built in stone on a clifftop above the Chavón River. It’s the resort’s cultural heart — the Regional Museum of Archaeology, artisan workshops, the St. Stanislaus church, galleries and a handful of lovely restaurants and cafés, all around a 5,000-seat Grecian amphitheatre. Come for a slow afternoon, sunset over the river, or a concert at the amphitheatre.')}
+    ${card('The Recreational Park','A 65-acre green corridor between Los Altos and the Dye Fore Lakes, designed for walking, running and cycling away from resort traffic. Two smooth loops (2.5km and 1.5km) plus gravel trails wind through preserved Dominican woodland, with open meadows for picnics and a children’s playground. A pedestrian walkway connects it straight to Altos de Chavón — best enjoyed in the cool of the morning or late afternoon.')}
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">Getting around</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Every area is a short golf-cart ride from the villas — your cart is the easiest way around the 7,000-acre resort. Tell your concierge where you’d like to go and we’ll help with directions, reservations and timing.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask the concierge</button>
+    </div>
+    <div class="sec-title">Where to go, by mood</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('Beach &amp; sunset','Minitas Beach','Minitas')}
+      ${pick('Dinner among the yachts','The Marina','Marina')}
+      ${pick('Culture &amp; a clifftop view','Altos de Chavón','Chavón River')}
+      ${pick('A concert under the stars','The Amphitheatre','Altos de Chavón')}
+      ${pick('Morning walk, run or ride','Recreational Park','Los Altos')}
+      ${pick('Somewhere for the kids','Kids Park','Recreational Park')}
+      ${pick('Shopping &amp; gelato','Paseo del Mar','Marina')}
+      ${pick('Sunset drink with a view','Minitas Beach Club','Minitas')}
+    </div>
+    ${card('Good to know','Each area has its own rhythm — Minitas for the day, the Marina and Altos de Chavón for the evening, the park for the cool hours. Some venues ask for resort-casual dress at dinner, and the amphitheatre schedule changes through the season. Your concierge can confirm what’s on, book your tables and time everything around the light.')}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all amenities</button>`;
+  shell('Amenities guide', inner);
 }
 
 /* ---------------- REAL ESTATE (Villas In Casa) ---------------- */
