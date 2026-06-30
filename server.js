@@ -272,6 +272,13 @@ async function route(req,res){
     const ssB=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/sent-services\/([A-Za-z0-9]+)$/);
     if(ssB&&m==='PUT'){ const b=await readBody(req); const it=store.updateSentService(ssB[1],ssB[2],b); if(it) broadcastStaff({type:'update'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     if(ssB&&m==='DELETE'){ const okd=store.cancelSentService(ssB[1],ssB[2]); if(okd) broadcastStaff({type:'update'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const ivA=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/invoices$/);
+    if(ivA&&m==='POST'){ const b=await readBody(req); const it=store.createInvoice(ivA[1],b); if(it) broadcastStaff({type:'update'}); return it?sendJSON(res,200,{ok:true,invoice:it}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const ivB=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/invoices\/([A-Za-z0-9]+)$/);
+    if(ivB&&m==='PUT'){ const b=await readBody(req); const it=store.updateInvoice(ivB[1],ivB[2],b); if(it) broadcastStaff({type:'update'}); return it?sendJSON(res,200,{ok:true,invoice:it}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    if(ivB&&m==='DELETE'){ const okd=store.deleteInvoice(ivB[1],ivB[2]); if(okd) broadcastStaff({type:'update'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const ivS=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/invoices\/([A-Za-z0-9]+)\/(send|paid|draft)$/);
+    if(ivS&&m==='POST'){ const action=ivS[3]; const status=action==='send'?'sent':action; const it=store.setInvoiceStatus(ivS[1],ivS[2],status); if(it){ if(action==='send'){ const st=store.getStay(ivS[1]); if(st&&st.status==='published'){ const tot=store.invoiceTotal(it); notifyGuest(st,'Your invoice is ready',['Your concierge has sent you an invoice — open My Stay to review and settle it.','',`${it.title}: $${tot.toLocaleString('en-US')}${it.dueBy?' · due '+it.dueBy:''}`].join('\n')); } } broadcastStaff({type:'update'}); } return it?sendJSON(res,200,{ok:true,invoice:it}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const sm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/messages$/);
     if(sm&&m==='POST'){ const b=await readBody(req); const msg=store.addStaffMessage(sm[1],String(b.text||'')); if(msg){ const st=store.getStay(sm[1]); const ph=st?toWhatsAppNum(st.phone):''; if(ph&&TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM){ sendWhatsAppTo(ph,msg.text,(st.reference||'')); } } return msg?sendJSON(res,200,{ok:true,message:msg}):sendJSON(res,400,{ok:false,error:'Empty or not found'}); }
     const mm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)(\/publish)?$/);

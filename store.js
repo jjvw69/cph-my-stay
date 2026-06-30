@@ -607,6 +607,52 @@ function respondSentService(reference, sid, response) {
   it.status = response === 'confirmed' ? 'confirmed' : response === 'declined' ? 'declined' : it.status;
   it.respondedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return it;
 }
+// ----- invoices (concierge creates → reviews → sends → guest sees + pays by Zelle → mark paid) -----
+function invoiceTotal(inv) { return (inv && Array.isArray(inv.items) ? inv.items : []).reduce((a, x) => a + (Number(x && x.amount) || 0), 0); }
+function cleanItems(arr) {
+  return (Array.isArray(arr) ? arr : []).slice(0, 40).map(it => ({
+    label: norm(it && it.label).slice(0, 120),
+    amount: Math.max(0, Math.round((parseFloat(String(it && it.amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100),
+  })).filter(it => it.label || it.amount);
+}
+function createInvoice(stayId, b) {
+  const s = getStay(stayId); if (!s) return null;
+  if (!Array.isArray(s.invoices)) s.invoices = [];
+  s._invSeq = (s._invSeq || 0) + 1;
+  const inv = {
+    id: 'inv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4),
+    no: s._invSeq,
+    title: norm(b && b.title).slice(0, 120) || 'Invoice',
+    items: cleanItems(b && b.items),
+    dueBy: norm(b && b.dueBy).slice(0, 40),
+    note: norm(b && b.note).slice(0, 400),
+    status: 'draft', createdAt: Date.now(), sentAt: 0, paidAt: 0,
+  };
+  s.invoices.push(inv); s.updatedAt = Date.now(); persistStays(); return inv;
+}
+function updateInvoice(stayId, iid, b) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.invoices)) return null;
+  const inv = s.invoices.find(x => x.id === iid); if (!inv) return null;
+  if (b.title != null) inv.title = norm(b.title).slice(0, 120) || inv.title;
+  if (b.items != null) inv.items = cleanItems(b.items);
+  if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
+  if (b.note != null) inv.note = norm(b.note).slice(0, 400);
+  s.updatedAt = Date.now(); persistStays(); return inv;
+}
+function setInvoiceStatus(stayId, iid, status) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.invoices)) return null;
+  const inv = s.invoices.find(x => x.id === iid); if (!inv) return null;
+  if (status === 'sent') { inv.status = 'sent'; inv.sentAt = Date.now(); }
+  else if (status === 'paid') { inv.status = 'paid'; inv.paidAt = Date.now(); }
+  else if (status === 'draft') { inv.status = 'draft'; inv.sentAt = 0; inv.paidAt = 0; }
+  s.updatedAt = Date.now(); persistStays(); return inv;
+}
+function deleteInvoice(stayId, iid) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.invoices)) return false;
+  const n = s.invoices.length; s.invoices = s.invoices.filter(x => x.id !== iid);
+  if (s.invoices.length === n) return false;
+  s.updatedAt = Date.now(); persistStays(); return true;
+}
 /** Concierge confirms a request from the Console and sets the final price. */
 function confirmRequest(stayId, requestId, price) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
@@ -691,6 +737,7 @@ function toGuestStay(s) {
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
+    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), total: invoiceTotal(x), dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 })),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     grocery: s.grocery || null,
@@ -726,6 +773,7 @@ module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
+  createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,

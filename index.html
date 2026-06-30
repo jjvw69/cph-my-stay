@@ -1943,6 +1943,17 @@ function renderPlan(){
         return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(x.name)}</b>${meta?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${meta}</span>`:''}${x.note?`<span style="display:block;margin-top:3px">${esc(x.note)}</span>`:''}<div style="margin-top:10px">${action}</div></span></div>`; };
       return `<div class="sec-title">Arranged for you</div><div style="font-size:12.5px;color:var(--soft);margin:0 0 4px;line-height:1.5">Your concierge has set these up for your stay — please confirm or decline.</div>${ss.map(row).join('')}`;
     })()}
+    ${(function(){ const invs=(s.invoices||[]); if(!invs.length) return '';
+      const fmt=n=>'$'+(Number(n)||0).toLocaleString('en-US'); const ref=(b&&b.reference)||'';
+      const box=(iv)=>{ const paid=iv.status==='paid';
+        const lines=(iv.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft)"><span>${esc(it.label||'')}</span><span style="white-space:nowrap">${fmt(it.amount)}</span></div>`).join('');
+        const memo=[ref,iv.title].filter(Boolean).join(' · ');
+        return `<div class="card" style="padding:14px 15px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:14.5px">${esc(iv.title)} · #${iv.no}</b>${paid?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>':(iv.dueBy?`<span style="font-size:12px;color:var(--soft)">Due ${esc(iv.dueBy)}</span>`:'')}</div>
+          <div style="margin-top:8px">${lines}<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;border-top:1px solid var(--line);padding-top:7px;margin-top:5px"><span>Total</span><span>${fmt(iv.total)}</span></div></div>
+          ${iv.note?`<div style="font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.5">${esc(iv.note)}</div>`:''}
+          ${paid?'':`<div style="margin-top:10px;border:1px solid #E2DAF0;background:#F7F4FC;border-radius:12px;padding:12px 13px"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6D1ED4;text-transform:uppercase;margin-bottom:6px">Pay by Zelle</div>${zelleRow('Send to',ZELLE_EMAIL,ZELLE_EMAIL,'Email')}${zelleRow('Amount',fmt(iv.total),String(iv.total||''),'Amount')}${memo?zelleRow('Memo',memo,memo,'Memo'):''}<div style="font-size:11.5px;color:#8A8597;margin-top:8px;line-height:1.5">Open your bank's app, choose Zelle, send to the email above and add the memo. Your concierge marks it paid once received.</div></div>`}</div>`; };
+      return `<div class="sec-title">Bills</div>${invs.map(box).join('')}`;
+    })()}
     <div class="sec-title">Your stay</div>
     <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
     <div class="sec-title">Requests &amp; bookings</div>
