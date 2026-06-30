@@ -35,7 +35,7 @@ const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'index.html'));
 const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
 // Advisor headshots (real-estate tab), served as static assets.
 const STATIC_IMAGES = {};
-['jan.jpg','ivonna.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
+['jan.jpg','ivonna.jpg','azimut.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
 // Content hash of the app files — changes only when a new build is deployed (stable across
 // restarts/cold-starts). The console polls this and offers a Reload when it changes.
 const APP_VER = crypto.createHash('md5').update(Buffer.concat([INDEX_HTML, CONSOLE_HTML])).digest('hex').slice(0, 10);
