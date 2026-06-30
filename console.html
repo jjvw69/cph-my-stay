@@ -1057,14 +1057,28 @@ window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find
 
 /* ---------- Yacht charter proposal ---------- */
 let _yacht=null;
+/* Casa de Campo Marina charter fleet — picking one auto-fills details + rate (rate stays editable).
+   STARTER LIST: confirm/replace names, specs and rates with the real fleet. */
+const YACHT_CATALOG=[
+  {name:'42ft Sea Ray · half-day', detail:'Up to 10 guests · captain & mate · 4 hours · coastal cruise or Catalina', rate:'US$1,500'},
+  {name:'50ft Azimut · half-day', detail:'Up to 12 guests · captain & mate · 4 hours · Catalina Island', rate:'US$1,900'},
+  {name:'50ft Azimut · full-day', detail:'Up to 12 guests · captain & mate · 8 hours · Saona or Catalina', rate:'US$3,200'},
+  {name:'62ft Sunseeker · full-day', detail:'Up to 15 guests · full crew · 8 hours · Saona Island', rate:'US$4,500'},
+  {name:'Lagoon 50 catamaran · full-day', detail:'Up to 20 guests · full crew · 8 hours · Saona / Catalina · lunch optional', rate:'US$3,800'},
+  {name:'Catamaran · half-day', detail:'Up to 15 guests · captain & mate · 4 hours · coastal cruise & snorkel', rate:'US$2,200'},
+  {name:'Sunset cruise · 2 hours', detail:'Up to 12 guests · captain & mate · 2 hours · sunset along the coast', rate:'US$900'},
+  {name:'Sport-fishing charter · half-day', detail:'Up to 6 anglers · captain & mate · 4 hours · offshore (mahi, marlin, tuna)', rate:'US$1,400'},
+];
+function _yachtTag(o){ const idx=YACHT_CATALOG.findIndex(y=>y.name===o.name); if(idx>=0){ o._cat=idx; o._custom=false; } else if(o.name){ o._cat=null; o._custom=true; } else { o._cat=null; o._custom=false; } return o; }
 window.closeYacht=function(){ const ov=document.getElementById('ychOv'); if(ov)ov.remove(); _yacht=null; };
-window.openYacht=function(){ if(!cur)return; const yp=cur.yachtProposal; if(yp){ _yacht={title:yp.title||'Yacht charter options',intro:yp.intro||'',options:(yp.options||[]).map(o=>({name:o.name||'',detail:o.detail||'',rate:o.rate||''}))}; } else { _yacht={title:'Yacht charter options',intro:'',options:[{name:'',detail:'',rate:''},{name:'',detail:'',rate:''}]}; } if(!_yacht.options.length)_yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(); };
+window.openYacht=function(){ if(!cur)return; const yp=cur.yachtProposal; if(yp){ _yacht={title:yp.title||'Yacht charter options',intro:yp.intro||'',options:(yp.options||[]).map(o=>_yachtTag({name:o.name||'',detail:o.detail||'',rate:o.rate||''}))}; } else { _yacht={title:'Yacht charter options',intro:'',options:[{name:'',detail:'',rate:''},{name:'',detail:'',rate:''}]}; } if(!_yacht.options.length)_yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(); };
 window.yachtField=function(i,k,v){ if(!_yacht||!_yacht.options[i])return; _yacht.options[i][k]=v; };
+window.yachtPick=function(i,val){ if(!_yacht||!_yacht.options[i])return; const o=_yacht.options[i]; if(val==='custom'){ o._custom=true; o._cat=null; o.name=''; } else if(val===''){ o._custom=false; o._cat=null; } else { const y=YACHT_CATALOG[Number(val)]; if(y){ o.name=y.name; o.detail=y.detail; o.rate=y.rate; o._cat=Number(val); o._custom=false; } } renderYachtModal(true); };
 window.addYachtOpt=function(){ if(!_yacht)return; if(_yacht.options.length>=5){ alert('Up to 5 options.'); return; } _yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(true); };
 window.removeYachtOpt=function(i){ if(!_yacht)return; _yacht.options.splice(i,1); if(!_yacht.options.length)_yacht.options.push({name:'',detail:'',rate:''}); renderYachtModal(true); };
 function ychRow(o,i){ const inp='width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;box-sizing:border-box'; const lbl='display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:9px 0 5px';
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">Option ${i+1}</b><button onclick="removeYachtOpt(${i})" style="border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:8px;padding:3px 10px;font-size:12px;cursor:pointer">Remove</button></div>
-    <label style="${lbl}">Boat / charter name</label><input value="${esc(o.name)}" oninput="yachtField(${i},'name',this.value)" placeholder="e.g. 50ft Azimut · half-day" style="${inp}">
+    <label style="${lbl}">Boat / charter name</label><select onchange="yachtPick(${i},this.value)" style="${inp};-webkit-appearance:none"><option value="" ${(o._cat==null&&!o._custom)?'selected':''}>— choose a yacht —</option>${YACHT_CATALOG.map((y,k)=>`<option value="${k}" ${o._cat===k?'selected':''}>${esc(y.name)}</option>`).join('')}<option value="custom" ${o._custom?'selected':''}>Other / custom…</option></select>${o._custom?`<input value="${esc(o.name)}" oninput="yachtField(${i},'name',this.value)" placeholder="Custom boat / charter name" style="${inp};margin-top:7px">`:''}
     <label style="${lbl}">Details (size, crew, duration, route…)</label><textarea oninput="yachtField(${i},'detail',this.value)" rows="2" placeholder="e.g. Up to 12 guests · captain & mate · 4 hours · Catalina Island" style="${inp};resize:vertical">${esc(o.detail)}</textarea>
     <label style="${lbl}">Rate shown to guest</label><input value="${esc(o.rate)}" oninput="yachtField(${i},'rate',this.value)" placeholder="e.g. US$1,900" style="${inp}"></div>`;
 }
