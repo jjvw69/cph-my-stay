@@ -40,8 +40,11 @@ const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
 const STATIC_IMAGES = {};
 ['jan.jpg','ivonna.jpg','azimut.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
 // Content hash of the app files — changes only when a new build is deployed (stable across
-// restarts/cold-starts). The console polls this and offers a Reload when it changes.
-const APP_VER = crypto.createHash('md5').update(Buffer.concat([INDEX_HTML, CONSOLE_HTML])).digest('hex').slice(0, 10);
+// restarts/cold-starts). The guest app and console poll this and refresh when it changes.
+// Includes store.js + server.js so a data-layer/server-only deploy also bumps the version.
+const _verSrc = [INDEX_HTML, CONSOLE_HTML];
+['store.js','server.js'].forEach(f=>{ try{ _verSrc.push(fs.readFileSync(path.join(__dirname,f))); }catch(e){} });
+const APP_VER = crypto.createHash('md5').update(Buffer.concat(_verSrc)).digest('hex').slice(0, 10);
 
 // ---- PWA: installable Concierge Console (manifest + minimal service worker) ----
 const MANIFEST_JSON = JSON.stringify({

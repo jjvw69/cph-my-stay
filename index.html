@@ -195,6 +195,8 @@
 try{ if(window.parent && window.parent !== window) document.documentElement.classList.add('embedded'); }catch(e){ document.documentElement.classList.add('embedded'); }
 
 const SEAL = "https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
+// Installable shell — minimal network-passthrough SW (never caches, so it can't go stale).
+if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(function(){}); }catch(e){} }
 
 const state = { stay:null, token:null, tab:'home', stack:[], checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
 const $app = document.getElementById('app');
@@ -219,6 +221,40 @@ async function api(path, opts={}){
   let j={}; try{ j=await r.json(); }catch(e){}
   return {status:r.status, ok:r.ok && j.ok!==false, body:j};
 }
+
+/* ---------------- AUTO-UPDATE (never show a stale app) ----------------
+   An open tab / home-screen app keeps running the JS it loaded with, so after a
+   deploy the guest can be left on old code or old data. We watch the deployed
+   build hash and refresh: silently when the guest isn't mid-action, otherwise we
+   offer a one-tap Refresh. Runs on the normal poll + whenever the app is reopened. */
+let _APPVER=null;
+function guestBusy(){
+  if(document.querySelector('.reqov')) return true;          // a request/booking modal is open
+  const a=document.activeElement; if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return true;
+  const top=state.stack.length?state.stack[state.stack.length-1]:null;
+  if(top==='checkin'||top==='guestlist') return true;        // mid pre check-in form
+  const cm=document.getElementById('cmsg'); if(cm && cm.value && cm.value.trim()) return true; // typing a message
+  return false;
+}
+function showUpdatePill(){
+  if(document.getElementById('verpill')) return;
+  const b=document.createElement('div'); b.id='verpill';
+  b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:99999;background:#16241E;color:#fff;padding:10px 16px;border-radius:30px;display:flex;align-items:center;gap:12px;font-size:13.5px;box-shadow:0 8px 26px rgba(0,0,0,.32)';
+  b.innerHTML='Update available <button onclick="location.reload()" style="background:#fff;color:#16241E;border:0;border-radius:20px;padding:6px 14px;font-size:12.5px;font-weight:600;cursor:pointer">Refresh</button>';
+  document.body.appendChild(b);
+}
+async function checkVersion(){
+  try{
+    const r=await fetch('/api/version',{cache:'no-store',credentials:'same-origin'});
+    const j=await r.json(); const v=j&&j.ver; if(!v) return;
+    if(_APPVER===null){ _APPVER=v; return; }
+    if(v!==_APPVER){ _APPVER=v; if(guestBusy()) showUpdatePill(); else location.reload(); }
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkVersion(); });
+window.addEventListener('focus',function(){ checkVersion(); });
+setInterval(checkVersion, 45000);
+checkVersion();
 
 function toast(t){ let el=document.querySelector('.toast'); if(!el){el=document.createElement('div');el.className='toast';$app.appendChild(el);} el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2300); }
 
