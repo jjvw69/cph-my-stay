@@ -376,7 +376,7 @@ function renderHome(){
       <div class="teasers">
         ${(()=>{const ex=exploreData();const A=ex.filter(e=>e.cat==='Activities'),M=ex.filter(e=>e.cat==='Amenities');let p=[];for(let k=0;k<Math.max(A.length,M.length)&&p.length<4;k++){if(A[k])p.push(A[k]);if(M[k]&&p.length<4)p.push(M[k]);}if(p.length<4)ex.filter(e=>e.cat==='Golf'||e.cat==='Dining').forEach(e=>{if(p.length<4&&p.indexOf(e)<0)p.push(e);});return p.map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('');})()}
       </div>
-      <a href="https://www.instagram.com/caribbeanparadisehomes/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:9px;max-width:384px;margin:14px auto 0;border:1px solid var(--line);border-radius:13px;padding:12px 14px;background:#fff;color:var(--accent);text-decoration:none;font-size:13.5px;font-weight:500"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Follow us</a>
+      <a href="https://www.instagram.com/caribbeanparadisehomes/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:9px;max-width:384px;margin:14px auto 0;border:0;border-radius:13px;padding:13px 14px;background:linear-gradient(45deg,#feda75 0%,#fa7e1e 25%,#d62976 50%,#962fbf 75%,#4f5bd5 100%);color:#fff;text-decoration:none;font-size:13.5px;font-weight:600"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>Follow us</a>
       <div style="max-width:384px;margin:24px auto 24px;padding:0 4px;font-size:10.5px;line-height:1.55;color:#A7AFA6;text-align:justify">Our concierge services provide conscientious, competent, and diligent services for all of our guests that include referrals to other businesses and professionals. Those other businesses and professionals are referred on the basis of their high reputation and are expected to provide quality service. However, Caribbean Paradise Homes is not, and cannot be, liable or responsible for any unsatisfactory services provided by any company, agency, business, services, individual, or professional referred by our concierge services. Although Caribbean Paradise Homes may suggest or refer a particular business or professional to a guest, it is The Guest sole responsibility to determine if that business or professional is satisfactory for The Guest needs or purposes.</div>
     </div>
     ${tabBar('home')}
@@ -458,7 +458,7 @@ const GUIDE_CONTENT = {
   },
   'azimut': {
     eyebrow:'CAFÉ · MARINA', title:'Café Azimut',
-    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2012/07/Azimut-Cafe1.jpg?w=1000&ssl=1',
+    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2012/07/azimut_cafe1.jpg?w=1000&ssl=1',
     intro:'At the start of the Paseo del Mar in the Marina, Café Azimut — the “café on the corner” — is a relaxed, elegant spot to pause over a good coffee with the boats in view. Run by the IB Nautica group, it was the first Azimut Café in the country.',
     sections:[
       {h:'What to expect', p:'Nespresso coffee, fresh juices, soft drinks, water and light snacks, served indoors or out on a deck with lovely views over the Marina. It is a favourite of yacht owners and residents for a morning espresso or an afternoon break between errands on the waterfront.'},
@@ -467,7 +467,7 @@ const GUIDE_CONTENT = {
   },
   'voala': {
     eyebrow:'CAFÉ · ALTOS DE CHAVÓN', title:'Voalá Café Marché',
-    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2023/08/EJ4B4995.jpg?w=1200&ssl=1',
+    hero:'https://i0.wp.com/casadecampoliving.com/wp-content/uploads/2023/08/EJ4B4678.jpg?w=1200&ssl=1',
     intro:'On Calle Las Piedras in the cobbled village of Altos de Chavón, Voalá Café Marché is a warm, inviting brunch-and-coffee spot that doubles as a gourmet deli and wine shop — a lovely place to slow down between the galleries and the river overlooks.',
     sections:[
       {h:'Café, deli &amp; market', p:'Come for coffee and brunch, stay for the gourmet products, charcuterie and a well-chosen wine selection to take back to the villa. The atmosphere is cosy and unhurried, and it is pet-friendly — happy to welcome the family dog.'},
@@ -1167,6 +1167,7 @@ function renderExplore(){
     <div class="scroll" style="padding-top:6px">
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
       ${(cur==='Golf')?`<button onclick="push('golfguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">⛳ Golf guide — three courses compared<span>→</span></button>`:''}
+      ${(cur==='Activities')?`<button onclick="push('expguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">🌴 Experiences guide — what to do, by interest<span>→</span></button>`:''}
       ${items.map(e=>`<div class="card" style="padding:0;overflow:hidden">
         <div class="hero ${e.img?'':'ph'}" style="height:120px;border-radius:0${e.img?`;background-image:url('${esc(e.img)}')`:''}"><div class="chips"><span class="chip">${esc(e.cat)}</span></div></div>
         <div style="padding:15px">
@@ -1619,6 +1620,7 @@ function renderPushed(v){
   if(v==='plan') return renderPlan();
   if(v==='discover') return renderDiscover();
   if(v==='golfguide') return renderGolfGuide();
+  if(v==='expguide') return renderExperiencesGuide();
   if(v==='realestate') return renderRealEstate();
   if(v==='resortmap') return renderResortMap();
   if(v==='cguide') return renderCGuide(state._cguide);
@@ -2233,6 +2235,45 @@ function renderGolfGuide(){
       <a href="https://caribbeanparadisehomes.com/casa-de-campo-golf-guide-three-courses/" target="_blank" rel="noopener" style="border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:13px;color:var(--accent);text-decoration:none">Full guide</a>
     </div>`;
   shell('Golf guide', inner);
+}
+
+/* ---------------- RESORT EXPERIENCES GUIDE ---------------- */
+function renderExperiencesGuide(){
+  const card=(t,d)=>`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-top:11px"><b style="font-size:14.5px">${t}</b><div style="font-size:13.5px;color:var(--soft);line-height:1.55;margin-top:5px">${d}</div></div>`;
+  const pick=(occ,exp,loc)=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)"><div style="font-size:13px;color:var(--soft);flex:1">${occ}</div><div style="text-align:right;flex:0 0 auto"><div style="font-size:13.5px;font-weight:500">${exp}</div><div style="font-size:11.5px;color:var(--soft)">${loc}</div></div></div>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">EXPERIENCES GUIDE</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">What to do at Casa de Campo</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">Beyond golf and the beach — a resort built for riding, water, wellness and family days. Here’s how to choose, and what to book ahead.</div>
+    </div>
+    <div style="font-size:14px;color:var(--soft);line-height:1.6;margin-top:14px">Casa de Campo is a 7,000-acre resort, and the experiences spread right across it — from the Caribbean Sea at Minitas to the Chavón River, the Equestrian Center’s cane fields and the Forbes Four-Star spa. The best weeks mix a few different worlds; here is how the experiences group together, and the ones worth reserving before you arrive.</div>
+    ${card('On the water','Minitas Beach is the hub for water sports — paddleboards, kayaks, Hobie Cats and snorkelling off the resort’s own sheltered beach. From the Marina, a private yacht or catamaran charter is the signature day out, and the boat trip to Catalina Island — a protected reef and white-sand cay — is the one most guests remember. Quieter and greener, kayaking the Chavón River runs you past the jungle that doubled for film sets below Altos de Chavón.')}
+    ${card('On land','Riding is in Casa de Campo’s DNA: the Equestrian Center has been the centre of Dominican polo since 1974, with lessons, ring time and trail rides out across former sugar plantation. The guided Horseback Riding Tour heads to a working ranch through cane fields and lagoons. For racquet players, the Racquet Center has 13 clay courts, and the Shooting Center offers sporting clays, trap and skeet across a 245-acre course.')}
+    ${card('Wellness &amp; creativity','The reborn Forbes Four-Star Spa — a US$25M rebuild — is the resort’s calm centre, with a hydrothermal circuit and in-villa treatments your concierge can arrange. For something hands-on, a pottery session in Altos de Chavón’s artisan tradition is a lovely afternoon, especially with children.')}
+    ${card('For families','Casa de Campo’s award-winning Family Programs run supervised, age-grouped activities — from kids’ clubs to teen adventures — so parents get a round of golf or a spa morning while children are well looked after. Most water sports, the Catalina trip and gentle trail rides work beautifully for families too.')}
+    <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
+      <b style="font-size:14.5px">We arrange it all</b>
+      <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Spa treatments, a yacht day, the Catalina trip, riding lessons or a nanny for the kids — tell your concierge what you’d like and we’ll set it up and confirm the timing before you arrive.</div>
+      <button onclick="goTab('concierge')" style="margin-top:10px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Ask concierge to arrange</button>
+    </div>
+    <div class="sec-title">Best experience, by interest</div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 14px;margin-top:2px">
+      ${pick('A day on the Caribbean','Yacht / catamaran charter','Marina')}
+      ${pick('The trip everyone remembers','Catalina Island','Marina')}
+      ${pick('Relax &amp; reset','The Spa','Rejuvenate')}
+      ${pick('Beach &amp; water sports','Minitas Water Sports','Minitas Beach')}
+      ${pick('Ride through the countryside','Horseback Riding Tour','Equestrian Center')}
+      ${pick('Lessons &amp; polo','Equestrian Center','Polo fields')}
+      ${pick('Clays, trap &amp; skeet','Shooting Center','Shooting grounds')}
+      ${pick('Tennis on clay','Racquet Center','La Terraza')}
+      ${pick('A scenic paddle','Chavón River Kayak','Chavón River')}
+      ${pick('Hands-on afternoon','Pottery','Altos de Chavón')}
+      ${pick('Keep the kids happy','Family Programs','Resort-wide')}
+    </div>
+    ${card('Good to know','Spa treatments, yacht charters and the Catalina excursion book up fastest in peak season (December–April) — reserve before you arrive. Many experiences carry their own fees on top of the resort access fee, and some (the spa hydrothermal circuit, the shooting range) are 18-plus. Your concierge can confirm prices, ages and timing for anything below.')}
+    <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="goTab('explore')">Browse all experiences</button>`;
+  shell('Experiences guide', inner);
 }
 
 /* ---------------- REAL ESTATE (Villas In Casa) ---------------- */
