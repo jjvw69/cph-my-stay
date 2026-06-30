@@ -1185,7 +1185,7 @@ function renderExplore(){
     ${tabBar('explore')}
   </div>`;
 }
-window.setExCat=function(c){ state._exCat=c; state._exPage=0; render(); requestAnimationFrame(function(){ const seg=document.getElementById('exSeg'); if(seg){ const on=seg.querySelector('button.on'); if(on){ const left=on.offsetLeft-(seg.clientWidth/2)+(on.offsetWidth/2); try{seg.scrollTo({left:left,behavior:'smooth'});}catch(e){seg.scrollLeft=left;} } } const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; }); };
+window.setExCat=function(c){ const segOld=document.getElementById('exSeg'); const prevLeft=segOld?segOld.scrollLeft:0; state._exCat=c; state._exPage=0; render(); const seg=document.getElementById('exSeg'); if(seg){ seg.scrollLeft=prevLeft; const on=seg.querySelector('button.on'); if(on){ const L=on.offsetLeft, R=L+on.offsetWidth; if(L<seg.scrollLeft+8){ seg.scrollLeft=Math.max(0,L-8); } else if(R>seg.scrollLeft+seg.clientWidth-8){ seg.scrollLeft=R-seg.clientWidth+8; } } } const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.setExPage=function(n){ state._exPage=Math.max(0,n); render(); const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
 
