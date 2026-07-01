@@ -438,7 +438,6 @@ function renderHome(){
 function renderStay(){
   const s=state.stay,b=s.booking,v=s.villa;
   const checkinDone = !!state.checkin.done;
-  const waNum=(((s.concierge&&s.concierge.phone)||'').replace(/[^0-9]/g,'')||'18297638801');
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><span class="ttl">Your Stay</span></div>
@@ -458,10 +457,10 @@ function renderStay(){
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash</span></div>
-        <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
-        <div class="tile" onclick="window.open('https://wa.me/${waNum}','_blank')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')} · WhatsApp →</span></div>
-        <div class="tile"><b>Emergency</b><span>911 · Resort security 5193 / 5194</span></div>
+        <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')} · message →</span></div>
+        <div class="tile"><b>Emergency</b><span>General 911 · Fire 5555</span></div>
         <div class="tile"><b>Villa &amp; registration</b><span>${(s.villaNumber||s.registrationNumber)?[s.villaNumber?'Villa '+esc(s.villaNumber):'',s.registrationNumber?'Reg '+esc(s.registrationNumber):''].filter(Boolean).join(' · '):'Provided on arrival'}</span></div>
+        <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish phrasebook →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
@@ -1713,12 +1712,83 @@ async function pollRequests(){
 }
 
 /* ---------------- PUSHED VIEWS ---------------- */
+function renderTranslations(){
+  const cats=[
+    {c:'Conversation', it:[
+      [`Hi!`,`¡Hola!`],[`Good morning`,`Buenos días`],[`Good evening`,`Buenas noches`],
+      [`My name is John`,`Me llamo John.`],[`What is your name?`,`¿Cómo se llama?`],
+      [`Please repeat!`,`¡Repita por favor!`],[`I understand`,`Comprendo.`],[`I do not understand`,`No comprendo.`],
+      [`Please do not speak fast!`,`¡Por favor, no hable tan rapido!`],[`How do you say in Spanish?`,`¿Cómo se dice en español?`],
+      [`How are you?`,`¿Cómo está Ud?`],[`Where is?`,`¿Dónde está?`],[`Please, can you help me?`,`¿Por favor, puede ayudarme?`],
+      [`Thank you very much`,`Muchas gracias.`],[`You are welcome`,`De nada.`],[`Goodbye, see you tomorrow`,`Adiós, hasta mañana.`],[`See you later`,`Hasta luego.`],
+    ]},
+    {c:'Food & Drinks', it:[
+      [`I am hungry`,`Tengo hambre`],[`We are hungry`,`Tenemos hambre`],[`I am thirsty`,`Tengo sed`],[`We are thirsty`,`Tenemos sed`],
+      [`Do you know a good restaurant?`,`¿Conoce un buen restaurante?`],[`Do you have a children's menu?`,`¿Hay una carta para los niños?`],
+      [`Do you have children's portions?`,`¿Hay platos speciales para los niños?`],[`What is today's special?`,`¿Cuál es el plato del dia de hoy?`],
+      [`I would like to make a reservation`,`Quisiera hacer una reserva.`],[`I have a reservation`,`Tengo una reserva.`],
+      [`Water`,`Agua`],[`Mineral water`,`Agua mineral`],[`Milk`,`Leche`],[`Coffee`,`Café`],[`Coffee with sugar`,`Café con azúcar.`],
+      [`Coffee with cream`,`Café con crema.`],[`Coffee with milk`,`Café con leche`],[`Tea`,`Té`],[`Ice tea`,`Té helado`],[`Tea with lemon`,`Té con limón.`],
+      [`Soft drink`,`Gaseosa/Refresco`],[`Wine/red/white`,`Vino/tinto/blanco.`],[`A bottle of wine`,`Una botella de vino.`],[`Ice cubes`,`Cubos de hielo.`],
+      [`A plate`,`Un plato`],[`A cup`,`Una taza`],[`A glass`,`Un vaso`],[`A teaspoon`,`Una cucharita`],[`A spoon`,`Una cuchara`],[`A fork`,`Un tenedor`],[`A knife`,`Un cuchillo`],
+      [`Salt`,`Sal`],[`Pepper`,`Pimienta`],[`Mustard`,`Mostaza`],[`Oil`,`Aceite`],[`Vinegar`,`Vinagre`],
+      [`Noodle-soup`,`Sopa de fideos.`],[`Onion soup`,`Sopa de cebolla.`],[`Seafood soup`,`Sopa de mariscos.`],[`Chicken soup`,`Sopa de pollo`],
+      [`Cold vegetable soup`,`Gazpacho.`],[`Cream of asparagus`,`Crema de espárragos.`],[`Broth`,`Caldo`],[`Charcoal-grilled steak`,`Churrasco.`],
+      [`Steak`,`Bistec`],[`Roast beef`,`Rosbif`],[`Boneless rib-steak`,`Entrecote`],[`Sirloin`,`Solomillo`],[`Meatballs`,`Albóndigas.`],
+      [`Bacon`,`Tocineta`],[`Pork chops`,`Chuletas de cerdo`],[`Ham`,`Jamón.`],[`Spareribs`,`Costillas de cerdo`],[`Roast pork`,`Asado de cerdo.`],
+      [`Salmon`,`Salmon`],[`Sardines`,`Sardines`],[`Cod`,`Bacalao`],[`Tuna`,`Átun`],[`Sole`,`Lenguado`],[`Lobster`,`Langosta`],
+      [`Oysters`,`Ostras`],[`Mussels`,`Mejillones`],[`Crab`,`Cangrejo`],[`Prawns`,`Gambas`],[`Shrimp`,`Camarones`],
+    ]},
+    {c:'Food store', it:[
+      [`Grocery cart`,`Carrito de compras`],[`Cream`,`Crema`],[`Cheese`,`Queso`],[`Eggs`,`Huevos`],[`Butter`,`Mantequlla`],
+      [`A can of`,`Una lata de`],[`A kilo of`,`Un kilo de`],[`A box of`,`Una caja de`],[`A bottle of`,`Una botella de`],[`A dozen of`,`Una docena de`],[`Half a kilo of`,`Medio kilo de`],
+      [`Meat`,`Carne`],[`Chicken`,`Pollo`],[`Turkey`,`Pavo`],[`Sausages`,`Salchichas`],[`Ham`,`Jamón`],[`Rice`,`Arroz`],[`Corn`,`Maiz`],[`Beans`,`Habichuelas`],
+      [`Almonds`,`Almendras`],[`Walnuts`,`Nueces`],[`Apple juice`,`Jugo de manzana`],[`Orange juice`,`Jugo de naranja`],[`Pineapple juice`,`Jugo de piña`],
+      [`Lemonade`,`Limonada`],[`Tonic water`,`Agua Tónica`],[`Fish`,`Pescado`],[`Flour`,`Harina`],[`Bread`,`Pan`],
+    ]},
+    {c:'Shopping', it:[
+      [`I am looking for`,`Estoy buscando`],[`How much is it?`,`¿Cuánto es?`],[`Please show me`,`¡Por favor muéstreme!`],[`Here it is`,`Aqui está`],
+      [`Can you help me please`,`¿Puede usted ayudarme, por favor?`],[`I do not like it`,`No me gusta.`],[`Do you have something else?`,`Usted tiene alguna otra cosa.`],
+      [`Larger`,`Más grande`],[`Smaller`,`Más pequeño`],[`Cheaper`,`Más barato`],[`Better`,`Mejor`],[`Great, how much is it?`,`¡Fantástico! ¿Cuál es el precio?`],
+      [`Where can I find...`,`Dónde se puede encontrar...`],[`A pharmacy`,`Una farmacia`],[`A bakery`,`Una panaderia`],[`A shoe store`,`Una zapateria`],
+    ]},
+    {c:'Banking & money', it:[
+      [`Where is the currency exchange?`,`¿Dónde hay un banco para cambiar moneda extranjera?`],[`I would like to change`,`Quisiera cambiar`],
+      [`Travellers checks`,`Cheques de viajero`],[`Where is the cashier window?`,`¿Dónde está la caja?`],[`Money`,`Dinero`],[`Dollars`,`Dólares`],
+      [`At what time do they open/close?`,`¿A qué hora abren/cierran?`],[`Can I cash a personal check?`,`¿Puedo cambiar un cheque personal?`],
+      [`What is the exchange rate in dollars?`,`¿A cómo está el cambio hoy del dólar?`],[`What commission do you charge?`,`¿Cuál es el interés que usted cobra?`],
+      [`In bills`,`En billetes`],[`In small change`,`En suelto`],[`Signature`,`Firma`],[`Where do I sign`,`¿Dónde debo firmar?`],
+    ]},
+    {c:'Medical', it:[
+      [`I need a doctor`,`Necesito un médico.`],[`I need a nurse`,`Necesito una enfermera.`],[`What is wrong?`,`¿Qué le pasa?`],[`I feel sick`,`Me siento enfermo.`],
+      [`I have a headache`,`Tengo dolor de cabeza.`],[`I have the flu`,`Tengo la gripe.`],[`It hurts here`,`Me duele aqui.`],[`I feel dizzy`,`Tengo mareos.`],
+      [`I feel nauseous`,`Tengo náuseas.`],[`I have fever`,`Tengo fiebre`],[`Stomach ache`,`Dolor de estómago.`],[`I am a diabetic`,`Soy diabético.`],
+      [`I have backache`,`Tengo dolor de espalda.`],[`I do not feel good`,`No me siento bien.`],[`I have chest-pain`,`Tengo dolor en el pecho.`],[`I have cramps`,`Tengo calambres.`],
+      [`Do I have a broken bone?`,`¿Tengo un hueso roto?`],[`I have a sore throat`,`Tengo dolor de garganta.`],[`I am allergic to…`,`Soy alérgico…`],[`Help!`,`¡Socorro!`],
+      [`Call an ambulance quickly!`,`¡Llame una ambulancia, rápido!`],[`Do I need to go to the hospital?`,`¿Tengo que ir al hospital?`],[`It is not serious`,`No es grave.`],[`It is not contagious`,`No es contagioso.`],
+      [`Lie down!`,`¡Acuéstese!`],[`Breathe!`,`¡Respire!`],[`Open your mouth`,`¡Abra la boca!`],[`Take off your clothes`,`¡Quítese la ropa!`],[`Get dressed!`,`¡Vístase!`],
+      [`Are you going to give me a prescription?`,`¿Va a darme una receta?`],[`I need something for the flu`,`Necesito algo para la gripe.`],[`I need something for a cold`,`Necesito algo para un resfriado (catarro).`],
+      [`Can you give me a prescription for this?`,`¿Puede darme una receta para esto?`],[`How many times per day?`,`¿Cuántas veces al día?`],
+    ]},
+  ];
+  const row=(en,es)=>`<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line)"><span style="flex:1;font-size:13.5px;color:var(--ink)">${esc(en)}</span><span style="flex:1;text-align:right;font-size:13.5px;color:var(--accent);font-weight:500">${esc(es)}</span></div>`;
+  const sec=(x)=>`<details style="background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:11px;overflow:hidden"><summary style="cursor:pointer;padding:14px 15px;font-size:15px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px">${esc(x.c)}<span class="faq-x" style="color:var(--soft);font-size:19px;line-height:1;flex:0 0 auto">+</span></summary><div style="padding:2px 15px 12px">${x.it.map(p=>row(p[0],p[1])).join('')}</div></details>`;
+  const inner=`
+    <div class="card" style="background:var(--accent);color:#fff;border:0">
+      <div class="label" style="color:rgba(255,255,255,.7)">GOOD TO KNOW</div>
+      <div class="display" style="font-size:24px;margin:4px 0 6px">Travel translations</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.85)">Handy English–Spanish phrases for your stay. Tap a category to open it.</div>
+    </div>
+    <div class="faq">${cats.map(sec).join('')}</div>`;
+  shell('Travel translations', inner);
+}
 function renderPushed(v){
   if(v==='checkin') return renderCheckin();
   if(v==='addons') return renderAddons();
   if(v==='arrival') return renderArrival();
   if(v==='checkout') return renderCheckout();
   if(v==='guide') return renderGuide();
+  if(v==='translations') return renderTranslations();
   if(v==='dineguide') return renderDiningGuide();
   if(v==='guestlist') return renderGuestList();
   if(v==='grocerylist') return renderGroceryList();
