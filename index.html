@@ -1419,7 +1419,12 @@ const SERVICE_INFO = {
   babygear: {
     noTime:true, noGuests:true, range:true, fromLabel:'Check-in date', toLabel:'Check-out date',
     notePlaceholder:'Quantity, ages, anything specific…',
-    selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Baby playpen</option><option>Other</option></select>`
+    selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Playpen / Pack&rsquo;n&rsquo;Play</option><option>Other</option></select>`,
+    rates:`<b>BABY GEAR (per day)</b>
+      <div class="rt"><span>Crib</span><span>US$45</span></div>
+      <div class="rt"><span>High chair</span><span>US$20</span></div>
+      <div class="rt"><span>Playpen / Pack&rsquo;n&rsquo;Play</span><span>US$30</span></div>
+      <div class="rtnote">Delivered and set up before you arrive.</div>`
   },
   'staff': {
     noGuests:true, range:true, fromLabel:'From', toLabel:'To',
