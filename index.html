@@ -440,7 +440,7 @@ function renderStay(){
   const checkinDone = !!state.checkin.done;
   $app.innerHTML=`
   <div class="view enter">
-    <div class="backbar"><span class="ttl">The stay</span></div>
+    <div class="backbar"><span class="ttl">Your Stay</span></div>
     <div class="scroll">
       <div class="card" style="background:var(--accent);color:#fff;border:0">
         <div class="label" style="color:rgba(255,255,255,.7)">${esc([v.internalName||v.area,v.suites?v.suites+' suites':''].filter(Boolean).join(' · '))}</div>
@@ -458,12 +458,12 @@ function renderStay(){
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash</span></div>
         <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
-        <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa guide →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       ${myPlanRow()}
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('guide')"><span class="ic">❖</span><span class="tx"><b>Good to know</b><span>Villa guide &amp; resort info</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
       <div class="sec-title">Inside the villa</div>
