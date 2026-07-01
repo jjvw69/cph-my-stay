@@ -29,6 +29,13 @@ const CONCIERGE_WHATSAPP = process.env.CONCIERGE_WHATSAPP || '';     // e.g. wha
 // Approved WhatsApp template (Content SID, HX...) used to alert the concierge OUTSIDE the 24h session window.
 // Once set, concierge WhatsApp alerts are sent as this template (delivers reliably from a production sender).
 const TWILIO_CONCIERGE_TEMPLATE_SID = process.env.TWILIO_CONCIERGE_TEMPLATE_SID || '';
+// ---- Meta WhatsApp Cloud API (preferred, permanent fix) ----
+// When these are set, concierge alerts go straight through Meta's Graph API using an approved template,
+// bypassing Twilio entirely. Get PHONE_NUMBER_ID + a permanent access token from Meta (WhatsApp → API setup).
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';                        // permanent access token (System User)
+const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID || '';   // the sending number's Phone Number ID
+const WHATSAPP_TEMPLATE_NAME = process.env.WHATSAPP_TEMPLATE_NAME || 'guest_alert';
+const WHATSAPP_TEMPLATE_LANG = process.env.WHATSAPP_TEMPLATE_LANG || 'en';      // must match the approved template's language
 // SMS has NO 24h/72h window — set TWILIO_SMS_FROM to a Twilio SMS-capable number to alert the concierge with no restrictions.
 const TWILIO_SMS_FROM = process.env.TWILIO_SMS_FROM || ''; // e.g. +13055551234
 const CONCIERGE_SMS = process.env.CONCIERGE_SMS || CONCIERGE_WHATSAPP.replace(/^whatsapp:/,''); // María's plain number for SMS
@@ -161,7 +168,29 @@ function sendSmsTo(to,text,ref){
     rq.on('error',e=>console.error('[notify] sms error',e.message)); rq.write(form); rq.end();
   }catch(e){ console.error('[notify] sms threw',e.message); }
 }
-function notifyConciergeAllChannels(text,ref){ let sent=false; if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_SMS_FROM&&CONCIERGE_SMS){ sendSmsTo(CONCIERGE_SMS,text,ref); sent=true; } if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; } return sent; }
+function waDigits(n){ return String(n||'').replace(/[^\d]/g,''); }
+// Meta WhatsApp Cloud API — send the concierge alert as an approved template (delivers with no 24h window / no sandbox).
+function sendWhatsAppCloud(toDigits,text,ref){
+  try{
+    const body=JSON.stringify({ messaging_product:'whatsapp', to:toDigits, type:'template',
+      template:{ name:WHATSAPP_TEMPLATE_NAME, language:{ code:WHATSAPP_TEMPLATE_LANG },
+        components:[ { type:'body', parameters:[ { type:'text', text:waSanitize(text) } ] } ] } });
+    const https=require('https');
+    const rq=https.request('https://graph.facebook.com/v21.0/'+WHATSAPP_PHONE_NUMBER_ID+'/messages',
+      { method:'POST', headers:{ 'Authorization':'Bearer '+WHATSAPP_TOKEN, 'Content-Type':'application/json', 'Content-Length':Buffer.byteLength(body) } },
+      resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300 ? console.error('[notify] whatsapp-cloud REJECTED',resp.statusCode,d) : console.log('[notify] whatsapp-cloud sent re %s to=%s',ref,toDigits); }); });
+    rq.on('error',e=>console.error('[notify] whatsapp-cloud error',e.message)); rq.write(body); rq.end();
+  }catch(e){ console.error('[notify] whatsapp-cloud threw',e.message); }
+}
+function notifyConciergeAllChannels(text,ref){
+  let sent=false;
+  // Preferred: Meta WhatsApp Cloud API. When configured, it's the only channel used for the concierge (no Twilio, no SMS).
+  if(WHATSAPP_TOKEN && WHATSAPP_PHONE_NUMBER_ID && CONCIERGE_WHATSAPP){ sendWhatsAppCloud(waDigits(CONCIERGE_WHATSAPP),text,ref); return true; }
+  // Fallback (legacy Twilio) — only if Cloud API isn't set up.
+  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_SMS_FROM&&CONCIERGE_SMS){ sendSmsTo(CONCIERGE_SMS,text,ref); sent=true; }
+  if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; }
+  return sent;
+}
 // Flatten a multi-line alert into one WhatsApp-template-safe line (no newlines/tabs, no long runs of spaces).
 function waSanitize(text){ return String(text||'').replace(/\r/g,'').replace(/\n+/g,' · ').replace(/\s{2,}/g,' ').trim().slice(0,600); }
 // Concierge alert: uses the approved template (Content SID) when configured so it delivers outside the 24h window.
