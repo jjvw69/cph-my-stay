@@ -1417,13 +1417,13 @@ const SERVICE_INFO = {
     rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
   },
   babygear: {
-    noTime:true, noGuests:true,
-    notePlaceholder:'Quantity, ages, dates needed, anything specific…',
+    noTime:true, noGuests:true, range:true, fromLabel:'Check-in date', toLabel:'Check-out date',
+    notePlaceholder:'Quantity, ages, anything specific…',
     selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Baby playpen</option><option>Other</option></select>`
   },
   'staff': {
-    noGuests:true,
-    notePlaceholder:'Which staff, how many, dates and times, number of diners if a chef…',
+    noGuests:true, range:true, fromLabel:'From', toLabel:'To',
+    notePlaceholder:'Which staff, how many, times, number of diners if a chef…',
     selects:`<label class="reqlbl">Staff needed</label><select id="rqService"><option>Private chef</option><option>Waiters</option><option>Driver</option><option>Butler</option><option>Housekeeper</option><option>Nanny</option><option>Other</option></select>`
   },
   tennis: {

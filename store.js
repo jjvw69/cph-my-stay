@@ -674,10 +674,16 @@ function groceryBreakdown(inv) {
 }
 function invoiceTotal(inv) { return (inv && inv.kind === 'grocery') ? groceryBreakdown(inv).totalUSD : invoiceBreakdown(inv).total; }
 function cleanItems(arr) {
-  return (Array.isArray(arr) ? arr : []).slice(0, 40).map(it => ({
-    label: norm(it && it.label).slice(0, 120),
-    amount: Math.max(0, Math.round((parseFloat(String(it && it.amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100),
-  })).filter(it => it.label || it.amount);
+  return (Array.isArray(arr) ? arr : []).slice(0, 40).map(it => {
+    const o = {
+      label: norm(it && it.label).slice(0, 120),
+      amount: Math.max(0, Math.round((parseFloat(String(it && it.amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100),
+    };
+    const rate = String((it && it.rate) || '').replace(/[^0-9.]/g, '');   // optional per-day rate (calculator aid, kept so edits reload)
+    const days = String((it && it.days) || '').replace(/[^0-9.]/g, '');
+    if (rate) o.rate = rate; if (days) o.days = days;
+    return o;
+  }).filter(it => it.label || it.amount);
 }
 function createInvoice(stayId, b) {
   const s = getStay(stayId); if (!s) return null;
