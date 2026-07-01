@@ -46,6 +46,49 @@ const CONCIERGES = [
   { id: 'jan',            name: 'Jan',            phone: '+1 (829) 763-8801', avatarInitials: 'Jn' },
 ];
 
+// Single source of truth for the yacht fleet — served to BOTH the console (proposal picker) and the guest app
+// (preferred-yacht select) so they always stay in sync. Edit here only.
+const YACHT_CATALOG = [
+  { name:'Azimut 86 · Andrea', detail:'Up to 16 guests · 86ft · crew of 2 · full day (8h)', rate:'US$6,875 / full day' },
+  { name:'Azimut 60', detail:'Up to 18 guests · 60ft · crew of 2 · full day (8h)', rate:'US$4,500 / full day' },
+  { name:'Prestige 50', detail:'Up to 14 guests · 50ft · crew of 2 · full day (8h)', rate:'US$3,750 / full day' },
+  { name:'Majesty 56 · Georyana 3', detail:'Up to 16 guests · 56ft · crew of 2 · full day (8h)', rate:'US$2,900 / full day' },
+  { name:'Take It Easy 5', detail:'Up to 35 guests · 64ft · crew of 2 · full day (8h)', rate:'US$2,975 / full day' },
+  { name:'Pacific 72 · Summer Wind', detail:'Up to 18 guests · 72ft · crew of 2 · full day (8h)', rate:'US$2,875 / full day' },
+  { name:'Princess 60', detail:'Up to 12 guests · 60ft · crew of 2 · full day (8h)', rate:'US$2,750 / full day' },
+  { name:'Azimut 55 · Ancoral', detail:'Up to 15 guests · 55ft · crew of 2 · full day (8h) · half-day from US$2,200 (Catalina) / US$2,350 (Palmilla)', rate:'US$2,750 / full day' },
+  { name:'Aicon 60 · Libra', detail:'Up to 15 guests · 60ft · crew of 2 · full day (8h) · half-day from US$2,000 (Catalina) / US$2,200 (Palmilla)', rate:'US$2,500 / full day' },
+  { name:'Prestige 42', detail:'Up to 14 guests · 42ft · crew of 2 · full day (8h)', rate:'US$2,500 / full day' },
+  { name:'Alena 56 · Die Alto Dime', detail:'Up to 16 guests · 56ft · crew of 2 · full day (8h)', rate:'US$2,500 / full day' },
+  { name:'Sea Ray 53', detail:'Up to 12 guests · 53ft · crew of 2 · full day (8h)', rate:'US$2,150 / full day' },
+  { name:'Powerplay 54 · Liquid', detail:'Up to 22 guests · 55ft · crew of 2 · full day (8h)', rate:'US$1,985 / full day' },
+  { name:'Tiara 48', detail:'Up to 14 guests · 48ft · crew of 2 · full day (8h)', rate:'US$1,975 / full day' },
+  { name:'Sea Ray 540 · High Adventure', detail:'Up to 12 guests · 54ft · crew of 2 · full day (8h) · half-day from US$1,300 (Catalina) / US$1,500 (Palmilla)', rate:'US$1,875 / full day' },
+  { name:'Hatteras 53 · sport-fishing', detail:'Up to 16 guests · 53ft · crew of 2 · full day (8h) · half-day Catalina US$1,600 / Palmilla US$1,700', rate:'US$1,775 / full day' },
+  { name:'No Worries', detail:'Up to 22 guests · 50ft · crew of 2 · full day (8h) · half-day US$1,485 (Catalina or Palmilla)', rate:'US$1,685 / full day' },
+  { name:'Regal 38', detail:'Up to 10 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,600 / full day' },
+  { name:'Fairline 50', detail:'Up to 12 guests · 50ft · crew of 2 · full day (8h)', rate:'US$1,575 / full day' },
+  { name:'Enjoy', detail:'Up to 35 guests · 48ft · crew of 2 · full day (8h) · half-day from US$1,100 (Catalina) / US$1,250 (Palmilla)', rate:'US$1,575 / full day' },
+  { name:'Rohans 42', detail:'Up to 12 guests · 42ft · crew of 2 · full day (8h)', rate:'US$1,575 / full day' },
+  { name:'Happy Hours', detail:'Up to 20 guests · 44ft · crew of 2 · full day (8h)', rate:'US$1,500 / full day' },
+  { name:'Lose', detail:'Up to 20 guests · 50ft · crew of 2 · full day (8h)', rate:'US$1,500 / full day' },
+  { name:'Marisabel', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,100 (Catalina) / US$1,250 (Palmilla)', rate:'US$1,475 / full day' },
+  { name:'Chris-Craft 43', detail:'Up to 12 guests · 43ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day' },
+  { name:'Meridian 42', detail:'Up to 14 guests · 42ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day' },
+  { name:'Sea Ray 42', detail:'Up to 12 guests · 40ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day' },
+  { name:'Princess 40', detail:'Up to 10 guests · 40ft · crew of 2 · full day (8h)', rate:'US$1,475 / full day' },
+  { name:'Tiara 38', detail:'Up to 10 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,350 / full day' },
+  { name:'Volare', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000 (Catalina) / US$1,150 (Palmilla)', rate:'US$1,350 / full day' },
+  { name:'Lady V', detail:'Up to 12 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000', rate:'US$1,300 / full day' },
+  { name:'Fairline 43 · Aria 1', detail:'Up to 10 guests · 43ft · crew of 2 · full day (8h) · half-day from US$1,000 (Catalina) / US$1,150 (Palmilla)', rate:'US$1,300 / full day' },
+  { name:'Champagne Girl', detail:'Up to 10 guests · 40ft · crew of 2 · full day (8h) · half-day from US$950 (Catalina) / US$1,050 (Palmilla)', rate:'US$1,275 / full day' },
+  { name:'Intrepid 37', detail:'Up to 9 guests · 37ft · crew of 2 · full day (8h)', rate:'US$1,100 / full day' },
+  { name:'Intrepid 36', detail:'Up to 9 guests · 36ft · crew of 2 · full day (8h)', rate:'US$1,050 / full day' },
+  { name:'Happy Wind · sailing', detail:'Up to 14 guests · 38ft · crew of 2 · full day (8h)', rate:'US$1,050 / full day' },
+  { name:'Velero 42 · sailing', detail:'Up to 9 guests · 42ft · crew of 2 · full day (8h)', rate:'US$975 / full day' },
+  { name:'Pearson 40 · Mar del Sur · fishing', detail:'Up to 8 guests · 40ft · crew of 2 · full day (8h) · half-day Catalina US$700', rate:'US$900 / full day' },
+];
+
 // Starter villa list — staff can extend/edit. hero = default photo (staff can override per stay).
 const IMG = 'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/';
 // Full Casa de Campo catalog (80 villas), generated from caribbeanparadisehomes.com listings.
@@ -874,6 +917,8 @@ function toGuestStay(s) {
     wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
+    yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
+
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
@@ -917,7 +962,7 @@ ensureDir();
 seedStaffFromEnv();
 
 module.exports = {
-  DATA_DIR, ADDON_CATALOG, CONCIERGES,
+  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,

@@ -257,7 +257,7 @@ async function route(req,res){
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);
-    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES});
+    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES,yachtCatalog:store.YACHT_CATALOG});
     if(m==='POST'&&url==='/api/staff/services'){ const b=await readBody(req); const it=store.addCustomService(b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,400,{ok:false,error:'A service name is required.'}); }
     const svU=url.match(/^\/api\/staff\/services\/([A-Za-z0-9]+)$/);
     if(svU&&m==='PUT'){ const b=await readBody(req); const it=store.updateService(svU[1],b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Service not found'}); }

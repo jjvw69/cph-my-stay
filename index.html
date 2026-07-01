@@ -1344,8 +1344,6 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
   const lbl=confirmed?('Confirmed'+(r.price?' · '+esc(r.price):'')):done?'Arranged ✓':'Requested';
   const x=(confirmed||done)?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
   return `<span class="reqpill${(confirmed||done)?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
-// Yacht fleet — mirrors the Concierge Console yacht catalog so the guest can indicate a preferred vessel.
-const YACHT_FLEET=['Azimut 86 · Andrea','Azimut 60','Prestige 50','Majesty 56 · Georyana 3','Take It Easy 5','Pacific 72 · Summer Wind','Princess 60','Azimut 55 · Ancoral','Aicon 60 · Libra','Prestige 42','Alena 56 · Die Alto Dime','Sea Ray 53','Powerplay 54 · Liquid','Tiara 48','Sea Ray 540 · High Adventure','Hatteras 53 · sport-fishing','No Worries','Regal 38','Fairline 50','Enjoy','Rohans 42','Happy Hours','Lose','Marisabel','Chris-Craft 43','Meridian 42','Sea Ray 42','Princess 40','Tiara 38','Volare','Lady V','Fairline 43 · Aria 1','Champagne Girl','Intrepid 37','Intrepid 36','Happy Wind · sailing','Velero 42 · sailing','Pearson 40 · Mar del Sur · fishing'];
 const SERVICE_INFO = {
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
@@ -1355,7 +1353,7 @@ const SERVICE_INFO = {
   yacht: {
     menu:'https://caribbeanparadisehomes.com/guest-services/yacht-charters/',
     notePlaceholder:'Number of guests, date, duration, destination (Catalina, Saona, coastal cruise…), any preferences…',
-    selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select><label class="reqlbl">Preferred yacht (optional)</label><select id="rqYacht"><option value="">No preference — let my concierge suggest</option>${YACHT_FLEET.map(n=>`<option>${esc(n)}</option>`).join('')}</select>`,
+    selects:`<label class="reqlbl">Charter</label><select id="rqService"><option>Half-day charter</option><option>Full-day charter</option><option>Sunset cruise</option><option>Island day trip (Catalina / Saona)</option><option>Multi-day charter</option><option>Other</option></select>`,
     rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   },
   nannies: {
@@ -1624,7 +1622,9 @@ window.openReq=function(type,refId){
   const _rateBody = _rateOv ? rateLinesToHtml(_rateOv) : (info.rates || (_addon&&_addon.price?`<div class="rt"><span>Rate</span><span>${esc(_addon.price)}</span></div>`:''));
   const ratesBlock = _rateBody ? `<div class="reqrates">${_rateBody}<div class="rtnote" style="border-top:1px solid #E6DDCC;margin-top:8px;padding-top:7px">Rates are indicative and subject to final confirmation by your concierge before you’re charged.</div></div>` : '';
   const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
-  const selectsBlock = info.selects || '';
+  let selectsBlock = info.selects || '';
+  // Preferred-yacht select is built from the live fleet the server sends (single source: store.js YACHT_CATALOG) so guest ↔ console always match.
+  if(refId==='yacht'){ const fleet=(state.stay&&state.stay.yachtFleet)||[]; if(fleet.length) selectsBlock += `<label class="reqlbl">Preferred yacht (optional)</label><select id="rqYacht"><option value="">No preference — let my concierge suggest</option>${fleet.map(n=>`<option>${esc(n)}</option>`).join('')}</select>`; }
   const dateBlock = info.noDate ? ''
     : info.tripDates
     ? `<div class="reqrange"><div><label class="reqlbl" id="rqDateLbl">Transfer date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div id="rqEndWrap" style="display:none"><label class="reqlbl">${info.toLabel||'Departure date'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
