@@ -486,6 +486,22 @@ function addRequest(reference, body) {
 }
 /** Guest cancels one of their own requests. We DON'T delete it — we mark it
  *  cancelled so the concierge keeps a record (log) of it in the Console. */
+/** Guest edits one of their own requests. Changing details sends it back to 'pending' so the
+ *  concierge re-confirms (and clears any prior price). */
+function updateGuestRequest(reference, requestId, body) {
+  const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  if (body.date != null) r.date = norm(body.date).slice(0, 20);
+  if (body.endDate != null) r.endDate = norm(body.endDate).slice(0, 20);
+  if (body.cartType != null) r.cartType = norm(body.cartType).slice(0, 30);
+  if (body.serviceLevel != null) r.serviceLevel = norm(body.serviceLevel).slice(0, 40);
+  if (body.time != null) r.time = norm(body.time).slice(0, 20);
+  if (body.guests != null) r.guests = Math.max(0, Math.min(99, Number(body.guests) || 0));
+  if (body.note != null) r.note = norm(body.note).slice(0, 300);
+  if (body.familyName != null) r.familyName = norm(body.familyName).slice(0, 60);
+  r.status = 'pending'; r.price = ''; r.confirmedAt = ''; r.doneAt = ''; r.updatedAt = Date.now();
+  s.updatedAt = Date.now(); persistStays(); return r;
+}
 function removeGuestRequest(reference, requestId) {
   const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return false;
   const r = s.requests.find(r => r.id === requestId); if (!r) return false;
@@ -900,7 +916,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

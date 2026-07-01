@@ -180,6 +180,7 @@ function sendEmailTo(to,subject,text,ref){
   }catch(e){ console.error('[notify] email threw',e.message); }
 }
 async function guestRemoveRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const okr=store.removeGuestRequest(s.ref,String(b.id||'')); if(okr) broadcastStaff({type:'update'}); return okr?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+async function guestUpdateRequest(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const r=store.updateGuestRequest(s.ref,String(b.id||''),b); if(!r) return sendJSON(res,404,{ok:false,error:'Request not found.'}); console.log('[request] %s edited "%s"',s.ref,r.title); notifyConcierge(store.getPublishedByRefForSession(s.ref),r); broadcastStaff({type:'request'}); return sendJSON(res,200,{ok:true,request:r}); }
 async function guestGuestList(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const list=store.setGuestList(s.ref, Array.isArray(b.guests)?b.guests:[]); if(list===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[guestlist] %s (%d guests)',s.ref,list.length); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,guestList:list}); }
 async function guestCheckinSave(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const c=store.saveCheckin(s.ref,b); if(!c) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[checkin] %s airport=%s transfer=%s party=%d+%d',s.ref,c.airport||'-',c.transferType||'-',c.adults,c.children); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,received:true}); }
 async function guestSaveGrocery(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGrocery(s.ref, b||{}); if(g===null) return sendJSON(res,404,{ok:false,error:'Booking not found.'}); console.log('[grocery] %s (%d items)',s.ref,(g.items||[]).length); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,grocery:g}); }
@@ -239,6 +240,7 @@ async function route(req,res){
   if(m==='GET' &&url==='/api/requests') return guestRequests(req,res);
   if(m==='POST'&&url==='/api/request') return guestAddRequest(req,res);
   if(m==='POST'&&url==='/api/request/remove') return guestRemoveRequest(req,res);
+  if(m==='POST'&&url==='/api/request/update') return guestUpdateRequest(req,res);
   if(m==='POST'&&url==='/api/guestlist') return guestGuestList(req,res);
   if(m==='POST'&&url==='/api/grocery') return guestSaveGrocery(req,res);
   if(m==='POST'&&url==='/api/mealplan') return guestSaveMealPlan(req,res);

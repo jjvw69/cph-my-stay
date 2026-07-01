@@ -1648,11 +1648,29 @@ window.openReq=function(type,refId){
     <div class="reqbtns"><button class="rqcancel" onclick="closeReq()">Cancel</button><button class="rqok" onclick="submitReq('${type}','${esc(refId)}')">Send request</button></div>
   </div>`;
   $app.appendChild(ov);
+  if(state._editReq && state._editReq.refId===refId){ prefillReq(state._editReq.r, info); }
 };
+/* Open the request form pre-filled with an existing request's values so the guest can edit it. */
+window.editReq=function(id){ const r=(reqList()||[]).find(x=>x.id===id); if(!r) return; state._editReq={id:r.id,type:r.type,refId:r.refId,r:r}; openReq(r.type,r.refId); };
+function prefillReq(r,info){ info=info||{};
+  const setV=(id,v)=>{ const el=document.getElementById(id); if(el!=null&&v!=null&&v!=='') el.value=v; };
+  let route='', rest='';
+  (r.note||'').split('\n').forEach(ln=>{ const mm=ln.match(/^\s*Route:\s*(.+)$/i); if(mm){route=mm[1].trim();} else if(ln.trim()){rest+=(rest?'\n':'')+ln.trim();} });
+  setV('rqDate', r.date); setV('rqTime', r.time); setV('rqRoute', route); setV('rqFamily', r.familyName); setV('rqNote', rest); setV('rqEnd', r.endDate);
+  const parts=String(r.serviceLevel||'').split(' · ');
+  if(document.getElementById('rqTrip')) setV('rqTrip', parts.length>=2?parts[0]:(document.getElementById('rqService')?'':parts[0]));
+  if(document.getElementById('rqService')) setV('rqService', parts.length>=2?parts.slice(1).join(' · '):parts[0]);
+  const mCart=String(r.cartType||'').match(/^(\d+)\s*×\s*(.+)$/); if(mCart){ setV('rqQty',mCart[1]); setV('rqCart',mCart[2]); } else if(r.cartType){ setV('rqCart', r.cartType); }
+  if(!info.noGuests){ state._rqG=Number(r.guests)||0; const g=document.getElementById('rqG'); if(g) g.textContent=state._rqG; }
+  if(typeof rqTripChange==='function' && document.getElementById('rqTrip')) rqTripChange();
+  const h=document.querySelector('.reqov .reqh'); if(h) h.textContent='Edit — '+h.textContent;
+  const sub=document.querySelector('.reqov .reqsub'); if(sub) sub.textContent='Update your details — your concierge will re-confirm.';
+  const okBtn=document.querySelector('.reqov .rqok'); if(okBtn) okBtn.textContent='Save changes';
+}
 window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
 /* Transfer: one-way shows a single date; round-trip reveals the departure date too. */
 window.rqTripChange=function(){ const round=((document.getElementById('rqTrip')||{}).value||'')==='Round-trip'; const w=document.getElementById('rqEndWrap'); if(w)w.style.display=round?'':'none'; const l=document.getElementById('rqDateLbl'); if(l)l.textContent=round?'Arrival date':'Transfer date'; };
-window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); };
+window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); state._editReq=null; };
 /* Suggested starting price for a request, from the resort's published rates and the guest's
    selection. Carried to the console so confirming is one tap — the concierge can still edit it. */
 function suggestedPriceFor(refId,o){ o=o||{};
@@ -1679,6 +1697,13 @@ window.submitReq=async function(type,refId){
   const noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
   const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
   const suggestedPrice=suggestedPriceFor(refId,{svc,trip,guests,cartQty,cartTypeRaw});
+  if(state._editReq && state._editReq.id){
+    const eid=state._editReq.id;
+    const r=await api('/api/request/update',{method:'POST',body:JSON.stringify({id:eid,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,familyName})});
+    if(r.ok&&r.body.request){ const arr=(state.stay.requests=state.stay.requests||[]); const i=arr.findIndex(x=>x.id===eid); if(i>=0)arr[i]=r.body.request; else arr.push(r.body.request); state._editReq=null; closeReq(); render(); toast('Updated — your concierge will re-confirm'); }
+    else toast('Could not update — please try again');
+    return;
+  }
   const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,familyName,suggestedPrice})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
@@ -2179,7 +2204,7 @@ function renderPlan(){
       + kv('Price', (r.status==='confirmed'&&r.price)?r.price:'')
       + kv('Notes', restNote);
     const body = details || `<div style="font-size:12.5px;color:var(--soft);margin-top:5px">Details to be confirmed with your concierge.</div>`;
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:10px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<div style="display:flex;gap:16px;margin-top:10px"><button onclick="editReq('${esc(r.id)}')" style="background:none;border:0;padding:0;font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline">Edit</button><button onclick="confirmRemoveReq('${esc(r.id)}')" style="background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Cancel</button></div></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
