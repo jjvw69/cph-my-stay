@@ -456,11 +456,11 @@ function renderStay(){
         <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
-        <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash</span></div>
+        <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash to the staff</span></div>
         <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')} · message →</span></div>
-        <div class="tile"><b>Emergency</b><span>General 911 · Fire 5555</span></div>
+        <div class="tile"><b>Emergency</b><span>911</span></div>
         <div class="tile"><b>Resort Registration</b><span>${(s.villaNumber||s.registrationNumber)?[s.villaNumber?'Villa '+esc(s.villaNumber):'',s.registrationNumber?'Your code - '+esc(s.registrationNumber):''].filter(Boolean).join(' · '):'Provided on arrival'}</span></div>
-        <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish phrasebook →</span></div>
+        <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
