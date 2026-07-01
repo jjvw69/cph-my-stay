@@ -343,7 +343,7 @@ function blankStay() {
     staffHours: '8:00 AM – 5:00 PM',
     staffReadAt: 0,
     airport: 'LRM', flight: '', transferArranged: false,
-    offeredAddOnIds: [],
+    offeredAddOnIds: ['transfer', 'golfcart', 'yacht'],
     conciergeId: 'maria-fernanda', assigneeId: '', internalNotes: '', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
     welcomeMessage: '',
     requests: [],
