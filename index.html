@@ -459,7 +459,7 @@ function renderStay(){
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash</span></div>
         <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')} · message →</span></div>
         <div class="tile"><b>Emergency</b><span>General 911 · Fire 5555</span></div>
-        <div class="tile"><b>Villa &amp; registration</b><span>${(s.villaNumber||s.registrationNumber)?[s.villaNumber?'Villa '+esc(s.villaNumber):'',s.registrationNumber?'Reg '+esc(s.registrationNumber):''].filter(Boolean).join(' · '):'Provided on arrival'}</span></div>
+        <div class="tile"><b>Resort Registration</b><span>${(s.villaNumber||s.registrationNumber)?[s.villaNumber?'Villa '+esc(s.villaNumber):'',s.registrationNumber?'Your code - '+esc(s.registrationNumber):''].filter(Boolean).join(' · '):'Provided on arrival'}</span></div>
         <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish phrasebook →</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
