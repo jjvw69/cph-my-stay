@@ -2215,8 +2215,6 @@ function renderPlan(){
       const banner=due.length?`<div style="background:#FBECEC;border:1px solid #E8C9C9;border-radius:12px;padding:11px 13px;margin-top:11px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:13px;color:#9A2B2B;font-weight:600">Payment due</span><span style="font-size:14px;color:#9A2B2B;font-weight:700">${fmt(outstanding)} outstanding</span></div>`:'';
       return `<div class="sec-title">Bills</div>${banner}${invs.map(box).join('')}`;
     })()}
-    <div class="sec-title">Your stay</div>
-    <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
     <div class="sec-title">Requests &amp; bookings</div>
     ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Villa Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
     ${(function(){ const g=s.grocery; if(!g||!((g.items&&g.items.length)||g.note)) return '';
