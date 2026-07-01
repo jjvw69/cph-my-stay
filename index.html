@@ -429,7 +429,7 @@ function renderHome(){
         ${(()=>{const ex=exploreData();const A=ex.filter(e=>e.cat==='Activities'),M=ex.filter(e=>e.cat==='Amenities');let p=[];for(let k=0;k<Math.max(A.length,M.length)&&p.length<4;k++){if(A[k])p.push(A[k]);if(M[k]&&p.length<4)p.push(M[k]);}if(p.length<4)ex.filter(e=>e.cat==='Golf'||e.cat==='Dining').forEach(e=>{if(p.length<4&&p.indexOf(e)<0)p.push(e);});return p.map(e=>`<div class="teaser ${e.img?'':'ph'}" ${heroStyle(e.img)} onclick="goTab('explore')">${esc(e.name)}</div>`).join('');})()}
       </div>
       <div class="sec-title">Real Estate</div>
-      <button onclick="push('realestate')" style="width:100%;text-align:left;border:1px solid var(--line);cursor:pointer;background:var(--card);border-radius:16px;padding:15px 16px;margin-top:2px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <button onclick="push('realestate')" style="width:100%;text-align:left;border:1px solid var(--line);cursor:pointer;background:var(--card);border-radius:16px;padding:15px 16px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="min-width:0">
           <span style="display:block;font-size:15.5px;font-weight:600;color:var(--ink)">Own a home in Casa de Campo</span>
           <span style="display:block;font-size:12.5px;color:var(--soft);margin-top:3px;line-height:1.45">Villas In Casa — neighborhoods, private tours &amp; buying guidance</span>
