@@ -350,7 +350,7 @@ function blankStay() {
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: ['transfer', 'golfcart', 'yacht'],
     conciergeId: 'maria-fernanda', assigneeId: '', internalNotes: '', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
-    welcomeMessage: '',
+    welcomeMessage: "Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.",
     requests: [],
     messages: [],
     guestList: [],

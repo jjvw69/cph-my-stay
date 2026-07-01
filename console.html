@@ -1063,7 +1063,8 @@ function renderEditor(){
 
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
-      <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea></div>
+      <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea>
+        <div class="counter">Tokens <code>{villa name}</code> and <code>{concierge name}</code> auto-fill with this stay's villa and assigned concierge.</div></div>
     </div></div>
 
     <div class="sec"><h3>Payment &amp; balance</h3><div class="grid">
@@ -1384,7 +1385,7 @@ window.printStay=function(){
     <h2>Grocery pre-stocking</h2>${groc}
     <h2>Arrival meals</h2>${meals}
     <h2>Guest registration</h2>${gl}
-    <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',s.welcomeMessage)}</table>
+    <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',(s.welcomeMessage||'').replace(/\{\s*villa name\s*\}/gi,s.villaName||v.name||'your villa').replace(/\{\s*concierge name\s*\}/gi,c.name||'your concierge'))}</table>
     </body></html>`;
   const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
 };
