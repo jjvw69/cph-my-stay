@@ -418,7 +418,7 @@ function renderHome(){
       <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
-          <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)">A note from ${esc((s.concierge&&s.concierge.name)||'your concierge')}</div>
+          <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)">A note from your concierge</div>
           <div style="font-size:13.5px;line-height:1.55;color:var(--ink);margin-top:4px">${esc(fillTokens((s.welcomeMessage||'').trim()||DEFAULT_WELCOME, s))}</div>
         </div>
       </div>
