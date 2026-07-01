@@ -415,7 +415,6 @@ function renderHome(){
           <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
         <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
       </div>
-      <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
       <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
@@ -2164,7 +2163,8 @@ function renderPlan(){
     ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Arranged</span>`
     :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
   const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><span style="display:block;margin-top:6px">${esc(meta||'Date to be confirmed')}</span>${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:8px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
+    const noteHtml=r.note?`<span style="display:block;margin-top:5px;font-size:12.5px;color:var(--soft);line-height:1.5">${esc(r.note).replace(/\n/g,'<br>')}</span>`:'';
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><span style="display:block;margin-top:6px">${esc(meta||'Date to be confirmed')}</span>${noteHtml}${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:8px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
