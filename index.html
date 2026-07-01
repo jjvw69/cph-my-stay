@@ -2162,9 +2162,22 @@ function renderPlan(){
     :r.status==='done'
     ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Arranged</span>`
     :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
-  const line=(r)=>{ const meta=[r.cartType||'',r.serviceLevel||'',r.date?fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):''):'',r.time||'',(r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
-    const noteHtml=r.note?`<span style="display:block;margin-top:5px;font-size:12.5px;color:var(--soft);line-height:1.5">${esc(r.note).replace(/\n/g,'<br>')}</span>`:'';
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><span style="display:block;margin-top:6px">${esc(meta||'Date to be confirmed')}</span>${noteHtml}${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:8px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
+  const kv=(k,v)=>v?`<div style="display:flex;gap:9px;font-size:12.5px;margin-top:4px;line-height:1.45"><span style="color:var(--soft);flex:0 0 82px">${k}</span><span style="color:var(--ink);flex:1;min-width:0">${esc(v).replace(/\n/g,'<br>')}</span></div>`:'';
+  const line=(r)=>{
+    // The route/airport and any preferences are captured in the note (as "Route: …"); split them out so nothing is hidden.
+    let route='', restNote='';
+    (r.note||'').split('\n').forEach(ln=>{ const mm=ln.match(/^\s*Route:\s*(.+)$/i); if(mm){ route=mm[1].trim(); } else if(ln.trim()){ restNote+=(restNote?'\n':'')+ln.trim(); } });
+    const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):'';
+    const details = kv('Airport / route',route)
+      + kv('Service', r.serviceLevel||'')
+      + kv('Cart', r.cartType||'')
+      + kv('When', dateBit)
+      + kv('Time', r.time||'')
+      + kv('Guests', r.guests?String(r.guests):'')
+      + kv('Price', (r.status==='confirmed'&&r.price)?r.price:'')
+      + kv('Notes', restNote);
+    const body = details || `<div style="font-size:12.5px;color:var(--soft);margin-top:5px">Details to be confirmed with your concierge.</div>`;
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="display:block;margin-top:10px;background:none;border:0;padding:0;font-size:12px;color:#B23B3B;cursor:pointer;text-decoration:underline">Remove</button></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>
