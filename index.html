@@ -416,6 +416,13 @@ function renderHome(){
         <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
       </div>
       <div class="greet">Welcome, the <b>${esc(s.guest.family)}</b> family — here's everything for a seamless arrival.</div>
+      <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
+        <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
+        <div style="min-width:0">
+          <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)">A note from ${esc((s.concierge&&s.concierge.name)||'your concierge')}</div>
+          <div style="font-size:13.5px;line-height:1.55;color:var(--ink);margin-top:4px">${esc(fillTokens((s.welcomeMessage||'').trim()||DEFAULT_WELCOME, s))}</div>
+        </div>
+      </div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange Villa Add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
       ${myPlanRow()}
