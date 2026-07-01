@@ -1365,7 +1365,7 @@ const SERVICE_INFO = {
   transfer: {
     tripDates:true, toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
-    selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select>`,
+    selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select><label class="reqlbl">Head of family / group <span style="font-weight:400;color:var(--soft)">(if you're booking more than one transfer)</span></label><input id="rqFamily" placeholder="e.g. Matz family">`,
     rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
       <div class="rth">LRM → Casa de Campo</div>
       <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
@@ -1675,10 +1675,11 @@ window.submitReq=async function(type,refId){
   const time=(document.getElementById('rqTime')||{}).value||'';
   const note=(document.getElementById('rqNote')||{}).value||'';
   const route=(document.getElementById('rqRoute')||{}).value||'';
+  const familyName=(document.getElementById('rqFamily')||{}).value||'';
   const noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
   const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
   const suggestedPrice=suggestedPriceFor(refId,{svc,trip,guests,cartQty,cartTypeRaw});
-  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,suggestedPrice})});
+  const r=await api('/api/request',{method:'POST',body:JSON.stringify({type,refId,title,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,familyName,suggestedPrice})});
   if(r.ok&&r.body.request){ (state.stay.requests=state.stay.requests||[]).push(r.body.request); closeReq(); render(); toast('Sent — your concierge will confirm'); }
   else toast('Could not send — please try again');
 };
@@ -2168,7 +2169,8 @@ function renderPlan(){
     let route='', restNote='';
     (r.note||'').split('\n').forEach(ln=>{ const mm=ln.match(/^\s*Route:\s*(.+)$/i); if(mm){ route=mm[1].trim(); } else if(ln.trim()){ restNote+=(restNote?'\n':'')+ln.trim(); } });
     const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):'';
-    const details = kv('Airport / route',route)
+    const details = kv('Head of family', r.familyName||'')
+      + kv('Airport / route',route)
       + kv('Service', r.serviceLevel||'')
       + kv('Cart', r.cartType||'')
       + kv('When', dateBit)

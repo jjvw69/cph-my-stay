@@ -476,6 +476,7 @@ function addRequest(reference, body) {
     time: norm(body.time).slice(0, 20),
     guests: Math.max(0, Math.min(99, Number(body.guests) || 0)),
     note: norm(body.note).slice(0, 300),
+    familyName: norm(body.familyName).slice(0, 60), // head-of-family / group label to tell multiple same-type bookings apart (e.g. two airport transfers)
     status: 'pending',
     price: '',
     suggestedPrice: norm(body.suggestedPrice).slice(0, 30),
@@ -510,6 +511,12 @@ function reopenRequest(stayId, requestId) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
   r.status = ''; r.doneAt = ''; r.cancelledAt = ''; r.reopenedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
+}
+/** Staff sets/updates the head-of-family / group label on a request (to tell multiple same-type bookings apart). */
+function setRequestFamily(stayId, requestId, name) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  r.familyName = norm(name).slice(0, 60); s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
  *  reloads and shows in the Concierge Console. */
@@ -802,7 +809,7 @@ function getMessagesByRef(reference) {
 /** Lightweight fetch of just the requests, for guest polling (live status/price updates). Same shape as toGuestStay.requests. */
 function getRequestsByRef(reference) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
-  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt }));
+  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt }));
 }
 
 // ------------------------------------------------------- guest-facing mapping
@@ -843,7 +850,7 @@ function toGuestStay(s) {
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
-    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
+    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
@@ -893,7 +900,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

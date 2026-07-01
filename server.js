@@ -270,6 +270,8 @@ async function route(req,res){
     if(dm&&m==='POST'){ const r=store.markRequestDone(dm[1],dm[2]); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const ro=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/reopen$/);
     if(ro&&m==='POST'){ const r=store.reopenRequest(ro[1],ro[2]); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const fm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/family$/);
+    if(fm&&m==='PUT'){ const b=await readBody(req); const r=store.setRequestFamily(fm[1],fm[2],String(b.familyName||'')); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const ssA=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/sent-services$/);
