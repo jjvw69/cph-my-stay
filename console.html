@@ -406,6 +406,8 @@ document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=S
 if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = working copy
+// Default concierge welcome (shown to guests when a stay has no custom message). {villa name}/{concierge name} resolve live in the guest app.
+const DEFAULT_WELCOME="Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.";
 let _sndSvc='', _sndOptVal='', _sndRate=''; // "Send a service" form state — kept in module vars so it survives live-sync re-renders
 
 /* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
@@ -1063,8 +1065,8 @@ function renderEditor(){
 
     <div class="sec"><h3>Concierge &amp; welcome</h3><div class="grid">
       <div class="f"><label>Assigned concierge</label><select onchange="set('conciergeId',this.value)">${concOpts(cur.conciergeId)}</select></div>
-      <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage)}</textarea>
-        <div class="counter">Tokens <code>{villa name}</code> and <code>{concierge name}</code> auto-fill with this stay's villa and assigned concierge.</div></div>
+      <div class="f full"><label>Welcome message (shown in guest chat)</label><textarea rows="3" oninput="set('welcomeMessage',this.value)">${esc(cur.welcomeMessage||DEFAULT_WELCOME)}</textarea>
+        <div class="counter">This is the standard welcome — edit it for this stay if you like. Tokens <code>{villa name}</code> and <code>{concierge name}</code> auto-fill with the villa and assigned concierge.</div></div>
     </div></div>
 
     <div class="sec"><h3>Payment &amp; balance</h3><div class="grid">
@@ -1385,7 +1387,7 @@ window.printStay=function(){
     <h2>Grocery pre-stocking</h2>${groc}
     <h2>Arrival meals</h2>${meals}
     <h2>Guest registration</h2>${gl}
-    <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',(s.welcomeMessage||'').replace(/\{\s*villa name\s*\}/gi,s.villaName||v.name||'your villa').replace(/\{\s*concierge name\s*\}/gi,c.name||'your concierge'))}</table>
+    <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',(s.welcomeMessage||DEFAULT_WELCOME).replace(/\{\s*villa name\s*\}/gi,s.villaName||v.name||'your villa').replace(/\{\s*concierge name\s*\}/gi,c.name||'your concierge'))}</table>
     </body></html>`;
   const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
 };
