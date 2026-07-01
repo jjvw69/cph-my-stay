@@ -24,8 +24,11 @@ const LOGIN_MAX = Number(process.env.LOGIN_MAX_ATTEMPTS || 10);
 // WhatsApp via Twilio:
 const TWILIO_SID = process.env.TWILIO_SID || '';
 const TWILIO_TOKEN = process.env.TWILIO_TOKEN || '';
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || ''; // e.g. whatsapp:+14155238886
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || ''; // production WhatsApp Business sender, e.g. whatsapp:+18095551234
 const CONCIERGE_WHATSAPP = process.env.CONCIERGE_WHATSAPP || '';     // e.g. whatsapp:+18297638801
+// Approved WhatsApp template (Content SID, HX...) used to alert the concierge OUTSIDE the 24h session window.
+// Once set, concierge WhatsApp alerts are sent as this template (delivers reliably from a production sender).
+const TWILIO_CONCIERGE_TEMPLATE_SID = process.env.TWILIO_CONCIERGE_TEMPLATE_SID || '';
 // SMS has NO 24h/72h window — set TWILIO_SMS_FROM to a Twilio SMS-capable number to alert the concierge with no restrictions.
 const TWILIO_SMS_FROM = process.env.TWILIO_SMS_FROM || ''; // e.g. +13055551234
 const CONCIERGE_SMS = process.env.CONCIERGE_SMS || CONCIERGE_WHATSAPP.replace(/^whatsapp:/,''); // María's plain number for SMS
@@ -159,10 +162,15 @@ function sendSmsTo(to,text,ref){
   }catch(e){ console.error('[notify] sms threw',e.message); }
 }
 function notifyConciergeAllChannels(text,ref){ let sent=false; if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_SMS_FROM&&CONCIERGE_SMS){ sendSmsTo(CONCIERGE_SMS,text,ref); sent=true; } if(TWILIO_SID&&TWILIO_TOKEN&&TWILIO_WHATSAPP_FROM&&CONCIERGE_WHATSAPP){ sendWhatsApp(text,ref); sent=true; } return sent; }
-function sendWhatsApp(text,ref){ sendWhatsAppTo(CONCIERGE_WHATSAPP,text,ref); }
-function sendWhatsAppTo(to,text,ref){
+// Flatten a multi-line alert into one WhatsApp-template-safe line (no newlines/tabs, no long runs of spaces).
+function waSanitize(text){ return String(text||'').replace(/\r/g,'').replace(/\n+/g,' · ').replace(/\s{2,}/g,' ').trim().slice(0,600); }
+// Concierge alert: uses the approved template (Content SID) when configured so it delivers outside the 24h window.
+function sendWhatsApp(text,ref){ sendWhatsAppTo(CONCIERGE_WHATSAPP,text,ref,TWILIO_CONCIERGE_TEMPLATE_SID); }
+function sendWhatsAppTo(to,text,ref,templateSid){
   try{
-    let form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(to))+'&Body='+encodeURIComponent(text);
+    let form='From='+encodeURIComponent(withWa(TWILIO_WHATSAPP_FROM))+'&To='+encodeURIComponent(withWa(to));
+    if(templateSid){ form+='&ContentSid='+encodeURIComponent(templateSid)+'&ContentVariables='+encodeURIComponent(JSON.stringify({1:waSanitize(text)})); }
+    else { form+='&Body='+encodeURIComponent(text); }
     form+='&StatusCallback='+encodeURIComponent(APP_URL+'/api/twilio/status');
     const auth='Basic '+Buffer.from(TWILIO_SID+':'+TWILIO_TOKEN).toString('base64');
     const https=require('https');
