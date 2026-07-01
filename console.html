@@ -198,6 +198,13 @@
   .vchip.on{background:#EAF1EA;color:#3F6B4E;border-color:#cfe0c8}
   .sec{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+  /* pinned section quick-nav for the stay editor */
+  .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 3px 10px rgba(31,42,36,.06)}
+  .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
+  .secnav-chip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 11px;color:var(--accent);cursor:pointer;font-family:var(--ui);white-space:nowrap}
+  .secnav-chip:hover{border-color:var(--accent)}
+  .secnav-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .f label{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);margin-bottom:5px}
   .f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff}
@@ -747,6 +754,41 @@ function collapsibleSections(){
     div.replaceWith(det);
   });
 }
+/* Pinned quick-nav: a chip per editor section, grouped logically. Tapping a chip
+   scrolls to that section (and expands it). Rebuilt after each renderEditor so it
+   only lists sections that are actually present for this stay. */
+const SECNAV_GROUPS=[
+  {g:'Booking', ids:['csec-guest-party','csec-stay-villa','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
+  {g:'Guest', ids:['csec-guest-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals']},
+  {g:'Upsell & money', ids:['csec-add-ons-offered-to-guest','csec-services-sent-to-guest','csec-yacht-charter-proposal','csec-invoices','csec-payment-balance']},
+  {g:'Admin', ids:['csec-follow-up-reminder','csec-internal-notes']},
+];
+const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-stay-villa':'Stay & villa','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-requests':'Requests','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-add-ons-offered-to-guest':'Add-ons','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminder':'Follow-up','csec-internal-notes':'Notes'};
+function buildSecNav(){
+  const ed=document.getElementById('editor'); if(!ed) return;
+  const old=ed.querySelector('.secnav'); if(old) old.remove();
+  let html='';
+  SECNAV_GROUPS.forEach(grp=>{
+    const chips=grp.ids.filter(id=>ed.querySelector('#'+id)).map(id=>`<button class="secnav-chip" onclick="jumpSec('${id}')">${esc(SECNAV_LABEL[id]||id)}</button>`);
+    if(chips.length) html+=`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`;
+  });
+  if(!html) return;
+  const nav=document.createElement('div'); nav.className='secnav'; nav.innerHTML=html;
+  const emode=ed.querySelector('.emode');
+  if(emode) emode.insertAdjacentElement('afterend',nav); else ed.insertBefore(nav,ed.firstChild);
+}
+window.jumpSec=function(id){
+  const ed=document.getElementById('editor'); const el=document.getElementById(id); if(!ed||!el) return;
+  if(el.tagName==='DETAILS'&&!el.open) el.open=true;
+  let sp=el.parentElement; while(sp){ const s=getComputedStyle(sp); if(/(auto|scroll)/.test(s.overflowY)&&sp.scrollHeight>sp.clientHeight) break; sp=sp.parentElement; }
+  sp=sp||document.scrollingElement||document.documentElement;
+  const nav=ed.querySelector('.secnav'); const navH=nav?nav.getBoundingClientRect().height:0;
+  const spTop=sp.getBoundingClientRect?sp.getBoundingClientRect().top:0;
+  const elTop=el.getBoundingClientRect().top;
+  sp.scrollTop += (elTop - spTop) - navH - 12;
+  ed.querySelectorAll('.secnav-chip').forEach(c=>c.classList.remove('on'));
+  const chip=ed.querySelector('.secnav-chip[onclick*="'+id+'"]'); if(chip) chip.classList.add('on');
+};
 /* Derive a suggested rate for a request from its own fields + the resort's published rates,
    so the confirm box pre-fills even for requests made before suggestedPrice existed. Falls back
    to the price the guest app sent (r.suggestedPrice). The concierge can always edit it. */
@@ -1000,6 +1042,7 @@ function renderEditor(){
     </div></div>
     <div class="msave"><button class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button></div>`;
   collapsibleSections();
+  buildSecNav();
 }
 window.set=set;
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
