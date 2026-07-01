@@ -368,6 +368,8 @@ function summaryStay(s) {
     lastMsgText: String(((s.messages || [])[(s.messages || []).length - 1] || {}).text || '').slice(0, 90),
     lastMsgFrom: ((s.messages || [])[(s.messages || []).length - 1] || {}).from || '',
     revenue: stayRevenue(s), confirmed: (s.requests || []).filter(r => r.status === 'confirmed').length,
+    unpaid: (s.invoices || []).filter(i => i.status === 'sent').length,
+    unpaidTotal: (s.invoices || []).filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0),
     assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }

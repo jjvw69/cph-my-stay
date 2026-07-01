@@ -103,6 +103,9 @@
   .row .arr{color:var(--soft);font-size:18px}
   .pill-done{font-size:11px;color:var(--ok-tx);background:var(--ok-bg);padding:3px 9px;border-radius:30px}
   .sec-title{font-family:var(--display);font-weight:600;font-size:24px;color:var(--ink);margin:26px 2px 2px}
+  .faq details>summary{list-style:none}
+  .faq details>summary::-webkit-details-marker{display:none}
+  .faq details[open] .faq-x{transform:rotate(45deg)}
   .teasers{display:flex;gap:12px;overflow-x:auto;padding:14px 0 2px;scrollbar-width:none}
   .teasers::-webkit-scrollbar{display:none}
   .teaser{flex:0 0 150px;height:104px;border-radius:14px;background:#cfc6b3 center/cover;position:relative;color:#fff;display:flex;align-items:flex-end;padding:11px;font-size:13px;font-weight:500;text-shadow:0 1px 6px rgba(0,0,0,.5)}
@@ -362,7 +365,9 @@ function myPlanRow(){
   const nreq=((s.requests||[]).filter(r=>r&&r.status!=='cancelled')).length;
   const sub = pend?(pend+' to confirm · arranged for you') : (nreq?(nreq+' request'+(nreq==1?'':'s')+' · transfers, dining & more') : 'Your itinerary & confirmed bookings');
   const badge = pend?` <span style="font-size:10px;background:#F3ECDD;color:#7A5A2E;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap">${pend} to confirm</span>`:'';
-  return `<button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan${badge}</b><span>${sub}</span></span><span class="arr">→</span></button>`;
+  const _unpaid=(s.invoices||[]).filter(i=>i.status==='sent').length;
+  const upBadge=_unpaid?` <span style="font-size:10px;background:#F3DADA;color:#9A2B2B;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap">Payment due</span>`:'';
+  return `<button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan${badge}${upBadge}</b><span>${sub}</span></span><span class="arr">→</span></button>`;
 }
 function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
@@ -2013,7 +2018,9 @@ function renderPlan(){
           ${iv.note?`<div style="font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.5">${esc(iv.note)}</div>`:''}
           ${paid?'':`<div style="margin-top:10px;border:1px solid #E2DAF0;background:#F7F4FC;border-radius:12px;padding:12px 13px"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6D1ED4;text-transform:uppercase;margin-bottom:6px">Pay by Zelle</div>${zelleRow('Send to',ZELLE_EMAIL,ZELLE_EMAIL,'Email')}${zelleRow('Amount',fmt(iv.total),String(iv.total||''),'Amount')}${memo?zelleRow('Memo',memo,memo,'Memo'):''}<div style="font-size:11.5px;color:#8A8597;margin-top:8px;line-height:1.5">Open your bank's app, choose Zelle, send to the email above and add the memo. Your concierge marks it paid once received.</div></div>`}
           <button onclick="invoicePrint('${esc(iv.id)}')" style="margin-top:10px;width:100%;border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:10px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>`; };
-      return `<div class="sec-title">Bills</div>${invs.map(box).join('')}`;
+      const due=invs.filter(iv=>iv.status!=='paid'); const outstanding=due.reduce((a,iv)=>a+(Number(iv.total)||0),0);
+      const banner=due.length?`<div style="background:#FBECEC;border:1px solid #E8C9C9;border-radius:12px;padding:11px 13px;margin-top:11px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:13px;color:#9A2B2B;font-weight:600">Payment due</span><span style="font-size:14px;color:#9A2B2B;font-weight:700">${fmt(outstanding)} outstanding</span></div>`:'';
+      return `<div class="sec-title">Bills</div>${banner}${invs.map(box).join('')}`;
     })()}
     <div class="sec-title">Your stay</div>
     <div class="grid2"><div class="tile"><b>Check-in</b><span>${b.arrive?fmtDate(b.arrive):'–'} · ${esc(b.checkInTime||'3:00 PM')}</span></div><div class="tile"><b>Check-out</b><span>${b.depart?fmtDate(b.depart):'–'} · ${esc(b.checkOutTime||'11:00 AM')}</span></div></div>
@@ -2035,6 +2042,38 @@ function renderPlan(){
         return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(a.name)}</b>${a.price?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(a.price)}</span>`:''}<span style="display:block;margin-top:3px">${esc(a.desc||'')}</span><div style="margin-top:10px">${booked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 10px;font-weight:600">✓ Added to your plan</span>`:`<button onclick="openReq('addon','${esc(a.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button>`}</div></span></div>`; };
       return `<div class="sec-title">Services for your stay</div>${cs.map(card).join('')}`;
     })()}
+    ${(function(){
+      const ev=[];
+      (reqList()||[]).forEach(r=>{ if(!r) return;
+        if(r.createdAt) ev.push({at:r.createdAt,cls:'g',what:`You requested <b>${esc(r.title||'a service')}</b>`});
+        if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
+        else if(r.status==='done') ev.push({at:r.doneAt||r.createdAt,cls:'ok',what:`Arranged <b>${esc(r.title||'')}</b>`});
+      });
+      (s.invoices||[]).forEach(iv=>{ if(iv.sentAt) ev.push({at:iv.sentAt,cls:'money',what:`Invoice <b>#${iv.no} ${esc(iv.title||'')}</b> sent`}); if(iv.paidAt) ev.push({at:iv.paidAt,cls:'ok',what:`Payment received — <b>#${iv.no}</b>`}); });
+      (s.sentServices||[]).forEach(x=>{ if(x.sentAt) ev.push({at:x.sentAt,cls:'money',what:`Concierge arranged <b>${esc(x.name||'a service')}</b>`}); if(x.status==='confirmed') ev.push({at:x.respondedAt||x.sentAt,cls:'ok',what:`You confirmed <b>${esc(x.name||'')}</b>`}); else if(x.status==='declined') ev.push({at:x.respondedAt||x.sentAt,cls:'no',what:`You declined <b>${esc(x.name||'')}</b>`}); });
+      if(s.yachtProposal){ const yp=s.yachtProposal; if(yp.sentAt) ev.push({at:yp.sentAt,cls:'money',what:`Yacht options sent — <b>${esc(yp.title||'')}</b>`}); if(yp.status==='chosen'&&yp.respondedAt){ const o=(yp.options||[]).find(o=>o.id===yp.chosenId); ev.push({at:yp.respondedAt,cls:'ok',what:`You chose <b>${esc(o?o.name:'a yacht option')}</b>`}); } }
+      if(s.guestCheckin&&s.guestCheckin.submittedAt) ev.push({at:s.guestCheckin.submittedAt,cls:'ok',what:`Pre check-in submitted`});
+      ev.sort((a,b)=>(b.at||0)-(a.at||0));
+      if(!ev.length) return '';
+      const dot={g:'#9E5B43',ok:'#3F6B4E',no:'#9A2B2B',money:'#33493B'};
+      const when=ts=>{ try{ const d=new Date(ts); if(isNaN(d))return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } };
+      const rows=ev.slice(0,14).map(e=>`<div style="position:relative;padding:0 0 12px 18px;border-left:2px solid var(--line)"><span style="position:absolute;left:-6px;top:2px;width:11px;height:11px;border-radius:50%;background:${dot[e.cls]||'#33493B'};border:2px solid #fff;box-shadow:0 0 0 1px var(--line)"></span><div style="font-size:11.5px;color:var(--soft)">${when(e.at)}</div><div style="font-size:13.5px;color:var(--ink);margin-top:1px">${e.what}</div></div>`).join('');
+      return `<div class="sec-title">Stay activity</div><div class="card" style="padding:15px 15px 4px">${rows}</div>`;
+    })()}
+    <div class="sec-title">Inside the villa</div>
+    <div class="faq">${(function(){
+      const faq=[
+        ['Who looks after the villa during my stay?',`Your private villa staff — typically a chef, butler and housekeeper — assist you daily from <b>8:00&nbsp;AM to 5:00&nbsp;PM</b>. Assistance beyond those hours can be arranged for <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash. A tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay is customary and appreciated.`],
+        ['How do I get Wi-Fi and my keys?',(state.stay.wifiName||state.stay.wifiPassword)?`Network <b>${esc(state.stay.wifiName||'—')}</b>, password <b>${esc(state.stay.wifiPassword||'—')}</b>. Your keys are handed over in person at the villa on arrival.`:`Complimentary Wi-Fi is in your villa — the network name, password and your keys are handed over in person when you arrive.`],
+        ['What are the house rules?',`Casa de Campo villas are private homes in a residential resort community. To respect your neighbours, villas are for <b>registered guests only</b> — no parties or events, no outside or day visitors, and no live music or karaoke at the villa. Your concierge is glad to arrange private dining, a chef or entertainment within resort guidelines.`],
+        ['Can we have a private chef or groceries stocked?',`Yes. Your concierge can stock the kitchen before you arrive and arrange a private chef for one or several nights — often the meals guests remember most. Add a grocery or meal request from My Plan and we'll take care of it.`],
+        ['What time is check-out, and can we stay later?',`Check-out is at <b>11:00&nbsp;AM</b>. Late check-out is often possible — just ask your concierge in advance and we'll do our best around the next arrival.`],
+        ['Something needs attention — who do I tell?',`Tell your villa staff or message your concierge and we'll handle it quickly. For dinner or activity reservations you can also reach the Owner's Club at <b>+1 809-523-3165</b> (villa phone ext. 3165 / 3166).`],
+        ['A little history',`Your villa sits inside Casa de Campo — a 7,000-acre estate on the Dominican Republic's south coast that opened in <b>1974</b> on former Gulf+Western sugar land. The name means "country house," and much of the resort, from the coral-stone village of Altos de Chavón to the Teeth of the Dog golf course, was built by hand in the 1970s.`],
+      ];
+      const item=(q,a)=>`<details style="background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:11px;overflow:hidden"><summary style="cursor:pointer;padding:14px 15px;font-size:14.5px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px">${q}<span class="faq-x" style="color:var(--soft);font-size:19px;line-height:1;transition:transform .15s;flex:0 0 auto">+</span></summary><div style="font-size:13.5px;color:var(--soft);line-height:1.55;padding:0 15px 14px">${a}</div></details>`;
+      return faq.map(f=>item(f[0],f[1])).join('');
+    })()}</div>
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>
     <button class="btn" style="margin-top:10px;background:#EFE9DC;color:#1F2A24" onclick="printItinerary()">Print / save as PDF</button>`;
   shell('My plan', inner);

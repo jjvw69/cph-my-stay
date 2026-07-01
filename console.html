@@ -539,11 +539,12 @@ function renderList(){
     const srcB=s.source?`<span class="srcpill ${isDirect?'direct':'partner'}">${isDirect?'Direct':esc(s.source)}</span>`:'';
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
+    const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">$${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
     const unread=isUnread(s);
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
       <div class="g">${esc(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}</div></div>`;
+      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}${upB}</div></div>`;
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
@@ -624,31 +625,38 @@ function renderToday(){
   const today=todayStr(), tom=addDays(today,1); const L=LIST||[];
   const arrToday=L.filter(s=>s.checkin===today);
   const arrTom=L.filter(s=>s.checkin===tom);
+  const depToday=L.filter(s=>s.checkout===today);
   const pending=L.filter(s=>(s.pending||0)>0);
+  const unpaid=L.filter(s=>(s.unpaid||0)>0);
   const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
-  todayGroups={arrToday,pending,msgs,fudue};
+  todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
   const totMsgs=msgs.reduce((a,s)=>a+unreadMsgs(s),0);
+  const totUnpaid=unpaid.reduce((a,s)=>a+(s.unpaid||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
-  const nothing=!arrToday.length&&!arrTom.length&&!pending.length&&!msgs.length&&!fudue.length;
+  const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length;
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="today-head">Today’s overview</div>
     <div class="today-date">${dstr}</div>
     <div class="today-stats">
       ${stat(arrToday.length,'Arriving today','arrToday')}
+      ${stat(depToday.length,'Departing today','depToday')}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
       ${stat(totMsgs,'Unread messages','msgs',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
+      ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
+    ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
+    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
     ${sec('Unread guest messages','msgs', msgs.map(s=>{const u=unreadMsgs(s);return todayRow(s,`<span class="tr-tag amber">${u} new message${u==1?'':'s'}</span>`);}))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
@@ -678,6 +686,21 @@ function activityTimeline(s){
     if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
   });
   (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):(m.auto?'Auto-message':'You')}: ${esc(m.text)}`}); });
+  const _mny=n=>'$'+(Number(n)||0).toLocaleString('en-US');
+  (s.invoices||[]).forEach(iv=>{
+    if(iv.sentAt) ev.push({at:iv.sentAt,cls:'s',what:`Invoice <b>#${iv.no} ${esc(iv.title||'')}</b> sent · ${_mny(invBreakdown(iv).total)}`});
+    if(iv.paidAt) ev.push({at:iv.paidAt,cls:'ok',what:`Invoice <b>#${iv.no}</b> marked paid`});
+  });
+  (s.sentServices||[]).forEach(x=>{
+    if(x.sentAt) ev.push({at:x.sentAt,cls:'s',what:`Offered <b>${esc(x.name||'a service')}</b>${x.rate?' · '+esc(x.rate):''}`});
+    if(x.status==='confirmed') ev.push({at:x.respondedAt||x.sentAt,cls:'ok',what:`Guest confirmed <b>${esc(x.name||'')}</b>`});
+    else if(x.status==='declined') ev.push({at:x.respondedAt||x.sentAt,cls:'no',what:`Guest declined <b>${esc(x.name||'')}</b>`});
+  });
+  if(s.yachtProposal){ const yp=s.yachtProposal;
+    if(yp.sentAt) ev.push({at:yp.sentAt,cls:'s',what:`Sent yacht proposal <b>${esc(yp.title||'')}</b>`});
+    if(yp.status==='chosen'&&yp.respondedAt){ const o=(yp.options||[]).find(o=>o.id===yp.chosenId); ev.push({at:yp.respondedAt,cls:'ok',what:`Guest chose <b>${esc(o?o.name:'a yacht option')}</b>`}); }
+  }
+  if(s.guestCheckin&&s.guestCheckin.submittedAt) ev.push({at:s.guestCheckin.submittedAt,cls:'g',what:`Guest submitted <b>pre check-in</b>`});
   ev.sort((a,b)=>(b.at||0)-(a.at||0));
   if(!ev.length) return '';
   const seenTl=(getSeen()[s.id]||{}).tl||0; const fresh=Math.max(0,ev.length-seenTl);
