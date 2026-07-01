@@ -669,6 +669,7 @@ function groceryBreakdown(inv) {
     totalRD: Number(inv && inv.totalRD) || 0,
     subUSD: Number(inv && inv.subUSD) || 0,
     svc: Number(inv && inv.serviceFeeUSD) || 0,
+    pickup: Number(inv && inv.pickupUSD) || 0,
     totalUSD: Number(inv && inv.totalUSD) || 0,
   };
 }
@@ -698,6 +699,7 @@ function createInvoice(stayId, b) {
     totalRD: money(b && b.totalRD),
     subUSD: money(b && b.subUSD),
     serviceFeeUSD: money(b && b.serviceFeeUSD),
+    pickupUSD: money(b && b.pickupUSD),
     totalUSD: money(b && b.totalUSD),
     legalPct: 0, servicePct: 0,
     dueBy: norm(b && b.dueBy).slice(0, 40),
@@ -726,6 +728,7 @@ function updateInvoice(stayId, iid, b) {
     if (b.totalRD != null) inv.totalRD = money(b.totalRD);
     if (b.subUSD != null) inv.subUSD = money(b.subUSD);
     if (b.serviceFeeUSD != null) inv.serviceFeeUSD = money(b.serviceFeeUSD);
+    if (b.pickupUSD != null) inv.pickupUSD = money(b.pickupUSD);
     if (b.totalUSD != null) inv.totalUSD = money(b.totalUSD);
     if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
     if (b.note != null) inv.note = norm(b.note).slice(0, 400);
@@ -875,7 +878,7 @@ function toGuestStay(s) {
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
-    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
+    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     grocery: s.grocery || null,
