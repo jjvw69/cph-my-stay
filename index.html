@@ -455,7 +455,7 @@ function renderStay(){
       <div class="grid2">
         <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
-        <div class="tile"><b>Staff hours</b><span>8:00 AM – 5:00 PM · after-hours by request</span></div>
+        <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash</span></div>
         <div class="tile"><b>Address</b><span>${s.villaNumber?'Villa '+esc(s.villaNumber)+', ':''}${esc(v.area||'Casa de Campo')}, La Romana</span></div>
         <div class="tile" onclick="push('guide')" style="cursor:pointer"><b>Good to know</b><span>Villa guide →</span></div>
@@ -1666,11 +1666,11 @@ async function pollStay(){
   if(!state.stay||!state.token) return;
   const r=await api('/api/stay'); if(!r.ok||!r.body||!r.body.stay) return;
   const f=r.body.stay, s=state.stay;
-  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
+  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.staffHours,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
   if(sig===_staySig) return; _staySig=sig;
   // merge static + guest-owned fields (leave requests/messages to their pollers)
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
-  ['wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
+  ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
   s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin;
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
