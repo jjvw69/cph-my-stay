@@ -1317,15 +1317,6 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
   const x=(confirmed||done)?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
   return `<span class="reqpill${(confirmed||done)?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
 const SERVICE_INFO = {
-  yoga: {
-    noGuests:true,
-    selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select><label class="reqlbl">Participants</label><select id="rqTrip"><option>1 person</option><option>2 people</option><option>Group</option></select>`,
-    notePlaceholder:'Preferred date and time, number of participants, experience level, and where you’d like it — terrace, garden or beach…',
-    rates:`<b>PRIVATE YOGA · ONE PERSON</b>
-      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
-      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
-      <div class="rt"><span>120 minutes</span><span>US$160</span></div>`
-  },
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
     selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">Trip</label><select id="rqTrip"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
@@ -1568,9 +1559,13 @@ const SERVICE_INFO = {
     rates:`<b>RUM &amp; CIGAR TASTING</b><div class="rtnote">A curated in-villa tasting of Dominican rums and hand-rolled cigars. Your concierge will tailor it to your group and quote.</div>`
   },
   'yoga': {
-    selects:`<label class="reqlbl">Session</label><select id="rqService"><option>Private session</option><option>Couples session</option><option>Group session</option><option>Sunrise on the beach</option></select>`,
+    selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select><label class="reqlbl">Session type</label><select id="rqTrip"><option>Private (one person)</option><option>Couples session</option><option>Group session</option><option>Sunrise on the beach</option></select>`,
     notePlaceholder:'Number of participants, preferred date & time, location (terrace/beach)…',
-    rates:`<b>PRIVATE YOGA</b><div class="rtnote">A certified instructor comes to your villa or the beach. Your concierge will confirm availability and pricing.</div>`
+    rates:`<b>PRIVATE YOGA · ONE PERSON</b>
+      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
+      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
+      <div class="rt"><span>120 minutes</span><span>US$160</span></div>
+      <div class="rtnote">A certified instructor comes to your villa or the beach. Couples, group and sunrise-on-the-beach sessions on request — your concierge will confirm availability and final pricing.</div>`
   },
   'yacht-charter': {
     menu:'https://www.casadecampo.com.do/experiences/marina/',
