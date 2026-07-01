@@ -192,6 +192,7 @@
   .v-soft{color:var(--soft);font-weight:500}
   .vpill{font-size:11.5px;border-radius:20px;padding:2px 10px;font-weight:600}
   .vpill.amber{background:#FCF3EC;color:#9E5B43;border:1px solid #E4C58C}
+  .vpill.red{background:#F7E4E1;color:#9A2B2B;border:1px solid #E3B7AE}
   .vpill.calm{background:#F1F4EF;color:#3F6B4E}
   .vready{display:flex;flex-wrap:wrap;gap:7px;padding-top:9px}
   .vchip{font-size:11.5px;border-radius:20px;padding:3px 10px;background:#F4F2EC;color:#9AA49B;border:1px solid var(--line)}
@@ -228,6 +229,11 @@
   .chips{display:flex;gap:8px;flex-wrap:wrap}
   .chip{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;border-radius:22px;font-size:14px}
   .chip.on{background:var(--okbg);color:var(--oktx);border-color:#cfe0c8}
+  .svcrates{display:flex;flex-direction:column;gap:8px}
+  .svcrate{display:grid;grid-template-columns:210px 1fr;gap:10px;align-items:start}
+  .svcrate>.chip{justify-self:start;text-align:left;cursor:pointer;white-space:normal;line-height:1.2}
+  .svcrate>textarea{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:13.5px;background:#fff;resize:vertical;min-height:40px;font-family:inherit;line-height:1.4}
+  @media(max-width:640px){.svcrate{grid-template-columns:1fr}}
   .counter{font-size:13.5px;color:var(--soft);margin-top:9px}
   /* Right preview */
   .right{border-left:1px solid var(--line);background:var(--panel);padding:18px 16px}
@@ -861,27 +867,53 @@ function stayVitals(s){
   const rev=confirmed.reduce((a,r)=>a+num(r.price),0);
   const awaiting=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done').length;
   const unread=unreadMsgs(s);
+  // Money — outstanding = invoices sent to the guest but not yet paid.
+  const invs=s.invoices||[]; const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0);
+  const unpaidInv=invs.filter(iv=>iv.status==='sent'); const unpaidTot=unpaidInv.reduce((a,iv)=>a+invTot(iv),0);
+  // Concierge-pushed services still awaiting the guest's yes/no.
+  const svcAwait=(s.sentServices||[]).filter(x=>x.status!=='confirmed'&&x.status!=='declined'&&x.status!=='cancelled').length;
+  const svcConfirmed=(s.sentServices||[]).filter(x=>x.status==='confirmed').length;
+  const conc=((BOOT.concierges||[]).find(c=>c.id===s.conciergeId)||{}).name||'';
+  const villa=s.villaName||s.villaInternal||'';
+  const fmtD=iso=>{ if(!iso)return null; const x=new Date(iso+'T00:00:00'); return isNaN(x)?null:x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); };
+  const ciTxt=fmtD(s.checkin)?fmtD(s.checkin)+(s.checkinTime?' · '+s.checkinTime:''):'—';
+  const coTxt=fmtD(s.checkout)?fmtD(s.checkout)+(s.checkoutTime?' · '+s.checkoutTime:''):'—';
+  const fuDue=(s.followUpDate&&dd(s.followUpDate)!=null&&dd(s.followUpDate)<=0);
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
-  const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))]];
-  const actionBits=[]; if(awaiting)actionBits.push(`<span class="vpill amber">${awaiting} awaiting price</span>`); if(unread)actionBits.push(`<span class="vpill amber">${unread} unread message${unread===1?'':'s'}</span>`); if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
+  const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))],['Registration #',!!(s.registrationNumber&&String(s.registrationNumber).trim())]];
+  const actionBits=[];
+  if(awaiting)actionBits.push(`<span class="vpill amber">${awaiting} awaiting price</span>`);
+  if(svcAwait)actionBits.push(`<span class="vpill amber">${svcAwait} service${svcAwait===1?'':'s'} awaiting reply</span>`);
+  if(unread)actionBits.push(`<span class="vpill amber">${unread} unread message${unread===1?'':'s'}</span>`);
+  if(unpaidTot>0)actionBits.push(`<span class="vpill red">$${unpaidTot.toLocaleString()} to collect</span>`);
+  if(!s.transferArranged&&din!=null&&din>=0&&din<=5)actionBits.push('<span class="vpill amber">Transfer not arranged</span>');
+  if(fuDue)actionBits.push(`<span class="vpill amber">Follow-up due${s.followUpNote?': '+esc(s.followUpNote):''}</span>`);
+  if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
   return `<div class="vitals">
     <div class="vrow">
+      ${stat('Villa',villa?esc(villa):'—')}
       ${stat('Arrival',esc(arr),arrCls)}
       ${stat('Nights',nights!=null?String(nights):'—')}
       ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
       ${stat('Guest app',(s.guestLastSeen?guestPulse(s.guestLastSeen).replace(/·\s*/,''):'not opened yet'),'')}
     </div>
     <div class="vrow">
+      ${stat('Check-in',esc(ciTxt))}
+      ${stat('Check-out',esc(coTxt))}
+      ${stat('Concierge',conc?esc(conc):'<span class="v-amber">Unassigned</span>')}
       ${stat('Airport',esc(s.airport||'—'))}
       ${stat('Flight',esc(s.flight||'—'))}
-      ${stat('Transfer',s.transferArranged?'<span class="v-green">Arranged</span>':'Not arranged')}
+      ${stat('Transfer',s.transferArranged?'<span class="v-green">Arranged</span>':'<span class="v-amber">Not arranged</span>')}
     </div>
     <div class="vrow">
-      ${stat('Confirmed add-ons',confirmed.length+' · $'+rev,'v-green')}
-      ${stat('Add-ons to collect','$'+rev)}
+      ${stat('Confirmed add-ons',confirmed.length+' · $'+rev.toLocaleString(),'v-green')}
+      ${stat('Services sent',(s.sentServices||[]).length?(svcConfirmed+' confirmed'+(svcAwait?' · '+svcAwait+' pending':'')):'—')}
+      ${stat('To collect','$'+unpaidTot.toLocaleString(),unpaidTot>0?'v-amber':'')}
       ${stat('Payment',s.paymentStatus?`<span class="${s.paymentStatus==='Paid in full'?'v-green':(s.paymentStatus==='Unpaid'||s.paymentStatus==='Balance due')?'v-amber':''}">${esc(s.paymentStatus)}${(s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''}</span>`:'—')}
-      <div class="vstat" style="flex:1"><span class="vk">Action needed</span><span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px">${actionBits.join('')}</span></div>
+    </div>
+    <div class="vrow">
+      <div class="vstat" style="flex:1"><span class="vk">Action needed</span><span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px">${actionBits.join('')}</span></div>
     </div>
     <div class="vready">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
   </div>`;
@@ -922,7 +954,10 @@ function renderEditor(){
   const pill=(cur.status||'draft').replace(/\s/g,'').toLowerCase();
   const addonChips=BOOT.addons.map(a=>{
     const on=(cur.offeredAddOnIds||[]).includes(a.id);
-    return `<button class="chip ${on?'on':''}" onclick="toggleAddon('${a.id}')">${esc(a.name)}</button>`;
+    return `<div class="svcrate">
+      <button class="chip ${on?'on':''}" onclick="toggleAddon('${a.id}')" title="Toggle Recommended badge">${on?'★ ':''}${esc(a.name)}</button>
+      <textarea rows="1" onchange="setServiceRates('${a.id}',this.value)" placeholder="Guest-facing rate — blank = standard · e.g. 60 minutes | US$120">${esc(a.rates||'')}</textarea>
+    </div>`;
   }).join('');
   const _mc=cur.messages&&cur.messages.length?' · '+cur.messages.length:'';
   const head=`
@@ -970,8 +1005,10 @@ function renderEditor(){
       <div class="f"><label>Staff working hours</label><input value="${esc(cur.staffHours||'8:00 AM – 5:00 PM')}" oninput="set('staffHours',this.value)" placeholder="8:00 AM – 5:00 PM"></div>
     </div></div>
 
-    <div class="sec"><h3>Recommended services</h3><div class="chips">${addonChips}</div>
-      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked · guests see every service; selected ones show a “Recommended” badge.</div></div>
+    <div class="sec"><h3>Recommended services</h3>
+      <div class="counter" style="margin:0 0 10px">Tap a service to badge it “Recommended” in the guest’s plan. Set a guest-facing <b>rate</b> for any service — guests always see rates marked “subject to final confirmation”, so you can adjust them anytime. Rates apply to every stay. For tiered rates put one per line as “Label | Price”; leave blank to use the standard published rate.</div>
+      <div class="svcrates">${addonChips}</div>
+      <div class="counter">${(cur.offeredAddOnIds||[]).length} of ${BOOT.addons.length} marked Recommended.</div></div>
 
     <div class="sec"><h3>Services sent to guest ${(cur.sentServices||[]).length?`<span class="reqcount">${(cur.sentServices||[]).length}</span>`:''}</h3>
       <div class="counter" style="margin:0 0 12px">Push a service straight to the guest's plan with a rate. They confirm or decline in their app, and you'll see their answer here — a two-way confirmation.</div>
@@ -1087,6 +1124,7 @@ window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(b.ok&&b.body&&b.body.addons) BOOT.addons=b.body.addons; renderEditor(); renderPreview(); }
 window.setServiceSupplier=async function(id,val){ const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({supplier:val})}); if(!r.ok){ alert(r.body.error||'Could not save supplier.'); return; } const a=BOOT.addons.find(x=>x.id===id); if(a)a.supplier=String(val||'').trim(); };
+window.setServiceRates=async function(id,val){ const a=BOOT.addons.find(x=>x.id===id); if(a&&String(a.rates||'')===String(val||'')) return; const r=await api('/api/staff/services/'+id,{method:'PUT',body:JSON.stringify({rates:val})}); if(!r.ok){ alert((r.body&&r.body.error)||'Could not save rate.'); return; } if(a)a.rates=String(val||'').replace(/\s+$/,''); toast&&toast('Rate saved — it now shows in every guest’s app.'); };
 window.addCustomServiceUI=async function(){ const name=(document.getElementById('svcName')||{}).value||''; const price=(document.getElementById('svcPrice')||{}).value||''; const desc=(document.getElementById('svcDesc')||{}).value||''; const supplier=(document.getElementById('svcSupplier')||{}).value||''; if(!name.trim()){ alert('Enter a service name.'); return; } const r=await api('/api/staff/services',{method:'POST',body:JSON.stringify({name,price,desc,supplier})}); if(!r.ok){ alert(r.body.error||'Could not add service.'); return; } await refreshServices(); toast&&toast('Service added — it now appears in every guest’s plan.'); };
 window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
 function openExternal(url){ try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){ try{a.remove();}catch(e){} },0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ try{ location.href=url; }catch(__){} } } }

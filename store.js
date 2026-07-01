@@ -231,15 +231,16 @@ function persistStays() { writeJSON(STAYS_FILE, stays); }
 function persistStaff() { writeJSON(STAFF_FILE, staff); }
 
 // ----- custom services + per-service suppliers (concierge-managed, persisted) -----
-// services = { customAddOns:[{id,category,name,price,desc,supplier}], suppliers:{ [builtinId]: 'Vendor name' } }
-let services = readJSON(SERVICES_FILE, { customAddOns: [], suppliers: {} });
+// services = { customAddOns:[{id,category,name,price,desc,supplier,rates}], suppliers:{ [builtinId]:'Vendor' }, rates:{ [builtinId]:'guest-facing rate text' } }
+let services = readJSON(SERVICES_FILE, { customAddOns: [], suppliers: {}, rates: {} });
 if (!services.customAddOns) services.customAddOns = [];
 if (!services.suppliers) services.suppliers = {};
+if (!services.rates) services.rates = {};
 function persistServices() { writeJSON(SERVICES_FILE, services); }
 /** Built-in catalog (with any supplier override) + custom services. supplier is INTERNAL — never sent to guests. */
 function allAddOns() {
-  const builtins = ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: '', supplier: services.suppliers[a.id] || '', custom: false }));
-  const customs = (services.customAddOns || []).map(a => ({ id: a.id, category: a.category || 'Bespoke services', name: a.name, desc: a.desc || '', price: a.price || '', supplier: a.supplier || '', custom: true }));
+  const builtins = ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: '', rates: services.rates[a.id] || '', supplier: services.suppliers[a.id] || '', custom: false }));
+  const customs = (services.customAddOns || []).map(a => ({ id: a.id, category: a.category || 'Bespoke services', name: a.name, desc: a.desc || '', price: a.price || '', rates: a.rates || '', supplier: a.supplier || '', custom: true }));
   return builtins.concat(customs);
 }
 /** What the console needs (includes supplier + price + custom flag). */
@@ -252,6 +253,7 @@ function addCustomService(b) {
     category: String((b && b.category) || 'Bespoke services').trim() || 'Bespoke services',
     name, price: String((b && b.price) || '').trim(),
     desc: String((b && b.desc) || '').trim(), supplier: String((b && b.supplier) || '').trim(),
+    rates: String((b && b.rates) || '').replace(/\s+$/, ''),
   };
   services.customAddOns.push(item); persistServices(); return item;
 }
@@ -264,12 +266,15 @@ function updateService(id, b) {
     if (b.desc != null) custom.desc = String(b.desc).trim();
     if (b.category != null) custom.category = String(b.category).trim() || custom.category;
     if (b.supplier != null) custom.supplier = String(b.supplier).trim();
+    if (b.rates != null) custom.rates = String(b.rates).replace(/\s+$/, '');
     persistServices(); return custom;
   }
-  // built-in: only the supplier is editable
+  // built-in: supplier and guest-facing rates are editable (name/desc come from the catalog)
   if (ADDON_CATALOG.some(a => a.id === id)) {
-    if (b.supplier != null) { const v = String(b.supplier).trim(); if (v) services.suppliers[id] = v; else delete services.suppliers[id]; persistServices(); }
-    return { id, supplier: services.suppliers[id] || '', custom: false };
+    if (b.supplier != null) { const v = String(b.supplier).trim(); if (v) services.suppliers[id] = v; else delete services.suppliers[id]; }
+    if (b.rates != null) { const v = String(b.rates).replace(/\s+$/, ''); if (v.trim()) services.rates[id] = v; else delete services.rates[id]; }
+    persistServices();
+    return { id, supplier: services.suppliers[id] || '', rates: services.rates[id] || '', custom: false };
   }
   return null;
 }
@@ -836,7 +841,7 @@ function toGuestStay(s) {
     welcomeMessage: s.welcomeMessage || '',
     wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
-    addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', custom: !!a.custom, recommended: offered.has(a.id) })),
+    addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),

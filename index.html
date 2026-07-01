@@ -1317,6 +1317,15 @@ function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fm
   const x=(confirmed||done)?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
   return `<span class="reqpill${(confirmed||done)?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
 const SERVICE_INFO = {
+  yoga: {
+    noGuests:true,
+    selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select><label class="reqlbl">Participants</label><select id="rqTrip"><option>1 person</option><option>2 people</option><option>Group</option></select>`,
+    notePlaceholder:'Preferred date and time, number of participants, experience level, and where you’d like it — terrace, garden or beach…',
+    rates:`<b>PRIVATE YOGA · ONE PERSON</b>
+      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
+      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
+      <div class="rt"><span>120 minutes</span><span>US$160</span></div>`
+  },
   privatetravel: {
     notePlaceholder:'Passengers, dates and times, luggage, and anything else we should know…',
     selects:`<label class="reqlbl">Type of travel</label><select id="rqService"><option>Private jet charter</option><option>Luxury SUV transfer</option><option>Luxury van / minibus</option><option>VIP airport fast-track &amp; greeter</option><option>Other</option></select><label class="reqlbl">Trip</label><select id="rqTrip"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">From → To</label><input id="rqRoute" placeholder="e.g. La Romana (LRM) → Punta Cana (PUJ)">`,
@@ -1570,11 +1579,25 @@ const SERVICE_INFO = {
     rates:`<b>PRIVATE YACHT &amp; CATAMARAN CHARTERS</b><div class="rtnote">Motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina. Pricing varies by vessel, size and duration — your concierge will source options and quote.</div>`
   }
 };
+// Turn a concierge-entered rate block (plain text, one item per line) into rows.
+// "Label | Price" (or "Label — Price") → a rate row; "# Heading" → a sub-heading; anything else → a note.
+function rateLinesToHtml(txt){
+  return String(txt||'').split('\n').map(function(ln){
+    ln=ln.trim(); if(!ln) return '';
+    if(ln.charAt(0)==='#') return '<div class="rth">'+esc(ln.slice(1).trim())+'</div>';
+    var i=ln.indexOf('|'); var sep=1;
+    if(i<0){ var d=ln.indexOf(' — '); if(d>=0){ i=d; sep=3; } else { var h=ln.indexOf(' - '); if(h>=0){ i=h; sep=3; } } }
+    if(i<0) return '<div class="rtnote">'+esc(ln)+'</div>';
+    return '<div class="rt"><span>'+esc(ln.slice(0,i).trim())+'</span><span>'+esc(ln.slice(i+sep).trim())+'</span></div>';
+  }).join('');
+}
 window.openReq=function(type,refId){
   const b=state.stay.booking||{}; state._rqG=0;
   const info = SERVICE_INFO[refId] || {};
   const _addon = type==='addon' ? ((state.stay.addOns||[]).find(a=>a.id===refId)) : null;
-  const ratesBlock = info.rates ? `<div class="reqrates">${info.rates}</div>` : (_addon&&_addon.price?`<div class="reqrates">${esc(_addon.price)}</div>`:'');
+  const _rateOv = (_addon && _addon.rates) ? _addon.rates : '';
+  const _rateBody = _rateOv ? rateLinesToHtml(_rateOv) : (info.rates || (_addon&&_addon.price?`<div class="rt"><span>Rate</span><span>${esc(_addon.price)}</span></div>`:''));
+  const ratesBlock = _rateBody ? `<div class="reqrates">${_rateBody}<div class="rtnote" style="border-top:1px solid #E6DDCC;margin-top:8px;padding-top:7px">Rates are indicative and subject to final confirmation by your concierge before you’re charged.</div></div>` : '';
   const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
   const selectsBlock = info.selects || '';
   const dateBlock = info.noDate ? ''
@@ -1982,7 +2005,8 @@ function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];
   if(!list.length){ shell('Villa Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
   const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
-  const inner=cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
+  const note=`<div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px">All rates shown are indicative and subject to final confirmation by your concierge before you’re charged.</div>`;
+  const inner=note+cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
   shell('Villa Add-ons', inner);
 }
 
