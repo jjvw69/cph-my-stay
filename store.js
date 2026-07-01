@@ -341,6 +341,7 @@ function blankStay() {
     checkin: '', checkout: '', checkinTime: '3:00 PM', checkoutTime: '11:00 AM',
     staffIncluded: (v0.staff || 'Chef · Butler · Housekeeper'),
     staffHours: '8:00 AM – 5:00 PM',
+    staffReadAt: 0,
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: [],
     conciergeId: 'maria-fernanda', assigneeId: '', internalNotes: '', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
@@ -788,6 +789,7 @@ function toGuestStay(s) {
     },
     villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: String(s.staffIncluded || v.staff || 'Chef · Butler · Housekeeper').split(/\s*·\s*|\s*,\s*/).filter(Boolean), description: '' },
     staffHours: s.staffHours || '8:00 AM – 5:00 PM',
+    staffReadAt: s.staffReadAt || 0,
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
     wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
@@ -824,6 +826,12 @@ function touchGuestSeen(reference) {
   const s = findPublishedStayByRef(reference);
   if (s) s.guestLastSeen = Date.now();
 }
+/** Mark that a staffer has opened/read this stay's conversation — powers the guest chat's read receipts. */
+function markStaffRead(stayId) {
+  const s = getStay(stayId);
+  if (s) { s.staffReadAt = Date.now(); persistStays(); }
+  return s;
+}
 
 // init
 ensureDir();
@@ -839,6 +847,6 @@ module.exports = {
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
   addRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
-  toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen,
+  toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };

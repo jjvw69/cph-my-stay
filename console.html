@@ -774,8 +774,8 @@ function buildSecNav(){
   });
   if(!html) return;
   const nav=document.createElement('div'); nav.className='secnav'; nav.innerHTML=html;
-  const emode=ed.querySelector('.emode');
-  if(emode) emode.insertAdjacentElement('afterend',nav); else ed.insertBefore(nav,ed.firstChild);
+  // Place it as the very first element so it's pinned at the top from the start (no scroll-up travel).
+  ed.insertBefore(nav, ed.firstChild);
 }
 window.jumpSec=function(id){
   const ed=document.getElementById('editor'); const el=document.getElementById(id); if(!ed||!el) return;
@@ -1251,9 +1251,7 @@ function renderPreview(){
       : (guestMsgs.length?`<div class="act-sec"><div class="act-h">Latest guest message</div>
       <div class="act-card"><div class="act-meta" style="margin:0 0 6px">From ${esc(cur.leadName||'guest')}:</div>
         <div class="act-msg">“${esc(guestMsgs[guestMsgs.length-1].text)}”</div>
-        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:'')}
-
-    <div class="glink"><div class="label">Guest link</div><div class="box"><input id="glink" readonly value="caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button onclick="copyLink()">Copy</button></div></div>`;
+        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:'')}`;
   const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight;
 }
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };

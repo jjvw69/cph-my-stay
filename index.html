@@ -169,6 +169,8 @@
   .msg{max-width:78%;padding:10px 13px;border-radius:14px;font-size:14px;line-height:1.4}
   .msg.them{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
   .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+  .msg.me .tick{margin-left:7px;font-size:10.5px;letter-spacing:-1px;color:rgba(255,255,255,.55);white-space:nowrap;vertical-align:baseline}
+  .msg.me .tick.read{color:#8fd3ff}
   .composer{display:flex;gap:9px;padding:12px 16px;border-top:1px solid var(--line);background:var(--panel)}
   .composer input{flex:1;min-width:0;border:1px solid var(--line);border-radius:30px;padding:12px 16px;font-size:15px;font-family:var(--ui)}
   .composer button{flex:none}
@@ -322,7 +324,7 @@ function loadConversation(){
   const s=state.stay; if(!s) return;
   const wm=(s.welcomeMessage||'').trim();
   const greet={from:'them',t: wm || `Hi ${s.guest.firstName||'there'}, I'm ${(s.concierge&&s.concierge.name)||'your concierge'}, your concierge. How can I help make your stay perfect?`};
-  const stored=(s.messages||[]).map(m=>({from:m.from==='guest'?'me':'them',t:m.text}));
+  const stored=(s.messages||[]).map(m=>({from:m.from==='guest'?'me':'them',t:m.text,at:m.at}));
   state.messages=[greet].concat(stored);
 }
 
@@ -1640,7 +1642,7 @@ function renderConcierge(){
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
-    <div class="msgs" id="msgs">${state.messages.map(m=>`<div class="msg ${m.from}">${esc(m.t)}</div>`).join('')}</div>
+    <div class="msgs" id="msgs">${state.messages.map(msgHtml).join('')}</div>
     <div class="composer"><input id="cmsg" value="${esc(seed)}" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
     ${tabBar('concierge',true)}
   </div>`;
@@ -1652,11 +1654,14 @@ function pingTyping(){ const now=Date.now(); if(now-_typingLast<2200) return; _t
 window.quickReply=function(q){ document.getElementById('cmsg').value=q; sendMsg(); };
 window.sendMsg=async function(){
   const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
-  state.messages.push({from:'me',t}); i.value=''; updateMsgs();
+  state.messages.push({from:'me',t,at:Date.now()}); i.value=''; updateMsgs();
   await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
 };
 /* repaint just the message list (keeps the input + its focus intact) */
-function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHTML=state.messages.map(x=>`<div class="msg ${x.from}">${esc(x.t)}</div>`).join(''); m.scrollTop=m.scrollHeight; } }
+/* WhatsApp-style bubble: guest's own messages get a ✓ (sent) that turns into a blue ✓✓ (read)
+   once the concierge has opened the conversation, i.e. once message time <= stay.staffReadAt. */
+function msgHtml(x){ let tk=''; if(x.from==='me'){ const rd=x.at&&state.stay&&state.stay.staffReadAt&&x.at<=state.stay.staffReadAt; tk=`<span class="tick${rd?' read':''}" title="${rd?'Read':'Sent'}">${rd?'✓✓':'✓'}</span>`; } return `<div class="msg ${x.from}">${esc(x.t)}${tk}</div>`; }
+function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHTML=state.messages.map(msgHtml).join(''); m.scrollTop=m.scrollHeight; } }
 /* poll for concierge replies so they appear live without a reload */
 let _pollTimer=null;
 function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollUpdates, 9000); }
@@ -1669,15 +1674,16 @@ async function pollStay(){
   if(!state.stay||!state.token) return;
   const r=await api('/api/stay'); if(!r.ok||!r.body||!r.body.stay) return;
   const f=r.body.stay, s=state.stay;
-  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.staffHours,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
+  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.staffHours,f.staffReadAt,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
   if(sig===_staySig) return; _staySig=sig;
   // merge static + guest-owned fields (leave requests/messages to their pollers)
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
-  ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
+  ['staffHours','staffReadAt','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
   s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin;
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
   if('sentServices' in f) s.sentServices=f.sentServices;
+  { const _mel=document.getElementById('msgs'); if(_mel) updateMsgs(); }  // refresh chat read-receipt ticks
   if(document.querySelector('.reqov')) return;          // don't disrupt an open request modal
   const top=state.stack.length?state.stack[state.stack.length-1]:null;
   // only repaint read-only views — never while the guest is mid-form
@@ -1691,7 +1697,7 @@ async function pollMessages(){
   const server=r.body.messages; const curCount=state.messages.length-1;
   if(server.length>curCount){
     const greet=state.messages[0]||{from:'them',t:''};
-    state.messages=[greet].concat(server.map(mm=>({from:mm.from==='guest'?'me':'them',t:mm.text})));
+    state.messages=[greet].concat(server.map(mm=>({from:mm.from==='guest'?'me':'them',t:mm.text,at:mm.at})));
     if(state.tab==='concierge'&&!state.stack.length) updateMsgs();
   }
 }
