@@ -466,6 +466,20 @@ function renderStay(){
       <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
+      <div class="sec-title">Inside the villa</div>
+      <div class="faq">${(function(){
+        const faq=[
+          ['Who looks after the villa during my stay?',`Your private villa staff — typically a chef, butler and housekeeper — assist you daily from <b>8:00&nbsp;AM to 5:00&nbsp;PM</b>. Assistance beyond those hours can be arranged for <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash. A tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay is customary and appreciated.`],
+          ['How do I get Wi-Fi and my keys?',(state.stay.wifiName||state.stay.wifiPassword)?`Network <b>${esc(state.stay.wifiName||'—')}</b>, password <b>${esc(state.stay.wifiPassword||'—')}</b>. Your keys are handed over in person at the villa on arrival.`:`Complimentary Wi-Fi is in your villa — the network name, password and your keys are handed over in person when you arrive.`],
+          ['What are the house rules?',`Casa de Campo villas are private homes in a residential resort community. To respect your neighbours, villas are for <b>registered guests only</b> — no parties or events, no outside or day visitors, and no live music or karaoke at the villa. Your concierge is glad to arrange private dining, a chef or entertainment within resort guidelines.`],
+          ['Can we have a private chef or groceries stocked?',`Yes. Your concierge can stock the kitchen before you arrive and arrange a private chef for one or several nights — often the meals guests remember most. Add a grocery or meal request from My Plan and we'll take care of it.`],
+          ['What time is check-out, and can we stay later?',`Check-out is at <b>11:00&nbsp;AM</b>. Late check-out is often possible — just ask your concierge in advance and we'll do our best around the next arrival.`],
+          ['Something needs attention — who do I tell?',`Tell your villa staff or message your concierge and we'll handle it quickly. For dinner or activity reservations you can also reach the Owner's Club at <b>+1 809-523-3165</b> (villa phone ext. 3165 / 3166).`],
+          ['A little history',`Your villa sits inside Casa de Campo — a 7,000-acre estate on the Dominican Republic's south coast that opened in <b>1974</b> on former Gulf+Western sugar land. The name means "country house," and much of the resort, from the coral-stone village of Altos de Chavón to the Teeth of the Dog golf course, was built by hand in the 1970s.`],
+        ];
+        const item=(q,a)=>`<details style="background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:11px;overflow:hidden"><summary style="cursor:pointer;padding:14px 15px;font-size:14.5px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px">${q}<span class="faq-x" style="color:var(--soft);font-size:19px;line-height:1;transition:transform .15s;flex:0 0 auto">+</span></summary><div style="font-size:13.5px;color:var(--soft);line-height:1.55;padding:0 15px 14px">${a}</div></details>`;
+        return faq.map(f=>item(f[0],f[1])).join('');
+      })()}</div>
     </div>
     ${tabBar('stay')}
   </div>`;
@@ -2042,38 +2056,6 @@ function renderPlan(){
         return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(a.name)}</b>${a.price?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(a.price)}</span>`:''}<span style="display:block;margin-top:3px">${esc(a.desc||'')}</span><div style="margin-top:10px">${booked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 10px;font-weight:600">✓ Added to your plan</span>`:`<button onclick="openReq('addon','${esc(a.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button>`}</div></span></div>`; };
       return `<div class="sec-title">Services for your stay</div>${cs.map(card).join('')}`;
     })()}
-    ${(function(){
-      const ev=[];
-      (reqList()||[]).forEach(r=>{ if(!r) return;
-        if(r.createdAt) ev.push({at:r.createdAt,cls:'g',what:`You requested <b>${esc(r.title||'a service')}</b>`});
-        if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
-        else if(r.status==='done') ev.push({at:r.doneAt||r.createdAt,cls:'ok',what:`Arranged <b>${esc(r.title||'')}</b>`});
-      });
-      (s.invoices||[]).forEach(iv=>{ if(iv.sentAt) ev.push({at:iv.sentAt,cls:'money',what:`Invoice <b>#${iv.no} ${esc(iv.title||'')}</b> sent`}); if(iv.paidAt) ev.push({at:iv.paidAt,cls:'ok',what:`Payment received — <b>#${iv.no}</b>`}); });
-      (s.sentServices||[]).forEach(x=>{ if(x.sentAt) ev.push({at:x.sentAt,cls:'money',what:`Concierge arranged <b>${esc(x.name||'a service')}</b>`}); if(x.status==='confirmed') ev.push({at:x.respondedAt||x.sentAt,cls:'ok',what:`You confirmed <b>${esc(x.name||'')}</b>`}); else if(x.status==='declined') ev.push({at:x.respondedAt||x.sentAt,cls:'no',what:`You declined <b>${esc(x.name||'')}</b>`}); });
-      if(s.yachtProposal){ const yp=s.yachtProposal; if(yp.sentAt) ev.push({at:yp.sentAt,cls:'money',what:`Yacht options sent — <b>${esc(yp.title||'')}</b>`}); if(yp.status==='chosen'&&yp.respondedAt){ const o=(yp.options||[]).find(o=>o.id===yp.chosenId); ev.push({at:yp.respondedAt,cls:'ok',what:`You chose <b>${esc(o?o.name:'a yacht option')}</b>`}); } }
-      if(s.guestCheckin&&s.guestCheckin.submittedAt) ev.push({at:s.guestCheckin.submittedAt,cls:'ok',what:`Pre check-in submitted`});
-      ev.sort((a,b)=>(b.at||0)-(a.at||0));
-      if(!ev.length) return '';
-      const dot={g:'#9E5B43',ok:'#3F6B4E',no:'#9A2B2B',money:'#33493B'};
-      const when=ts=>{ try{ const d=new Date(ts); if(isNaN(d))return ''; return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}); }catch(e){ return ''; } };
-      const rows=ev.slice(0,14).map(e=>`<div style="position:relative;padding:0 0 12px 18px;border-left:2px solid var(--line)"><span style="position:absolute;left:-6px;top:2px;width:11px;height:11px;border-radius:50%;background:${dot[e.cls]||'#33493B'};border:2px solid #fff;box-shadow:0 0 0 1px var(--line)"></span><div style="font-size:11.5px;color:var(--soft)">${when(e.at)}</div><div style="font-size:13.5px;color:var(--ink);margin-top:1px">${e.what}</div></div>`).join('');
-      return `<div class="sec-title">Stay activity</div><div class="card" style="padding:15px 15px 4px">${rows}</div>`;
-    })()}
-    <div class="sec-title">Inside the villa</div>
-    <div class="faq">${(function(){
-      const faq=[
-        ['Who looks after the villa during my stay?',`Your private villa staff — typically a chef, butler and housekeeper — assist you daily from <b>8:00&nbsp;AM to 5:00&nbsp;PM</b>. Assistance beyond those hours can be arranged for <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash. A tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay is customary and appreciated.`],
-        ['How do I get Wi-Fi and my keys?',(state.stay.wifiName||state.stay.wifiPassword)?`Network <b>${esc(state.stay.wifiName||'—')}</b>, password <b>${esc(state.stay.wifiPassword||'—')}</b>. Your keys are handed over in person at the villa on arrival.`:`Complimentary Wi-Fi is in your villa — the network name, password and your keys are handed over in person when you arrive.`],
-        ['What are the house rules?',`Casa de Campo villas are private homes in a residential resort community. To respect your neighbours, villas are for <b>registered guests only</b> — no parties or events, no outside or day visitors, and no live music or karaoke at the villa. Your concierge is glad to arrange private dining, a chef or entertainment within resort guidelines.`],
-        ['Can we have a private chef or groceries stocked?',`Yes. Your concierge can stock the kitchen before you arrive and arrange a private chef for one or several nights — often the meals guests remember most. Add a grocery or meal request from My Plan and we'll take care of it.`],
-        ['What time is check-out, and can we stay later?',`Check-out is at <b>11:00&nbsp;AM</b>. Late check-out is often possible — just ask your concierge in advance and we'll do our best around the next arrival.`],
-        ['Something needs attention — who do I tell?',`Tell your villa staff or message your concierge and we'll handle it quickly. For dinner or activity reservations you can also reach the Owner's Club at <b>+1 809-523-3165</b> (villa phone ext. 3165 / 3166).`],
-        ['A little history',`Your villa sits inside Casa de Campo — a 7,000-acre estate on the Dominican Republic's south coast that opened in <b>1974</b> on former Gulf+Western sugar land. The name means "country house," and much of the resort, from the coral-stone village of Altos de Chavón to the Teeth of the Dog golf course, was built by hand in the 1970s.`],
-      ];
-      const item=(q,a)=>`<details style="background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:11px;overflow:hidden"><summary style="cursor:pointer;padding:14px 15px;font-size:14.5px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px">${q}<span class="faq-x" style="color:var(--soft);font-size:19px;line-height:1;transition:transform .15s;flex:0 0 auto">+</span></summary><div style="font-size:13.5px;color:var(--soft);line-height:1.55;padding:0 15px 14px">${a}</div></details>`;
-      return faq.map(f=>item(f[0],f[1])).join('');
-    })()}</div>
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>
     <button class="btn" style="margin-top:10px;background:#EFE9DC;color:#1F2A24" onclick="printItinerary()">Print / save as PDF</button>`;
   shell('My plan', inner);
