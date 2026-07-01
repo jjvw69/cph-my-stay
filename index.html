@@ -457,7 +457,7 @@ function renderStay(){
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash to the staff</span></div>
-        <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')} · message →</span></div>
+        <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')}</span></div>
         <div class="tile"><b>Emergency</b><span>911</span></div>
         <div class="tile"><b>Resort Registration</b><span>${(s.villaNumber||s.registrationNumber)?[s.villaNumber?'Villa '+esc(s.villaNumber):'',s.registrationNumber?'Your code - '+esc(s.registrationNumber):''].filter(Boolean).join(' · '):'Provided on arrival'}</span></div>
         <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish →</span></div>
