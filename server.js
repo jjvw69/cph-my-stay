@@ -111,8 +111,8 @@ async function guestLogin(req,res){
   const b=await readBody(req); const reference=String(b.reference||'').trim(); const lastName=String(b.lastName||'').trim();
   if(!reference||!lastName) return sendJSON(res,400,{ok:false,error:'Enter your booking reference and lead guest last name.'});
   const r=store.findPublishedForLogin(reference,lastName);
-  if(r.notFound) return sendJSON(res,404,{ok:false,error:'We could not find that booking. Check the reference and try again.'});
-  if(r.mismatch) return sendJSON(res,401,{ok:false,error:'That last name does not match this booking.'});
+  // Same error for both cases — a distinct "reference exists" reply lets outsiders enumerate bookings.
+  if(r.notFound||r.mismatch) return sendJSON(res,401,{ok:false,error:'We could not find a booking with that reference and last name. Check both and try again.'});
   const token=sign({t:'g',ref:reference},GUEST_HOURS); attempts.delete('g:'+ip(req));
   return sendJSON(res,200,{ok:true,stay:r.stay,token});
 }

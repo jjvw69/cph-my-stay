@@ -207,7 +207,7 @@ const state = { stay:null, token:null, tab:'home', stack:[], checklist:{}, check
 const $app = document.getElementById('app');
 const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
-const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const jsq = s => String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
 window.copyTxt=function(t,label){ const done=()=>toast((label||'Copied')+' copied'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); };
 function fallbackCopy(t,done){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done&&done(); }catch(e){ toast('Could not copy — please copy it manually'); } }
@@ -1779,7 +1779,7 @@ async function pollStay(){
   // NOT via the main signature — so it never forces a full view re-render (which would collapse
   // open accordions / reset scroll on Home/Stay/Plan).
   if(f.staffReadAt!=null && f.staffReadAt!==s.staffReadAt){ s.staffReadAt=f.staffReadAt; const _mel=document.getElementById('msgs'); if(_mel) updateMsgs(); }
-  const sig=JSON.stringify([f.booking,f.villa&&[f.villa.name,f.villa.area,f.villa.internalName,f.villa.hero,f.villa.staffIncluded],f.staffHours,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
+  const sig=JSON.stringify([f.booking,f.villa,f.concierge&&f.concierge.id,(f.addOns||[]).map(a=>a.id+':'+(a.rates||a.price||'')+':'+(a.recommended?1:0)).join('|'),f.staffHours,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
   if(sig===_staySig) return; _staySig=sig;
   // merge static + guest-owned fields (leave requests/messages to their pollers)
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
@@ -1788,6 +1788,7 @@ async function pollStay(){
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
   if('sentServices' in f) s.sentServices=f.sentServices;
+  if('addOns' in f) s.addOns=f.addOns; // rate edits in the console reach an open guest app
   if(document.querySelector('.reqov')) return;          // don't disrupt an open request modal
   const top=state.stack.length?state.stack[state.stack.length-1]:null;
   // only repaint read-only views — never while the guest is mid-form
@@ -1810,7 +1811,7 @@ async function pollRequests(){
   if(!state.stay||!state.token) return;
   const r=await api('/api/requests'); if(!r.ok||!r.body||!Array.isArray(r.body.requests)) return;
   const server=r.body.requests, prev=state.stay.requests||[];
-  const sig=a=>a.map(x=>x.id+':'+x.status+':'+(x.price||'')).sort().join('|');
+  const sig=a=>a.map(x=>x.id+':'+x.status+':'+(x.price||'')+':'+(x.updatedAt||'')).sort().join('|'); // updatedAt: staff edits to date/time/flight details must repaint too
   if(sig(server)===sig(prev)) return;            // nothing changed
   const prevMap={}; prev.forEach(x=>{ prevMap[x.id]=x; });
   const justConfirmed=server.find(x=>x.status==='confirmed' && (!prevMap[x.id] || prevMap[x.id].status!=='confirmed'));
@@ -2175,7 +2176,7 @@ window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').tr
 const ZELLE_EMAIL='janjvanwelie@gmail.com';
 function zelleAmt(p){ const m=String(p||'').replace(/[^0-9.]/g,''); return m||''; }
 function zelleRow(lbl,disp,copyVal,copyLabel){
-  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="color:#6E7B71;white-space:nowrap">${lbl}</span><span style="display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end"><b style="overflow-wrap:anywhere;text-align:right">${esc(disp)}</b><button onclick="copyTxt('${jsq(copyVal)}','${jsq(copyLabel)}')" style="border:0;background:#EDE6F8;color:#6D1ED4;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Copy</button></span></div>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="color:#6E7B71;white-space:nowrap">${lbl}</span><span style="display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end"><b style="overflow-wrap:anywhere;text-align:right">${esc(disp)}</b><button onclick="copyTxt('${esc(jsq(copyVal))}','${esc(jsq(copyLabel))}')" style="border:0;background:#EDE6F8;color:#6D1ED4;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Copy</button></span></div>`;
 }
 function zelleBox(r){
   if(!r||r.status!=='confirmed'||!r.price) return '';
@@ -2220,7 +2221,7 @@ function renderPlan(){
       + kv('Price', (r.status==='confirmed'&&r.price)?r.price:'')
       + kv('Notes', restNote);
     const body = details || `<div style="font-size:12.5px;color:var(--soft);margin-top:5px">Details to be confirmed with your concierge.</div>`;
-    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<div style="display:flex;gap:9px;margin-top:11px"><button onclick="editReq('${esc(r.id)}')" style="border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Edit</button><button onclick="confirmRemoveReq('${esc(r.id)}')" style="border:1px solid #E3C4B6;background:#fff;color:#9E5B43;border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Cancel</button></div></span></div>`; };
+    return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<div style="display:flex;gap:9px;margin-top:11px">${r.status==='done'?`<span style="font-size:12.5px;color:var(--soft);align-self:center">Arranged — message your concierge for any change</span>`:`<button onclick="editReq('${esc(r.id)}')" style="border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Edit</button>`}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="border:1px solid #E3C4B6;background:#fff;color:#9E5B43;border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Cancel</button></div></span></div>`; };
   const inner=`
     <div class="card" style="background:var(--accent);color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.7)">MY PLAN</div>

@@ -333,9 +333,11 @@ function deleteCustomService(id) {
 const norm = s => String(s == null ? '' : s).trim();
 function genId() { return crypto.randomBytes(8).toString('hex'); }
 function nextReference() {
+  // max existing number + 1 (NOT count+1): deleting a stay must never recycle its reference —
+  // guest tokens are bound to the reference, so a recycled one would open the new guest's stay.
   const yr = new Date().getFullYear();
-  const n = stays.filter(s => (s.reference || '').includes('-' + yr + '-')).length + 1;
-  return `CDC-${yr}-${String(n).padStart(4, '0')}`;
+  const maxN = stays.reduce((m, s) => { const mm = String(s.reference || '').match(new RegExp('-' + yr + '-(\\d+)$')); return mm ? Math.max(m, Number(mm[1])) : m; }, 0);
+  return `CDC-${yr}-${String(maxN + 1).padStart(4, '0')}`;
 }
 
 // ------------------------------------------------------------------ staff auth
@@ -538,6 +540,9 @@ function addRequest(reference, body) {
 function updateGuestRequest(reference, requestId, body) {
   const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return null;
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  // Guests may not edit a request the concierge already arranged (done) or one that was cancelled —
+  // an edit would silently un-arrange it / resurrect it. They can message the concierge instead.
+  if (r.status === 'done' || r.status === 'cancelled') return null;
   if (body.date != null) r.date = norm(body.date).slice(0, 20);
   if (body.endDate != null) r.endDate = norm(body.endDate).slice(0, 20);
   if (body.cartType != null) r.cartType = norm(body.cartType).slice(0, 30);
@@ -908,7 +913,7 @@ function getMessagesByRef(reference) {
 /** Lightweight fetch of just the requests, for guest polling (live status/price updates). Same shape as toGuestStay.requests. */
 function getRequestsByRef(reference) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
-  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt }));
+  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 }));
 }
 
 // ------------------------------------------------------- guest-facing mapping
@@ -951,7 +956,7 @@ function toGuestStay(s) {
     yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
 
     explore: EXPLORE_SCENES,
-    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
+    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
