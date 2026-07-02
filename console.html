@@ -1247,7 +1247,15 @@ window.invToggleFee=function(which,on){ if(!_invDraft)return; if(which==='legal'
 function invBreakdown(iv){ const sub=(iv.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); const lp=Number(iv.legalPct)||0, sp=Number(iv.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invInput(extra){ return 'width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;'+(extra||''); }
 function invLbl(){ return 'display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:11px 0 5px'; }
+function invPickOptions(){ let h='';
+  const sent=(cur&&cur.sentServices)||[];
+  if(sent.length){ h+='<optgroup label="Offered services">'+sent.map((s,idx)=>`<option value="svc:${idx}">${esc([s.name,s.option].filter(Boolean).join(' · '))}${s.rate?' · '+esc(s.rate):''}</option>`).join('')+'</optgroup>'; }
+  const ad=(typeof BOOT!=='undefined'&&BOOT.addons)||[];
+  if(ad.length){ h+='<optgroup label="Villa add-ons">'+ad.map(a=>`<option value="addon:${esc(a.id)}">${esc(a.name)}${a.rates?' · '+esc(a.rates):''}</option>`).join('')+'</optgroup>'; }
+  return h;
+}
 function invRow(it,i){ return `<div style="border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px">
+  <select onchange="invPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— fill from a service / add-on (optional) —</option>${invPickOptions()}</select>
   <div style="display:flex;gap:8px;align-items:center">
     <input value="${esc(it.label)}" oninput="invField(${i},'label',this.value)" placeholder="Description (e.g. Crib · baby gear)" style="${invInput('flex:1;min-width:0')}">
     <button onclick="removeInvLine(${i})" title="Remove line" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:9px;padding:0 11px;cursor:pointer">✕</button>
@@ -1265,6 +1273,14 @@ function renderInvItems(){ const c=document.getElementById('invItems'); if(c)c.i
 window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[k]=v;
   if(k==='rate'||k==='days'){ const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); const days=parseFloat(String(it.days).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&isFinite(days)&&String(it.rate).trim()!==''&&String(it.days).trim()!==''){ it.amount=String(Math.round(rate*days*100)/100); const amtEl=document.getElementById('invamt'+i); if(amtEl)amtEl.value=it.amount; } renderInvTotals(); return; }
   if(k==='amount')renderInvTotals();
+};
+window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return; const it=_invDraft.items[i]; let name='',rate='';
+  if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
+  else if(val.indexOf('addon:')===0){ const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===val.slice(6)); if(a){ name=a.name; rate=a.rates||''; } }
+  if(name)it.label=name;
+  const num=parseFloat(String(rate).replace(/[^0-9.]/g,''));
+  if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+  renderInvItems();
 };
 window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push({label:'',amount:'',rate:'',days:''}); renderInvItems(); };
 window.removeInvLine=function(i){ if(!_invDraft)return; _invDraft.items.splice(i,1); if(!_invDraft.items.length)_invDraft.items.push({label:'',amount:'',rate:'',days:''}); renderInvItems(); };

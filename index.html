@@ -425,8 +425,6 @@ function renderHome(){
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange Villa Add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('explore')"><span class="ic">🌴</span><span class="tx"><b>Arrange Experiences</b><span>Excursions, dining, spa &amp; activities</span></span><span class="arr">→</span></button>
-      ${myPlanRow()}
-      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>${esc(b.airport||'LRM')} → ${esc(v.name)}</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
       <button onclick="push('discover')" style="width:100%;text-align:left;border:0;cursor:pointer;background:var(--accent);color:#fff;border-radius:16px;padding:15px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="min-width:0">
@@ -486,7 +484,7 @@ function renderStay(){
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       ${myPlanRow()}
-      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Arrival day</b><span>Directions & access</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>Directions &amp; access</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">❖</span><span class="tx"><b>Good to know</b><span>Villa guide &amp; resort info</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
