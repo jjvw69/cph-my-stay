@@ -746,7 +746,7 @@ function activityTimeline(s){
    (snapshotInputs/restoreInputs), so a section stays open/closed across refreshes.
    Sections carry a stable id derived from their heading so state persists. */
 // Sections that should START collapsed ("tap to expand"); all others start open.
-const COLLAPSED_DEFAULT = { 'csec-recommended-services':1, 'csec-concierge-chat':1 };
+const COLLAPSED_DEFAULT = { 'csec-recommended-services':1, 'csec-concierge-welcome':1, 'csec-concierge-chat':1 };
 const SVC_OPTIONS = {
   golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
   carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
