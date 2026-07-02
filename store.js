@@ -585,6 +585,29 @@ function setRequestFamily(stayId, requestId, name) {
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
   r.familyName = norm(name).slice(0, 60); s.updatedAt = Date.now(); persistStays(); return r;
 }
+/** Staff edit-all: the console can edit every field of a request. Only fields present in body
+ *  are touched. Status/price are preserved unless price is explicitly provided. Two-way sync:
+ *  the same request object feeds toGuestStay, so edits land in the guest's My Plan on next poll. */
+function staffUpdateRequest(stayId, requestId, body) {
+  const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
+  const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  body = body || {};
+  if (body.title != null) r.title = norm(body.title).slice(0, 80);
+  if (body.date != null) r.date = norm(body.date).slice(0, 20);
+  if (body.endDate != null) r.endDate = norm(body.endDate).slice(0, 20);
+  if (body.cartType != null) r.cartType = norm(body.cartType).slice(0, 30);
+  if (body.serviceLevel != null) r.serviceLevel = norm(body.serviceLevel).slice(0, 40);
+  if (body.time != null) r.time = norm(body.time).slice(0, 20);
+  if (body.guests != null) r.guests = (('' + body.guests).trim() === '') ? '' : Math.max(0, Math.min(99, Number(body.guests) || 0));
+  if (body.note != null) r.note = norm(body.note).slice(0, 300);
+  if (body.familyName != null) r.familyName = norm(body.familyName).slice(0, 60);
+  if (body.airline != null) r.airline = norm(body.airline).slice(0, 40);
+  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24);
+  if (body.flightOrigin != null) r.flightOrigin = norm(body.flightOrigin).slice(0, 60);
+  if (body.arrivalTime != null) r.arrivalTime = norm(body.arrivalTime).slice(0, 40);
+  if (body.price != null) r.price = norm(body.price).slice(0, 24);
+  r.updatedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
+}
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
  *  reloads and shows in the Concierge Console. */
 function saveGrocery(reference, data) {
@@ -978,7 +1001,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
