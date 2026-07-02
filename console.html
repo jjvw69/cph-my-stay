@@ -1218,7 +1218,7 @@ window.reopenReq=async function(rid){ if(!cur)return; const id=cur.id; const r=a
 window.clearLog=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); toast('Cleared from log'); } else toast('Could not update'); };
 window.deleteReq=async function(rid){ if(!cur)return; const rq=(cur.requests||[]).find(x=>x.id===rid); const nm=(rq&&rq.title)?('"'+rq.title+'"'):'this request'; if(!confirm('Delete '+nm+' permanently? This removes it for you and the guest and cannot be undone.'))return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid,{method:'DELETE'}); if(r.ok){ cur.requests=(cur.requests||[]).filter(x=>x.id!==rid); if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.requests=Math.max(0,(it.requests||0)-1); renderList(); if(typeof refreshMetrics==='function')refreshMetrics(); toast('Request deleted'); } else toast('Could not delete'); };
 window.confirmReq=async function(rid){ if(!cur)return; const el=document.getElementById('pa_'+rid)||document.getElementById('px_'+rid); const price=(el&&el.value||'').trim(); const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/confirm',{method:'POST',body:JSON.stringify({price})}); if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='confirmed'; rq.price=r.body.request.price; rq.confirmedAt=r.body.request.confirmedAt||Date.now(); } if(!dirty)renderEditor(); renderPreview(); refreshMetrics(); toast('Confirmed — guest sees the price'); } else toast('Could not confirm'); };
-window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); if(window.innerWidth>=1024){ renderPreview(); const el2=document.getElementById('staffMsg'); if(el2)el2.focus(); } else renderEditor(); } else toast('Could not send'); };
+window.sendStaffMsg=async function(){ if(!cur)return; const el=document.getElementById('staffMsg'); const t=(el&&el.value||'').trim(); if(!t)return; el.value=''; const r=await api('/api/staff/stays/'+cur.id+'/messages',{method:'POST',body:JSON.stringify({text:t})}); if(r.ok&&r.body.message){ cur.messages=cur.messages||[]; cur.messages.push(r.body.message); if(window.innerWidth>=1024){ renderPreview(); const el2=document.getElementById('staffMsg'); if(el2)el2.focus(); } else { renderEditor(); if(typeof chatPopupRefresh==='function')chatPopupRefresh(); } } else toast('Could not send'); };
 window.adj=function(k,d){ cur[k]=Math.max(0,(Number(cur[k])||0)+d); renderEditor(); renderPreview(); markDirty(); };
 window.toggleAddon=function(id){ const a=cur.offeredAddOnIds||(cur.offeredAddOnIds=[]); const i=a.indexOf(id); if(i<0)a.push(id); else a.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 async function refreshServices(){ const b=await api('/api/staff/bootstrap'); if(b.ok&&b.body&&b.body.addons) BOOT.addons=b.body.addons; renderEditor(); renderPreview(); }
@@ -1459,9 +1459,18 @@ function renderPreview(){
   const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
   // Slimmed to its unique value: the live action queue + a reply shortcut + the guest link.
   // (Status, villa, arrival, money, guest-activity and readiness all live in the vitals bar now.)
+  const lastMsg=(cur.messages||[])[(cur.messages||[]).length-1];
+  const chatPrev=lastMsg?('“'+esc(String(lastMsg.text||'').slice(0,90))+(String(lastMsg.text||'').length>90?'…':'')+'”'):'No messages yet — say hello.';
   host.innerHTML=`
     <div class="label">Action panel</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
+
+    <div class="act-sec"><div class="act-h">Concierge chat ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</div>
+      <div class="act-card" onclick="openChatPopup()" style="cursor:pointer">
+        <div class="act-msg">${chatPrev}</div>
+        <div class="act-meta" style="margin-top:6px;color:var(--accent);font-weight:600">Tap to open chat ↗</div>
+      </div>
+    </div>
 
     <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>
       ${pending.length?pending.map(r=>`<div class="act-card warn">
@@ -1474,14 +1483,22 @@ function renderPreview(){
       </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
     </div>
 
-    ${window.innerWidth>=1024
-      ? `<div class="act-sec"><div class="act-h">Concierge chat ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</div>${chatPanelFull(cur)}</div>`
-      : (guestMsgs.length?`<div class="act-sec"><div class="act-h">Latest guest message</div>
-      <div class="act-card"><div class="act-meta" style="margin:0 0 6px">From ${esc(cur.leadName||'guest')}:</div>
-        <div class="act-msg">“${esc(guestMsgs[guestMsgs.length-1].text)}”</div>
-        <button class="b-out act-jump" onclick="jumpChat()">Reply in chat →</button></div></div>`:'')}`;
-  const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight;
+    `;
+  chatPopupRefresh();
 }
+/* Concierge chat popup — full chat panel in an overlay; opened from the Action panel card.
+   Content is re-rendered by chatPopupRefresh() (called from renderPreview, which runs on
+   send + live-sync), preserving the draft reply and focus. */
+window.openChatPopup=function(noFocus){ if(!cur)return; let ov=document.getElementById('chatOv'); if(!ov){ ov=document.createElement('div'); ov.id='chatOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeChatPopup(); }; document.body.appendChild(ov); }
+  const guestMsgs=(cur.messages||[]).filter(m=>m.from==='guest');
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">Concierge chat — ${esc(cur.leadName||'Guest')} ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</b><button onclick="closeChatPopup()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+    ${chatPanelFull(cur)}</div>`;
+  const sc=ov.querySelector('#chatScroll'); if(sc)sc.scrollTop=sc.scrollHeight;
+  if(!noFocus){ const el=ov.querySelector('#staffMsg'); if(el)el.focus(); }
+};
+window.closeChatPopup=function(){ const ov=document.getElementById('chatOv'); if(ov)ov.remove(); };
+function chatPopupRefresh(){ const ov=document.getElementById('chatOv'); if(!ov||!cur)return; const inp=ov.querySelector('#staffMsg'); const val=inp?inp.value:''; const foc=inp&&document.activeElement===inp; openChatPopup(true); const el=document.getElementById('chatOv').querySelector('#staffMsg'); if(el){ el.value=val; if(foc)el.focus(); } }
 window.copyLink=function(){ const i=document.getElementById('glink'); i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 window.copyGuestLink=function(){ const i=document.getElementById('glink2'); if(!i)return; i.select(); try{navigator.clipboard.writeText(i.value);}catch(e){document.execCommand('copy');} toast('Guest link copied'); };
 window.jumpChat=function(){ setView(true); const el=document.getElementById('staffMsg'); if(el){ try{el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){} el.focus(); } };
