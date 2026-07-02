@@ -789,12 +789,20 @@ function createInvoice(stayId, b) {
     no: s._invSeq,
     title: norm(b && b.title).slice(0, 120) || 'Invoice',
     items: cleanItems(b && b.items),
+    requestId: norm(b && b.requestId).slice(0, 40), // optional link to the guest request this invoice bills — lets the console flag it if the request is later cancelled
     legalPct: clampPct(b && b.legalPct, 18),     // 18% ITBIS / legal fee by default
     servicePct: clampPct(b && b.servicePct, 10), // 10% service fee by default
     dueBy: norm(b && b.dueBy).slice(0, 40),
     note: norm(b && b.note).slice(0, 400),
     status: 'draft', createdAt: Date.now(), sentAt: 0, paidAt: 0,
   };
+  if (inv.kind === 'grocery') {
+    // Totals must add up (server-side guard — a console typo must never reach the guest):
+    // total = sub-total + service fee + pick-up. Blank total auto-fills; a wrong total is rejected.
+    const expected = Math.round((inv.subUSD + inv.serviceFeeUSD + inv.pickupUSD) * 100) / 100;
+    if (!inv.totalUSD && expected) inv.totalUSD = expected;
+    else if (expected && Math.abs(inv.totalUSD - expected) > 0.05) return { error: `Total US$${inv.totalUSD.toFixed(2)} doesn't add up — Sub-total + Service fee + Pick-up = US$${expected.toFixed(2)}. Fix the amounts, or clear the Total to auto-fill it.` };
+  }
   s.invoices.push(inv); s.updatedAt = Date.now(); persistStays(); return inv;
 }
 function updateInvoice(stayId, iid, b) {
@@ -802,6 +810,17 @@ function updateInvoice(stayId, iid, b) {
   const inv = s.invoices.find(x => x.id === iid); if (!inv) return null;
   if (inv.kind === 'grocery') {
     const money = v => Math.max(0, Math.round((parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0) * 100) / 100);
+    // Validate totals BEFORE mutating the stored invoice (reject = no partial write).
+    const cand = {
+      subUSD: b.subUSD != null ? money(b.subUSD) : inv.subUSD,
+      serviceFeeUSD: b.serviceFeeUSD != null ? money(b.serviceFeeUSD) : inv.serviceFeeUSD,
+      pickupUSD: b.pickupUSD != null ? money(b.pickupUSD) : inv.pickupUSD,
+      totalUSD: b.totalUSD != null ? money(b.totalUSD) : inv.totalUSD,
+    };
+    const expected = Math.round((cand.subUSD + cand.serviceFeeUSD + cand.pickupUSD) * 100) / 100;
+    let autoTotal = 0;
+    if (!cand.totalUSD && expected) autoTotal = expected;
+    else if (expected && Math.abs(cand.totalUSD - expected) > 0.05) return { error: `Total US$${cand.totalUSD.toFixed(2)} doesn't add up — Sub-total + Service fee + Pick-up = US$${expected.toFixed(2)}. Fix the amounts, or clear the Total to auto-fill it.` };
     if (b.title != null) inv.title = norm(b.title).slice(0, 120) || inv.title;
     if (b.items != null) inv.items = cleanGroceryItems(b.items);
     if (b.totalRD != null) inv.totalRD = money(b.totalRD);
@@ -809,12 +828,14 @@ function updateInvoice(stayId, iid, b) {
     if (b.serviceFeeUSD != null) inv.serviceFeeUSD = money(b.serviceFeeUSD);
     if (b.pickupUSD != null) inv.pickupUSD = money(b.pickupUSD);
     if (b.totalUSD != null) inv.totalUSD = money(b.totalUSD);
+    if (autoTotal) inv.totalUSD = autoTotal;
     if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
     if (b.note != null) inv.note = norm(b.note).slice(0, 400);
     s.updatedAt = Date.now(); persistStays(); return inv;
   }
   if (b.title != null) inv.title = norm(b.title).slice(0, 120) || inv.title;
   if (b.items != null) inv.items = cleanItems(b.items);
+  if (b.requestId != null) inv.requestId = norm(b.requestId).slice(0, 40);
   if (b.legalPct != null) inv.legalPct = clampPct(b.legalPct, 18);
   if (b.servicePct != null) inv.servicePct = clampPct(b.servicePct, 10);
   if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
