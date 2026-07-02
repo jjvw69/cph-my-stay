@@ -484,7 +484,7 @@ function renderStay(){
       <div class="sec-title">Your timeline</div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Pre-arrival</b><span>${checkinDone?'Check-in completed':'Check-in & add-ons'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       ${myPlanRow()}
-      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting there & access</b><span>Directions &amp; access</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="push('arrival')"><span class="ic">➤</span><span class="tx"><b>Getting here & access</b><span>Directions &amp; access</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('guide')"><span class="ic">❖</span><span class="tx"><b>Good to know</b><span>Villa guide &amp; resort info</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
@@ -2099,7 +2099,7 @@ function renderArrival(){
     ${steps.map((st,i)=>`<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">${i+1}</span><span class="tx"><b>${esc(st.t)}</b><span>${st.d}</span></span></div>`).join('')}
     <div class="sec-title">On arrival</div>
     <div class="grid2"><div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Handed over in person'}</span></div><div class="tile"><b>Check-in</b><span>${esc(b.checkInTime||'3:00 PM')}</span></div></div>`;
-  shell('Getting there', inner);
+  shell('Getting here', inner);
 }
 
 function renderCheckout(){
@@ -2312,7 +2312,7 @@ window.printItinerary=function(){
       ${s.registrationNumber?r2('Registration #',esc(s.registrationNumber)):''}
       ${r2('Concierge',esc((s.concierge&&s.concierge.name)||'')+' · '+esc((s.concierge&&s.concierge.phone)||'+1 (829) 763-8801'))}
     </table>
-    <h2 class="hd" style="font-size:18px;margin:24px 0 4px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Getting there</h2>
+    <h2 class="hd" style="font-size:18px;margin:24px 0 4px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Getting here</h2>
     <ol style="font-size:13px;line-height:1.55;color:#33403A;padding-left:18px;margin:4px 0 0">
       <li style="margin-bottom:7px"><b>Before you arrive —</b> Fill out the Dominican Republic E‑Ticket at eticket.migracion.gob.do. Your address in the DR: Casa de Campo, La Romana, Province La Romana, Section Central Romana, Dominican Republic.</li>
       <li style="margin-bottom:7px"><b>Pre‑arrival registration —</b> Send each guest’s full name &amp; passport number so we can pre‑register your group; you’ll receive a Registration Number for check‑in.${s.registrationNumber?' Your Registration #: <b>'+esc(s.registrationNumber)+'</b>.':''}</li>
