@@ -533,13 +533,17 @@ async function refreshCurrent(){
 }
 function snapshotInputs(rootId){
   const root=document.getElementById(rootId); if(!root) return null;
-  const vals={}; root.querySelectorAll('input,textarea').forEach(el=>{ if(el.id) vals[el.id]=el.value; });
+  const vals={}; root.querySelectorAll('input,textarea,select').forEach(el=>{ if(el.id) vals[el.id]=el.value; });
   const open={}; root.querySelectorAll('details[id]').forEach(d=>{ open[d.id]=d.open; });
+  // Inline edit panels (e.g. the request "Edit" form, id=edit_<rid>) are shown via style.display —
+  // remember which are open so a live-sync re-render doesn't slam them shut mid-typing.
+  const panels=[]; root.querySelectorAll('div[id^="edit_"]').forEach(p=>{ if(p.style.display&&p.style.display!=='none') panels.push(p.id); });
   const a=document.activeElement; const focus=(a&&root.contains(a)&&a.id)?{id:a.id,s:a.selectionStart,e:a.selectionEnd}:null;
-  return {vals,open,focus,scroll:root.scrollTop};
+  return {vals,open,panels,focus,scroll:root.scrollTop};
 }
 function restoreInputs(rootId,snap){
   if(!snap) return; const root=document.getElementById(rootId); if(!root) return;
+  if(snap.panels) snap.panels.forEach(id=>{ const p=document.getElementById(id); if(p) p.style.display='block'; });
   Object.keys(snap.vals).forEach(id=>{ const el=document.getElementById(id); if(el&&'value' in el) el.value=snap.vals[id]; });
   if(snap.open) Object.keys(snap.open).forEach(id=>{ const d=document.getElementById(id); if(d) d.open=snap.open[id]; });
   if(snap.scroll!=null) root.scrollTop=snap.scroll;
