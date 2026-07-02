@@ -187,6 +187,11 @@
   .chatscroll{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;max-height:62vh;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
   .chatcompose{display:flex;gap:8px;margin-top:11px}
   .chatcompose input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:14.5px;font-family:var(--ui)}
+  .chatcompose button{flex:0 0 auto;border:0;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer}
+  /* Concierge chat popup: pinned header, messages scroll, compose stays visible */
+  #chatOv .chatwrap{display:flex;flex-direction:column;flex:1;min-height:0}
+  #chatOv .chatscroll{flex:1;min-height:120px;max-height:none}
+  #chatOv .tmpl{flex:0 0 auto}
   .alertbar{border-radius:12px;padding:11px 14px;margin-bottom:12px;font-size:13.5px;line-height:1.5}
   .alertbar b{font-weight:600}
   .alertbar .ab-sub{color:inherit;opacity:.8}
@@ -1274,7 +1279,7 @@ window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; co
   renderInvItems();
 };
 function invRow(it,i){ return `<div style="border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px">
-  <select onchange="invPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— fill from a service / add-on (optional) —</option>${invPickOptions(it.svcSel||'')}</select>
+  ${(_invDraft&&_invDraft.kind==='yacht')?'':`<select onchange="invPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— fill from a service / add-on (optional) —</option>${invPickOptions(it.svcSel||'')}</select>`}
   ${invOptRow(it,i)}
   <div style="display:flex;gap:8px;align-items:center">
     <input value="${esc(it.label)}" oninput="invField(${i},'label',this.value)" placeholder="Description (e.g. Crib · baby gear)" style="${invInput('flex:1;min-width:0')}">
@@ -1304,7 +1309,7 @@ window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return;
   if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
   renderInvItems();
 };
-window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push({label:'',amount:'',rate:'',days:''}); renderInvItems(); };
+window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push(_invDraft.kind==='yacht'?{label:'',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}:{label:'',amount:'',rate:'',days:''}); renderInvItems(); };
 window.removeInvLine=function(i){ if(!_invDraft)return; _invDraft.items.splice(i,1); if(!_invDraft.items.length)_invDraft.items.push({label:'',amount:'',rate:'',days:''}); renderInvItems(); };
 window.closeInvoice=function(){ const ov=document.getElementById('invOv'); if(ov)ov.remove(); _invDraft=null; };
 /* Default guest note for NEW invoices — personalised as "[Last name] family". Fully editable per invoice. */
@@ -1312,11 +1317,11 @@ function invNoteDefault(){ const parts=(cur&&cur.leadName||'').trim().split(/\s+
 window.openInvoice=function(id){ if(!cur)return; if(id){ const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; _invDraft={id:iv.id,title:iv.title,items:(iv.items||[]).map(it=>({label:it.label,amount:String(it.amount||''),rate:String(it.rate||''),days:String(it.days||'')})),legalPct:(iv.legalPct!=null?iv.legalPct:0),servicePct:(iv.servicePct!=null?iv.servicePct:0),dueBy:iv.dueBy||'',note:iv.note||''}; if(!_invDraft.items.length)_invDraft.items.push({label:'',amount:'',rate:'',days:''}); } else { _invDraft={id:'',title:'Villa services',items:[{label:'',amount:'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; } renderInvoiceModal(); };
 /* Dedicated yacht-charter invoice: opens the standard invoice modal with the line pre-set to the
    yacht service so the fleet picker (store.js YACHT_CATALOG) shows immediately. */
-window.openYachtInvoice=function(){ if(!cur)return; _invDraft={id:'',title:'Yacht charter',items:[{label:'Yacht Charters',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
+window.openYachtInvoice=function(){ if(!cur)return; _invDraft={id:'',kind:'yacht',title:'Yacht charter',items:[{label:'Yacht Charters',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 window.openInvoiceFor=function(name,rate){ if(!cur)return; _invDraft={id:'',title:name||'Service',items:[{label:name||'',amount:rate||'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeInvoice(); }; document.body.appendChild(ov); } const d=_invDraft;
   ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.id?'Edit invoice':'New invoice'}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.kind==='yacht'?(d.id?'Edit yacht invoice':'Yacht invoice'):(d.id?'Edit service invoice':'Service invoice')}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
     <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" style="${invInput()}">
     <label style="${invLbl()}">Line items</label><div id="invItems">${d.items.map((it,i)=>invRow(it,i)).join('')}</div>
     <button onclick="addInvLine()" style="background:none;border:0;color:var(--accent);font-size:13.5px;font-weight:600;cursor:pointer;padding:2px 0">+ Add line</button>
@@ -1491,8 +1496,8 @@ function renderPreview(){
    send + live-sync), preserving the draft reply and focus. */
 window.openChatPopup=function(noFocus){ if(!cur)return; let ov=document.getElementById('chatOv'); if(!ov){ ov=document.createElement('div'); ov.id='chatOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeChatPopup(); }; document.body.appendChild(ov); }
   const guestMsgs=(cur.messages||[]).filter(m=>m.from==='guest');
-  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:18px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">Concierge chat — ${esc(cur.leadName||'Guest')} ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</b><button onclick="closeChatPopup()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:600px;width:100%;height:min(88vh,760px);padding:16px 18px 14px;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box">
+    <div style="flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px"><b style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Concierge chat — ${esc(cur.leadName||'Guest')} ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</b><button onclick="closeChatPopup()" style="flex:0 0 auto;border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft);padding:2px 6px">✕</button></div>
     ${chatPanelFull(cur)}</div>`;
   const sc=ov.querySelector('#chatScroll'); if(sc)sc.scrollTop=sc.scrollHeight;
   if(!noFocus){ const el=ov.querySelector('#staffMsg'); if(el)el.focus(); }
