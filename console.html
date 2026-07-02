@@ -147,7 +147,8 @@
   .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
-  @media(max-width:640px){ .reglist-cols{grid-template-columns:1fr} }
+  .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media(max-width:640px){ .reglist-cols,.reqlist-2col{grid-template-columns:1fr} }
   .reqedit{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
   .reqedit-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-bottom:8px}
   .reqedit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -745,7 +746,7 @@ function activityTimeline(s){
    (snapshotInputs/restoreInputs), so a section stays open/closed across refreshes.
    Sections carry a stable id derived from their heading so state persists. */
 // Sections that should START collapsed ("tap to expand"); all others start open.
-const COLLAPSED_DEFAULT = { 'csec-grocery-pre-stocking':1, 'csec-concierge-chat':1 };
+const COLLAPSED_DEFAULT = { 'csec-recommended-services':1, 'csec-concierge-chat':1 };
 const SVC_OPTIONS = {
   golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
   carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
@@ -1113,11 +1114,11 @@ function renderEditor(){
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
     ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`<div class="sec"><h3>Grocery pre-stocking <span class="reqcount">${(cur.grocery.items||[]).length}</span></h3>
-      <div class="reqlist">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
+      <div class="reqlist reqlist-2col">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
       <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div></div>`:''}
 
     ${(cur.mealPlan&&mealsSortedC(cur.mealPlan).length)?`<div class="sec"><h3>Arrival meals</h3>
-      <div class="reqlist">${mealsSortedC(cur.mealPlan).map(({lbl,m})=>{const meta=[m.date?esc(m.date):'',m.time?esc(m.time):'',m.guests?esc(m.guests)+' guests':''].filter(Boolean).join(' · ');return `<div class="reqitem"><b>${esc(lbl)}</b><div class="reqmeta">${meta||'—'}</div>${m.desc?`<div class="reqmeta">${esc(m.desc)}</div>`:''}</div>`;}).join('')}${cur.mealPlan.note?`<div class="reqitem"><b>Notes / dietary</b><div class="reqmeta">${esc(cur.mealPlan.note)}</div></div>`:''}</div>
+      <div class="reqlist reqlist-2col">${mealsSortedC(cur.mealPlan).map(({lbl,m})=>{const meta=[m.date?esc(m.date):'',m.time?esc(m.time):'',m.guests?esc(m.guests)+' guests':''].filter(Boolean).join(' · ');return `<div class="reqitem"><b>${esc(lbl)}</b><div class="reqmeta">${meta||'—'}</div>${m.desc?`<div class="reqmeta">${esc(m.desc)}</div>`:''}</div>`;}).join('')}${cur.mealPlan.note?`<div class="reqitem"><b>Notes / dietary</b><div class="reqmeta">${esc(cur.mealPlan.note)}</div></div>`:''}</div>
       <div class="counter">Meals the guest would like ready on arrival${cur.mealPlan.updatedAt?' · updated '+fmtReqDate(cur.mealPlan.updatedAt):''} — arrange groceries or a private chef.</div></div>`:''}
 
     ${(function(){ const active=(cur.requests||[]).filter(r=>r.status!=='done'&&r.status!=='cancelled').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')); return active.length?`<div class="sec"><h3>Guest pending requests <span class="reqcount">${active.length}</span></h3>
