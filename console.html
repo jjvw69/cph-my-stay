@@ -1115,11 +1115,13 @@ function renderEditor(){
 
     ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`<div class="sec"><h3>Grocery pre-stocking <span class="reqcount">${(cur.grocery.items||[]).length}</span></h3>
       <div class="reqlist reqlist-2col">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem" style="grid-column:1/-1"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
-      <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div></div>`:''}
+      <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div>
+      <div style="margin-top:9px"><button class="reqx" onclick="printGrocery()">🖨 Print grocery list</button></div></div>`:''}
 
     ${(cur.mealPlan&&mealsSortedC(cur.mealPlan).length)?`<div class="sec"><h3>Arrival meals</h3>
       <div class="reqlist reqlist-2col">${mealsSortedC(cur.mealPlan).map(({lbl,m})=>{const meta=[m.date?esc(m.date):'',m.time?esc(m.time):'',m.guests?esc(m.guests)+' guests':''].filter(Boolean).join(' · ');return `<div class="reqitem"><b>${esc(lbl)}</b><div class="reqmeta">${meta||'—'}</div>${m.desc?`<div class="reqmeta">${esc(m.desc)}</div>`:''}</div>`;}).join('')}${cur.mealPlan.note?`<div class="reqitem" style="grid-column:1/-1"><b>Notes / dietary</b><div class="reqmeta">${esc(cur.mealPlan.note)}</div></div>`:''}</div>
-      <div class="counter">Meals the guest would like ready on arrival${cur.mealPlan.updatedAt?' · updated '+fmtReqDate(cur.mealPlan.updatedAt):''} — arrange groceries or a private chef.</div></div>`:''}
+      <div class="counter">Meals the guest would like ready on arrival${cur.mealPlan.updatedAt?' · updated '+fmtReqDate(cur.mealPlan.updatedAt):''} — arrange groceries or a private chef.</div>
+      <div style="margin-top:9px"><button class="reqx" onclick="printMeals()">🖨 Print meal plan</button></div></div>`:''}
 
     ${(function(){ const active=(cur.requests||[]).filter(r=>r.status!=='done'&&r.status!=='cancelled').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')); return active.length?`<div class="sec"><h3>Guest pending requests <span class="reqcount">${active.length}</span></h3>
       <div class="reqlist">${active.map(reqItemHtml).join('')}</div>
@@ -1455,6 +1457,32 @@ window.printStay=function(){
     <h2>Concierge</h2><table>${row('Assigned',c.name)}${row('Welcome message',(s.welcomeMessage||DEFAULT_WELCOME).replace(/\{\s*villa name\s*\}/gi,s.villaName||v.name||'your villa').replace(/\{\s*concierge name\s*\}/gi,c.name||'your concierge'))}</table>
     </body></html>`;
   const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
+};
+/* Print a single section (grocery list / meal plan) on its own sheet for the chef or shopper. */
+function _printSection(title, bodyHtml){
+  if(!cur) return; const s=cur; const v=BOOT.villas.find(x=>x.id===s.villaId)||{};
+  const villa=s.villaName||v.name||''; const villaNo=s.villaNumber||s.villaInternal||'';
+  const dates=[s.checkin,s.checkout].filter(Boolean).join(' → ');
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)} — ${esc(villa||s.reference||'')}</title>
+    <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:720px;margin:24px auto;padding:0 20px;line-height:1.5}
+    h1{font-size:22px;margin:0 0 2px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#5B6E5F;border-bottom:1px solid #E6DDCC;padding-bottom:4px;margin:20px 0 8px}
+    .ref{color:#8B8475;font-size:13px;margin-bottom:6px}ul,ol{margin:6px 0;padding-left:20px}li{font-size:14px;margin:4px 0}p{font-size:14px}@media print{body{margin:0}}</style></head>
+    <body>
+    <h1>${esc(title)}</h1>
+    <div class="ref">${esc(villa)}${villaNo?' · Villa '+esc(villaNo):''}${dates?' · '+esc(dates):''}${s.leadName?' · '+esc(s.leadName):''} · printed ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+    ${bodyHtml}
+    </body></html>`;
+  const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
+}
+window.printGrocery=function(){ if(!cur)return; const s=cur;
+  const groc=(s.grocery&&s.grocery.items&&s.grocery.items.length)?('<ul>'+(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});return Object.keys(by).map(cat=>'<li><b>'+esc(cat)+':</b> '+by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')+'</li>').join('');})(s.grocery)+'</ul>'):'<p>None submitted.</p>';
+  const note=(s.grocery&&s.grocery.note)?('<h2>Notes / allergies</h2><p>'+esc(s.grocery.note)+'</p>'):'';
+  _printSection('Grocery pre-stocking', groc+note);
+};
+window.printMeals=function(){ if(!cur)return; const s=cur;
+  const meals=(s.mealPlan&&mealsSortedC(s.mealPlan).length)?('<ul>'+mealsSortedC(s.mealPlan).map(({lbl,m})=>'<li><b>'+esc(lbl)+':</b> '+[m.date,m.time,m.guests?m.guests+' guests':''].filter(Boolean).map(esc).join(' · ')+(m.desc?' — '+esc(m.desc):'')+'</li>').join('')+'</ul>'):'<p>None submitted.</p>';
+  const note=(s.mealPlan&&s.mealPlan.note)?('<h2>Notes / dietary</h2><p>'+esc(s.mealPlan.note)+'</p>'):'';
+  _printSection('Arrival meals', meals+note);
 };
 
 /* ---- save / publish ---- */
