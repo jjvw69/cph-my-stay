@@ -148,7 +148,7 @@
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-  @media(max-width:640px){ .reglist-cols,.reqlist-2col{grid-template-columns:1fr} }
+  @media(max-width:640px){ .reglist-cols,.reqlist-2col,.sndform{grid-template-columns:1fr !important} }
   .reqedit{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px}
   .reqedit-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-bottom:8px}
   .reqedit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1108,13 +1108,13 @@ function renderEditor(){
       }).join('')||'<div class="counter" style="margin:0 0 12px">Nothing sent yet.</div>'}</div>
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
-        <div style="display:grid;gap:8px">
+        <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
           <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
           <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${(SVC_OPTIONS[_sndSvc]||[]).length?'— pick an option —':'— no preset options · type one below —'}</option>${(SVC_OPTIONS[_sndSvc]||[]).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          <input id="sndNote" placeholder="Note to the guest (optional)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          <button onclick="sendServiceUI()" style="justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>
+          <input id="sndNote" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <button onclick="sendServiceUI()" style="grid-column:1/-1;justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>
         </div>
       </div>
     </div>
