@@ -2268,7 +2268,7 @@ function renderPlan(){
     ${(function(){ const mp=s.mealPlan; if(!mealPlanHasAny(mp)) return '';
       const rowHtml=(lbl,m)=>{ const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guest'+(m.guests==1?'':'s'):''].filter(Boolean).join(' · '); return `<div style="margin-bottom:7px"><b style="font-size:13px">${esc(lbl)}</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(meta||'—')}${m.desc?' · '+esc(m.desc):''}</div></div>`; };
       let rows=''; mealsSorted(mp).forEach(({lbl,m})=>{ rows+=rowHtml(lbl,m); });
-      return `<div class="sec-title">Arrival meals</div><div class="card" style="padding:14px 15px">${rows}${mp.note?`<div style="margin-top:4px"><b style="font-size:13px">Notes / dietary</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${esc(mp.note)}</div></div>`:''}<button onclick="openMeals()" style="margin-top:11px;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">Edit arrival meals →</button></div>`;
+      return `<div class="sec-title">Arrival meals</div><div class="card" style="padding:14px 15px">${rows}<button onclick="openMeals()" style="margin-top:11px;border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">Edit arrival meals →</button></div>`;
     })()}
     ${(function(){ const cs=((s.addOns)||[]).filter(a=>a.custom); if(!cs.length) return '';
       const bookedIds=new Set((reqList()||[]).filter(r=>r&&r.type==='addon'&&r.status!=='cancelled').map(r=>r.refId));
@@ -2326,7 +2326,7 @@ window.printItinerary=function(){
     ${(function(){ const mp=s.mealPlan; if(!mealPlanHasAny(mp)) return '';
       const rowHtml=(lbl,m)=>{ const meta=[m.date?fmtDate(m.date):'',m.time||'',m.guests?m.guests+' guests':''].filter(Boolean).join(' · '); return `<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;vertical-align:top;border-top:1px solid #EEF1EC;white-space:nowrap">${esc(lbl)}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc([meta,m.desc].filter(Boolean).join(' — '))}</td></tr>`; };
       let rows=''; mealsSorted(mp).forEach(({lbl,m})=>{ rows+=rowHtml(lbl,m); });
-      const noteRow=mp.note?`<tr><td style="padding:6px 14px 6px 0;font-weight:600;color:#33403A;border-top:1px solid #EEF1EC">Notes / dietary</td><td style="padding:6px 0;border-top:1px solid #EEF1EC;color:#54605A">${esc(mp.note)}</td></tr>`:'';
+      const noteRow='';   // meal notes are staff-only — shown in the console, hidden from the guest plan
       return `<h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Arrival meals</h2><table style="width:100%;font-size:13.5px;border-collapse:collapse">${rows}${noteRow}</table>`;
     })()}
 
