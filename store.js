@@ -790,6 +790,7 @@ function createInvoice(stayId, b) {
     title: norm(b && b.title).slice(0, 120) || 'Invoice',
     items: cleanItems(b && b.items),
     requestId: norm(b && b.requestId).slice(0, 40), // optional link to the guest request this invoice bills — lets the console flag it if the request is later cancelled
+    yachtId: norm(b && b.yachtId).slice(0, 40),     // optional link to the yacht proposal — locks the guest's boat choice once invoiced
     legalPct: clampPct(b && b.legalPct, 18),     // 18% ITBIS / legal fee by default
     servicePct: clampPct(b && b.servicePct, 10), // 10% service fee by default
     dueBy: norm(b && b.dueBy).slice(0, 40),
@@ -836,6 +837,7 @@ function updateInvoice(stayId, iid, b) {
   if (b.title != null) inv.title = norm(b.title).slice(0, 120) || inv.title;
   if (b.items != null) inv.items = cleanItems(b.items);
   if (b.requestId != null) inv.requestId = norm(b.requestId).slice(0, 40);
+  if (b.yachtId != null) inv.yachtId = norm(b.yachtId).slice(0, 40);
   if (b.legalPct != null) inv.legalPct = clampPct(b.legalPct, 18);
   if (b.servicePct != null) inv.servicePct = clampPct(b.servicePct, 10);
   if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
@@ -887,7 +889,10 @@ function cancelYachtProposal(stayId) {
 /** Guest picks one of the yacht options. */
 function chooseYacht(reference, optionId) {
   const s = findPublishedStayByRef(reference); if (!s || !s.yachtProposal) return null;
-  const yp = s.yachtProposal; const opt = (yp.options || []).find(o => o.id === optionId); if (!opt) return null;
+  const yp = s.yachtProposal;
+  // Once the chosen boat has been invoiced, the choice is LOCKED — changing boats goes through the concierge.
+  if ((s.invoices || []).some(iv => iv.yachtId && iv.yachtId === yp.id)) return null;
+  const opt = (yp.options || []).find(o => o.id === optionId); if (!opt) return null;
   yp.chosenId = opt.id; yp.status = 'chosen'; yp.respondedAt = Date.now();
   s.updatedAt = Date.now(); persistStays(); return yp;
 }
@@ -979,7 +984,7 @@ function toGuestStay(s) {
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
-    yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
+    yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
