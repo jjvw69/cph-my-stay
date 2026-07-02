@@ -781,13 +781,13 @@ function collapsibleSections(){
    scrolls to that section (and expands it). Rebuilt after each renderEditor so it
    only lists sections that are actually present for this stay. */
 const SECNAV_GROUPS=[
-  {g:'Booking', ids:['csec-guest-party','csec-stay-villa','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
+  {g:'Booking', ids:['csec-guest-party','csec-villa-information','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
   {g:'Guest', ids:['csec-guest-requests','csec-guest-request-booked','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals']},
   {g:'Admin', ids:['csec-follow-up-reminder','csec-internal-notes']},
   {g:'Upsell & money', ids:['csec-services-sent-to-guest','csec-invoices','csec-yacht-charter-proposal','csec-payment-balance']},
   {g:'Recommended', ids:['csec-recommended-services']},
 ];
-const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-stay-villa':'Stay & villa','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-requests':'Requests','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminder':'Follow-up','csec-internal-notes':'Notes','csec-guest-request-booked':'Booked'};
+const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-requests':'Requests','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminder':'Follow-up','csec-internal-notes':'Notes','csec-guest-request-booked':'Booked'};
 function buildSecNav(){
   const ed=document.getElementById('editor'); if(!ed) return;
   const old=ed.querySelector('.secnav'); if(old) old.remove();
@@ -1061,10 +1061,14 @@ function renderEditor(){
       <div class="f"><label>Adults</label><div class="step"><button onclick="adj('adults',-1)">−</button><span>${cur.adults}</span><button onclick="adj('adults',1)">＋</button></div></div>
       <div class="f"><label>Children</label><div class="step"><button onclick="adj('children',-1)">−</button><span>${cur.children}</span><button onclick="adj('children',1)">＋</button></div></div>
       ${(cur.guestCheckin&&(cur.guestCheckin.childAges||[]).filter(a=>a!==''&&a!=null).length)?`<div class="f full"><label>Children's ages (guest-submitted, under 18)</label><div class="reqmeta" style="margin-top:4px">${(cur.guestCheckin.childAges||[]).filter(a=>a!==''&&a!=null).join(' · ')}</div></div>`:''}
+      <div class="f"><label>Check-in date</label><input type="date" value="${esc(cur.checkin)}" oninput="set('checkin',this.value)"></div>
+      <div class="f"><label>Check-out date</label><input type="date" value="${esc(cur.checkout)}" oninput="set('checkout',this.value)"></div>
+      <div class="f"><label>Check-in time</label><input value="${esc(cur.checkinTime)}" oninput="set('checkinTime',this.value)" placeholder="3:00 PM"></div>
+      <div class="f"><label>Check-out time</label><input value="${esc(cur.checkoutTime)}" oninput="set('checkoutTime',this.value)" placeholder="11:00 AM"></div>
       <div class="f full glink"><label>Guest's My Stay app link</label><div class="box"><input id="glink2" readonly value="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}"><button type="button" onclick="copyGuestLink()">Copy</button><a href="https://caribbeanparadisehomes.com/my-stay?b=${esc(cur.reference)}" target="_blank" rel="noopener" style="border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 12px;font-size:13.5px;color:var(--accent);display:inline-flex;align-items:center;text-decoration:none">Open</a><button type="button" onclick="sendLoginLink()" style="border:0;background:#25D366;color:#fff;border-radius:9px;padding:0 12px;font-size:13.5px;display:inline-flex;align-items:center;cursor:pointer">Send via WhatsApp</button></div>${cur.guestLastSeen?'':'<div class="reqmeta" style="margin-top:6px;color:#7A5A2E">Guest hasn’t opened the app yet — send them the link so they can sign in.</div>'}</div>
     </div></div>
 
-    <div class="sec"><h3>Stay &amp; villa</h3><div class="grid">
+    <div class="sec"><h3>Villa Information</h3><div class="grid">
       <div class="f full"><label>Quick-fill from a saved listing</label><select onchange="pickVilla(this.value)">${villaOpts(cur.villaId)}</select></div>
       <div class="f"><label>Villa name</label><input value="${esc(cur.villaName)}" oninput="set('villaName',this.value)" placeholder="Casa …"></div>
       <div class="f"><label>Internal property name</label><input value="${esc(cur.villaInternal)}" oninput="set('villaInternal',this.value)" placeholder="Bahia Minitas 3"></div>
@@ -1073,10 +1077,6 @@ function renderEditor(){
       <div class="f"><label>Bedrooms / suites</label><input value="${esc(cur.villaSuites)}" oninput="set('villaSuites',this.value)" placeholder="5"></div>
       <div class="f"><label>Sleeps</label><input value="${esc(cur.villaSleeps)}" oninput="set('villaSleeps',this.value)" placeholder="10"></div>
       <div class="f full"><label>Villa photo (URL) — leave blank to use the listing default</label><input value="${esc(cur.heroPhoto)}" oninput="set('heroPhoto',this.value)" placeholder="https://caribbeanparadisehomes.com/…"></div>
-      <div class="f"><label>Check-in date</label><input type="date" value="${esc(cur.checkin)}" oninput="set('checkin',this.value)"></div>
-      <div class="f"><label>Check-out date</label><input type="date" value="${esc(cur.checkout)}" oninput="set('checkout',this.value)"></div>
-      <div class="f"><label>Check-in time</label><input value="${esc(cur.checkinTime)}" oninput="set('checkinTime',this.value)" placeholder="3:00 PM"></div>
-      <div class="f"><label>Check-out time</label><input value="${esc(cur.checkoutTime)}" oninput="set('checkoutTime',this.value)" placeholder="11:00 AM"></div>
       <div class="f"><label>Included (villa staff)</label><input value="${esc(cur.staffIncluded)}" oninput="set('staffIncluded',this.value)" placeholder="Chef · Butler · Housekeeper"></div>
       <div class="f"><label>Staff working hours</label><input value="${esc(cur.staffHours||'8:00 AM – 5:00 PM')}" oninput="set('staffHours',this.value)" placeholder="8:00 AM – 5:00 PM"></div>
     </div></div>
