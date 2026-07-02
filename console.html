@@ -202,14 +202,9 @@
   .vpill.amber{background:#FCF3EC;color:#9E5B43;border:1px solid #E4C58C}
   .vpill.red{background:#F7E4E1;color:#9A2B2B;border:1px solid #E3B7AE}
   .vpill.calm{background:#F1F4EF;color:#3F6B4E}
-  .vbooked{padding:9px 0;border-bottom:1px solid #EFF1EC}
-  .vbk-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:6px}
-  .vbk-list{display:flex;flex-direction:column;gap:6px}
-  .vbk{background:#FAFAF7;border:1px solid var(--line);border-radius:10px;padding:7px 10px}
-  .vbk-t{font-size:13px;color:var(--ink)}
-  .vbk-t .v-green{font-weight:600}
-  .vbk-m{font-size:12px;color:var(--soft);margin-top:2px}
-  .vbk-tag{font-size:10px;letter-spacing:.05em;text-transform:uppercase;background:#EDEFEA;color:#8A9488;border-radius:6px;padding:1px 5px;vertical-align:middle}
+  .vbk-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);padding:9px 0 0}
+  .vrow-booked{gap:12px 26px}
+  .vsub{display:block;font-size:11px;color:var(--soft);font-weight:400;margin-top:2px;line-height:1.4}
   .vready{display:flex;flex-wrap:wrap;gap:7px;padding-top:9px}
   .vchip{font-size:11.5px;border-radius:20px;padding:3px 10px;background:#F4F2EC;color:#9AA49B;border:1px solid var(--line)}
   .vchip.on{background:#EAF1EA;color:#3F6B4E;border-color:#cfe0c8}
@@ -940,20 +935,22 @@ function stayVitals(s){
   const flightTxt=trans?[trans.airline,trans.flightNo].filter(Boolean).join(' '):'';
   // Full flight one-liner (airline+flight · from origin · arr time) — used in the Booked & reserved block.
   const flightLine=r=>hasFlight(r)?('✈ '+[[r.airline,r.flightNo].filter(Boolean).join(' '),r.flightOrigin?('from '+r.flightOrigin):'',r.arrivalTime?('arr '+r.arrivalTime):''].filter(Boolean).map(esc).join(' · ')):'';
-  // ---- Booked & reserved: every non-cancelled request + every concierge-sent service ----
+  // ---- Booked & reserved: rendered as the same labeled tiles as the rest of the dashboard ----
   const rqStatus=r=>r.status==='confirmed'?['Confirmed','v-green']:r.status==='done'?['Arranged','v-green']:['Requested','v-amber'];
-  const bookedReqRows=(s.requests||[]).filter(r=>r.status!=='cancelled').map(r=>{
+  const svcStatus=x=>x.status==='confirmed'?['Confirmed','v-green']:x.status==='declined'?['Declined','v-soft']:['Awaiting reply','v-amber'];
+  const bkTile=(name,val,cls,sub)=>`<div class="vstat"><span class="vk">${esc(name)}</span><span class="vv ${cls||''}">${val}${sub?`<span class="vsub">${sub}</span>`:''}</span></div>`;
+  const bookedTiles=[];
+  (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
     const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?(' · '+esc((''+r.price).trim())):'';
     const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):'')].filter(Boolean).map(esc).join(' · ');
-    const flt=flightLine(r);
-    return `<div class="vbk"><div class="vbk-t"><b>${esc(r.title||r.refId||'Request')}</b> <span class="${cls}">${lab}${pr}</span></div>${meta?`<div class="vbk-m">${meta}</div>`:''}${flt?`<div class="vbk-m">${flt}</div>`:''}</div>`;
-  }).join('');
-  const svcStatus=x=>x.status==='confirmed'?['Confirmed','v-green']:x.status==='declined'?['Declined','v-soft']:['Awaiting reply','v-amber'];
-  const bookedSvcRows=(s.sentServices||[]).filter(x=>x.status!=='cancelled').map(x=>{
+    const flt=hasFlight(r)?flightLine(r):'';
+    bookedTiles.push(bkTile(r.title||r.refId||'Request', lab+pr, cls, [meta,flt].filter(Boolean).join('<br>')));
+  });
+  (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
     const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?(' · '+esc((''+x.price).trim())):'';
-    return `<div class="vbk"><div class="vbk-t"><b>${esc(x.name||'Service')}</b> <span class="vbk-tag">sent</span> <span class="${cls}">${lab}${pr}</span></div></div>`;
-  }).join('');
-  const bookedBody=(bookedReqRows+bookedSvcRows)||'<span class="v-soft" style="font-size:13px">Nothing booked or reserved yet.</span>';
+    bookedTiles.push(bkTile(x.name||'Service', lab+pr, cls, 'Sent to guest'));
+  });
+  const bookedBody=bookedTiles.length?bookedTiles.join(''):'<div class="vstat"><span class="vv v-soft">Nothing booked or reserved yet.</span></div>';
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
   const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))],['Registration #',!!(s.registrationNumber&&String(s.registrationNumber).trim())]];
@@ -983,7 +980,8 @@ function stayVitals(s){
       ${stat('Arrives',(trans&&trans.arrivalTime)?esc(trans.arrivalTime):'—')}
       ${stat('Transfer', trans ? (trans.status==='confirmed'?'<span class="v-green">Confirmed</span>':trans.status==='done'?'<span class="v-green">Arranged</span>':'<span class="v-amber">Requested</span>') : (s.transferArranged?'<span class="v-green">Arranged</span>':'<span class="v-amber">Not arranged</span>'))}
     </div>
-    <div class="vbooked"><div class="vbk-h">Booked &amp; reserved</div><div class="vbk-list">${bookedBody}</div></div>
+    <div class="vbk-h">Booked &amp; reserved</div>
+    <div class="vrow vrow-booked">${bookedBody}</div>
     <div class="vrow">
       ${stat('Confirmed add-ons',confirmed.length+' · $'+rev.toLocaleString(),'v-green')}
       ${stat('Services sent',(s.sentServices||[]).length?(svcConfirmed+' confirmed'+(svcAwait?' · '+svcAwait+' pending':'')):'—')}
