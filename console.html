@@ -1091,7 +1091,7 @@ function renderEditor(){
 
     <div class="sec"><h3>Services sent to guest ${(cur.sentServices||[]).length?`<span class="reqcount">${(cur.sentServices||[]).length}</span>`:''}</h3>
       <div class="counter" style="margin:0 0 12px">Push a service straight to the guest's plan with a rate. They confirm or decline in their app, and you'll see their answer here — a two-way confirmation.</div>
-      <div class="reqlist">${(cur.sentServices||[]).map(ss=>{
+      <div class="reqlist reqlist-2col">${(cur.sentServices||[]).map(ss=>{
         const badge = ss.status==='confirmed'?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Confirmed</span>`:ss.status==='declined'?`<span style="font-size:11px;background:#F6E5DD;color:#9E5B43;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✕ Declined</span>`:`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Sent · awaiting</span>`;
         return `<div class="reqitem"><div class="reqtop"><b>${esc(ss.name)}</b>${badge}</div><div class="reqmeta">${[ss.option,ss.rate].filter(Boolean).map(esc).join(' · ')||'—'}${ss.note?'<br>'+esc(ss.note):''}</div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="modifySentUI('${ss.id}')">Modify</button>${ss.status==='confirmed'?`<button class="reqx" onclick="openInvoiceFor('${esc(ss.name)}','${esc(ss.rate||'')}')" style="color:#33493B;border-color:#BFD3C2">Create invoice</button>`:''}<button class="reqx" onclick="cancelSentUI('${ss.id}','${esc(ss.name)}')" style="color:#9E5B43;border-color:#E3C4B6">Cancel</button></div></div>`;
