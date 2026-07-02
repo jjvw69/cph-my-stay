@@ -967,6 +967,7 @@ function stayVitals(s){
     <div class="vtitle">Dashboard</div>
     <div class="vrow">
       ${stat('Villa',villa?esc(villa):'—')}
+      ${stat('Villa #',(s.villaNumber||s.villaInternal)?esc(s.villaNumber||s.villaInternal):'—')}
       ${stat('Arrival',esc(arr),arrCls)}
       ${stat('Nights',nights!=null?String(nights):'—')}
       ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
@@ -977,7 +978,6 @@ function stayVitals(s){
       ${stat('Check-out',esc(coTxt))}
       ${stat('Concierge',conc?esc(conc):'<span class="v-amber">Unassigned</span>')}
       ${stat('Registration #',(s.registrationNumber&&String(s.registrationNumber).trim())?esc(s.registrationNumber):'<span class="v-amber">Not set</span>')}
-      ${stat('Villa #',(s.villaNumber||s.villaInternal)?esc(s.villaNumber||s.villaInternal):'—')}
       ${stat('Guest list',(s.guestList&&s.guestList.length)?esc(s.guestList.length+' / '+party+' registered'):'<span class="v-amber">None yet</span>')}
       ${stat('Requests', awaiting?('<span class="v-amber">'+awaiting+' awaiting price</span>'):((s.requests||[]).filter(r=>r.status!=='cancelled').length?'<span class="v-green">All handled</span>':'—'))}
     </div>
