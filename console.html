@@ -1176,6 +1176,7 @@ function renderEditor(){
       }).join('')||'<div class="counter" style="margin:0 0 10px">No invoices yet.</div>'}</div>
       <button onclick="openInvoice('')" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Service invoice</button>
       <button onclick="openGroceryInvoice('')" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Grocery invoice</button>
+      <button onclick="openYachtInvoice()" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Yacht invoice</button>
     </div>
 
     <div class="sec"><h3>Yacht charter proposal</h3>
@@ -1309,6 +1310,9 @@ window.closeInvoice=function(){ const ov=document.getElementById('invOv'); if(ov
 /* Default guest note for NEW invoices — personalised as "[Last name] family". Fully editable per invoice. */
 function invNoteDefault(){ const parts=(cur&&cur.leadName||'').trim().split(/\s+/).filter(Boolean); const ln=parts.length>1?parts[parts.length-1]:(parts[0]||''); return 'Thank you'+(ln?', '+ln+' family':'')+'! Once we receive your payment we’ll confirm everything with our suppliers and you’ll see each item as booked in your My Stay plan. Any questions, just message us.'; }
 window.openInvoice=function(id){ if(!cur)return; if(id){ const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; _invDraft={id:iv.id,title:iv.title,items:(iv.items||[]).map(it=>({label:it.label,amount:String(it.amount||''),rate:String(it.rate||''),days:String(it.days||'')})),legalPct:(iv.legalPct!=null?iv.legalPct:0),servicePct:(iv.servicePct!=null?iv.servicePct:0),dueBy:iv.dueBy||'',note:iv.note||''}; if(!_invDraft.items.length)_invDraft.items.push({label:'',amount:'',rate:'',days:''}); } else { _invDraft={id:'',title:'Villa services',items:[{label:'',amount:'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; } renderInvoiceModal(); };
+/* Dedicated yacht-charter invoice: opens the standard invoice modal with the line pre-set to the
+   yacht service so the fleet picker (store.js YACHT_CATALOG) shows immediately. */
+window.openYachtInvoice=function(){ if(!cur)return; _invDraft={id:'',title:'Yacht charter',items:[{label:'Yacht Charters',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 window.openInvoiceFor=function(name,rate){ if(!cur)return; _invDraft={id:'',title:name||'Service',items:[{label:name||'',amount:rate||'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeInvoice(); }; document.body.appendChild(ov); } const d=_invDraft;
   ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
