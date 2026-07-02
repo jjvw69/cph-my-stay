@@ -2066,7 +2066,7 @@ function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];
   if(!list.length){ shell('Villa Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
   const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
-  const note=`<div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px"><b>To change any information about your bookings, go to your My Plan section.</b> All rates shown are indicative and subject to final confirmation by your concierge before you’re charged.</div>`;
+  const note=`<div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px">All rates shown are indicative and subject to final confirmation by your concierge before you’re charged.</div>`;
   const inner=note+cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
   shell('Villa Add-ons', inner);
 }
@@ -2258,8 +2258,8 @@ function renderPlan(){
       return `<div class="sec-title">Bills</div>${banner}${invs.map(box).join('')}`;
     })()}
     <div class="sec-title">Requests &amp; bookings</div>
+    <div style="font-size:12px;color:var(--soft);padding:2px 2px 6px;line-height:1.5">To change any information about your bookings, go to your My Plan section.</div>
     ${reqs.length?reqs.map(line).join(''):`<div style="font-size:13.5px;color:var(--soft);padding:6px 2px;line-height:1.5">Nothing arranged yet. Add transfers, dining, a golf cart or experiences from Explore and Villa Add-ons — they'll appear here, and turn green once your concierge confirms.</div>`}
-    ${reqs.length?`<div style="font-size:12px;color:var(--soft);padding:8px 2px 0;line-height:1.5">To change or cancel any booking, tap <b>Arrange more</b> below or message your concierge.</div>`:''}
     ${(function(){ const g=s.grocery; if(!g||!((g.items&&g.items.length)||g.note)) return '';
       const by={}; (g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});
       const rows=Object.keys(by).map(cat=>`<div style="margin-bottom:7px"><b style="font-size:13px">${esc(cat)}</b><div style="font-size:12.5px;color:var(--soft);margin-top:1px">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div></div>`).join('');
@@ -2323,10 +2323,10 @@ window.printItinerary=function(){
     </ol>
 
     <h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px">Requests &amp; bookings</h2>
+    <div style="font-size:12px;color:#6B756C;padding:2px 0 6px;line-height:1.5">To change any information about your bookings, go to your My Plan section in the app.</div>
     ${reqs.length?`<table style="width:100%;font-size:13.5px;border-collapse:collapse">
       <thead><tr style="text-align:left;color:#8A938B;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase"><th style="padding:4px 0;font-weight:600">Item</th><th style="padding:4px 0;font-weight:600">When</th><th style="padding:4px 0;font-weight:600;text-align:right">Status</th></tr></thead>
       <tbody>${reqs.map(reqRow).join('')}</tbody></table>`:`<div style="font-size:13px;color:#6B756C;padding-top:6px">Nothing arranged yet.</div>`}
-    <div style="font-size:12px;color:#6B756C;padding-top:8px;line-height:1.5">To change any information about your bookings, go to your My Plan section in the app.</div>
 
     ${(function(){ const gc=s.grocery; if(!gc||!((gc.items&&gc.items.length)||gc.note)) return '';
       const by={}; (gc.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});
