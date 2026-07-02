@@ -975,10 +975,10 @@ function stayVitals(s){
       ${stat('Check-in',esc(ciTxt))}
       ${stat('Check-out',esc(coTxt))}
       ${stat('Concierge',conc?esc(conc):'<span class="v-amber">Unassigned</span>')}
-      ${stat('Flight',flightTxt?esc(flightTxt):'—')}
-      ${stat('Flying from',(trans&&trans.flightOrigin)?esc(trans.flightOrigin):'—')}
-      ${stat('Arrives',(trans&&trans.arrivalTime)?esc(trans.arrivalTime):'—')}
-      ${stat('Transfer', trans ? (trans.status==='confirmed'?'<span class="v-green">Confirmed</span>':trans.status==='done'?'<span class="v-green">Arranged</span>':'<span class="v-amber">Requested</span>') : (s.transferArranged?'<span class="v-green">Arranged</span>':'<span class="v-amber">Not arranged</span>'))}
+      ${stat('Registration #',(s.registrationNumber&&String(s.registrationNumber).trim())?esc(s.registrationNumber):'<span class="v-amber">Not set</span>')}
+      ${stat('Villa #',(s.villaNumber||s.villaInternal)?esc(s.villaNumber||s.villaInternal):'—')}
+      ${stat('Guest list',(s.guestList&&s.guestList.length)?esc(s.guestList.length+' / '+party+' registered'):'<span class="v-amber">None yet</span>')}
+      ${stat('Requests', awaiting?('<span class="v-amber">'+awaiting+' awaiting price</span>'):((s.requests||[]).filter(r=>r.status!=='cancelled').length?'<span class="v-green">All handled</span>':'—'))}
     </div>
     <div class="vbk-h">Booked &amp; reserved</div>
     <div class="vrow vrow-booked">${bookedBody}</div>
