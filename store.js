@@ -520,6 +520,10 @@ function addRequest(reference, body) {
     guests: Math.max(0, Math.min(99, Number(body.guests) || 0)),
     note: norm(body.note).slice(0, 300),
     familyName: norm(body.familyName).slice(0, 60), // head-of-family / group label to tell multiple same-type bookings apart (e.g. two airport transfers)
+    airline: norm(body.airline).slice(0, 40),         // flight details captured on the private airport transfer
+    flightNo: norm(body.flightNo).slice(0, 24),
+    flightOrigin: norm(body.flightOrigin).slice(0, 60),
+    arrivalTime: norm(body.arrivalTime).slice(0, 40),
     status: 'pending',
     price: '',
     suggestedPrice: norm(body.suggestedPrice).slice(0, 30),
@@ -542,6 +546,10 @@ function updateGuestRequest(reference, requestId, body) {
   if (body.guests != null) r.guests = Math.max(0, Math.min(99, Number(body.guests) || 0));
   if (body.note != null) r.note = norm(body.note).slice(0, 300);
   if (body.familyName != null) r.familyName = norm(body.familyName).slice(0, 60);
+  if (body.airline != null) r.airline = norm(body.airline).slice(0, 40);
+  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24);
+  if (body.flightOrigin != null) r.flightOrigin = norm(body.flightOrigin).slice(0, 60);
+  if (body.arrivalTime != null) r.arrivalTime = norm(body.arrivalTime).slice(0, 40);
   r.status = 'pending'; r.price = ''; r.confirmedAt = ''; r.doneAt = ''; r.updatedAt = Date.now();
   s.updatedAt = Date.now(); persistStays(); return r;
 }
@@ -877,7 +885,7 @@ function getMessagesByRef(reference) {
 /** Lightweight fetch of just the requests, for guest polling (live status/price updates). Same shape as toGuestStay.requests. */
 function getRequestsByRef(reference) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
-  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt }));
+  return (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt }));
 }
 
 // ------------------------------------------------------- guest-facing mapping
@@ -920,7 +928,7 @@ function toGuestStay(s) {
     yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
 
     explore: EXPLORE_SCENES,
-    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
+    requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),

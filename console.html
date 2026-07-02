@@ -882,6 +882,9 @@ function stayVitals(s){
   const ciTxt=fmtD(s.checkin)?fmtD(s.checkin)+(s.checkinTime?' · '+s.checkinTime:''):'—';
   const coTxt=fmtD(s.checkout)?fmtD(s.checkout)+(s.checkoutTime?' · '+s.checkoutTime:''):'—';
   const fuDue=(s.followUpDate&&dd(s.followUpDate)!=null&&dd(s.followUpDate)<=0);
+  // Flight info now comes from the guest's private airport transfer request (not the old booking airport/flight fields).
+  const trans=(s.requests||[]).find(r=>r.refId==='transfer'&&r.status!=='cancelled')||null;
+  const flightTxt=trans?[trans.airline,trans.flightNo].filter(Boolean).join(' '):'';
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
   const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))],['Registration #',!!(s.registrationNumber&&String(s.registrationNumber).trim())]];
@@ -906,9 +909,10 @@ function stayVitals(s){
       ${stat('Check-in',esc(ciTxt))}
       ${stat('Check-out',esc(coTxt))}
       ${stat('Concierge',conc?esc(conc):'<span class="v-amber">Unassigned</span>')}
-      ${stat('Airport',esc(s.airport||'—'))}
-      ${stat('Flight',esc(s.flight||'—'))}
-      ${stat('Transfer',s.transferArranged?'<span class="v-green">Arranged</span>':'<span class="v-amber">Not arranged</span>')}
+      ${stat('Flight',flightTxt?esc(flightTxt):'—')}
+      ${stat('Flying from',(trans&&trans.flightOrigin)?esc(trans.flightOrigin):'—')}
+      ${stat('Arrives',(trans&&trans.arrivalTime)?esc(trans.arrivalTime):'—')}
+      ${stat('Transfer', trans ? (trans.status==='confirmed'?'<span class="v-green">Confirmed</span>':trans.status==='done'?'<span class="v-green">Arranged</span>':'<span class="v-amber">Requested</span>') : (s.transferArranged?'<span class="v-green">Arranged</span>':'<span class="v-amber">Not arranged</span>'))}
     </div>
     <div class="vrow">
       ${stat('Confirmed add-ons',confirmed.length+' · $'+rev.toLocaleString(),'v-green')}
@@ -1051,6 +1055,7 @@ function renderEditor(){
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="reopenReq('${r.id}')" style="color:#33493B;border-color:#BFD3C2">↩ Reopen &amp; edit</button><button class="reqx" onclick="clearLog('${r.id}')">Clear log</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
         ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span></div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
+        ${(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime)?`<div class="reqmeta">✈ ${[[esc(r.airline||''),esc(r.flightNo||'')].filter(Boolean).join(' '),r.flightOrigin?'from '+esc(r.flightOrigin):'',r.arrivalTime?'arr '+esc(r.arrivalTime):''].filter(Boolean).join(' · ')}</div>`:''}
         <div class="reqmeta" style="display:flex;align-items:center;gap:7px;margin-top:6px"><span style="white-space:nowrap;color:#9AA49B">Head of family</span><input value="${esc(r.familyName||'')}" onchange="setReqFamily('${r.id}',this.value)" placeholder="e.g. Matz family — to tell two transfers apart" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:#fff"></div>
         ${r.createdAt?`<div class="reqmeta" style="color:#9AA49B">Requested ${fmtReqDate(r.createdAt)}</div>`:''}
         ${r.status==='cancelled'&&r.cancelledAt?`<div class="reqmeta" style="color:#9A2B2B">⊘ Cancelled by guest ${fmtReqDate(r.cancelledAt)}</div>`:''}
