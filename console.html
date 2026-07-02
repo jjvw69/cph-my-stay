@@ -966,6 +966,9 @@ function stayVitals(s){
   if(unpaidTot>0)actionBits.push(`<span class="vpill red">$${unpaidTot.toLocaleString()} to collect</span>`);
   if(!s.transferArranged&&din!=null&&din>=0&&din<=5)actionBits.push('<span class="vpill amber">Transfer not arranged</span>');
   if(fuDue)actionBits.push(`<span class="vpill amber">Follow-up due${s.followUpNote?': '+esc(s.followUpNote):''}</span>`);
+  // Arrival-readiness nudges — only in the last week before check-in, so they don't nag too early.
+  if(!s.guestCheckin&&din!=null&&din>=0&&din<=7)actionBits.push('<span class="vpill amber">Pre check-in incomplete</span>');
+  if(!s.guestLastSeen&&din!=null&&din>=0&&din<=7)actionBits.push('<span class="vpill amber">App not opened yet</span>');
   if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
   return `<div class="vitals">
     <div class="vtitle">Dashboard</div>
