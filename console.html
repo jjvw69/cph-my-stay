@@ -192,6 +192,7 @@
   .alertbar .ab-sub{color:inherit;opacity:.8}
   .alertbar.occ{background:#FBF4E4;border:1px solid #E6CF92;color:#7A5A1E}
   .alertbar.diet{background:#FCEDE6;border:1px solid #E3B49C;color:#8A3D22}
+  .alertbar.info{background:#EEF3EE;border:1px solid #BFD3C2;color:#33493B}
   .vitals{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
   .vtitle{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);padding-bottom:9px;margin-bottom:3px;border-bottom:1px solid #EFF1EC}
   .vrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:7px 0;border-bottom:1px solid #EFF1EC}
@@ -1002,10 +1003,19 @@ function stayVitals(s){
 function stayAlerts(s){
   const gc=s.guestCheckin||{};
   const occ=String(gc.occasion||'').trim();
-  const diet=[gc.dietary,(s.grocery&&s.grocery.note),(s.mealPlan&&s.mealPlan.note)].map(x=>String(x||'').trim()).filter(Boolean);
+  // Gather dietary/allergy notes from all three places, then de-duplicate (guests often repeat
+  // the same note across pre check-in, grocery and meals — show it once).
+  const dietRaw=[gc.dietary,(s.grocery&&s.grocery.note),(s.mealPlan&&s.mealPlan.note)].map(x=>String(x||'').trim()).filter(Boolean);
+  const _seen=new Set(); const diet=dietRaw.filter(x=>{ const k=x.toLowerCase().replace(/\s+/g,' '); if(_seen.has(k))return false; _seen.add(k); return true; });
+  const adults=Number(s.adults)||0, children=Number(s.children)||0, party=adults+children;
+  const cap=Number(s.villaSleeps||((BOOT.villas.find(v=>v.id===s.villaId)||{}).sleeps))||null;
+  const ages=(gc.childAges||[]).filter(a=>a!==''&&a!=null);
   let h='';
+  if(cap&&party>cap) h+=`<div class="alertbar diet">⚠ <b>Over capacity:</b> party of ${party} exceeds the villa's ${cap} beds <span class="ab-sub">— confirm sleeping arrangements before arrival.</span></div>`;
   if(occ) h+=`<div class="alertbar occ">🎉 <b>Occasion:</b> ${esc(occ)} <span class="ab-sub">— a welcome touch (cake, décor, champagne) goes a long way.</span></div>`;
   if(diet.length) h+=`<div class="alertbar diet">⚠ <b>Dietary &amp; allergies:</b> ${diet.map(esc).join(' · ')} <span class="ab-sub">— brief the chef &amp; check provisioning.</span></div>`;
+  if(children>0) h+=`<div class="alertbar info">👶 <b>Children in the party:</b> ${children}${ages.length?' (ages '+ages.map(esc).join(', ')+')':''} <span class="ab-sub">— offer cribs / high chairs and note pool safety.</span></div>`;
+  if(gc.transportMode==='self'){ const dt=[gc.transportCompany,gc.transportArrival?('arr '+gc.transportArrival):''].filter(Boolean).map(esc).join(' · '); h+=`<div class="alertbar info">🚗 <b>Guest arranging own transport</b>${dt?': '+dt:''} <span class="ab-sub">— send resort gate-access instructions so they can enter Casa de Campo.</span></div>`; }
   return h;
 }
 /* Center-column mode: 'edit' (full stay editor) or 'chat' (full-height conversation). */
