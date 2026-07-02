@@ -1182,6 +1182,7 @@ function renderEditor(){
       <button onclick="openInvoice('')" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Service invoice</button>
       <button onclick="openGroceryInvoice('')" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Grocery invoice</button>
       <button onclick="openYachtInvoice()" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Yacht invoice</button>
+      <button onclick="openOtherInvoice()" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Other invoice</button>
     </div>
 
     <div class="sec"><h3>Yacht charter proposal</h3>
@@ -1279,7 +1280,7 @@ window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; co
   renderInvItems();
 };
 function invRow(it,i){ return `<div style="border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:8px">
-  ${(_invDraft&&_invDraft.kind==='yacht')?'':`<select onchange="invPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— fill from a service / add-on (optional) —</option>${invPickOptions(it.svcSel||'')}</select>`}
+  ${(_invDraft&&(_invDraft.kind==='yacht'||_invDraft.kind==='other'))?'':`<select onchange="invPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— fill from a service / add-on (optional) —</option>${invPickOptions(it.svcSel||'')}</select>`}
   ${invOptRow(it,i)}
   <div style="display:flex;gap:8px;align-items:center">
     <input value="${esc(it.label)}" oninput="invField(${i},'label',this.value)" placeholder="Description (e.g. Crib · baby gear)" style="${invInput('flex:1;min-width:0')}">
@@ -1318,11 +1319,14 @@ window.openInvoice=function(id){ if(!cur)return; if(id){ const iv=(cur.invoices|
 /* Dedicated yacht-charter invoice: opens the standard invoice modal with the line pre-set to the
    yacht service so the fleet picker (store.js YACHT_CATALOG) shows immediately. */
 window.openYachtInvoice=function(){ if(!cur)return; _invDraft={id:'',kind:'yacht',title:'Yacht charter',items:[{label:'Yacht Charters',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
+/* "Other" invoice: fully manual — for services not in the console catalog. No fill-from
+   pickers; every field typed by hand. kind is draft-only (not persisted). */
+window.openOtherInvoice=function(){ if(!cur)return; _invDraft={id:'',kind:'other',title:'',items:[{label:'',amount:'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); const t=document.getElementById('invTitle'); if(t)t.focus(); };
 window.openInvoiceFor=function(name,rate){ if(!cur)return; _invDraft={id:'',title:name||'Service',items:[{label:name||'',amount:rate||'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeInvoice(); }; document.body.appendChild(ov); } const d=_invDraft;
   ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.kind==='yacht'?(d.id?'Edit yacht invoice':'Yacht invoice'):(d.id?'Edit service invoice':'Service invoice')}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
-    <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" style="${invInput()}">
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.kind==='yacht'?(d.id?'Edit yacht invoice':'Yacht invoice'):d.kind==='other'?(d.id?'Edit invoice':'Other invoice'):(d.id?'Edit service invoice':'Service invoice')}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+    <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" placeholder="e.g. Spa day · Private tour · Photographer" style="${invInput()}">
     <label style="${invLbl()}">Line items</label><div id="invItems">${d.items.map((it,i)=>invRow(it,i)).join('')}</div>
     <button onclick="addInvLine()" style="background:none;border:0;color:var(--accent);font-size:13.5px;font-weight:600;cursor:pointer;padding:2px 0">+ Add line</button>
     <div style="margin:12px 0;border-top:1px solid var(--line);padding-top:11px">
@@ -1369,7 +1373,7 @@ window.removeGroLine=function(i){ if(!_invDraft)return; _invDraft.items.splice(i
 window.openGroceryInvoice=function(id){ if(!cur)return; if(id){ const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; _invDraft={id:iv.id,kind:'grocery',title:iv.title,items:(iv.items||[]).map(it=>({label:it.label,amountRD:String(it.amountRD||'')})),totalRD:String(iv.totalRD||''),subUSD:String(iv.subUSD||''),serviceFeeUSD:String(iv.serviceFeeUSD||''),pickupUSD:String(iv.pickupUSD!=null?iv.pickupUSD:''),totalUSD:String(iv.totalUSD||''),dueBy:iv.dueBy||'',note:iv.note||''}; if(!_invDraft.items.length)_invDraft.items.push({label:'',amountRD:''}); } else { _invDraft={id:'',kind:'grocery',title:'Grocery pre-stocking',items:[{label:'',amountRD:''}],totalRD:'',subUSD:'',serviceFeeUSD:'',pickupUSD:'50',totalUSD:'',dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; } renderGroceryModal(); };
 function renderGroceryModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeInvoice(); }; document.body.appendChild(ov); } const d=_invDraft; const fld=(id,lbl,ph,val)=>`<label style="${invLbl()}">${lbl}</label><input id="${id}" value="${esc(String(val||''))}" placeholder="${ph}" style="${invInput()}">`;
   ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.id?'Edit grocery invoice':'New grocery invoice'}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.id?'Edit grocery invoice':'Grocery invoice'}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
     <div class="counter" style="margin:6px 0 0">The header (guest, agent, dates, villa) fills in from the stay. Enter every amount manually.</div>
     <label style="${invLbl()}">Title</label><input id="groTitle" value="${esc(d.title)}" style="${invInput()}">
     <label style="${invLbl()}">Line items — Dominican Pesos</label><div id="groItems">${d.items.map((it,i)=>groRow(it,i)).join('')}</div>
