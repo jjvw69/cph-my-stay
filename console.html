@@ -1258,7 +1258,9 @@ function invPickOptions(sel){ let h='';
 /* Second-level picker: services with preset options (SVC_OPTIONS — same table the
    "Send a service" form uses: transfer routes, golf cart sizes, car models, nanny rates).
    Picking an option composes the description and auto-fills the price (still editable). */
-function invOptRow(it,i){ const opts=(it.svcId&&SVC_OPTIONS[it.svcId])||[]; if(!opts.length)return '';
+/* Options for a service: SVC_OPTIONS presets, or the yacht fleet (single source: store.js YACHT_CATALOG via bootstrap). */
+function invSvcOpts(id){ if(!id)return []; if(SVC_OPTIONS[id])return SVC_OPTIONS[id]; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
+function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)return '';
   return `<select onchange="invOptPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— pick an option (destination / type / rate) —</option>${opts.map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}"${it.svcOpt===raw?' selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>`;
 }
 window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it.svcOpt=val;
@@ -1266,7 +1268,7 @@ window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; co
     const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===it.svcId)||{};
     it.label=[a.name||it.label,opt].filter(Boolean).join(' — ');
     const num=parseFloat(String(rate).replace(/[^0-9.]/g,''));
-    if(isFinite(num)&&num>0){ if(/day|hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+    if(isFinite(num)&&num>0){ if(it.svcId!=='yacht-charter'&&/day|hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
   }
   renderInvItems();
 };
@@ -1294,7 +1296,7 @@ window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; cons
 window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return; const it=_invDraft.items[i]; let name='',rate='';
   it.svcSel=val; it.svcId=''; it.svcOpt='';
   if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
-  else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if((SVC_OPTIONS[id]||[]).length)it.svcId=id; }
+  else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if(invSvcOpts(id).length)it.svcId=id; }
   if(name)it.label=name;
   if(it.svcId){ it.rate=''; it.days=''; it.amount=''; renderInvItems(); return; } // options exist — wait for the option pick to set the price
   const num=parseFloat(String(rate).replace(/[^0-9.]/g,''));
