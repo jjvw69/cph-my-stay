@@ -418,8 +418,8 @@
       <div class="lfilter">
         <button class="lchip on" data-f="all" onclick="setFilter('all')">All</button>
         <button class="lchip" data-f="published" onclick="setFilter('published')">Published</button>
-        <button class="lchip" data-f="draft" onclick="setFilter('draft')">Draft</button>
         <button class="lchip" data-f="needs info" onclick="setFilter('needs info')">Needs info</button>
+        <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
       </div>
       <div id="stayList"></div>
     </div>
@@ -585,7 +585,15 @@ let listFilter='all';
 window.setFilter=function(f){ listFilter=f; document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f)); renderList(); };
 function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
-  const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q)).filter(s=>listFilter==='all'||(s.status||'draft')===listFilter);
+  // A booking auto-archives once its stay is over (checkout date has passed). Archived stays
+  // live ONLY under the Archive filter and drop out of All / Published / Needs info.
+  const _tOver=todayStr();
+  const isOver=s=>!!(s.checkout&&s.checkout<_tOver);
+  const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q)).filter(s=>{
+    if(listFilter==='archive') return isOver(s);
+    if(isOver(s)) return false;
+    return listFilter==='all'||(s.status||'draft')===listFilter;
+  });
   const el=document.getElementById('stayList');
   const today=todayStr();
   // Follow-ups-due strip removed from the left bar (still surfaced in Today’s overview).
