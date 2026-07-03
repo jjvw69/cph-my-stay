@@ -397,7 +397,7 @@ function renderHome(){
       <div class="label eyebrow">YOUR STAY · CASA DE CAMPO${v.area&&v.area.toLowerCase()!=='casa de campo'?' · '+esc(v.area.toUpperCase()):''}</div>
       <h2 class="villa">${esc(v.name)}</h2>
       <div class="loc">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
-      ${(s.bookingSource&&!/direct/i.test(s.bookingSource))?`<div class="card" style="font-size:13px;color:var(--soft);line-height:1.55;margin:12px 0 0">In partnership with <b style="color:var(--ink)">${esc(s.bookingSource)}</b> · Caribbean Paradise Homes is your local host for this stay.</div>`:''}
+      ${(s.bookingSource&&!/direct/i.test(s.bookingSource))?`<div class="card" style="font-size:13px;color:var(--soft);line-height:1.55;margin:0 0 16px">In partnership with <b style="color:var(--ink)">${esc(s.bookingSource)}</b> · Caribbean Paradise Homes is your local host for this stay.</div>`:''}
       <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
         <div class="chips">
           ${v.suites?`<span class="chip">${esc(v.suites)} suites · sleeps ${esc(v.sleeps||'')}</span>`:''}
@@ -2345,7 +2345,7 @@ window.printItinerary=function(){
     <ol style="font-size:13px;line-height:1.55;color:#33403A;padding-left:18px;margin:4px 0 0">
       <li style="margin-bottom:7px"><b>Before you arrive —</b> Fill out the Dominican Republic E‑Ticket at eticket.migracion.gob.do. Your address in the DR: Casa de Campo, La Romana, Province La Romana, Section Central Romana, Dominican Republic.</li>
       <li style="margin-bottom:7px"><b>Pre‑arrival registration —</b> Send each guest’s full name &amp; passport number so we can pre‑register your group; you’ll receive a Registration Number for check‑in.${s.registrationNumber?' Your Registration #: <b>'+esc(s.registrationNumber)+'</b>.':''}</li>
-      <li style="margin-bottom:7px"><b>Land at ${air} —</b> Your driver waits just outside customs with a sign showing your name. We monitor your flight; the driver waits up to 1 hour after you land.</li>
+      <li style="margin-bottom:7px"><b>Airport Pick-up —</b> Your driver waits just outside customs with a sign showing your name. We monitor your flight; the driver waits up to 1 hour after you land.</li>
       <li style="margin-bottom:7px"><b>Resort main gate —</b> Stop to complete registration; have each guest’s passport and a credit card ready. The resort fee is settled here.</li>
       <li style="margin-bottom:7px"><b>Resort fee —</b> US$30 per adult/day (12+), US$15 per child/day (4–12), free for children 3 and under.</li>
       <li><b>Arrive at ${esc(v.name||'your villa')} —</b> Your concierge welcomes you and hands over the keys &amp; Wi‑Fi in person. Check‑in from ${esc(b.checkInTime||'3:00 PM')}.</li>
