@@ -1085,7 +1085,8 @@ function renderEditor(){
     <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
       <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
       <div class="f"><label>Note</label><input value="${esc(cur.followUpNote||'')}" placeholder="e.g. Confirm transfer price" oninput="set('followUpNote',this.value)"></div>
-      <div class="f full counter">Appears on the stay card and in the “Follow-ups due” strip on the date you pick. Save the draft to apply.${cur.followUpDate?` · <a href="#" onclick="clearFollowUp();return false" style="color:#9E5B43;text-decoration:underline">Clear</a>`:''}</div>
+      <div class="f full counter">Appears on the stay card and in the “Follow-ups due” strip on the date you pick. Save to apply.</div>
+      <div class="f full" style="display:flex;gap:8px;margin-top:2px"><button class="b-fill" onclick="saveDraft()">Save</button>${(cur.followUpDate||cur.followUpNote)?`<button class="b-out" onclick="clearFollowUp()" style="color:#9E5B43;border-color:#9E5B43">Clear</button>`:''}</div>
     </div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
