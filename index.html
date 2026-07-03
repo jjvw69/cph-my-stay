@@ -356,7 +356,7 @@ function tabBar(active,flow){
   const t=(id,ic,lbl)=>`<button class="tab ${active===id?'on':''}" onclick="goTab('${id}')"><span class="ti">${ic}</span>${lbl}</button>`;
   return `<div class="tabs"${flow?' style="position:static;flex:none"':''}>${t('home','⌂','Home')}${t('stay','❖','Your Stay')}${t('explore','✦','Explore')}${t('concierge','✉','Concierge')}</div>`;
 }
-window.goTab=function(id){ state.tab=id; state.stack=[]; render(); };
+window.goTab=function(id){ if(id==='concierge'){ waHandoff(); return; } state.tab=id; state.stack=[]; render(); };  /* chat retired 2026-07: concierge = WhatsApp handoff */
 window.push=function(v){ state.stack.push(v); render(); };
 window.pop=function(){ state.stack.pop(); render(); };
 
@@ -429,7 +429,7 @@ function renderHome(){
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
       <button class="row" onclick="push('addons')"><span class="ic">✦</span><span class="tx"><b>Arrange Villa Add-ons</b><span>Transfers, provisioning, experiences</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('explore')"><span class="ic">🌴</span><span class="tx"><b>Arrange Experiences</b><span>Excursions, dining, spa &amp; activities</span></span><span class="arr">→</span></button>
-      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · replies in minutes</span></span><span class="arr">→</span></button>
+      <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>Message your concierge</b><span>${esc(s.concierge.name)} · on WhatsApp, replies in minutes</span></span><span class="arr">→</span></button>
       <button onclick="push('discover')" style="width:100%;text-align:left;border:0;cursor:pointer;background:var(--accent);color:#fff;border-radius:16px;padding:15px 16px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
         <span style="min-width:0">
           <span class="label" style="color:rgba(255,255,255,.7)">DISCOVER</span>
@@ -1300,7 +1300,7 @@ function renderExplore(){
 }
 window.setExCat=function(c){ const segOld=document.getElementById('exSeg'); const prevLeft=segOld?segOld.scrollLeft:0; state._exCat=c; state._exPage=0; render(); const seg=document.getElementById('exSeg'); if(seg){ seg.scrollLeft=prevLeft; const on=seg.querySelector('button.on'); if(on){ const L=on.offsetLeft, R=L+on.offsetWidth; if(L<seg.scrollLeft+8){ seg.scrollLeft=Math.max(0,L-8); } else if(R>seg.scrollLeft+seg.clientWidth-8){ seg.scrollLeft=R-seg.clientWidth+8; } } } const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.setExPage=function(n){ state._exPage=Math.max(0,n); render(); const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
-window.askConcierge=function(n){ state._seed='Hi — I\'d love to know more about '+n+'.'; goTab('concierge'); };
+window.askConcierge=function(n){ waHandoff('I\'d love to know more about '+n+'.'); };
 
 /* ---------- guest interest requests (add-on + itinerary) ---------- */
 function reqList(){ return (state.stay&&state.stay.requests)||[]; }
@@ -1790,9 +1790,9 @@ window.sendMsg=async function(){
   await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
 };
 /* WhatsApp handoff: open a wa.me chat with the concierge, prefilled with full stay context +
-   a link back to the guest app, and log the handoff once into the chat thread so the console
-   knows the conversation moved to WhatsApp (rides the existing message sync — no new wiring). */
-window.waHandoff=function(){
+   a link back to the guest app. All concierge buttons route here — in-app chat is retired
+   (messages archived server-side, UI removed). Optional `extra` is appended to the prefill. */
+window.waHandoff=function(extra){
   const s=state.stay||{};
   const ph=(((s.concierge&&s.concierge.phone)||'')+'').replace(/[^0-9]/g,'')||'18297638801';
   const cn=(((s.concierge&&s.concierge.name)||'').split(' ')[0])||'there';
@@ -1800,12 +1800,7 @@ window.waHandoff=function(){
   const villa=(s.villa&&s.villa.name)||'';
   const ref=(s.booking&&s.booking.reference)||'';
   const dates=(s.booking&&s.booking.arrive)?(fmtDate(s.booking.arrive)+((s.booking.depart)?' – '+fmtDate(s.booking.depart):'')):'';
-  const msg='Hi '+cn+', this is '+(guest?'the '+guest+' family':'a guest')+(villa?' at '+villa:'')+(dates?' ('+dates+')':'')+(ref?' — booking '+ref:'')+'.\n\nMy Stay app: https://caribbeanparadisehomes.com/my-stay/\n\n';
-  try{
-    const MARK='📲 Continued this conversation on WhatsApp.';
-    const seen=(state.messages||[]).some(x=>x.from==='me'&&x.t===MARK);
-    if(!seen){ state.messages.push({from:'me',t:MARK,at:Date.now()}); updateMsgs(); api('/api/message',{method:'POST',body:JSON.stringify({text:MARK})}); }
-  }catch(e){}
+  const msg='Hi '+cn+', this is '+(guest?'the '+guest+' family':'a guest')+(villa?' at '+villa:'')+(dates?' ('+dates+')':'')+(ref?' — booking '+ref:'')+'.\n\nMy Stay app: https://caribbeanparadisehomes.com/my-stay/\n\n'+(extra?String(extra)+'\n':'');
   const url='https://wa.me/'+ph+'?text='+encodeURIComponent(msg);
   try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){try{a.remove();}catch(e){}},0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ location.href=url; } }
 };
@@ -1817,7 +1812,7 @@ function updateMsgs(){ const m=document.getElementById('msgs'); if(m){ m.innerHT
 /* poll for concierge replies so they appear live without a reload */
 let _pollTimer=null;
 function startPolling(){ if(_pollTimer) return; _pollTimer=setInterval(pollUpdates, 9000); }
-function pollUpdates(){ pollMessages(); pollRequests(); pollStay(); }
+function pollUpdates(){ pollRequests(); pollStay(); }  /* pollMessages retired with in-app chat */
 /* poll the whole stay so concierge edits to static details (Wi-Fi, villa/registration number,
    dates, times, welcome, transfer) AND guest-owned data the concierge can see (grocery, meals,
    guest list, pre check-in) appear live — requests + messages are handled by their own pollers. */

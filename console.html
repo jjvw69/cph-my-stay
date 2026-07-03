@@ -400,7 +400,7 @@
   <div class="cols">
     <div class="col left">
       <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="newStay">＋ New</button></span></div>
-      <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn inbox" id="inboxBtn" onclick="showInbox()">✉ Inbox</button></div>
+      <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
         <button class="lchip on" data-f="all" onclick="setFilter('all')">All</button>
@@ -415,7 +415,6 @@
   </div>
   <nav class="botnav">
     <button onclick="showToday()"><span class="ic">▦</span>Today</button>
-    <button onclick="showInbox()"><span class="ic">✉</span>Inbox</button>
     <button onclick="backToList()"><span class="ic">≣</span>Stays</button>
   </nav>
 </div>
@@ -438,8 +437,8 @@ let _sndSvc='', _sndOptVal='', _sndRate=''; // "Send a service" form state — k
 function getSeen(){ try{ return JSON.parse(localStorage.getItem('cph_console_seen')||'{}')||{}; }catch(e){ return {}; } }
 function setSeen(m){ try{ localStorage.setItem('cph_console_seen',JSON.stringify(m)); }catch(e){} }
 function markViewed(stay){ if(!stay||!stay.id)return; const m=getSeen(); m[stay.id]=Object.assign(m[stay.id]||{},{req:(stay.requests||[]).length,msg:(stay.messages||[]).filter(x=>x.from==='guest').length}); setSeen(m); }
-function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?seen.req:0) || (s.guestMsgs||0)>(seen?seen.msg:0); }
-function unreadMsgs(s){ const seen=getSeen()[s.id]; return Math.max(0,(s.guestMsgs||0)-(seen?seen.msg:0)); }
+function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?seen.req:0); }  /* chat retired — requests only */
+function unreadMsgs(s){ return 0; }  /* in-app chat retired 2026-07 — messaging moved to WhatsApp */
 function tlMarkViewed(d){ if(!d||!d.open||!cur)return; const m=getSeen(); m[cur.id]=Object.assign(m[cur.id]||{},{tl:tlEventCount(cur)}); setSeen(m); const b=d.querySelector('.reqcount'); if(b)b.style.display='none'; }
 function tlEventCount(s){ let n=0; (s.requests||[]).forEach(r=>{ if(r.createdAt)n++; if(r.status==='confirmed')n++; if(r.status==='done')n++; if(r.status==='cancelled')n++; }); n+=(s.messages||[]).length; return n; }
 async function api(path,opts={}){ const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts)); let j={}; try{j=await r.json();}catch(e){} return {status:r.status,ok:r.ok&&j.ok!==false,body:j}; }
@@ -695,7 +694,6 @@ function renderToday(){
       ${stat(arrToday.length,'Arriving today','arrToday')}
       ${stat(depToday.length,'Departing today','depToday')}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
-      ${stat(totMsgs,'Unread messages','msgs',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
       ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
     </div>
@@ -706,7 +704,6 @@ function renderToday(){
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
     ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
-    ${sec('Unread guest messages','msgs', msgs.map(s=>{const u=unreadMsgs(s);return todayRow(s,`<span class="tr-tag amber">${u} new message${u==1?'':'s'}</span>`);}))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
 }
@@ -1072,13 +1069,11 @@ function renderEditor(){
       <textarea rows="1" onchange="setServiceRates('${a.id}',this.value)" placeholder="Guest-facing rate — blank = standard · e.g. 60 minutes | US$120">${esc(a.rates||'')}</textarea>
     </div>`;
   }).join('');
-  const _mc=cur.messages&&cur.messages.length?' · '+cur.messages.length:'';
   const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
-    <div class="emode"><button class="${editorMode==='edit'?'on':''}" onclick="setEditorMode('edit')">✎ Edit</button><button class="${editorMode==='chat'?'on':''}" onclick="setEditorMode('chat')">✉ Conversation${_mc}</button></div>`;
-  if(editorMode==='chat'){ document.getElementById('editor').innerHTML=head+chatPanelFull(cur); const _sc=document.getElementById('chatScroll'); if(_sc)_sc.scrollTop=_sc.scrollHeight; return; }
+    `;  /* editor chat mode removed 2026-07 — guest messaging moved to WhatsApp */
   document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
     ${stayAlerts(cur)}
@@ -1508,18 +1503,10 @@ function renderPreview(){
   const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
   // Slimmed to its unique value: the live action queue + a reply shortcut + the guest link.
   // (Status, villa, arrival, money, guest-activity and readiness all live in the vitals bar now.)
-  const lastMsg=(cur.messages||[])[(cur.messages||[]).length-1];
-  const chatPrev=lastMsg?('“'+esc(String(lastMsg.text||'').slice(0,90))+(String(lastMsg.text||'').length>90?'…':'')+'”'):'No messages yet — say hello.';
+  /* Concierge chat card removed 2026-07 — guest messaging moved to WhatsApp (chat history archived server-side). */
   host.innerHTML=`
     <div class="label">Action panel</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
-
-    <div class="act-sec"><div class="act-h">Concierge chat ${guestMsgs.length?`<span class="act-n">${guestMsgs.length}</span>`:''}</div>
-      <div class="act-card" onclick="openChatPopup()" style="cursor:pointer">
-        <div class="act-msg">${chatPrev}</div>
-        <div class="act-meta" style="margin-top:6px;color:var(--accent);font-weight:600">Tap to open chat ↗</div>
-      </div>
-    </div>
 
     <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>
       ${pending.length?pending.map(r=>`<div class="act-card warn">
