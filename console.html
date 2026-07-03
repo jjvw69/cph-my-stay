@@ -1095,7 +1095,7 @@ function renderEditor(){
     </div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
-      <div class="f full"><label>Booking source</label><select onchange="set('source',this.value)">${['AMA Selections','Bonvido','Direct Booking','Dream Exotics Rentals','Duffy Destinations','Exceptional Villas','Gathering Vacations','Heaven Villas','Home & Villas by Marriott Bonvoy','Hosted Villas','In Veritas','Jetset World Travel','LaCure','One Fine Stay','Personal Villas','Rental Escapes','Top Villas','Villaway'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div class="f full"><label>Booking source</label><select onchange="set('source',this.value)"><option ${cur.source==='Direct Booking'?'selected':''}>Direct Booking</option><optgroup label="──────── Partner / agency bookings ────────">${['AMA Selections','Bonvido','Dream Exotics Rentals','Duffy Destinations','Exceptional Villas','Gathering Vacations','Heaven Villas','Home & Villas by Marriott Bonvoy','Hosted Villas','In Veritas','Jetset World Travel','LaCure','One Fine Stay','Personal Villas','Rental Escapes','Top Villas','Villaway'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</optgroup></select></div>
       <div class="f"><label>Lead guest (full name)</label><input value="${esc(cur.leadName)}" oninput="set('leadName',this.value)"></div>
       <div class="f"><label>Last name (for login)</label><input value="${esc(cur.lastName)}" oninput="set('lastName',this.value)"></div>
       <div class="f"><label>Email</label><input value="${esc(cur.email)}" oninput="set('email',this.value)"></div>
