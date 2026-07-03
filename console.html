@@ -45,7 +45,8 @@
   .topbar .brand{display:flex;align-items:center;gap:9px}
   .topbar .brand img{width:26px}
   .topbar .brand b{font-family:var(--display);font-weight:700;font-size:16px;line-height:1.1;color:#F3F5F3}
-  .topbar .right{display:flex;align-items:center;gap:16px;font-size:14px;color:#C4CCC7}
+  /* Right cluster is a deliberate light-grey "scorebug" panel on the dark stand; dark-grey text for legibility. */
+  .topbar .right{display:flex;align-items:center;gap:14px;font-size:13.5px;color:var(--soft);background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:7px 12px}
   .sync{display:flex;align-items:center;gap:6px}
   .dot{width:7px;height:7px;border-radius:50%;background:#5B9E6F;display:inline-block}
   .who{color:var(--ink)}
@@ -225,8 +226,10 @@
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
   /* pinned section quick-nav for the stay editor */
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
-  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
+  .secbar{display:flex;flex-direction:column;gap:9px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
   .secbar:empty{display:none}
+  .secbar-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px}
+  .secbar-admin{border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
   .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em}
   .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500}
   .secbar .secnav-chip:hover{border-color:#fff;color:#fff}
@@ -822,12 +825,15 @@ function buildSecNav(){
   // The section-nav now lives in the full-width #secbar between the top bar and the columns.
   // It still reflects only the sections actually present in the editor for this stay.
   const ed=document.getElementById('editor'); const bar=document.getElementById('secbar'); if(!ed||!bar) return;
-  let html='';
-  SECNAV_GROUPS.forEach(grp=>{
+  const groupHtml=grp=>{
     const chips=grp.ids.filter(id=>ed.querySelector('#'+id)).map(id=>`<button class="secnav-chip" onclick="jumpSec('${id}')">${esc(SECNAV_LABEL[id]||id)}</button>`);
-    if(chips.length) html+=`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`;
-  });
-  bar.innerHTML=html;
+    return chips.length?`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`:'';
+  };
+  // Booking · Guest requirements · Upsell on one centered row; Admin centered on its own row below.
+  const mainHtml=SECNAV_GROUPS.filter(g=>g.g!=='Admin').map(groupHtml).join('');
+  const adminGrp=SECNAV_GROUPS.find(g=>g.g==='Admin');
+  const adminHtml=adminGrp?groupHtml(adminGrp):'';
+  bar.innerHTML=(mainHtml?`<div class="secbar-row secbar-main">${mainHtml}</div>`:'')+(adminHtml?`<div class="secbar-row secbar-admin">${adminHtml}</div>`:'');
 }
 /* Reorder the editor sections into the same logical groups as the quick-nav, with an
    uppercase divider heading before each group (BOOKING / GUEST / UPSELL & MONEY / ADMIN). */
