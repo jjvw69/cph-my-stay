@@ -579,9 +579,8 @@ function renderList(){
   const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q)).filter(s=>listFilter==='all'||(s.status||'draft')===listFilter);
   const el=document.getElementById('stayList');
   const today=todayStr();
-  // Follow-ups that are due today or overdue, across all stays (not filtered by search).
-  const due=LIST.filter(s=>s.followUpDate && s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
-  const strip=due.length?`<div class="fustrip"><div class="fuhd">Follow-ups due (${due.length})</div>${due.map(s=>{const over=s.followUpDate<today;return `<button class="fuitem" onclick="selectStay('${s.id}')"><span class="fudot ${over?'over':''}"></span><span class="futx"><b>${esc(s.guest)}</b><span>${esc(s.followUpNote||'Follow up')} · ${fmtDay(s.followUpDate)}${over?' · overdue':' · today'}</span></span></button>`;}).join('')}</div>`:'';
+  // Follow-ups-due strip removed from the left bar (still surfaced in Today’s overview).
+  const strip='';
   if(!items.length){ el.innerHTML=strip+'<div class="empty" style="padding:20px 4px">No stays yet. Tap ＋ New.</div>'; return; }
   el.innerHTML=strip+items.map(s=>{
     const dates=(s.checkin||'?')+' – '+(s.checkout||'?');
