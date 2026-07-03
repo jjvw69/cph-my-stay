@@ -12,13 +12,13 @@
 <meta name="apple-mobile-web-app-title" content="CPH Console">
 <link rel="apple-touch-icon" href="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/cropped-CPH-Logo-Only-FB-270x270.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Wimbledon-inspired palette: hedge/grass greens, court greys, purple for status, ball-yellow pop. */
-  :root{--bg:#EDF1EC;--panel:#F6F9F5;--card:#FFF;--ink:#14231A;--accent:#12794D;--accent2:#0C4A2F;--soft:#6E7A70;--line:#DBE2DA;--gold:#5A3A88;--login:#0C3226;
-    --purple:#5A3A88;--yellow:#D7E600;--hedge:#0C4A2F;
+  /* Wimbledon "Centre Court" palette: dark stand grey · green scoreboard · light seating greys · white court · purple status · soft-yellow live accent. */
+  :root{--bg:#E6E9E7;--panel:#EDEFED;--card:#FFF;--ink:#14231A;--accent:#12794D;--accent2:#0C4A2F;--soft:#6B746F;--line:#D5D9D6;--gold:#5A3A88;--login:#0C3226;
+    --purple:#5A3A88;--yellow:#DEE86B;--hedge:#0C4A2F;--stand:#333C39;
     --okbg:#DCEBE1;--oktx:#12794D;--drbg:#E7EAE6;--drtx:#5C665E;--nibg:#F2E3DC;--nitx:#9E5B43;
-    --display:'Cormorant Garamond',Georgia,serif;--ui:'Jost',-apple-system,sans-serif;}
+    --display:'Montserrat',-apple-system,'Segoe UI',sans-serif;--ui:'Montserrat',-apple-system,'Segoe UI',sans-serif;}
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{overflow-x:hidden;max-width:100%}
   body{font-family:var(--ui);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
@@ -41,11 +41,11 @@
   .gatecard .ssoNote{font-size:12.5px;color:var(--soft);margin-top:10px}
   /* Console */
   #app{display:none;height:100dvh;flex-direction:column}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:#fff;border-bottom:1px solid var(--line)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:var(--stand);border-bottom:1px solid #2A322F}
   .topbar .brand{display:flex;align-items:center;gap:9px}
   .topbar .brand img{width:26px}
-  .topbar .brand b{font-family:var(--display);font-weight:600;font-size:16px;line-height:1.1}
-  .topbar .right{display:flex;align-items:center;gap:16px;font-size:14px;color:var(--soft)}
+  .topbar .brand b{font-family:var(--display);font-weight:700;font-size:16px;line-height:1.1;color:#F3F5F3}
+  .topbar .right{display:flex;align-items:center;gap:16px;font-size:14px;color:#C4CCC7}
   .sync{display:flex;align-items:center;gap:6px}
   .dot{width:7px;height:7px;border-radius:50%;background:#5B9E6F;display:inline-block}
   .who{color:var(--ink)}
@@ -225,12 +225,12 @@
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
   /* pinned section quick-nav for the stay editor */
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
-  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;padding:9px 18px;background:var(--hedge);border-bottom:2px solid var(--yellow);flex:0 0 auto}
+  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
   .secbar:empty{display:none}
-  .secbar .secnav-gl{color:#9DBFA9}
-  .secbar .secnav-chip{background:#fff;border-color:transparent;color:var(--accent)}
-  .secbar .secnav-chip:hover{border-color:var(--yellow)}
-  .secbar .secnav-chip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+  .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em}
+  .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500}
+  .secbar .secnav-chip:hover{border-color:#fff;color:#fff}
+  .secbar .secnav-chip.on{background:#fff;border-color:#fff;color:var(--hedge);font-weight:600}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
   .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
@@ -398,7 +398,7 @@
 
 <div id="app">
   <div class="topbar">
-    <div class="brand"><img id="seal2" alt=""><b>Caribbean Paradise Homes<br><span style="font-weight:400;color:var(--soft);font-size:12.5px">Concierge Console</span></b></div>
+    <div class="brand"><img id="seal2" alt=""><b>Caribbean Paradise Homes<br><span style="font-weight:400;color:#A9B3AE;font-size:12.5px">Concierge Console</span></b></div>
     <div class="right">
       <button class="topPending" id="topPending" onclick="showToday()" title="Open Today’s overview"></button>
       <span class="sync" id="syncTag" title="Auto-syncs with the guest app"><span class="dot" id="syncDot"></span> <span id="syncTxt">Console live</span></span>
