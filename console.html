@@ -444,7 +444,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SEAL="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png";
+/* Logo embedded inline (no external hotlink — the WordPress-hosted PNG was failing to load on devices). */
+const SEAL='data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='5' y='5' width='90' height='90' rx='18' fill='#2E6E9E'/><rect x='5' y='5' width='90' height='90' rx='18' fill='none' stroke='#12794D' stroke-width='6'/><g fill='none' stroke='#ffffff' stroke-width='5.5' stroke-linecap='round' stroke-linejoin='round'><path d='M51 80 C49 63 50 53 54 45'/><path d='M54 45 C42 35 29 35 20 42'/><path d='M54 45 C66 35 79 36 87 43'/><path d='M54 45 C47 31 40 25 31 23'/><path d='M54 45 C61 30 70 26 79 25'/><path d='M54 45 C54 33 54 26 55 17'/></g><path d='M30 82 h42' stroke='#ffffff' stroke-width='4' stroke-linecap='round'/></svg>");
 document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=SEAL;
 if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
