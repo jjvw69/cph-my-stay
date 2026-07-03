@@ -1797,7 +1797,7 @@ window.waHandoff=function(extra){
   const ph=(((s.concierge&&s.concierge.phone)||'')+'').replace(/[^0-9]/g,'')||'18297638801';
   const cn=(((s.concierge&&s.concierge.name)||'').split(' ')[0])||'there';
   const guest=(s.guest&&(s.guest.family||s.guest.lastName||s.guest.firstName))||'';
-  const villa=(s.villa&&s.villa.name)||'';
+  const villa=((s.villa&&s.villa.name)||'')+(s.villaNumber?', Villa '+s.villaNumber:'');
   const ref=(s.booking&&s.booking.reference)||'';
   const fdY=iso=>{ const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
   const dates=(s.booking&&s.booking.arrive)?(fdY(s.booking.arrive)+((s.booking.depart)?' – '+fdY(s.booking.depart):'')):'';
