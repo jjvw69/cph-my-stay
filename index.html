@@ -397,6 +397,7 @@ function renderHome(){
       <div class="label eyebrow">YOUR STAY · CASA DE CAMPO${v.area&&v.area.toLowerCase()!=='casa de campo'?' · '+esc(v.area.toUpperCase()):''}</div>
       <h2 class="villa">${esc(v.name)}</h2>
       <div class="loc">${esc([v.internalName||v.area,v.view].filter(Boolean).join(' · ')||'Casa de Campo')}</div>
+      ${(s.bookingSource&&!/direct/i.test(s.bookingSource))?`<div class="card" style="font-size:13px;color:var(--soft);line-height:1.55;margin:12px 0 0">In partnership with <b style="color:var(--ink)">${esc(s.bookingSource)}</b> · Caribbean Paradise Homes is your local host for this stay.</div>`:''}
       <div class="hero ${v.hero?'':'ph'}" ${heroStyle(v.hero)}>
         <div class="chips">
           ${v.suites?`<span class="chip">${esc(v.suites)} suites · sleeps ${esc(v.sleeps||'')}</span>`:''}
@@ -415,7 +416,6 @@ function renderHome(){
           <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
         <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
       </div>`:''}
-      ${(s.bookingSource&&!/direct/i.test(s.bookingSource))?`<div class="card" style="margin-top:12px;font-size:13px;color:var(--soft);line-height:1.55">In partnership with <b style="color:var(--ink)">${esc(s.bookingSource)}</b> · Caribbean Paradise Homes is your local host for this stay.</div>`:''}
       <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
@@ -1279,6 +1279,7 @@ function renderExplore(){
     <div class="backbar"><span class="ttl">Explore</span></div>
     <div style="position:relative;padding:0 22px"><div class="seg" id="exSeg" onscroll="(function(s){s.nextElementSibling.style.opacity=(s.scrollLeft+s.clientWidth>=s.scrollWidth-6)?'0':'1';})(this)" style="flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${cats.map(([lbl,val])=>`<button class="${val===cur?'on':''}" style="flex:0 0 auto;white-space:nowrap" onclick="setExCat('${val}')">${lbl}</button>`).join('')}</div><div style="position:absolute;top:0;right:22px;height:100%;width:56px;display:flex;align-items:center;justify-content:flex-end;pointer-events:none;background:linear-gradient(to right,rgba(245,239,229,0),#F5EFE5 62%);transition:opacity .2s"><span onclick="document.getElementById('exSeg').scrollBy({left:220,behavior:'smooth'})" style="pointer-events:auto;cursor:pointer;width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--accent);box-shadow:0 1px 5px rgba(0,0,0,.14)">›</span></div></div>
     <div class="scroll" style="padding-top:6px">
+      <div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px">Browse what to see and do around the resort. Tap “Add to itinerary” on anything you’d like and your concierge will arrange it — dining reservations, tee times, tours and activities. “More info” opens a full guide.</div>
       ${(cur==='Dining')?`<button onclick="push('dineguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">📖 Dining guide — where to eat by occasion<span>→</span></button>`:''}
       ${(cur==='Golf')?`<button onclick="push('golfguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">⛳ Golf guide — three courses compared<span>→</span></button>`:''}
       ${(cur==='Activities')?`<button onclick="push('expguide')" style="width:100%;background:#F1F4EF;border:1px solid #cfe0c8;border-radius:13px;padding:12px 14px;margin-bottom:12px;font-size:13.5px;color:var(--accent);font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center">🌴 Experiences guide — what to do, by interest<span>→</span></button>`:''}
