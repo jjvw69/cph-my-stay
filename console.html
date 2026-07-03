@@ -1298,6 +1298,11 @@ window.cancelSentUI=async function(sid,name){ if(!cur)return; if(!confirm('Cance
 
 /* ---------- Invoices ---------- */
 let _invDraft=null;
+/* Pull length/dates/guests from the current stay so picked services carry rate × days and context. */
+function invStayNights(){ if(!cur||!cur.checkin||!cur.checkout)return 0; const a=new Date(cur.checkin+'T00:00:00'),b=new Date(cur.checkout+'T00:00:00'); const n=Math.round((b-a)/86400000); return (isFinite(n)&&n>0)?n:0; }
+function invStayDates(){ if(!cur)return ''; const f=iso=>{ if(!iso)return ''; const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(cur.checkin),b=f(cur.checkout); return (a&&b)?(a+'–'+b):(a||''); }
+function invParty(){ if(!cur)return 0; return (Number(cur.adults)||0)+(Number(cur.children)||0); }
+function invCtx(){ const d=invStayDates(), p=invParty(); return [d, p?(p+' guest'+(p===1?'':'s')):''].filter(Boolean).join(' · '); }
 function invDraftSubtotal(){ return ((_invDraft&&_invDraft.items)||[]).reduce((s,x)=>s+(parseFloat(String(x.amount).replace(/[^0-9.]/g,''))||0),0); }
 function invDraftBreakdown(){ const sub=invDraftSubtotal(); const lp=Number(_invDraft&&_invDraft.legalPct)||0, sp=Number(_invDraft&&_invDraft.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invDraftTotal(){ return invDraftBreakdown().total; }
@@ -1329,9 +1334,13 @@ function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)retur
 window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it.svcOpt=val;
   if(val){ const p=String(val).split('||'); const opt=p[0]||'', rate=p[1]||'';
     const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===it.svcId)||{};
-    it.label=[a.name||it.label,opt].filter(Boolean).join(' — ');
+    const _ctx=invCtx(); it.label=[a.name||it.label,opt].filter(Boolean).join(' — ')+(_ctx?' · '+_ctx:'');
     const fm=firstMoney(rate); const num=fm.n;
-    if(isFinite(num)&&num>0){ if(it.svcId!=='yacht-charter'&&/day|hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+    if(isFinite(num)&&num>0){
+      if(it.svcId!=='yacht-charter'&&/day/i.test(rate)){ it.rate=String(num); const dz=invStayNights(); it.days=dz?String(dz):''; it.amount=dz?String(Math.round(num*dz*100)/100):''; }
+      else if(it.svcId!=='yacht-charter'&&/hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; }
+      else { it.amount=String(num); it.rate=''; it.days=''; }
+    }
   }
   renderInvItems();
 };
@@ -1360,11 +1369,11 @@ window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return;
   it.svcSel=val; it.svcId=''; it.svcOpt='';
   if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
   else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if(invSvcOpts(id).length)it.svcId=id; }
-  if(name)it.label=name;
+  if(name){ const _ctx=invCtx(); it.label=name+(_ctx?' · '+_ctx:''); }
   if(it.svcId){ it.rate=''; it.days=''; it.amount=''; renderInvItems(); return; } // options exist — wait for the option pick to set the price
   const fm=firstMoney(rate); const num=fm.n;
   if(fm.multi){ it.rate=''; it.days=''; it.amount=''; } // tiered rate text — don't guess, staff types the price
-  else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+  else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); const dz=invStayNights(); it.days=dz?String(dz):''; it.amount=dz?String(Math.round(num*dz*100)/100):''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
   renderInvItems();
 };
 window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push(_invDraft.kind==='yacht'?{label:'',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}:{label:'',amount:'',rate:'',days:''}); renderInvItems(); };
