@@ -1275,6 +1275,8 @@ function invTotalsHtml(){ const b=invDraftBreakdown(); const row=(l,v,bold)=>`<d
   return row('Subtotal',b.sub)+(b.lp?row('+ '+b.lp+'% legal fee',b.legal):'')+(b.sp?row('+ '+b.sp+'% service fee',b.service):'')+row('Total',b.total,true); }
 function renderInvTotals(){ const c=document.getElementById('invTotals'); if(c)c.innerHTML=invTotalsHtml(); }
 window.invToggleFee=function(which,on){ if(!_invDraft)return; if(which==='legal')_invDraft.legalPct=on?18:0; else _invDraft.servicePct=on?10:0; renderInvTotals(); };
+/* Right-rail "Send reminder" — opens WhatsApp pre-filled with the outstanding balance + My Stay link. */
+window.remindBalanceWA=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const name=((cur.leadName||'').split(' ')[0])||'there'; const invs=(cur.invoices||[]).filter(iv=>iv.status==='sent'); const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0); const tot=invs.reduce((a,iv)=>a+invTot(iv),0); const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(cur.reference||''); const msg='Hi '+name+', a friendly reminder that you have a balance of $'+tot.toLocaleString('en-US')+' outstanding for booking '+(cur.reference||'')+'. You can review and settle it in your My Stay app:\n'+url+'\n\nThank you!'; const wa=ph?('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)):('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
 function invBreakdown(iv){ const sub=(iv.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); const lp=Number(iv.legalPct)||0, sp=Number(iv.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invInput(extra){ return 'width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;'+(extra||''); }
 function invLbl(){ return 'display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:11px 0 5px'; }
@@ -1480,46 +1482,100 @@ function guestPulse(ts){
   const t=m<1?'just now':m<60?(m+'m ago'):m<1440?(Math.floor(m/60)+'h ago'):(Math.floor(m/1440)+'d ago');
   return '<span class="pulse '+(m<30?'on':'off')+'">· opened '+t+'</span>';
 }
-/* The right column = live Guest Activity panel (needs-action, messages, readiness, pulse). */
+/* The right column = the concierge "do-now" action rail. Only time-sensitive items that
+   carry an action/button belong here; static info (villa, dates, party, money totals) lives
+   in the Dashboard vitals bar. Blocks: status · Needs action · Money to collect · Your move ·
+   Arrival readiness · Awaiting guest · Quick actions. */
 function renderPreview(){
   const host=document.getElementById('preview'); if(!host) return;
   if(!cur){ host.innerHTML='<div class="empty">No stay selected.</div>'; return; }
-  const c=BOOT.concierges.find(x=>x.id===cur.conciergeId)||{}, v=BOOT.villas.find(x=>x.id===cur.villaId)||{};
-  const vName=cur.villaName||v.name||'—';
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
-  const d=daysUntil(cur.checkin), n=nights(cur.checkin,cur.checkout);
+  const todayISO=new Date().toISOString().slice(0,10);
+  const d=daysUntil(cur.checkin);
+  const departed=!!(cur.checkout&&cur.checkout<todayISO);
   const reqs=(cur.requests||[]);
   const pending=reqs.filter(r=>r.status!=='done'&&r.status!=='cancelled');
-  const cancelled=reqs.filter(r=>r.status==='cancelled');
-  const guestMsgs=(cur.messages||[]).filter(m=>m.from==='guest');
-  const gc=cur.guestCheckin;
-  const ready=[
-    ['Pre check-in submitted', !!gc],
-    ['Grocery list', !!(cur.grocery&&cur.grocery.items&&cur.grocery.items.length)],
-    ['Arrival meals', !!(cur.mealPlan&&['breakfast','lunch','dinner'].some(k=>cur.mealPlan[k]&&(cur.mealPlan[k].date||cur.mealPlan[k].desc)))],
-    ['Guest registration', !!(cur.guestList&&cur.guestList.length)],
-    ['Transfer arranged', !!cur.transferArranged],
-  ];
   const reqMeta=r=>[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' g':''].filter(Boolean).join(' · ')||'No date/time given';
-  // Slimmed to its unique value: the live action queue + a reply shortcut + the guest link.
-  // (Status, villa, arrival, money, guest-activity and readiness all live in the vitals bar now.)
-  /* Concierge chat card removed 2026-07 — guest messaging moved to WhatsApp (chat history archived server-side). */
+
+  // Money to collect — invoices sent to the guest but not yet paid.
+  const invs=cur.invoices||[]; const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0);
+  const unpaid=invs.filter(iv=>iv.status==='sent'); const unpaidTot=unpaid.reduce((a,iv)=>a+invTot(iv),0);
+
+  // Your move — decisions the concierge owes (outside the request queue).
+  const yp=cur.yachtProposal; const yChosen=(yp&&yp.status==='chosen')?(yp.options||[]).find(o=>o.id===yp.chosenId):null;
+  const yachtToInvoice=yChosen&&!invs.some(iv=>iv.yachtId===yp.id);
+  const fuList=(Array.isArray(cur.followUps)&&cur.followUps.length)?cur.followUps:(cur.followUpDate?[{date:cur.followUpDate,note:cur.followUpNote||''}]:[]);
+  const fuDue=fuList.filter(f=>f.date&&f.date<=todayISO);
+
+  // Awaiting guest — informational, ball in the guest's court.
+  const svcAwait=(cur.sentServices||[]).filter(x=>x.status!=='confirmed'&&x.status!=='declined'&&x.status!=='cancelled');
+  const yachtWaiting=yp&&yp.status!=='chosen';
+
+  // Arrival readiness — only within 14 days of an upcoming stay; each missing item jumps to its section.
+  const rdy=[
+    ['Pre check-in', !!cur.guestCheckin, 'csec-guest-party'],
+    ['Transfer arranged', !!cur.transferArranged, 'csec-guest-pending-requests'],
+    ['Guest registration', !!(cur.guestList&&cur.guestList.length), 'csec-guest-registration-list'],
+    ['Registration #', !!(cur.registrationNumber&&String(cur.registrationNumber).trim()), 'csec-payment-balance'],
+    ['Groceries', !!(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note)), 'csec-grocery-pre-stocking'],
+  ];
+  const showReady=d!=null&&d<=14&&!departed;
+  const missing=rdy.filter(x=>!x[1]);
+
+  const sec=(title,n,body)=>`<div class="act-sec"><div class="act-h">${title}${n?`<span class="act-n">${n}</span>`:''}</div>${body}</div>`;
+
+  const needsBody=pending.length?pending.map(r=>`<div class="act-card warn">
+      <div class="act-title">${esc(r.title||'Request')}</div>
+      <div class="act-meta">${reqMeta(r)}${r.createdAt?' · '+fmtReqDate(r.createdAt):''}</div>
+      ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
+      ${r.status==='confirmed'
+        ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(r.price):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
+        : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}','pa')">Confirm</button></div>`}
+    </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`;
+
+  const moneyBody=unpaid.length?`<div class="act-card" style="border-color:#E3C4B6;background:#FBF1EC">
+      <div class="act-title" style="color:#9A2B2B">$${unpaidTot.toLocaleString('en-US')} outstanding</div>
+      ${unpaid.map(iv=>`<div class="act-meta">#${iv.no} · ${esc(iv.title||'Invoice')} · $${invTot(iv).toLocaleString('en-US')}${iv.sentAt?' · sent '+fmtAgo(iv.sentAt):''}</div>`).join('')}
+      <div class="act-row"><button class="b-fill" onclick="remindBalanceWA()">Send reminder</button><button class="b-out" onclick="jumpSec('csec-invoices')">Open invoices</button></div>
+    </div>`:'';
+
+  const moveCards=[];
+  if(yachtToInvoice) moveCards.push(`<div class="act-card warn">
+      <div class="act-title">Guest chose ${esc(yChosen.name||'a yacht')}</div>
+      <div class="act-meta">Turn the choice into an invoice to lock it in.</div>
+      <div class="act-row"><button class="b-fill" onclick="openInvoiceForYacht('${esc(yChosen.name)}','${esc(yChosen.rate||'')}')">Create invoice</button></div>
+    </div>`);
+  fuDue.forEach(f=>moveCards.push(`<div class="act-card warn">
+      <div class="act-title">Follow-up due</div>
+      <div class="act-meta">${esc(f.note||'Follow up with the guest')}${f.date?' · '+esc(f.date):''}</div>
+      <div class="act-row"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Open follow-ups</button></div>
+    </div>`));
+  const moveBody=moveCards.join('');
+
+  const awaitBits=[];
+  if(svcAwait.length) awaitBits.push(svcAwait.length+' service'+(svcAwait.length===1?'':'s')+' awaiting reply');
+  if(yachtWaiting) awaitBits.push('yacht proposal — waiting for guest');
+  const awaitBody=awaitBits.length?`<div class="act-meta" style="padding:2px 2px 0">${awaitBits.map(esc).join(' · ')}</div>`:'';
+
+  const readyBody=missing.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${missing.map(x=>`<button class="secnav-chip" style="border-color:#E4C58C;color:#8A6D2E" onclick="jumpSec('${x[2]}')">○ ${esc(x[0])}</button>`).join('')}</div>`
+    : `<div class="act-empty" style="border-style:solid;color:#3F6B4E">Ready for arrival ✓</div>`;
+
+  const qa=[];
+  if(cur.status==='published') qa.push(`<button class="b-out" onclick="sendLoginLink()">Guest link · WhatsApp</button>`);
+  qa.push(`<button class="b-out" onclick="openInvoice('')">New invoice</button>`);
+  const qaBody=`<div class="act-row" style="flex-wrap:wrap">${qa.join('')}</div>`;
+
   host.innerHTML=`
     <div class="label">Action panel</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
-
-    <div class="act-sec"><div class="act-h">Needs action ${pending.length?`<span class="act-n">${pending.length}</span>`:''}</div>
-      ${pending.length?pending.map(r=>`<div class="act-card warn">
-        <div class="act-title">${esc(r.title||'Request')}</div>
-        <div class="act-meta">${reqMeta(r)}${r.createdAt?' · '+fmtReqDate(r.createdAt):''}</div>
-        ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
-        ${r.status==='confirmed'
-          ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(r.price):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
-          : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}','pa')">Confirm</button></div>`}
-      </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`}
-    </div>
-
-    `;
+    ${sec('Needs action', pending.length, needsBody)}
+    ${moneyBody?sec('Money to collect', unpaid.length, moneyBody):''}
+    ${moveBody?sec('Your move', moveCards.length, moveBody):''}
+    ${showReady?sec('Arrival readiness', missing.length, readyBody):''}
+    ${awaitBody?sec('Awaiting guest', 0, awaitBody):''}
+    ${sec('Quick actions', 0, qaBody)}
+  `;
   chatPopupRefresh();
 }
 /* Concierge chat popup — full chat panel in an overlay; opened from the Action panel card.
