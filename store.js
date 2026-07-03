@@ -36,10 +36,10 @@ const ADDON_CATALOG = [
   // Kids & childcare
   { id: 'babygear',      category: 'Kids & childcare',      name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
   { id: 'nannies',       category: 'Kids & childcare',      name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
-  // In-villa services
-  { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
-  { id: 'entertainment', category: 'In-villa services',     name: 'Live Entertainment',                 desc: 'Musicians, DJs and performers to set the mood for a dinner, celebration or evening at your villa.' },
-  { id: 'rumcigar',      category: 'In-villa services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
+  // Additional services
+  { id: 'staff',         category: 'Additional services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
+  { id: 'entertainment', category: 'Additional services',     name: 'Live Entertainment',                 desc: 'Musicians, DJs and performers to set the mood for a dinner, celebration or evening at your villa.' },
+  { id: 'rumcigar',      category: 'Additional services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
 ];
 
 const CONCIERGES = [
@@ -251,7 +251,7 @@ const EXPLORE_SCENES = [
   { id:'rum', cat:'Outside', name:'Rum Factory · Ron Barceló', meta:'Distillery tour', desc:"Tour one of the country's most prestigious rum distilleries, founded in 1930 (adults only).", img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/cph-rum-fixed.webp', more:'https://www.casadecampo.com.do/experiences/excursions/' },
   // ---- Family programs & childcare ----
   { id:'family-programs', cat:'Activities', name:'Family Programs', meta:"Supervised kids' camps · 1–17", desc:'Award-winning supervised programs by age group — Toddlers (1–3), Kidz (4–6), Casa Tweens (7–12) and Bonche 4 Teens (13–17): playground, arts & crafts, beach Olympics, sports, kayaking, horseback riding and more.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/familytravelling-768x384.webp', more:'https://www.casadecampo.com.do/experiences/for-families/' },
-  // ---- In-villa experiences moved to Villa Add-ons > In-villa services (entertainment, rumcigar) ----
+  // ---- In-villa experiences moved to Villa Add-ons > Additional services (entertainment, rumcigar) ----
   { id:'yacht-charter', cat:'Activities', name:'Yacht Charters', meta:'Marina · private charter', desc:'Private motor yachts, sailing yachts and catamarans with crew from Casa de Campo Marina — half-day, full-day, sunset cruises and island trips.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/05/A745160-1024x683.jpg', more:'https://www.casadecampo.com.do/experiences/marina/' },
   // ---- Nightlife ----
   { id:'genesis', cat:'Nightlife', info:true, name:'Genesis Nightclub', meta:'Altos de Chavón · late night', desc:'The resort’s nightclub in the clifftop village — DJs, dancing and bottle service into the early hours.', img:'https://www.casadecampo.com.do/wp-content/uploads/2019/03/nightlife-cocktail-bar.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
