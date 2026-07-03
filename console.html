@@ -340,7 +340,7 @@
     #app,.topbar,.cols,.col,.center,.ehd,.ebtns,.sec,.grid{min-width:0;max-width:100%}
     .cols{display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:66px}
     /* Phone: collapse the section-nav into ONE swipeable strip (it otherwise fills the whole screen). */
-    .secbar{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:8px 12px;-webkit-overflow-scrolling:touch}
+    .secbar{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:8px 12px;-webkit-overflow-scrolling:touch;box-shadow:0 4px 10px rgba(0,0,0,.16);position:relative;z-index:5}
     .secbar::-webkit-scrollbar{display:none}
     .secbar-row,.secbar .secnav-g{display:contents}
     .secbar-admin{border-top:0;padding-top:0}
@@ -358,9 +358,12 @@
     #app.view-detail .col.center{display:block}
     #app.view-detail .col.right{display:block;border-top:1px solid var(--line);margin-top:10px}
     .backlist{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:14px;color:var(--accent)}
-    .topbar{flex-direction:column;align-items:flex-start;gap:9px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
-    .topbar .right{width:100%;flex-wrap:wrap;gap:8px 14px;font-size:13px}
-    .topbar .who{overflow-wrap:anywhere;min-width:0}
+    .topbar{flex-direction:column;align-items:flex-start;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
+    .topbar .brand{align-items:center;gap:11px}
+    .topbar .brand img{width:38px}
+    .topbar .brand b{font-size:17px}
+    .topbar .right{width:100%;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;padding:7px 11px}
+    .topbar .who{overflow-wrap:anywhere;min-width:0;font-size:12.5px}
     .center{padding:16px 14px}
     .center .ehd{flex-direction:column;align-items:stretch;gap:10px}
     .center h2{font-size:24px}
