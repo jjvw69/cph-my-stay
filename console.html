@@ -1092,7 +1092,7 @@ function renderEditor(){
   const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
-      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span>${cur.status==='published'?`<button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button>`:`<button id="saveBtn" class="b-fill" onclick="publish()">Save &amp; Publish</button>`}<button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span>${cur.status==='published'?`<button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button>`:`<button id="saveBtn" class="b-fill" onclick="publish()">Save &amp; Publish</button>`}<button class="b-out" onclick="removeStay()" style="background:#C0392B;color:#fff;border-color:#C0392B">Delete</button></div></div>
     `;  /* editor chat mode removed 2026-07 — guest messaging moved to WhatsApp */
   document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
