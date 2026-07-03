@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const store = require('./store');
+const v365 = require('./villas365'); // PMS adapter — used ONLY by /healthz + /api/_probe diagnostics, never in the guest path.
 
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
@@ -263,8 +264,29 @@ async function route(req,res){
   const url=req.url.split('?')[0];
   const m=req.method;
 
-  // health
-  if(url==='/healthz') return sendJSON(res,200,{ok:true,store:store._counts(),time:new Date().toISOString()});
+  // health — includes PMS mode so the scheduled monitor can distinguish live/mock/unconfigured.
+  // no-store: health responses must never be cached (a stale timestamp defeats the monitor).
+  if(url==='/healthz'){
+    const configured = !!(v365.CFG.key && v365.CFG.pass);
+    const mode = v365.CFG.mock ? 'mock' : (configured ? 'live' : 'unconfigured');
+    const s = JSON.stringify({ok:true,configured,mode,store:store._counts(),time:new Date().toISOString()});
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store, no-cache, must-revalidate','Content-Length':Buffer.byteLength(s)});
+    return res.end(s);
+  }
+  // PMS reachability probe — returns response STRUCTURE only (status/message), never guest data.
+  if(m==='GET' && url==='/api/_probe'){
+    const configured = !!(v365.CFG.key && v365.CFG.pass);
+    const mode = v365.CFG.mock ? 'mock' : (configured ? 'live' : 'unconfigured');
+    let probes = [];
+    if(mode === 'live'){
+      try{ probes = [await v365.probeAction('getreservations')]; }
+      catch(e){ probes = [{action:'getreservations', err: e.message}]; }
+    }
+    const ok = mode === 'live' && probes.length > 0 && probes.every(p => !p.err);
+    const s = JSON.stringify({ok,mode,configured,probes,note:'structure only — never returns guest data',time:new Date().toISOString()});
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store, no-cache, must-revalidate','Content-Length':Buffer.byteLength(s)});
+    return res.end(s);
+  }
 
   // guest api
   if(m==='GET' &&url==='/api/version') return sendJSON(res,200,{ok:true,ver:APP_VER});
@@ -294,7 +316,7 @@ async function route(req,res){
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);
-    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES,yachtCatalog:store.YACHT_CATALOG});
+    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES,yachtCatalog:store.YACHT_CATALOG,serviceOptions:store.SERVICE_OPTIONS});
     if(m==='POST'&&url==='/api/staff/services'){ const b=await readBody(req); const it=store.addCustomService(b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,400,{ok:false,error:'A service name is required.'}); }
     const svU=url.match(/^\/api\/staff\/services\/([A-Za-z0-9]+)$/);
     if(svU&&m==='PUT'){ const b=await readBody(req); const it=store.updateService(svU[1],b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Service not found'}); }

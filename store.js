@@ -42,6 +42,31 @@ const ADDON_CATALOG = [
   { id: 'rumcigar',      category: 'Additional services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
 ];
 
+// Single source of truth for per-service options + rates. Keyed by ADDON_CATALOG id.
+// Served to BOTH the console (invoice + send-service pickers) and the guest app so the
+// options/rates offered stay identical. Same [label, rate] shape on both sides. Edit here only.
+const SERVICE_OPTIONS = {
+  golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
+  carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
+  transfer:[
+    ['LRM → Casa de Campo · Standard · One-way','$50'],['LRM → Casa de Campo · Standard · Round-trip','$90'],
+    ['LRM → Casa de Campo · Comfort · One-way','$80'],['LRM → Casa de Campo · Comfort · Round-trip','$150'],
+    ['LRM → Casa de Campo · VIP Black · One-way','$150'],['LRM → Casa de Campo · VIP Black · Round-trip','$280'],
+    ['PUJ → Casa de Campo · Standard · One-way','$125'],['PUJ → Casa de Campo · Standard · Round-trip','$240'],
+    ['PUJ → Casa de Campo · Comfort · One-way','$160'],['PUJ → Casa de Campo · Comfort · Round-trip','$300'],
+    ['PUJ → Casa de Campo · VIP Black · One-way','$290'],['PUJ → Casa de Campo · VIP Black · Round-trip','$560'],
+    ['SDQ → Casa de Campo · Standard · One-way','$140'],['SDQ → Casa de Campo · Standard · Round-trip','$270'],
+    ['SDQ → Casa de Campo · Comfort · One-way','$190'],['SDQ → Casa de Campo · Comfort · Round-trip','$360'],
+    ['SDQ → Casa de Campo · VIP Black · One-way','$320'],['SDQ → Casa de Campo · VIP Black · Round-trip','$620'],
+    ['Casa de Campo → LRM (La Romana) · Standard · One-way','$50'],['Casa de Campo → LRM (La Romana) · Comfort · One-way','$80'],['Casa de Campo → LRM (La Romana) · VIP Black · One-way','$150'],
+    ['Casa de Campo → PUJ (Punta Cana) · Standard · One-way','$125'],['Casa de Campo → PUJ (Punta Cana) · Comfort · One-way','$160'],['Casa de Campo → PUJ (Punta Cana) · VIP Black · One-way','$290'],
+    ['Casa de Campo → SDQ (Santo Domingo) · Standard · One-way','$140'],['Casa de Campo → SDQ (Santo Domingo) · Comfort · One-way','$190'],['Casa de Campo → SDQ (Santo Domingo) · VIP Black · One-way','$320']],
+  nannies:[['Daytime nanny','$26 / hour'],['Evening babysitting','$20 / hour']],
+  staff:[['Private chef','$150 / day · rate may vary with skills & experience'],['Waiter','$50 / day · rate may vary with skills & experience']],
+  massage:[['60 minutes','$120'],['90 minutes','$140'],['120 minutes','$160']],
+  yoga:[['1 person · 60 min','$120 / hour'],['2 people · 60 min','$95 / hour per person'],['3–6 people · 60 min','$240 / hour'],['7–10 people · 60 min','$60 / hour per person']],
+};
+
 const CONCIERGES = [
   { id: 'maria-fernanda', name: 'María Fernanda', phone: '+1 (829) 763-8801', avatarInitials: 'MF' },
   { id: 'ivonna',         name: 'Ivonna',         phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
@@ -984,6 +1009,7 @@ function toGuestStay(s) {
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
+    serviceOptions: SERVICE_OPTIONS,              // single source — same service options/rates on guest + console
 
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
@@ -1028,7 +1054,7 @@ ensureDir();
 seedStaffFromEnv();
 
 module.exports = {
-  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG,
+  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,

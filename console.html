@@ -1165,7 +1165,7 @@ function renderEditor(){
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
         <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
           <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
-          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${(SVC_OPTIONS[_sndSvc]||[]).length?'— pick an option —':'— no preset options · type one below —'}</option>${(SVC_OPTIONS[_sndSvc]||[]).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>
+          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndNote" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
@@ -1327,7 +1327,10 @@ function invPickOptions(sel){ let h='';
    "Send a service" form uses: transfer routes, golf cart sizes, car models, nanny rates).
    Picking an option composes the description and auto-fills the price (still editable). */
 /* Options for a service: SVC_OPTIONS presets, or the yacht fleet (single source: store.js YACHT_CATALOG via bootstrap). */
-function invSvcOpts(id){ if(!id)return []; if(SVC_OPTIONS[id])return SVC_OPTIONS[id]; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
+/* Service options come from store.js (BOOT.serviceOptions) — single source shared with the guest app.
+   Falls back to the local SVC_OPTIONS only if the bootstrap didn't carry them. */
+function svcOpts(id){ const src=(typeof BOOT!=='undefined'&&BOOT.serviceOptions)||null; return (src&&src[id])||SVC_OPTIONS[id]||[]; }
+function invSvcOpts(id){ if(!id)return []; const o=svcOpts(id); if(o.length)return o; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
 function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)return '';
   return `<select onchange="invOptPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— pick an option (destination / type / rate) —</option>${opts.map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}"${it.svcOpt===raw?' selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>`;
 }
