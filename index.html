@@ -156,6 +156,9 @@
   .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
   .tile b{display:block;font-size:14px;font-weight:500}
   .tile span{font-size:12px;color:var(--soft)}
+  .tile.tap{position:relative;cursor:pointer;border-color:#cfe0c8;background:#F4F8F1}
+  .tile.tap::after{content:'›';position:absolute;top:10px;right:13px;color:var(--accent);font-size:18px;line-height:1;font-weight:600}
+  .tile.tap b{color:var(--accent)}
   .seg{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
   .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px;border-radius:30px;font-size:13px}
   .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -478,10 +481,10 @@ function renderStay(){
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
         <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash to the staff</span></div>
-        <div class="tile" onclick="goTab('concierge')" style="cursor:pointer"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')}</span></div>
+        <div class="tile tap" onclick="goTab('concierge')"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')}</span></div>
         <div class="tile"><b>Emergency</b><span>911</span></div>
         <div class="tile"><b>Resort Registration</b><span>${s.registrationNumber?'Your code - '+esc(s.registrationNumber):'Provided on arrival'}</span></div>
-        <div class="tile" onclick="push('translations')" style="cursor:pointer"><b>Travel translations</b><span>English ⇄ Spanish →</span></div>
+        <div class="tile tap" onclick="push('translations')"><b>Travel translations</b><span>English ⇄ Spanish</span></div>
       </div>
       <div class="sec-title">Your timeline</div>
       <div style="font-size:12.5px;color:var(--soft);line-height:1.5;margin:2px 2px 10px">Everything for your stay, in order — tap any step to complete pre check-in, review your plan and bookings, get directions and villa info, or reach your concierge.</div>
@@ -492,7 +495,7 @@ function renderStay(){
       <button class="row" onclick="push('resortmap')"><span class="ic">🗺</span><span class="tx"><b>Resort map</b><span>Casa de Campo &middot; tap to zoom &amp; explore</span></span><span class="arr">→</span></button>
       <button class="row" onclick="goTab('concierge')"><span class="ic">✉</span><span class="tx"><b>During your stay</b><span>Contact your concierge if you have any questions</span></span><span class="arr">→</span></button>
       <button class="row" onclick="push('checkout')"><span class="ic">⤴</span><span class="tx"><b>Departure</b><span>Checkout ${esc(b.checkOutTime||'')}</span></span><span class="arr">→</span></button>
-      <div class="sec-title">Inside the villa</div>
+      <div class="sec-title">Frequently Asked Questions</div>
       <div class="faq">${(function(){
         const faq=[
           ['What are the staff duties?',`The maid keeps the villa clean and, on some occasions, cooks your breakfast. The cook prepares and cooks your three meals of the day. The waiter prepares and serves drinks and helps the rest of the staff with whatever they need.`],
@@ -505,13 +508,6 @@ function renderStay(){
           ['Anything we should know about the pool or Jacuzzi?',`Your private pool or Jacuzzi is used entirely by you and your party at your own risk. Please supervise everyone in your group — especially children and elderly guests — at all times in and around the pool and Jacuzzi. No glass may be used in or around the pool or Jacuzzi: a single broken glass can require draining and cleaning the entire pool, at your expense. Plastic cups are provided.`],
           ['Who can we contact for anything we need during our stay?',`On arrival you'll meet one of our representatives, who will welcome you and share their contact details in case you need anything. You can also message your concierge any time here in the app.`],
           ['Where can we shop for groceries?',`There are two small supermarkets inside Casa de Campo®: Nacional at the Marina (ext. 2344) and El Mercadito in Altos de Chavón (ext. 5292). The main supermarket, Jumbo, is just outside the resort in the town of La Romana.`],
-        ];
-        const item=(q,a)=>`<details style="background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:11px;overflow:hidden"><summary style="cursor:pointer;padding:14px 15px;font-size:14.5px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:10px">${q}<span class="faq-x" style="color:var(--soft);font-size:19px;line-height:1;transition:transform .15s;flex:0 0 auto">+</span></summary><div style="font-size:13.5px;color:var(--soft);line-height:1.55;padding:0 15px 14px">${a}</div></details>`;
-        return faq.map(f=>item(f[0],f[1])).join('');
-      })()}</div>
-      <div class="sec-title">Outside the villa</div>
-      <div class="faq">${(function(){
-        const faq=[
           ['Where can I change US$ Dollars or € Euros?',`There's no need to change your US dollars — all the amenities and restaurants in Casa de Campo® accept US$. If you do need to exchange money, the Casa de Campo Marina has several banks open Monday to Saturday, plus ATMs at the Marina and the Casa de Campo® Hotel. Banco López de Haro at the Marina is the only bank that can change € Euros. There are also banks and exchange houses in the nearby town of La Romana.`],
           ['Should I use sun protection during the day?',`Yes. The combination of sun and sea brings plenty of fun, but some hazards too. In the summer, enjoy the sea and sun in the morning until about 11am and again after 4pm — between 11am and 4pm it's best to stay out of the strong midday sun.`],
         ];

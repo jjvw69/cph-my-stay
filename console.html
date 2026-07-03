@@ -1082,11 +1082,15 @@ function renderEditor(){
     ${stayVitals(cur)}
     ${stayAlerts(cur)}
 
-    <div class="sec"><h3>Follow-up reminder</h3><div class="grid">
-      <div class="f"><label>Follow up on</label><input type="date" value="${esc(cur.followUpDate||'')}" oninput="set('followUpDate',this.value)"></div>
-      <div class="f"><label>Note</label><input value="${esc(cur.followUpNote||'')}" placeholder="e.g. Confirm transfer price" oninput="set('followUpNote',this.value)"></div>
-      <div class="f full counter">Appears on the stay card and in the “Follow-ups due” strip on the date you pick. Save to apply.</div>
-      <div class="f full" style="display:flex;gap:8px;margin-top:2px"><button class="b-fill" onclick="saveDraft()">Save</button>${(cur.followUpDate||cur.followUpNote)?`<button class="b-out" onclick="clearFollowUp()" style="color:#9E5B43;border-color:#9E5B43">Clear</button>`:''}</div>
+    <div class="sec"><h3>Follow-up reminders</h3><div class="grid">
+      ${(function(){ if(!Array.isArray(cur.followUps)) cur.followUps=(cur.followUpDate?[{date:cur.followUpDate,note:cur.followUpNote||''}]:[]); const list=cur.followUps;
+        return list.length?list.map((f,i)=>`<div class="f full" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:0 0 150px"><label>Follow up on</label><input type="date" value="${esc(f.date||'')}" oninput="setFU(${i},'date',this.value)"></div>
+          <div style="flex:1;min-width:150px"><label>Note</label><input value="${esc(f.note||'')}" placeholder="e.g. Confirm transfer price" oninput="setFU(${i},'note',this.value)"></div>
+          <button class="b-out" onclick="removeFU(${i})" title="Remove reminder" style="flex:0 0 auto;color:#9E5B43;border-color:#9E5B43;padding:0 13px;height:40px">✕</button>
+        </div>`).join(''):`<div class="f full counter">No reminders yet — add one below.</div>`; })()}
+      <div class="f full counter">Each reminder appears on the stay card and in the “Follow-ups due” strip on its date. Save to apply.</div>
+      <div class="f full" style="display:flex;gap:8px;margin-top:2px"><button class="b-out" onclick="addFU()">+ Add reminder</button><button class="b-fill" onclick="saveDraft()">Save</button>${(cur.followUps&&cur.followUps.length)?`<button class="b-out" onclick="clearFollowUp()" style="color:#9E5B43;border-color:#9E5B43">Clear all</button>`:''}</div>
     </div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
@@ -1227,7 +1231,10 @@ function renderEditor(){
 window.set=set;
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
-window.clearFollowUp=function(){ if(!cur)return; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
+window.clearFollowUp=function(){ if(!cur)return; cur.followUps=[]; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
+window.addFU=function(){ if(!cur)return; if(!Array.isArray(cur.followUps))cur.followUps=[]; cur.followUps.push({date:'',note:''}); renderEditor(); renderPreview(); markDirty(); };
+window.setFU=function(i,k,v){ if(!cur||!Array.isArray(cur.followUps)||!cur.followUps[i])return; cur.followUps[i][k]=v; markDirty(); renderPreview(); };
+window.removeFU=function(i){ if(!cur||!Array.isArray(cur.followUps))return; cur.followUps.splice(i,1); renderEditor(); renderPreview(); markDirty(); };
 /* Mark done = keep the request as a record (status 'done'), logged in the timeline. */
 window.markDoneReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid+'/done',{method:'POST'}); if(r.ok){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status='done'; rq.doneAt=(r.body.request&&r.body.request.doneAt)||Date.now(); } if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.pending=Math.max(0,(it.pending||0)-1); renderList(); refreshTodayBtn&&refreshTodayBtn(); toast('Marked done — kept in the log'); } else toast('Could not update'); };
 window.dismissReq=window.markDoneReq; // back-compat alias
@@ -1604,7 +1611,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
