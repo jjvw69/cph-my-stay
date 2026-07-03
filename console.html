@@ -222,6 +222,9 @@
   .sec{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
   /* pinned section quick-nav for the stay editor */
+  /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
+  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;padding:9px 18px;background:var(--panel);border-bottom:1px solid var(--line);flex:0 0 auto}
+  .secbar:empty{display:none}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
   .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
@@ -397,6 +400,7 @@
       <button class="b-out" style="padding:6px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px" id="signout">Sign out</button>
     </div>
   </div>
+  <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
       <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="newStay">＋ New</button></span></div>
@@ -596,7 +600,7 @@ function renderList(){
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); botNavActive(); };
+window.backToList=function(){ setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); renderList(); renderEditor(); renderPreview(); setView(true); } };
@@ -612,7 +616,7 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); botNavActive(); if(centerView==='inbox') renderInbox(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); if(centerView==='inbox') renderInbox(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const btns=n.querySelectorAll('button'); const idx=cur?-1:(centerView==='inbox'?1:0); btns.forEach((b,i)=>b.classList.toggle('on',i===idx)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); }
 window.showToday=function(){
@@ -811,17 +815,15 @@ const SECNAV_GROUPS=[
 ];
 const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow-up','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 function buildSecNav(){
-  const ed=document.getElementById('editor'); if(!ed) return;
-  const old=ed.querySelector('.secnav'); if(old) old.remove();
+  // The section-nav now lives in the full-width #secbar between the top bar and the columns.
+  // It still reflects only the sections actually present in the editor for this stay.
+  const ed=document.getElementById('editor'); const bar=document.getElementById('secbar'); if(!ed||!bar) return;
   let html='';
   SECNAV_GROUPS.forEach(grp=>{
     const chips=grp.ids.filter(id=>ed.querySelector('#'+id)).map(id=>`<button class="secnav-chip" onclick="jumpSec('${id}')">${esc(SECNAV_LABEL[id]||id)}</button>`);
     if(chips.length) html+=`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`;
   });
-  if(!html) return;
-  const nav=document.createElement('div'); nav.className='secnav'; nav.innerHTML=html;
-  // Place it as the very first element so it's pinned at the top from the start (no scroll-up travel).
-  ed.insertBefore(nav, ed.firstChild);
+  bar.innerHTML=html;
 }
 /* Reorder the editor sections into the same logical groups as the quick-nav, with an
    uppercase divider heading before each group (BOOKING / GUEST / UPSELL & MONEY / ADMIN). */
@@ -847,12 +849,12 @@ window.jumpSec=function(id){
   if(el.tagName==='DETAILS'&&!el.open) el.open=true;
   let sp=el.parentElement; while(sp){ const s=getComputedStyle(sp); if(/(auto|scroll)/.test(s.overflowY)&&sp.scrollHeight>sp.clientHeight) break; sp=sp.parentElement; }
   sp=sp||document.scrollingElement||document.documentElement;
-  const nav=ed.querySelector('.secnav'); const navH=nav?nav.getBoundingClientRect().height:0;
+  // The section-nav bar sits outside the scroll area now, so no sticky offset to subtract.
   const spTop=sp.getBoundingClientRect?sp.getBoundingClientRect().top:0;
   const elTop=el.getBoundingClientRect().top;
-  sp.scrollTop += (elTop - spTop) - navH - 12;
-  ed.querySelectorAll('.secnav-chip').forEach(c=>c.classList.remove('on'));
-  const chip=ed.querySelector('.secnav-chip[onclick*="'+id+'"]'); if(chip) chip.classList.add('on');
+  sp.scrollTop += (elTop - spTop) - 12;
+  const bar=document.getElementById('secbar');
+  if(bar){ bar.querySelectorAll('.secnav-chip').forEach(c=>c.classList.remove('on')); const chip=bar.querySelector('.secnav-chip[onclick*="'+id+'"]'); if(chip) chip.classList.add('on'); }
 };
 /* Derive a suggested rate for a request from its own fields + the resort's published rates,
    so the confirm box pre-fills even for requests made before suggestedPrice existed. Falls back
