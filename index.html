@@ -1799,8 +1799,9 @@ window.waHandoff=function(extra){
   const guest=(s.guest&&(s.guest.family||s.guest.lastName||s.guest.firstName))||'';
   const villa=(s.villa&&s.villa.name)||'';
   const ref=(s.booking&&s.booking.reference)||'';
-  const dates=(s.booking&&s.booking.arrive)?(fmtDate(s.booking.arrive)+((s.booking.depart)?' – '+fmtDate(s.booking.depart):'')):'';
-  const msg='Hi '+cn+', this is '+(guest?'the '+guest+' family':'a guest')+(villa?' at '+villa:'')+(dates?' ('+dates+')':'')+(ref?' — booking '+ref:'')+'.\n\nMy Stay app: https://caribbeanparadisehomes.com/my-stay/\n\n'+(extra?String(extra)+'\n':'');
+  const fdY=iso=>{ const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+  const dates=(s.booking&&s.booking.arrive)?(fdY(s.booking.arrive)+((s.booking.depart)?' – '+fdY(s.booking.depart):'')):'';
+  const msg='Hi '+cn+', this is '+(guest?'the '+guest+' family':'a guest')+(villa?' at '+villa:'')+(dates?' ('+dates+')':'')+(ref?' — booking '+ref:'')+'.\n\n'+(extra?String(extra)+'\n':'');
   const url='https://wa.me/'+ph+'?text='+encodeURIComponent(msg);
   try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){try{a.remove();}catch(e){}},0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ location.href=url; } }
 };
