@@ -2093,7 +2093,7 @@ function renderAddons(){
   const list=(state.stay&&state.stay.addOns)||[];
   if(!list.length){ shell('Villa Add-ons','<div class="card" style="text-align:center;color:var(--soft)">No add-ons are set up for your stay yet — message your concierge for anything you need.</div>',''); return; }
   const cats=[]; list.forEach(a=>{ if(cats.indexOf(a.category)<0)cats.push(a.category); });
-  const note=`<div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px">All rates shown are indicative and subject to final confirmation by your concierge before you’re charged.</div>`;
+  const note=`<div class="card" style="background:#F6F2E9;border:1px solid #E6DDCC;color:#6B5B3E;font-size:12px;line-height:1.5;padding:11px 13px;margin-bottom:12px">These are extra services you can add to your stay. Tap “Add to itinerary” on anything you’d like, and your concierge will confirm availability, timing and the final price before you’re charged — the rates shown are a guide.</div>`;
   const inner=note+cats.map(cat=>`<div class="sec-title">${esc(cat)}</div>`+list.filter(a=>a.category===cat).map(addonRow).join('')).join('');
   shell('Villa Add-ons', inner);
 }
@@ -2319,7 +2319,8 @@ window.printItinerary=function(){
   const r2=(k,val)=>`<tr><td style="padding:4px 14px 4px 0;color:#6B756C;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:4px 0">${val}</td></tr>`;
   const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
     const status=r.status==='confirmed'?('Confirmed'+(r.price?' · '+esc(r.price):'')):r.status==='done'?'Arranged ✓':'Requested';
-    return `<tr><td style="padding:7px 0;border-top:1px solid #E6E9E2">${esc(r.title||'Request')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;color:#54605A">${esc(when||'Date to be confirmed')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${esc(status)}</td></tr>`; };
+    let sub=''; if(r.refId==='transfer'){ const mm=String(r.note||'').match(/Route:\s*([^\n]+)/i); if(mm&&mm[1].trim()) sub=`<div style="font-size:11.5px;color:#8A938B;margin-top:2px">${esc(mm[1].trim())}</div>`; }
+    return `<tr><td style="padding:7px 0;border-top:1px solid #E6E9E2">${esc(r.title||'Request')}${sub}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;color:#54605A">${esc(when||'Date to be confirmed')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${esc(status)}</td></tr>`; };
   const gk=(k,val)=>`<tr><td style="padding:6px 14px 6px 0;color:#6B756C;white-space:nowrap;vertical-align:top;font-weight:600;border-top:1px solid #EEF1EC">${k}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC">${val}</td></tr>`;
   const air=esc(b.airport||'LRM');
   const body=`
