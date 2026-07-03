@@ -175,8 +175,9 @@
   .center .ref{font-size:13.5px;color:var(--soft);margin-bottom:16px}
   .ebtns{display:flex;gap:8px;flex:0 0 auto}
   .ebtns button{font-size:14px;padding:9px 14px;border-radius:10px}
+  .b-out,.b-fill{padding:9px 14px;border-radius:10px;font-size:13.5px;font-weight:500;cursor:pointer;line-height:1}
   .b-out{border:1px solid var(--line);background:#fff;color:var(--ink)}
-  .b-fill{background:var(--accent);color:#fff}
+  .b-fill{background:var(--accent);color:#fff;border:1px solid var(--accent)}
   .emode{display:inline-flex;border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px;background:#fff}
   .emode button{border:0;background:#fff;color:var(--soft);padding:8px 18px;font-size:13.5px;font-family:var(--ui);cursor:pointer}
   .emode button.on{background:var(--accent);color:#fff;font-weight:600}
@@ -1087,10 +1088,10 @@ function renderEditor(){
         return list.length?list.map((f,i)=>`<div class="f full" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
           <div style="flex:0 0 150px"><label>Follow up on</label><input type="date" value="${esc(f.date||'')}" oninput="setFU(${i},'date',this.value)"></div>
           <div style="flex:1;min-width:150px"><label>Note</label><input value="${esc(f.note||'')}" placeholder="e.g. Confirm transfer price" oninput="setFU(${i},'note',this.value)"></div>
-          <button class="b-out" onclick="removeFU(${i})" title="Remove reminder" style="flex:0 0 auto;color:#9E5B43;border-color:#9E5B43;padding:0 13px;height:40px">✕</button>
+          <button class="b-out" onclick="removeFU(${i})" title="Remove reminder" style="flex:0 0 auto;color:#9E5B43;border-color:#E3C4B6;background:#FBF2EC;padding:0 12px;height:40px;font-size:15px">✕</button>
         </div>`).join(''):`<div class="f full counter">No reminders yet — add one below.</div>`; })()}
       <div class="f full counter">Each reminder appears on the stay card and in the “Follow-ups due” strip on its date. Save to apply.</div>
-      <div class="f full" style="display:flex;gap:8px;margin-top:2px"><button class="b-out" onclick="addFU()">+ Add reminder</button><button class="b-fill" onclick="saveDraft()">Save</button>${(cur.followUps&&cur.followUps.length)?`<button class="b-out" onclick="clearFollowUp()" style="color:#9E5B43;border-color:#9E5B43">Clear all</button>`:''}</div>
+      <div class="f full" style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button class="b-out" onclick="addFU()" style="color:var(--accent);border-color:var(--accent)">＋ Add reminder</button><button class="b-fill" onclick="saveDraft()">Save</button>${(cur.followUps&&cur.followUps.length)?`<button class="b-out" onclick="clearFollowUp()" style="color:#9E5B43;border-color:#E3C4B6">Clear all</button>`:''}</div>
     </div></div>
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
