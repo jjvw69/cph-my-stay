@@ -1362,7 +1362,7 @@ const SERVICE_INFO = {
   transfer: {
     tripDates:true, toLabel:'Departure date', noTime:true,
     notePlaceholder:'Flight details (airline, flight no., date & time), number of passengers, extra luggage, child seats…',
-    selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option><option>Casa de Campo → Santo Domingo / Punta Cana</option></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select><label class="reqlbl">Airline</label><input id="rqAirline" placeholder="e.g. JetBlue"><label class="reqlbl">Flight number</label><input id="rqFlightNo" placeholder="e.g. B6 1069"><label class="reqlbl">Flight origin (where you're flying from)</label><input id="rqOrigin" placeholder="e.g. New York (JFK)"><label class="reqlbl">Arrival time</label><input id="rqArrival" placeholder="e.g. 2:45 PM"><label class="reqlbl">Head of family / group <span style="font-weight:400;color:var(--soft)">(if you're booking more than one transfer)</span></label><input id="rqFamily" placeholder="e.g. Matz family">`,
+    selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute" onchange="rqRouteChange()"><optgroup label="Airport → Casa de Campo (arrival)"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option></optgroup><optgroup label="Casa de Campo → Airport (departure)"><option>Casa de Campo → LRM (La Romana)</option><option>Casa de Campo → PUJ (Punta Cana)</option><option>Casa de Campo → SDQ (Santo Domingo)</option></optgroup></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select><label class="reqlbl">Airline</label><input id="rqAirline" placeholder="e.g. JetBlue"><label class="reqlbl">Flight number</label><input id="rqFlightNo" placeholder="e.g. B6 1069"><label class="reqlbl" id="rqOriginLbl">Flight origin (where you're flying from)</label><input id="rqOrigin" placeholder="e.g. New York (JFK)"><label class="reqlbl" id="rqArrivalLbl">Arrival time</label><input id="rqArrival" placeholder="e.g. 2:45 PM"><label class="reqlbl">Head of family / group <span style="font-weight:400;color:var(--soft)">(if you're booking more than one transfer)</span></label><input id="rqFamily" placeholder="e.g. Matz family">`,
     rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
       <div class="rth">LRM → Casa de Campo</div>
       <div class="rt"><span>Standard</span><span>$50 / $90</span></div>
@@ -1376,8 +1376,8 @@ const SERVICE_INFO = {
       <div class="rt"><span>Standard</span><span>$140 / $270</span></div>
       <div class="rt"><span>Comfort</span><span>$190 / $360</span></div>
       <div class="rt"><span>VIP Black Luxury</span><span>$320 / $620</span></div>
-      <div class="rth">Casa de Campo → SDQ / Punta Cana (one-way)</div>
-      <div class="rt"><span>Standard / Comfort / VIP</span><span>$180 / $260 / $380</span></div>`
+      <div class="rth">Casa de Campo → airport (departure)</div>
+      <div class="rt"><span>LRM / PUJ / SDQ</span><span>same rate as the matching arrival above</span></div>`
   },
   golfcart: {
     range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
@@ -1662,6 +1662,7 @@ function prefillReq(r,info){ info=info||{};
   (r.note||'').split('\n').forEach(ln=>{ const mm=ln.match(/^\s*Route:\s*(.+)$/i); if(mm){route=mm[1].trim();} else if(ln.trim()){rest+=(rest?'\n':'')+ln.trim();} });
   setV('rqDate', r.date); setV('rqTime', r.time); setV('rqRoute', route); setV('rqFamily', r.familyName); setV('rqNote', rest); setV('rqEnd', r.endDate);
   setV('rqAirline', r.airline); setV('rqFlightNo', r.flightNo); setV('rqOrigin', r.flightOrigin); setV('rqArrival', r.arrivalTime);
+  if(window.rqRouteChange)rqRouteChange();
   const parts=String(r.serviceLevel||'').split(' · ');
   if(document.getElementById('rqTrip')) setV('rqTrip', parts.length>=2?parts[0]:(document.getElementById('rqService')?'':parts[0]));
   if(document.getElementById('rqService')) setV('rqService', parts.length>=2?parts.slice(1).join(' · '):parts[0]);
@@ -1675,11 +1676,13 @@ function prefillReq(r,info){ info=info||{};
 window.rqAdj=function(d){ state._rqG=Math.max(0,(state._rqG||0)+d); const g=document.getElementById('rqG'); if(g)g.textContent=state._rqG; };
 /* Transfer: one-way shows a single date; round-trip reveals the departure date too. */
 window.rqTripChange=function(){ const round=((document.getElementById('rqTrip')||{}).value||'')==='Round-trip'; const w=document.getElementById('rqEndWrap'); if(w)w.style.display=round?'':'none'; const l=document.getElementById('rqDateLbl'); if(l)l.textContent=round?'Arrival date':'Transfer date'; };
+/* Transfer direction: departures (Casa de Campo → airport) relabel the arrival-oriented flight fields. */
+window.rqRouteChange=function(){ const r=((document.getElementById('rqRoute')||{}).value||''); const dep=/^\s*Casa de Campo\s*→/.test(r); const oL=document.getElementById('rqOriginLbl'), aL=document.getElementById('rqArrivalLbl'), oI=document.getElementById('rqOrigin'), aI=document.getElementById('rqArrival'); if(oL)oL.textContent=dep?'Flight destination (where you’re flying to)':'Flight origin (where you’re flying from)'; if(aL)aL.textContent=dep?'Flight departure time':'Arrival time'; if(oI)oI.placeholder=dep?'e.g. New York (JFK)':'e.g. New York (JFK)'; if(aI)aI.placeholder=dep?'e.g. 6:00 PM':'e.g. 2:45 PM'; };
 window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.remove(); state._editReq=null; };
 /* Suggested starting price for a request, from the resort's published rates and the guest's
    selection. Carried to the console so confirming is one tap — the concierge can still edit it. */
 function suggestedPriceFor(refId,o){ o=o||{};
-  if(refId==='transfer'){ const T={'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]}; const p=T[o.svc]; return p?('$'+(o.trip==='Round-trip'?p[1]:p[0])):''; }
+  if(refId==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black Luxury':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black Luxury':[320,620]}}; const rt=o.route||''; const code=/PUJ/.test(rt)?'PUJ':/SDQ/.test(rt)?'SDQ':'LRM'; const p=(TT[code]||TT.LRM)[o.svc]; return p?('$'+(o.trip==='Round-trip'?p[1]:p[0])):''; }
   if(refId==='golfcart'){ const per=(o.cartTypeRaw==='6-seater')?105:80; const q=Math.max(1,Number(o.cartQty)||1); return '$'+(per*q)+'/day'; }
   if(refId==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; return C[o.svc]?('$'+C[o.svc]+'/day'):''; }
   if(refId==='catalina') return '$48/adult';
@@ -1707,7 +1710,7 @@ window.submitReq=async function(type,refId){
   let noteOut=route?('Route: '+route+(note?'\n':'')+note):note;
   if(yacht) noteOut='Preferred yacht: '+yacht+(noteOut?'\n'+noteOut:'');
   const title=reqTitle(type,refId); const guests=document.getElementById('rqCart')?0:(state._rqG||0);
-  const suggestedPrice=suggestedPriceFor(refId,{svc,trip,guests,cartQty,cartTypeRaw});
+  const suggestedPrice=suggestedPriceFor(refId,{svc,trip,route,guests,cartQty,cartTypeRaw});
   if(state._editReq && state._editReq.id){
     const eid=state._editReq.id;
     const r=await api('/api/request/update',{method:'POST',body:JSON.stringify({id:eid,date,endDate,cartType,serviceLevel,time,guests,note:noteOut,familyName,airline,flightNo,flightOrigin,arrivalTime})});

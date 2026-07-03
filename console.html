@@ -774,7 +774,10 @@ const SVC_OPTIONS = {
     ['PUJ → Casa de Campo · VIP Black · One-way','$290'],['PUJ → Casa de Campo · VIP Black · Round-trip','$560'],
     ['SDQ → Casa de Campo · Standard · One-way','$140'],['SDQ → Casa de Campo · Standard · Round-trip','$270'],
     ['SDQ → Casa de Campo · Comfort · One-way','$190'],['SDQ → Casa de Campo · Comfort · Round-trip','$360'],
-    ['SDQ → Casa de Campo · VIP Black · One-way','$320'],['SDQ → Casa de Campo · VIP Black · Round-trip','$620']],
+    ['SDQ → Casa de Campo · VIP Black · One-way','$320'],['SDQ → Casa de Campo · VIP Black · Round-trip','$620'],
+    ['Casa de Campo → LRM (La Romana) · Standard · One-way','$50'],['Casa de Campo → LRM (La Romana) · Comfort · One-way','$80'],['Casa de Campo → LRM (La Romana) · VIP Black · One-way','$150'],
+    ['Casa de Campo → PUJ (Punta Cana) · Standard · One-way','$125'],['Casa de Campo → PUJ (Punta Cana) · Comfort · One-way','$160'],['Casa de Campo → PUJ (Punta Cana) · VIP Black · One-way','$290'],
+    ['Casa de Campo → SDQ (Santo Domingo) · Standard · One-way','$140'],['Casa de Campo → SDQ (Santo Domingo) · Comfort · One-way','$190'],['Casa de Campo → SDQ (Santo Domingo) · VIP Black · One-way','$320']],
   nannies:[['Daytime nanny','$26 / hour'],['Evening babysitting','$20 / hour']],
   staff:[['Private chef','$150 / day · rate may vary with skills & experience'],['Waiter','$50 / day · rate may vary with skills & experience']],
 };
@@ -875,7 +878,7 @@ function reqSuggestedPrice(r){
   if(!r) return '';
   if(r.price) return r.price;
   const ref=r.refId||'', sl=(r.serviceLevel||''), ct=(r.cartType||'');
-  if(ref==='transfer'){ const T={'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]}; const round=/round-?trip/i.test(sl); let lvl=''; Object.keys(T).forEach(k=>{ if(sl.indexOf(k)>=0) lvl=k; }); if(T[lvl]) return '$'+(round?T[lvl][1]:T[lvl][0]); }
+  if(ref==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black':[320,620]}}; const hay=sl+' '+(r.note||''); const code=/PUJ/.test(hay)?'PUJ':/SDQ/.test(hay)?'SDQ':'LRM'; const T=TT[code]; const round=/round-?trip/i.test(sl); let lvl=''; Object.keys(T).forEach(k=>{ if(sl.indexOf(k)>=0) lvl=k; }); if(T[lvl]) return '$'+(round?T[lvl][1]:T[lvl][0]); }
   if(ref==='golfcart'){ const m=ct.match(/(\d+)\s*[×x]\s*4-seater/i)||ct.match(/(\d+)\s*[×x]\s*6-seater/i); const qty=m?Number(m[1]):1; const six=/6-seater/.test(ct); const hol=golfHoliday(r.date,r.endDate); const per=six?(hol?150:105):(hol?120:80); return '$'+(per*qty)+'/day'+(hol?' · holiday rate':''); }
   if(ref==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; const svc=sl.split(' · ').pop(); if(C[svc]) return '$'+C[svc]+'/day'; }
   if(ref==='catalina') return '$48/adult';
