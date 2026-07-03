@@ -528,7 +528,9 @@ async function refreshCurrent(){
   if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; }); }
   else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
   // Re-render, preserving any in-progress typing/scroll.
-  if(!dirty){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
+  // Don't re-render the editor while a native <select> dropdown is open (it would slam shut before a pick).
+  const _ed=document.getElementById('editor'); const _act=document.activeElement; const _selOpen=!!(_act&&_act.tagName==='SELECT'&&_ed&&_ed.contains(_act));
+  if(!dirty && !_selOpen){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
   const pS=snapshotInputs('preview'); renderPreview(); restoreInputs('preview',pS);
   markViewed(cur); renderList();
   if(newReqs>0){ toast('New request from '+(cur.leadName||'guest')); chime(); }
