@@ -1770,6 +1770,10 @@ function renderConcierge(){
   $app.innerHTML=`
   <div class="view enter">
     <div class="backbar"><div class="avatar" style="width:38px;height:38px">${esc(s.concierge.avatarInitials)}</div><div><div class="ttl" style="font-size:18px">${esc(s.concierge.name)}</div><div style="font-size:11.5px;color:var(--live)">● Usually replies in minutes</div></div></div>
+    <div style="display:flex;align-items:center;gap:8px;margin:6px 0 2px;padding:8px 11px;border:1px solid var(--line);border-radius:11px">
+      <span style="font-size:12.5px;color:var(--soft);flex:1">Prefer WhatsApp?</span>
+      <a href="#" onclick="waHandoff();return false;" style="background:#25D366;color:#fff;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap">Chat with ${esc((s.concierge.name||'').split(' ')[0])} →</a>
+    </div>
     <div class="msgs" id="msgs">${state.messages.map(msgHtml).join('')}</div>
     <div class="composer"><input id="cmsg" value="${esc(seed)}" placeholder="Message ${esc(s.concierge.name)}…"><button onclick="sendMsg()">➤</button></div>
     ${tabBar('concierge',true)}
@@ -1784,6 +1788,26 @@ window.sendMsg=async function(){
   const i=document.getElementById('cmsg'); const t=i.value.trim(); if(!t)return;
   state.messages.push({from:'me',t,at:Date.now()}); i.value=''; updateMsgs();
   await api('/api/message',{method:'POST',body:JSON.stringify({text:t})});
+};
+/* WhatsApp handoff: open a wa.me chat with the concierge, prefilled with full stay context +
+   a link back to the guest app, and log the handoff once into the chat thread so the console
+   knows the conversation moved to WhatsApp (rides the existing message sync — no new wiring). */
+window.waHandoff=function(){
+  const s=state.stay||{};
+  const ph=(((s.concierge&&s.concierge.phone)||'')+'').replace(/[^0-9]/g,'')||'18297638801';
+  const cn=(((s.concierge&&s.concierge.name)||'').split(' ')[0])||'there';
+  const guest=(s.guest&&(s.guest.family||s.guest.lastName||s.guest.firstName))||'';
+  const villa=(s.villa&&s.villa.name)||'';
+  const ref=(s.booking&&s.booking.reference)||'';
+  const dates=(s.booking&&s.booking.arrive)?(fmtDate(s.booking.arrive)+((s.booking.depart)?' – '+fmtDate(s.booking.depart):'')):'';
+  const msg='Hi '+cn+', this is '+(guest?'the '+guest+' family':'a guest')+(villa?' at '+villa:'')+(dates?' ('+dates+')':'')+(ref?' — booking '+ref:'')+'.\n\nMy Stay app: https://caribbeanparadisehomes.com/my-stay/\n\n';
+  try{
+    const MARK='📲 Continued this conversation on WhatsApp.';
+    const seen=(state.messages||[]).some(x=>x.from==='me'&&x.t===MARK);
+    if(!seen){ state.messages.push({from:'me',t:MARK,at:Date.now()}); updateMsgs(); api('/api/message',{method:'POST',body:JSON.stringify({text:MARK})}); }
+  }catch(e){}
+  const url='https://wa.me/'+ph+'?text='+encodeURIComponent(msg);
+  try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){try{a.remove();}catch(e){}},0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ location.href=url; } }
 };
 /* repaint just the message list (keeps the input + its focus intact) */
 /* WhatsApp-style bubble: guest's own messages get a ✓ (sent) that turns into a blue ✓✓ (read)
