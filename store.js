@@ -965,6 +965,7 @@ function toGuestStay(s) {
   return {
     source: 'console',
     stayId: s.id,
+    bookingSource: s.source || '',
     guest: { firstName: (s.leadName || '').split(' ')[0] || '', lastName: s.lastName || '', family: s.lastName || s.leadName || 'Guest', email: s.email || '', phone: s.phone || '' },
     booking: {
       reference: s.reference, status: s.status,

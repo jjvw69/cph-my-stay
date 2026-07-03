@@ -415,6 +415,7 @@ function renderHome(){
           <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
         <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
       </div>`:''}
+      ${(s.bookingSource&&!/direct/i.test(s.bookingSource))?`<div class="card" style="margin-top:12px;font-size:13px;color:var(--soft);line-height:1.55">In partnership with <b style="color:var(--ink)">${esc(s.bookingSource)}</b> · Caribbean Paradise Homes is your local host for this stay.</div>`:''}
       <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
@@ -1601,8 +1602,9 @@ const SERVICE_INFO = {
     rates:`<b>RUM &amp; CIGAR TASTING</b><div class="rtnote">A curated in-villa tasting of Dominican rums and hand-rolled cigars. Your concierge will tailor it to your group and quote.</div>`
   },
   'yoga': {
-    selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select>`,
-    notePlaceholder:'Number of participants, preferred date & time, location (terrace/beach)…',
+    noGuests:true,
+    selects:`<label class="reqlbl">Session length</label><select id="rqSess"><option>60 minutes</option></select><label class="reqlbl">Number of people</label><select id="rqService"><option>1 person</option><option>2 people</option><option>3–6 people</option><option>7–10 people</option></select>`,
+    notePlaceholder:'Preferred date & time, location (terrace/beach), anything else…',
     rates:`<b>PRIVATE YOGA · PER HOUR</b>
       <div class="rt"><span>1 person</span><span>US$120 / hour</span></div>
       <div class="rt"><span>2 people</span><span>US$95 / hour per person</span></div>
@@ -1613,11 +1615,10 @@ const SERVICE_INFO = {
   'massage': {
     selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select>`,
     notePlaceholder:'Number of guests, type of massage, preferred date & time, location (terrace/room)…',
-    rates:`<b>IN-VILLA MASSAGE · PER HOUR</b>
-      <div class="rt"><span>1 person</span><span>US$120 / hour</span></div>
-      <div class="rt"><span>2 people</span><span>US$95 / hour per person</span></div>
-      <div class="rt"><span>3–6 people</span><span>US$240 / hour</span></div>
-      <div class="rt"><span>7–10 people</span><span>US$60 / hour per person</span></div>
+    rates:`<b>IN-VILLA MASSAGE</b>
+      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
+      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
+      <div class="rt"><span>120 minutes</span><span>US$160</span></div>
       <div class="rtnote">A certified therapist comes to your villa or terrace. Couples and group sessions on request — your concierge will confirm availability and final pricing.</div>`
   },
   'yacht-charter': {
