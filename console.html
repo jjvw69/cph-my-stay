@@ -14,8 +14,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#F5EFE5;--panel:#FBF8F1;--card:#FFF;--ink:#1F2A24;--accent:#33493B;--accent2:#5B6E5F;--soft:#8B8475;--line:#E6DDCC;--gold:#A98C5A;--login:#16241E;
-    --okbg:#E2EAE0;--oktx:#33493B;--drbg:#F0E7D2;--drtx:#9A7B36;--nibg:#F2E3DC;--nitx:#9E5B43;
+  /* Wimbledon-inspired palette: hedge/grass greens, court greys, purple for status, ball-yellow pop. */
+  :root{--bg:#EDF1EC;--panel:#F6F9F5;--card:#FFF;--ink:#14231A;--accent:#12794D;--accent2:#0C4A2F;--soft:#6E7A70;--line:#DBE2DA;--gold:#5A3A88;--login:#0C3226;
+    --purple:#5A3A88;--yellow:#D7E600;--hedge:#0C4A2F;
+    --okbg:#DCEBE1;--oktx:#12794D;--drbg:#E7EAE6;--drtx:#5C665E;--nibg:#F2E3DC;--nitx:#9E5B43;
     --display:'Cormorant Garamond',Georgia,serif;--ui:'Jost',-apple-system,sans-serif;}
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{overflow-x:hidden;max-width:100%}
@@ -55,9 +57,9 @@
   .newbtn{font-size:14px;color:var(--accent);font-weight:500}
   .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;margin-bottom:12px}
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
-  .staycard.unread{border-color:#E4B9B0;box-shadow:inset 3px 0 0 #C0392B}
+  .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   .staycard .g{display:flex;align-items:center}
-  .unread-dot{width:9px;height:9px;border-radius:50%;background:#C0392B;display:inline-block;margin-left:8px;flex:0 0 auto}
+  .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--purple);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
@@ -65,7 +67,7 @@
   .pill.published{background:var(--okbg);color:var(--oktx)}
   .pill.draft{background:var(--drbg);color:var(--drtx)}
   .pill.needsinfo{background:var(--nibg);color:var(--nitx)}
-  .reqbadge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:#9E5B43;color:#fff}
+  .reqbadge{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin:7px 0 0 6px;background:var(--purple);color:#fff}
   .srcpill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px}
   .srcpill.direct{background:#E8EEF5;color:#3E5675;border:1px solid #D4DEEC}
   .srcpill.partner{background:#F1E9F2;color:#6E4A72;border:1px solid #E1D0E4}
@@ -82,8 +84,8 @@
   .futx{display:flex;flex-direction:column;min-width:0}
   .futx b{font-size:13.5px}
   .futx span{font-size:12px;color:var(--soft)}
-  .todaybtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:#33493B;color:#fff;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;margin-bottom:12px;cursor:pointer}
-  .todaybtn.alert{background:#9E5B43}
+  .todaybtn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;background:var(--accent);color:#fff;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;margin-bottom:12px;cursor:pointer}
+  .todaybtn.alert{background:var(--purple)}
   .homebtns{display:flex;gap:8px;margin-bottom:12px}
   .homebtns .todaybtn{margin-bottom:0;flex:1}
   .todaybtn.inbox{background:#5B6E5F}
@@ -124,7 +126,7 @@
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
   .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .topPending{display:none;background:#9E5B43;color:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .topPending{display:none;background:var(--yellow);color:#14231A;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
   .topPending.show{display:inline-block}
   .tmpl{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
   .tmpl button{font-size:12.5px;border:1px solid var(--line);background:#FBF8F1;border-radius:18px;padding:6px 12px;color:var(--accent);cursor:pointer}
@@ -133,7 +135,7 @@
   .tl-row{position:relative;padding:0 0 13px 20px;border-left:2px solid var(--line)}
   .tl-row:last-child{border-left-color:transparent}
   .tl-dot{position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
-  .tl-dot.g{background:#9E5B43}.tl-dot.ok{background:#3F6B4E}.tl-dot.no{background:#9A2B2B}.tl-dot.s{background:#33493B}
+  .tl-dot.g{background:#9E5B43}.tl-dot.ok{background:#3F6B4E}.tl-dot.no{background:#9A2B2B}.tl-dot.s{background:var(--accent)}
   .tl-when{font-size:11.5px;color:var(--soft)}
   .tl-what{font-size:13.5px;color:var(--ink);margin-top:1px}
   .tl-what b{font-weight:600}
@@ -144,7 +146,7 @@
   details.sec[open] .tl-hint-closed{display:none}
   details.sec[open] .tl-hint-open{display:inline}
   .msave{display:none}
-  .reqcount{display:inline-block;font-size:12px;background:#9E5B43;color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
+  .reqcount{display:inline-block;font-size:12px;background:var(--purple);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -160,11 +162,11 @@
   .reqitem{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:#FBFAF6}
   .reqtop{display:flex;align-items:center;gap:9px}
   .reqtop b{font-size:14.5px;flex:1}
-  .reqtype{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:6px;background:#EEF3EE;color:#33493B}
+  .reqtype{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:6px;background:#EEF3EE;color:var(--accent)}
   .reqtype.addon{background:#F3ECDD;color:#7A5A2E}
-  .reqx{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;color:#33493B;cursor:pointer}
+  .reqx{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 11px;font-size:12.5px;color:var(--accent);cursor:pointer}
   .reqmeta{font-size:13px;color:var(--soft);margin-top:6px}
-  .reqnote{font-size:13px;color:var(--ink,#33493B);margin-top:5px;font-style:italic}
+  .reqnote{font-size:13px;color:var(--ink,var(--accent));margin-top:5px;font-style:italic}
   .reqok{display:inline-block;font-size:11px;background:var(--okbg);color:var(--oktx);border:1px solid #cfe0c8;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap}
   .reqconfirm{display:flex;gap:8px;margin-top:10px}
   .reqconfirm input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13.5px;font-family:var(--ui);background:#fff}
@@ -198,7 +200,7 @@
   .alertbar .ab-sub{color:inherit;opacity:.8}
   .alertbar.occ{background:#FBF4E4;border:1px solid #E6CF92;color:#7A5A1E}
   .alertbar.diet{background:#FCEDE6;border:1px solid #E3B49C;color:#8A3D22}
-  .alertbar.info{background:#EEF3EE;border:1px solid #BFD3C2;color:#33493B}
+  .alertbar.info{background:#EEF3EE;border:1px solid #BFD3C2;color:var(--accent)}
   .vitals{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:14px}
   .vtitle{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);padding-bottom:9px;margin-bottom:3px;border-bottom:1px solid #EFF1EC}
   .vrow{display:flex;flex-wrap:wrap;gap:10px 22px;padding:7px 0;border-bottom:1px solid #EFF1EC}
@@ -223,8 +225,12 @@
   .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
   /* pinned section quick-nav for the stay editor */
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
-  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;padding:9px 18px;background:#E7EDE6;border-bottom:1px solid #CFDACB;flex:0 0 auto}
+  .secbar{display:flex;flex-wrap:wrap;align-items:center;gap:7px 16px;padding:9px 18px;background:var(--hedge);border-bottom:2px solid var(--yellow);flex:0 0 auto}
   .secbar:empty{display:none}
+  .secbar .secnav-gl{color:#9DBFA9}
+  .secbar .secnav-chip{background:#fff;border-color:transparent;color:var(--accent)}
+  .secbar .secnav-chip:hover{border-color:var(--yellow)}
+  .secbar .secnav-chip.on{background:var(--purple);color:#fff;border-color:var(--purple)}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
   .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
@@ -266,7 +272,7 @@
   .pvstatus{font-size:13.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
   .phone{background:#16241E;border-radius:26px;padding:10px;box-shadow:0 18px 40px -20px rgba(0,0,0,.5)}
   .screen{background:var(--bg);border-radius:18px;overflow:hidden;min-height:430px}
-  .pv-hero{height:120px;background:linear-gradient(135deg,#33493B,#1E2B25) center/cover}
+  .pv-hero{height:120px;background:linear-gradient(135deg,var(--accent),#1E2B25) center/cover}
   .pv-body{padding:14px}
   .pv-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft)}
   .pv-villa{font-family:var(--display);font-weight:600;font-size:22px;margin:2px 0}
@@ -297,7 +303,7 @@
   .pulse.off{color:#9A7B36}
   .act-sec{margin-bottom:16px}
   .act-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:8px}
-  .act-n{background:#33493B;color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0}
+  .act-n{background:var(--accent);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0}
   .act-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
   .act-card.warn{border-color:#E4C58C;background:#FCF7EC}
   .act-title{font-size:14px;font-weight:600;color:var(--ink)}
@@ -894,8 +900,8 @@ function mealMinutesC(t){ t=String(t||'').toLowerCase().trim(); const mm=t.match
 function mealsSortedC(mp){ if(!mp) return []; const has=m=>!!(m&&(m.date||m.time||m.guests||m.desc)); const out=[]; [['snacks','Welcome snacks & drinks'],['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']].forEach(([k,lbl])=>{ if(has(mp[k])) out.push({lbl,m:mp[k]}); }); (mp.extra||[]).forEach(m=>{ if(has(m)) out.push({lbl:m.type||'Additional meal',m}); }); const val=m=>{ const d=(m&&m.date)?Date.parse(m.date+'T00:00:00'):NaN; return (isFinite(d)?d:8.64e15)+mealMinutesC(m&&m.time)*60000; }; out.sort((a,b)=>val(a.m)-val(b.m)); return out; }
 // One guest-request card — shared by the active "Guest requests" list and the "Request log".
 function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.test(r.title||'')||!!(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime); return `<div class="reqitem"${(r.status==='cancelled'||r.status==='done')?' style="opacity:.72"':''}>
-        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="toggleReqEdit('${r.id}')" style="color:#5B6E5F">✎ Edit</button>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="reopenReq('${r.id}')" style="color:#33493B;border-color:#BFD3C2">↩ Reopen &amp; edit</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
-        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:#33493B;border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
+        <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="toggleReqEdit('${r.id}')" style="color:#5B6E5F">✎ Edit</button>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="reopenReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">↩ Reopen &amp; edit</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
+        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime)?`<div class="reqmeta">✈ ${[[esc(r.airline||''),esc(r.flightNo||'')].filter(Boolean).join(' '),r.flightOrigin?'from '+esc(r.flightOrigin):'',r.arrivalTime?'arr '+esc(r.arrivalTime):''].filter(Boolean).join(' · ')}</div>`:''}
         <div class="reqmeta" style="display:flex;align-items:center;gap:7px;margin-top:6px"><span style="white-space:nowrap;color:#9AA49B">Head of family</span><input id="fam_${r.id}" value="${esc(r.familyName||'')}" onchange="setReqFamily('${r.id}',this.value)" placeholder="e.g. Matz family — to tell two transfers apart" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:#fff"></div>
@@ -1045,7 +1051,7 @@ window.setEditorMode=function(m){ editorMode=(m==='chat')?'chat':'edit'; renderE
 let _typingTimer=null;
 function showGuestTyping(){ const el=chatEl('#typingInd'); if(!el) return; el.style.display='block'; const sc=chatEl('#chatScroll'); if(sc) sc.scrollTop=sc.scrollHeight; if(_typingTimer) clearTimeout(_typingTimer); _typingTimer=setTimeout(()=>{ const e2=chatEl('#typingInd'); if(e2) e2.style.display='none'; },4500); }
 function chatPanelFull(s){
-  const msgs=(s.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'#33493B'}">
+  const msgs=(s.messages||[]).slice().sort((a,b)=>(a.at||0)-(b.at||0)).map(mm=>`<div class="reqitem" style="border-left:3px solid ${mm.from==='guest'?'#9E5B43':'var(--accent)'}">
     <div class="reqmeta" style="margin:0 0 5px;font-weight:600;color:var(--ink)">${mm.from==='guest'?(esc(s.leadName||'Guest')+(mm.via==='whatsapp'?' · WhatsApp':mm.via==='sms'?' · SMS':'')):(mm.auto?'Auto-message ✦':'You')}<span style="float:right;font-weight:400;color:#9AA49B">${mm.at?fmtReqDate(mm.at):''}</span></div>
     <div style="font-size:14.5px;color:var(--ink)">${esc(mm.text)}</div></div>`).join('')||'<div class="counter">No messages yet — send the first one below.</div>';
   return `<div class="chatwrap">
@@ -1126,9 +1132,9 @@ function renderEditor(){
     <div class="sec"><h3>Services sent to guest ${(cur.sentServices||[]).length?`<span class="reqcount">${(cur.sentServices||[]).length}</span>`:''}</h3>
       <div class="counter" style="margin:0 0 12px">Push a service straight to the guest's plan with a rate. They confirm or decline in their app, and you'll see their answer here — a two-way confirmation.</div>
       <div class="reqlist reqlist-2col">${(cur.sentServices||[]).map(ss=>{
-        const badge = ss.status==='confirmed'?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Confirmed</span>`:ss.status==='declined'?`<span style="font-size:11px;background:#F6E5DD;color:#9E5B43;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✕ Declined</span>`:`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Sent · awaiting</span>`;
+        const badge = ss.status==='confirmed'?`<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Confirmed</span>`:ss.status==='declined'?`<span style="font-size:11px;background:#F6E5DD;color:#9E5B43;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✕ Declined</span>`:`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Sent · awaiting</span>`;
         return `<div class="reqitem"><div class="reqtop"><b>${esc(ss.name)}</b>${badge}</div><div class="reqmeta">${[ss.option,ss.rate].filter(Boolean).map(esc).join(' · ')||'—'}${ss.note?'<br>'+esc(ss.note):''}</div>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="modifySentUI('${ss.id}')">Modify</button>${ss.status==='confirmed'?`<button class="reqx" onclick="openInvoiceFor('${esc(ss.name)}','${esc(ss.rate||'')}')" style="color:#33493B;border-color:#BFD3C2">Create invoice</button>`:''}<button class="reqx" onclick="cancelSentUI('${ss.id}','${esc(ss.name)}')" style="color:#9E5B43;border-color:#E3C4B6">Cancel</button></div></div>`;
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="modifySentUI('${ss.id}')">Modify</button>${ss.status==='confirmed'?`<button class="reqx" onclick="openInvoiceFor('${esc(ss.name)}','${esc(ss.rate||'')}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`:''}<button class="reqx" onclick="cancelSentUI('${ss.id}','${esc(ss.name)}')" style="color:#9E5B43;border-color:#E3C4B6">Cancel</button></div></div>`;
       }).join('')||'<div class="counter" style="margin:0 0 12px">Nothing sent yet.</div>'}</div>
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
@@ -1192,11 +1198,11 @@ function renderEditor(){
       <div class="counter" style="margin:0 0 10px">Create an invoice, review &amp; edit it, then send it to the guest. They see it in their app with your Zelle/bank details; mark it paid once settled.</div>
       <div class="reqlist">${(cur.invoices||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(iv=>{
         const tot=iv.kind==='grocery'?groBreakdown(iv).totalUSD:invBreakdown(iv).total;
-        const badge=iv.status==='paid'?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>`:iv.status==='sent'?`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Sent</span>`:`<span style="font-size:11px;background:#EEE9DF;color:#6E7B71;border-radius:20px;padding:2px 9px;font-weight:600">Draft</span>`;
+        const badge=iv.status==='paid'?`<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>`:iv.status==='sent'?`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Sent</span>`:`<span style="font-size:11px;background:#EEE9DF;color:#6E7B71;border-radius:20px;padding:2px 9px;font-weight:600">Draft</span>`;
         const lreq=iv.requestId?((cur.requests||[]).find(x=>x.id===iv.requestId)||null):null;
         const cancelWarn=(lreq&&lreq.status==='cancelled'&&iv.status!=='paid')?` <span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">⚠ Guest cancelled the linked request — review</span>`:'';
         return `<div class="reqitem"><div class="reqtop"><b>#${iv.no} · ${esc(iv.title)}</b>${iv.kind==='grocery'?' <span style="font-size:10px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 8px;font-weight:600">Grocery</span>':''}${badge}${cancelWarn}</div><div class="reqmeta">$${tot.toLocaleString('en-US')}${iv.dueBy?' · due '+esc(iv.dueBy):''} · ${(iv.items||[]).length} line${(iv.items||[]).length==1?'':'s'}${lreq?' · linked to: '+esc(lreq.title||'request'):(iv.yachtId&&cur.yachtProposal&&cur.yachtProposal.id===iv.yachtId)?' · linked to: yacht charter':''}</div>
-          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="${iv.kind==='grocery'?'openGroceryInvoice':'openInvoice'}('${iv.id}')">Edit</button>${iv.status!=='sent'?`<button class="reqx" onclick="invoiceAction('${iv.id}','send')" style="color:#33493B;border-color:#BFD3C2">Send to guest</button>`:''}${iv.status!=='paid'?`<button class="reqx" onclick="invoiceAction('${iv.id}','paid')">Mark paid</button>`:''}<button class="reqx" onclick="invoicePDF('${iv.id}')">PDF</button><button class="reqx" onclick="deleteInvoiceUI('${iv.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button></div></div>`;
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="${iv.kind==='grocery'?'openGroceryInvoice':'openInvoice'}('${iv.id}')">Edit</button>${iv.status!=='sent'?`<button class="reqx" onclick="invoiceAction('${iv.id}','send')" style="color:var(--accent);border-color:#BFD3C2">Send to guest</button>`:''}${iv.status!=='paid'?`<button class="reqx" onclick="invoiceAction('${iv.id}','paid')">Mark paid</button>`:''}<button class="reqx" onclick="invoicePDF('${iv.id}')">PDF</button><button class="reqx" onclick="deleteInvoiceUI('${iv.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button></div></div>`;
       }).join('')||'<div class="counter" style="margin:0 0 10px">No invoices yet.</div>'}</div>
       <button onclick="openInvoice('')" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Service invoice</button>
       <button onclick="openGroceryInvoice('')" style="margin-top:10px;margin-left:8px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Grocery invoice</button>
@@ -1208,9 +1214,9 @@ function renderEditor(){
       <div class="counter" style="margin:0 0 10px">Send the guest 2–3 yacht/catamaran options to choose from. They pick one in their app; you then arrange it and send an invoice for the deposit/balance.</div>
       ${(function(){ const yp=cur.yachtProposal; if(!yp) return '<div class="counter" style="margin:0 0 10px">No proposal sent.</div>';
         const chosen=(yp.options||[]).find(o=>o.id===yp.chosenId);
-        const rows=(yp.options||[]).map(o=>{ const isCh=yp.status==='chosen'&&o.id===yp.chosenId; return `<div class="reqitem" style="${isCh?'border:1px solid #BFD3C2;background:#F1F6F1':''}"><div class="reqtop"><b>${esc(o.name)}</b>${isCh?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">✓ Chosen</span>':(o.rate?`<span style="font-size:12px;color:#6E7B71">${esc(o.rate)}</span>`:'')}</div>${o.detail?`<div class="reqmeta">${esc(o.detail)}</div>`:''}${isCh&&o.rate?`<div class="reqmeta">${esc(o.rate)}</div>`:''}</div>`; }).join('');
-        const head=`<div class="reqtop" style="margin-bottom:8px"><b>${esc(yp.title)}</b>${yp.status==='chosen'?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">Guest chose</span>':'<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Waiting for guest</span>'}</div>`;
-        const actions=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${(yp.status==='chosen'&&chosen)?((cur.invoices||[]).some(iv=>iv.yachtId===yp.id)?`<span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600;align-self:center">Invoiced — guest choice locked</span>`:`<button class="reqx" onclick="openInvoiceForYacht('${esc(chosen.name)}','${esc(chosen.rate||'')}')" style="color:#33493B;border-color:#BFD3C2">Create invoice</button>`):''}<button class="reqx" onclick="openYacht()">Edit</button><button class="reqx" onclick="withdrawYacht()" style="color:#9E5B43;border-color:#E3C4B6">Withdraw</button></div>`;
+        const rows=(yp.options||[]).map(o=>{ const isCh=yp.status==='chosen'&&o.id===yp.chosenId; return `<div class="reqitem" style="${isCh?'border:1px solid #BFD3C2;background:#F1F6F1':''}"><div class="reqtop"><b>${esc(o.name)}</b>${isCh?'<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600">✓ Chosen</span>':(o.rate?`<span style="font-size:12px;color:#6E7B71">${esc(o.rate)}</span>`:'')}</div>${o.detail?`<div class="reqmeta">${esc(o.detail)}</div>`:''}${isCh&&o.rate?`<div class="reqmeta">${esc(o.rate)}</div>`:''}</div>`; }).join('');
+        const head=`<div class="reqtop" style="margin-bottom:8px"><b>${esc(yp.title)}</b>${yp.status==='chosen'?'<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600">Guest chose</span>':'<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Waiting for guest</span>'}</div>`;
+        const actions=`<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${(yp.status==='chosen'&&chosen)?((cur.invoices||[]).some(iv=>iv.yachtId===yp.id)?`<span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600;align-self:center">Invoiced — guest choice locked</span>`:`<button class="reqx" onclick="openInvoiceForYacht('${esc(chosen.name)}','${esc(chosen.rate||'')}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`):''}<button class="reqx" onclick="openYacht()">Edit</button><button class="reqx" onclick="withdrawYacht()" style="color:#9E5B43;border-color:#E3C4B6">Withdraw</button></div>`;
         return head+rows+actions;
       })()}
       ${!cur.yachtProposal?`<button onclick="openYacht()" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ New yacht proposal</button>`:''}
