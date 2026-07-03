@@ -32,10 +32,12 @@ const ADDON_CATALOG = [
   // (Experiences moved to the Explore → Experiences directory)
   // Spa & wellness
   { id: 'yoga',          category: 'Spa & wellness',        name: 'Private Yoga',                       desc: 'A private sunrise yoga session on your terrace or the beach with a certified instructor.' },
+  { id: 'massage',       category: 'Spa & wellness',        name: 'In-Villa Massage',                   desc: 'A private massage in your villa or on the terrace with a certified therapist — single, couples or group.' },
+  // Kids & childcare
+  { id: 'babygear',      category: 'Kids & childcare',      name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
+  { id: 'nannies',       category: 'Kids & childcare',      name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
   // In-villa services
-  { id: 'babygear',      category: 'In-villa services',     name: 'Baby gear',                          desc: 'Crib, high chair and everything for little ones.' },
   { id: 'staff',         category: 'In-villa services',     name: 'Additional staff',                   desc: 'Extra villa staff — private chef, waiters, driver, butler, housekeeper or nanny.' },
-  { id: 'nannies',       category: 'In-villa services',     name: 'Nannies & Babysitting',              desc: 'Trained nannies (First Aid & CPR, EN/ES) for daytime supervision or evening babysitting.' },
   { id: 'entertainment', category: 'In-villa services',     name: 'Live Entertainment',                 desc: 'Musicians, DJs and performers to set the mood for a dinner, celebration or evening at your villa.' },
   { id: 'rumcigar',      category: 'In-villa services',     name: 'Rum & Cigar Tasting',                desc: 'A curated Dominican rum and hand-rolled cigar tasting, hosted in the comfort of your villa (adults only).' },
 ];

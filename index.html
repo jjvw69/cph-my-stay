@@ -409,12 +409,12 @@ function renderHome(){
           <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
         <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights<br>stay</span></div>
       </div>
-      <div class="card countdown">
+      ${d===0?`<div class="card countdown">
         <div><div class="label">DEPARTING IN</div>
           <div style="margin-top:6px"><span class="big">${dDepart==null?'–':dDepart}</span><span class="days">days</span></div>
           <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
         <div class="ring"><b style="font-size:17px">${esc((b.checkOutTime||'11:00 AM').replace(/\s*(AM|PM)$/i,''))}</b><span>${esc(((b.checkOutTime||'11:00 AM').match(/AM|PM/i)||['out'])[0])}</span></div>
-      </div>
+      </div>`:''}
       <div class="card" style="display:flex;gap:11px;align-items:flex-start;margin-top:12px" onclick="goTab('concierge')">
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
@@ -1030,6 +1030,18 @@ const GUIDE_CONTENT = {
     ],
     link:'https://caribbeanparadisehomes.com/cigars-in-paradise-casa-de-campo-2026/'
   },
+  'massage': {
+    eyebrow:'IN-VILLA · WELLNESS', title:'In-Villa Massage',
+    hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Reception.webp',
+    intro:'A certified therapist comes to your villa for a massage on your own terms — on the terrace at sunset, beside the pool, or in the quiet of your room. It is one of the in-villa wellness experiences that make renting at Casa de Campo a calmer kind of luxury: no golf-cart ride, no locker room, no waiting area. Just an unhurried treatment in your own space, timed to suit your day.',
+    sections:[
+      {h:'The treatment', p:'Choose the style and focus with your therapist — a relaxing Swedish or aromatherapy massage, a firmer deep-tissue session, or a couples’ massage side by side. Single, couples and small-group bookings all work in the villa, and the therapist brings the table, oils and everything needed, so all you do is choose the time and place.'},
+      {h:'Why in-villa', p:'In-villa wellness is one of the genuine advantages of a villa over a hotel room. The concierge arranges a massage as readily as a private chef or a yoga session, bringing the practitioner to you. For couples and parents it removes every bit of friction — no travel, no booking desk, no leaving the children behind — and the villa setting is more private and relaxed than any treatment room.'},
+      {h:'Pairing the day', p:'A massage at sunset is the natural close to a full day of golf, beach and water sports. Pair it with a morning in-villa yoga session for a complete at-home wellness day, keeping the spa itself for the days you want the hydrothermal circuit. Many guests book a standing treatment mid-stay, returning to the same therapist over a longer visit.'},
+      {h:'Good to know', p:'Book the time, location and number of guests through your concierge, who coordinates in-villa wellness as part of the villa service and confirms final pricing. For the full hydrothermal circuit — sauna, steam, vitality and cold-plunge pools — visit the Forbes Four-Star spa itself, which complements the private, in-villa treatments rather than replacing them.'},
+    ],
+    link:'https://caribbeanparadisehomes.com/casa-de-campo-spa/'
+  },
   'yoga': {
     eyebrow:'IN-VILLA · WELLNESS', title:'Private Yoga',
     hero:'https://www.casadecampo.com.do/wp-content/smush-webp/2025/09/Minitas_-Beach-scaled.jpg.webp',
@@ -1591,11 +1603,22 @@ const SERVICE_INFO = {
   'yoga': {
     selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select>`,
     notePlaceholder:'Number of participants, preferred date & time, location (terrace/beach)…',
-    rates:`<b>PRIVATE YOGA · ONE PERSON</b>
-      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
-      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
-      <div class="rt"><span>120 minutes</span><span>US$160</span></div>
+    rates:`<b>PRIVATE YOGA · PER HOUR</b>
+      <div class="rt"><span>1 person</span><span>US$120 / hour</span></div>
+      <div class="rt"><span>2 people</span><span>US$95 / hour per person</span></div>
+      <div class="rt"><span>3–6 people</span><span>US$240 / hour</span></div>
+      <div class="rt"><span>7–10 people</span><span>US$60 / hour per person</span></div>
       <div class="rtnote">A certified instructor comes to your villa or the beach. Couples, group and sunrise-on-the-beach sessions on request — your concierge will confirm availability and final pricing.</div>`
+  },
+  'massage': {
+    selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select>`,
+    notePlaceholder:'Number of guests, type of massage, preferred date & time, location (terrace/room)…',
+    rates:`<b>IN-VILLA MASSAGE · PER HOUR</b>
+      <div class="rt"><span>1 person</span><span>US$120 / hour</span></div>
+      <div class="rt"><span>2 people</span><span>US$95 / hour per person</span></div>
+      <div class="rt"><span>3–6 people</span><span>US$240 / hour</span></div>
+      <div class="rt"><span>7–10 people</span><span>US$60 / hour per person</span></div>
+      <div class="rtnote">A certified therapist comes to your villa or terrace. Couples and group sessions on request — your concierge will confirm availability and final pricing.</div>`
   },
   'yacht-charter': {
     menu:'https://www.casadecampo.com.do/experiences/marina/',
