@@ -1092,7 +1092,7 @@ function renderEditor(){
   const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
-      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span><button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button><button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
+      <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span>${cur.status==='published'?`<button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button>`:`<button id="saveBtn" class="b-fill" onclick="publish()">Save &amp; Publish</button>`}<button class="b-out" onclick="printStay()">Print</button><button class="b-out" onclick="removeStay()" style="color:#9E5B43;border-color:#9E5B43">Delete</button></div></div>
     `;  /* editor chat mode removed 2026-07 — guest messaging moved to WhatsApp */
   document.getElementById('editor').innerHTML=head+`
     ${stayVitals(cur)}
@@ -1239,7 +1239,7 @@ function renderEditor(){
     <div class="sec"><h3>Internal notes</h3><div class="grid">
       <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
     </div></div>
-    <div class="msave"><button class="b-fill" onclick="saveDraft()">Save</button><button class="b-out" onclick="publish()">Publish</button></div>`;
+    <div class="msave">${cur.status==='published'?`<button class="b-fill" onclick="saveDraft()">Save</button>`:`<button class="b-fill" onclick="publish()">Save &amp; Publish</button>`}</div>`;
   collapsibleSections();
   buildSecNav();
   groupEditorSections();
