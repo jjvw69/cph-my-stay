@@ -339,6 +339,13 @@
   @media(max-width:760px){
     #app,.topbar,.cols,.col,.center,.ehd,.ebtns,.sec,.grid{min-width:0;max-width:100%}
     .cols{display:block;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:66px}
+    /* Phone: collapse the section-nav into ONE swipeable strip (it otherwise fills the whole screen). */
+    .secbar{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:8px 12px;-webkit-overflow-scrolling:touch}
+    .secbar::-webkit-scrollbar{display:none}
+    .secbar-row,.secbar .secnav-g{display:contents}
+    .secbar-admin{border-top:0;padding-top:0}
+    .secbar .secnav-gl{display:none}
+    .secbar .secnav-chip{flex:0 0 auto;padding:9px 15px;font-size:13.5px}
     .botnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:300;background:#fff;border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
     .botnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:none;color:var(--soft);font-size:10.5px;font-family:var(--ui);cursor:pointer;padding:4px 0}
     .botnav button .ic{font-size:19px;line-height:1.05}
