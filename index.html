@@ -1391,7 +1391,8 @@ const SERVICE_INFO = {
       <div class="rt"><span>Comfort</span><span>$190 / $360</span></div>
       <div class="rt"><span>VIP Black Luxury</span><span>$320 / $620</span></div>
       <div class="rth">Casa de Campo → airport (departure)</div>
-      <div class="rt"><span>LRM / PUJ / SDQ</span><span>same rate as the matching arrival above</span></div>`
+      <div class="rt"><span>LRM / PUJ / SDQ</span><span>same rate as the matching arrival above</span></div>
+      <div class="rtnote">LRM (La Romana International Airport), PUJ (Punta Cana International Airport), SDQ (Santo Domingo International Airport)</div>`
   },
   golfcart: {
     range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
@@ -2320,7 +2321,11 @@ window.printItinerary=function(){
   const r2=(k,val)=>`<tr><td style="padding:4px 14px 4px 0;color:#6B756C;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:4px 0">${val}</td></tr>`;
   const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
     const status=r.status==='confirmed'?('Confirmed'+(r.price?' · '+esc(r.price):'')):r.status==='done'?'Arranged ✓':'Requested';
-    let sub=''; if(r.refId==='transfer'){ const mm=String(r.note||'').match(/Route:\s*([^\n]+)/i); if(mm&&mm[1].trim()) sub=`<div style="font-size:11.5px;color:#8A938B;margin-top:2px">${esc(mm[1].trim())}</div>`; }
+    let detail='';
+    if(r.refId==='transfer'){ const mm=String(r.note||'').match(/Route:\s*([^\n]+)/i); detail=[mm&&mm[1].trim(),r.serviceLevel].filter(Boolean).join(' · '); }
+    else if(r.cartType){ detail=[r.cartType,r.serviceLevel].filter(Boolean).join(' · '); }
+    else { detail=r.serviceLevel||''; }
+    const sub=detail?`<div style="font-size:11.5px;color:#8A938B;margin-top:2px">${esc(detail)}</div>`:'';
     return `<tr><td style="padding:7px 0;border-top:1px solid #E6E9E2">${esc(r.title||'Request')}${sub}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;color:#54605A">${esc(when||'Date to be confirmed')}</td><td style="padding:7px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${esc(status)}</td></tr>`; };
   const gk=(k,val)=>`<tr><td style="padding:6px 14px 6px 0;color:#6B756C;white-space:nowrap;vertical-align:top;font-weight:600;border-top:1px solid #EEF1EC">${k}</td><td style="padding:6px 0;border-top:1px solid #EEF1EC">${val}</td></tr>`;
   const air=esc(b.airport||'LRM');
