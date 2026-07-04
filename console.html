@@ -1354,7 +1354,7 @@ function invRow(it,i){ return `<div style="border:1px solid var(--line);border-r
     <span style="color:#9AA49B;font-size:12px;flex:0 0 auto">Service dates</span>
     <input type="date" value="${esc(it.dateFrom||'')}" onchange="invDates(${i},'dateFrom',this.value)" title="Service start date" style="${invInput('flex:1;min-width:0')}">
     <span style="color:#9AA49B;font-size:13px">→</span>
-    <input type="date" value="${esc(it.dateTo||'')}" onchange="invDates(${i},'dateTo',this.value)" title="Service end date (leave blank for a single day)" style="${invInput('flex:1;min-width:0')}">
+    <input type="date" value="${esc(it.dateTo||'')}" onchange="invDates(${i},'dateTo',this.value)" title="Service end date (same as start = 1 day; extend for multiple days)" style="${invInput('flex:1;min-width:0')}">
   </div>
   <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
     <input value="${esc(String(it.rate||''))}" oninput="invField(${i},'rate',this.value)" placeholder="$/day" title="Rate per day" style="${invInput('flex:0 0 78px;width:78px')}">
@@ -1363,7 +1363,7 @@ function invRow(it,i){ return `<div style="border:1px solid var(--line);border-r
     <span style="color:#9AA49B;font-size:13px">=</span>
     <input id="invamt${i}" value="${esc(String(it.amount))}" oninput="invField(${i},'amount',this.value)" placeholder="$0" title="Line total" style="${invInput('flex:1;min-width:0')}">
   </div>
-  <div style="font-size:11px;color:#9AA49B;margin-top:4px">Pick the service dates and days fill in automatically (rate × days). Single date = 1 day. Or just type the amount.</div>
+  <div style="font-size:11px;color:#9AA49B;margin-top:4px">Pick the service dates and days fill in automatically (rate × days). One day = same start &amp; end date. Or just type the amount.</div>
 </div>`; }
 function renderInvItems(){ const c=document.getElementById('invItems'); if(c)c.innerHTML=(_invDraft.items||[]).map((it,i)=>invRow(it,i)).join(''); renderInvTotals(); }
 window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[k]=v;
@@ -1374,6 +1374,9 @@ window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; cons
 function invDaysInclusive(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const d=Math.round((b-a)/86400000)+1; return d>=1?d:1; }
 function invDateRange(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; }
 window.invDates=function(i,which,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[which]=v;
+  // Picking a start date fills the end date with the SAME day (single day = 1) — the end date is never left blank.
+  if(which==='dateFrom'){ if(!it.dateTo||it.dateTo<it.dateFrom) it.dateTo=it.dateFrom; }
+  if(which==='dateTo'){ if(!it.dateFrom) it.dateFrom=it.dateTo; if(it.dateTo&&it.dateFrom&&it.dateTo<it.dateFrom) it.dateFrom=it.dateTo; }
   if(it.dateFrom){ const d=invDaysInclusive(it.dateFrom,it.dateTo); it.days=String(d); const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&String(it.rate).trim()!==''){ it.amount=String(Math.round(rate*d*100)/100); } }
   renderInvItems();
 };
