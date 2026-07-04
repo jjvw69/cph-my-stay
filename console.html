@@ -450,7 +450,7 @@ document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=S
 if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Guest name display: light first name(s), bold surname (last word).
-const fmtName=n=>{ n=String(n||'').trim(); if(!n) return ''; const p=n.split(/\s+/); if(p.length<2) return esc(n); const last=p.pop(); return '<span style="font-weight:400">'+esc(p.join(' '))+'</span> <b style="font-weight:800">'+esc(last)+'</b>'; };
+const fmtName=n=>{ n=String(n||'').trim(); if(!n) return ''; const p=n.split(/\s+/); if(p.length<2) return esc(n); const last=p.pop(); return '<span style="font-weight:400">'+esc(p.join(' '))+'&nbsp;<b style="font-weight:800">'+esc(last)+'</b></span>'; };
 /* First money token in a rate string. Returns {n:number|null, multi:boolean}. Multi-number
    rate text (tiered "Label | Price" lines) must NOT auto-fill — digits would concatenate. */
 function firstMoney(s){ const m=String(s==null?'':s).match(/[0-9][0-9,]*(?:\.[0-9]+)?/g)||[]; return { n:m.length?parseFloat(m[0].replace(/,/g,'')):null, multi:m.length>1 }; }

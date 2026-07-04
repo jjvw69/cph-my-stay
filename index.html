@@ -327,12 +327,20 @@ const DEFAULT_WELCOME="Welcome to {villa name} — we're so happy to have you. I
 function fillTokens(t,s){
   const vn=(s&&s.villa&&s.villa.name)||'your villa';
   const cn=(s&&s.concierge&&s.concierge.name)||'your concierge';
-  return String(t||'').replace(/\{\s*villa name\s*\}/gi,vn).replace(/\{\s*concierge name\s*\}/gi,cn);
+  const fn=(s&&s.guest&&s.guest.firstName)||'there';
+  const ln=(s&&s.guest&&s.guest.lastName)||'';
+  const gf=(s&&s.guest&&(s.guest.family||s.guest.lastName))||'';
+  return String(t||'').replace(/\{\s*villa name\s*\}/gi,vn).replace(/\{\s*concierge name\s*\}/gi,cn).replace(/\{\s*first name\s*\}/gi,fn).replace(/\{\s*last name\s*\}/gi,ln).replace(/\{\s*guest name\s*\}/gi,gf);
 }
+/* Personalized greeting ("Dear [surname] family,") + the concierge welcome body. Greeting is skipped if the message already opens with one, or if no surname is on file. */
+function welcomeBody(s){ return fillTokens(((s&&s.welcomeMessage)||'').trim()||DEFAULT_WELCOME, s); }
+function welcomeGreetOf(s){ const last=(s&&s.guest&&s.guest.lastName)||''; if(!last) return ''; if(/^\s*(dear|hi|hello|hey)\b/i.test(welcomeBody(s))) return ''; return 'Dear '+last+' family,'; }
+function welcomeHTML(s){ const g=welcomeGreetOf(s); const b=esc(welcomeBody(s)); return g?esc(g)+'<br><br>'+b:b; }
+function welcomeText(s){ const g=welcomeGreetOf(s); const b=welcomeBody(s); return g?g+'\n\n'+b:b; }
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
 function loadConversation(){
   const s=state.stay; if(!s) return;
-  const wm=fillTokens((s.welcomeMessage||'').trim()||DEFAULT_WELCOME, s);
+  const wm=welcomeText(s);
   const greet={from:'them',t: wm};
   const stored=(s.messages||[]).map(m=>({from:m.from==='guest'?'me':'them',t:m.text,at:m.at}));
   state.messages=[greet].concat(stored);
@@ -423,7 +431,7 @@ function renderHome(){
         <div class="avatar" style="width:40px;height:40px;flex:0 0 auto">${esc((s.concierge&&s.concierge.avatarInitials)||'')}</div>
         <div style="min-width:0">
           <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)">A note from your concierge</div>
-          <div style="font-size:13.5px;line-height:1.55;color:var(--ink);margin-top:4px">${esc(fillTokens((s.welcomeMessage||'').trim()||DEFAULT_WELCOME, s))}</div>
+          <div style="font-size:13.5px;line-height:1.55;color:var(--ink);margin-top:4px">${welcomeHTML(s)}</div>
         </div>
       </div>
       <button class="row" onclick="push('checkin')"><span class="ic">①</span><span class="tx"><b>Complete pre check-in</b><span>${checkinDone?'Completed':'Takes about 3 minutes'}</span></span>${checkinDone?'<span class="pill-done">Done</span>':'<span class="arr">→</span>'}</button>
@@ -1763,7 +1771,7 @@ window.removeReq=async function(id){
 function renderConcierge(){
   const s=state.stay;
   if(state.messages.length===0){
-    const wm=fillTokens((s.welcomeMessage||'').trim()||DEFAULT_WELCOME, s);
+    const wm=welcomeText(s);
     state.messages=[{from:'them',t: wm}];
   }
   const seed=state._seed||''; state._seed=null;   // prefill the composer so the guest sends a REAL message (no fake auto-reply)
