@@ -1213,13 +1213,13 @@ function renderEditor(){
       <div class="counter">Meals the guest would like ready on arrival${cur.mealPlan.updatedAt?' · updated '+fmtReqDate(cur.mealPlan.updatedAt):''} — arrange groceries or a private chef.</div>
       <div style="margin-top:9px"><button class="reqx" onclick="printMeals()">🖨 Print meal plan</button></div></div>`:''}
 
-    ${(function(){ const active=(cur.requests||[]).filter(r=>r.status!=='done'&&r.status!=='cancelled').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')); return active.length?`<div class="sec"><h3>Guest pending requests <span class="reqcount">${active.length}</span></h3>
+    ${(function(){ const active=(cur.requests||[]).filter(r=>r.status!=='confirmed'&&r.status!=='done'&&r.status!=='cancelled').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')); return active.length?`<div class="sec"><h3>Guest pending requests <span class="reqcount">${active.length}</span></h3>
       <div class="reqlist">${active.map(reqItemHtml).join('')}</div>
-      <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Mark done once arranged.</div></div>`:''; })()}
+      <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Confirm &amp; send a price to book it — it then moves to Booked.</div></div>`:''; })()}
 
-    ${(function(){ const log=(cur.requests||[]).filter(r=>r.status==='done'||r.status==='cancelled').sort((a,b)=>((b.doneAt||b.cancelledAt||0)-(a.doneAt||a.cancelledAt||0))); return log.length?`<div class="sec"><h3>Guest booked requests <span class="reqcount">${log.length}</span></h3>
+    ${(function(){ const rank=r=>r.status==='confirmed'?0:r.status==='done'?1:2; const log=(cur.requests||[]).filter(r=>r.status==='confirmed'||r.status==='done'||r.status==='cancelled').slice().sort((a,b)=>{ const d=rank(a)-rank(b); if(d)return d; if(rank(a)===0)return (a.date||'').localeCompare(b.date||''); return (b.doneAt||b.cancelledAt||0)-(a.doneAt||a.cancelledAt||0); }); return log.length?`<div class="sec"><h3>Guest booked requests <span class="reqcount">${log.length}</span></h3>
       <div class="reqlist">${log.map(reqItemHtml).join('')}</div>
-      <div class="counter">Completed &amp; cancelled requests — reopen to edit if anything changes.</div></div>`:''; })()}
+      <div class="counter">Confirmed bookings, plus completed &amp; cancelled requests — reopen to edit if anything changes.</div></div>`:''; })()}
 
     <div class="sec"><h3>Stay details (shown to guest)</h3><div class="grid">
       <div class="f"><label>Villa number</label><input value="${esc(cur.villaNumber||cur.villaInternal||'')}" oninput="set('villaNumber',this.value)" placeholder="From internal property name"></div>
