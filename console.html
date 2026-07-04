@@ -1672,8 +1672,8 @@ function renderPreview(){
     : `<div class="act-empty" style="border-style:solid;color:#3F6B4E">Ready for arrival ✓</div>`;
 
   const qa=[];
-  if(cur.status==='published') qa.push(`<button class="b-out" onclick="sendLoginLink()">Guest link · WhatsApp</button>`);
   qa.push(`<button class="b-out" onclick="openInvoice('')">New invoice</button>`);
+  if(cur.status==='published') qa.push(`<button class="b-out" onclick="sendLoginLink()">WhatsApp Guest</button>`);
   const qaBody=`<div class="act-row" style="flex-wrap:wrap">${qa.join('')}</div>`;
 
   host.innerHTML=`
