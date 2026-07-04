@@ -1276,6 +1276,12 @@ function renderExplore(){
   const cats=[['All','All'],['Golf Courses','Golf'],['Dining','Dining'],['Cafés','Cafe'],['Nightlife','Nightlife'],['Resort Amenities','Amenities'],['Resort Experiences','Activities'],['Outside Experiences','Outside']];
   const cur=state._exCat||'All';
   const _all=exploreData().filter(e=>cur==='All'||e.cat===cur);
+  if(cur==='All'){
+    // In "All": Yacht Charters first, then Resort Amenities, then remaining categories A→Z (curated order kept within each category via stable sort).
+    const CAT_LBL={Golf:'Golf Courses',Dining:'Dining',Cafe:'Cafés',Nightlife:'Nightlife',Amenities:'Resort Amenities',Activities:'Resort Experiences',Outside:'Outside Experiences'};
+    const rank=e=>/yacht/i.test(e.name||'')?0:(e.cat==='Amenities'?1:2);
+    _all.sort((a,b)=>{ const ra=rank(a),rb=rank(b); if(ra!==rb) return ra-rb; if(ra===2){ return (CAT_LBL[a.cat]||a.cat).localeCompare(CAT_LBL[b.cat]||b.cat); } return 0; });
+  }
   const PER=10, pageCount=Math.max(1,Math.ceil(_all.length/PER));
   let _pg=Math.min(state._exPage||0,pageCount-1); if(_pg<0)_pg=0;
   const items=_all.slice(_pg*PER,(_pg+1)*PER);
