@@ -2924,6 +2924,17 @@ function bootPing(s){ try{ if(window.parent && window.parent!==window) window.pa
 bootPing('js-start');
 (async function(){
   try{
+    // Staff "Open guest app" deep-link (from the Concierge Console): ?ref=<booking>&last=<lead last name>.
+    // Auto sign-in with those credentials for review, bypassing any stored token, then scrub the URL.
+    var _dl=(function(){ try{ var q=new URLSearchParams(location.search); return { ref:(q.get('ref')||q.get('b')||'').trim(), last:(q.get('last')||q.get('ln')||'').trim() }; }catch(e){ return {ref:'',last:''}; } })();
+    if(_dl.ref && _dl.last){
+      bootPing('deeplink');
+      let dr; try{ dr = await api('/api/login',{method:'POST',body:JSON.stringify({reference:_dl.ref,lastName:_dl.last})}); }
+      catch(netErr){ dr = {ok:false, body:{}}; }
+      try{ history.replaceState({}, document.title, location.pathname); }catch(e){}
+      if(dr.ok && dr.body.stay){ state.stay=dr.body.stay; saveToken(dr.body.token||null); bootPing('app'); bootIntoApp(); return; }
+      bootPing('login'); renderLogin({ref:_dl.ref,last:_dl.last}); return;
+    }
     state.token = loadToken();              // restore a previous session if present
     bootPing('fetching');
     let r;
