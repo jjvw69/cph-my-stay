@@ -228,7 +228,8 @@
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
   .secbar{display:flex;flex-direction:column;gap:9px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
   .secbar:empty{display:none}
-  .secbar-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 18px}
+  .secbar-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:8px 14px;overflow-x:auto}
+  .secbar-row::-webkit-scrollbar{display:none}
   .secbar-admin{border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
   .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em}
   .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500}
@@ -862,14 +863,14 @@ function collapsibleSections(){
    scrolls to that section (and expands it). Rebuilt after each renderEditor so it
    only lists sections that are actually present for this stay. */
 const SECNAV_GROUPS=[
-  {g:'Admin', ids:['csec-follow-up-reminders','csec-internal-notes']},
   {g:'Booking', ids:['csec-guest-party','csec-villa-information','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
+  {g:'Admin', ids:['csec-follow-up-reminders','csec-internal-notes']},
   {g:'Requirements', ids:['csec-guest-pending-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals']},
   {g:'Billing', ids:['csec-guest-booked-requests','csec-services-sent-to-guest','csec-invoices','csec-payment-balance','csec-yacht-charter-proposal']},
 ];
 const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow-up','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 // Sections that stay grouped in the middle column but get NO top-bar chip.
-const SECNAV_HIDE=new Set(['csec-concierge-welcome','csec-yacht-charter-proposal']);
+const SECNAV_HIDE=new Set(['csec-concierge-welcome','csec-yacht-charter-proposal','csec-internal-notes']);
 function buildSecNav(){
   // The section-nav now lives in the full-width #secbar between the top bar and the columns.
   // It still reflects only the sections actually present in the editor for this stay.
@@ -878,11 +879,9 @@ function buildSecNav(){
     const chips=grp.ids.filter(id=>!SECNAV_HIDE.has(id)&&ed.querySelector('#'+id)).map(id=>`<button class="secnav-chip" onclick="jumpSec('${id}')">${esc(SECNAV_LABEL[id]||id)}</button>`);
     return chips.length?`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`:'';
   };
-  // Booking · Guest requirements · Upsell on one centered row; Admin centered on its own row below.
-  const mainHtml=SECNAV_GROUPS.filter(g=>g.g!=='Admin').map(groupHtml).join('');
-  const adminGrp=SECNAV_GROUPS.find(g=>g.g==='Admin');
-  const adminHtml=adminGrp?groupHtml(adminGrp):'';
-  bar.innerHTML=(mainHtml?`<div class="secbar-row secbar-main">${mainHtml}</div>`:'')+(adminHtml?`<div class="secbar-row secbar-admin">${adminHtml}</div>`:'');
+  // All groups on one centered row, in SECNAV_GROUPS order (Booking · Admin · Requirements · Billing).
+  const mainHtml=SECNAV_GROUPS.map(groupHtml).join('');
+  bar.innerHTML=mainHtml?`<div class="secbar-row secbar-main">${mainHtml}</div>`:'';
 }
 /* Reorder the editor sections into the same logical groups as the quick-nav, with an
    uppercase divider heading before each group (BOOKING / GUEST / UPSELL & MONEY / ADMIN). */
