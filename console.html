@@ -164,6 +164,7 @@
   .ab-in{width:100%;min-width:78px;box-sizing:border-box;border:1px solid transparent;border-radius:6px;padding:4px 6px;font-size:11.5px;background:#F7F6F1;color:var(--ink);font-family:var(--ui)}
   .ab-in:hover{border-color:var(--line)}
   .ab-in:focus{border-color:var(--accent);background:#fff;outline:none}
+  .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
   .ab-greet{min-width:96px}
   table.ab .greet-sel{margin-left:0;width:100%;min-width:88px}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
@@ -732,13 +733,18 @@ function renderArrivalsBoard(){
   const today=todayStr();
   const L=(LIST||[]).filter(s=>s.checkin && (!s.checkout || s.checkout>=today) && (s.status==='published'||s.status==='draft')).sort((a,b)=>(a.checkin||'').localeCompare(b.checkin||''));
   const inp=(s,field,ph)=>`<input class="ab-in" value="${escA(s[field]||'')}" placeholder="${ph||''}" onclick="event.stopPropagation()" onchange="setStayField('${s.id}','${field}',this.value)">`;
+  // Provider code is DERIVED from the booking file (CPH booking agent + Booking source), not typed.
+  // Reverse of the agent-code mapping. Edit it via the stay's Guest & party fields.
+  const OWNER_CODE={jan:'JVW',ivonna:'IV'};
+  const AGENCY_CODE={'Rental Escapes':'RE','Personal Villas':'PV','Exceptional Villas':'EV','One Fine Stay':'OFS','LaCure':'LC','Gathering Vacations':'GA','Villaway':'VA','Hosted Villas':'HV','Bonvido':'BO','In Veritas':'IVER','Duffy Destinations':'DF','Jetset World Travel':'JWT','Heaven Villas':'HVN','Dream Exotics Rentals':'DER','Home & Villas by Marriott Bonvoy':'HVMB','Top Villas':'TV','AMA Selections':'AMA','Haute Retreats':'HR','TravelLustre':'TLL','Dream Exotic Villas':'DEV'};
+  const providerCode=(s)=>{const own=OWNER_CODE[s.bookingAgent]||'';const ag=(s.source&&s.source!=='Direct Booking')?(AGENCY_CODE[s.source]||''):'';const code=[own,ag].filter(Boolean).join('/');return code||esc(s.agent||'—');};
   const rows=L.map(s=>{const g=(s.ppl||s.guests||'');return `<tr>
       <td class="ab-dt">${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
       <td class="ab-dt">${esc(fmtDay(s.checkout)||s.checkout||'')}</td>
       <td class="ab-guest"><button onclick="selectStay('${s.id}')">${fmtName(s.guest)}</button>${s.status==='draft'?' <span class="ab-draft">draft</span>':''}</td>
       <td class="ab-villa">${esc(s.villa||'—')}</td>
       <td class="ab-ppl">${g||'–'}</td>
-      <td>${inp(s,'agent','IV/RE')}</td>
+      <td class="ab-prov" title="Derived from Booking source + CPH booking agent">${providerCode(s)}</td>
       <td class="ab-greet">${greetSel(s)}</td>
       <td>${inp(s,'cartConfig','cart')}</td>
       <td>${inp(s,'staffCount','staff')}</td>
