@@ -114,10 +114,11 @@
   .today-row .tr-g{font-size:14.5px;font-weight:600;color:var(--ink)}
   .today-row .tr-m{font-size:12.5px;color:var(--soft)}
   .tr-sep{color:var(--soft);margin:0 7px;font-size:12px}
-  .awin-row{display:flex;gap:5px;margin:7px 0 13px}
-  .awin{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 3px;font-size:10.5px;color:var(--soft);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1;white-space:nowrap}
+  .awin-row{display:flex;gap:4px;margin:7px 0 13px}
+  .awin{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 2px;font-size:10px;color:var(--soft);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.1;white-space:nowrap}
   .awin.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .awin-n{font-family:var(--display);font-size:18px;font-weight:600}
+  .awin-u{font-size:8.5px;opacity:.65;letter-spacing:.03em;text-transform:uppercase}
   .today-row .tr-tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600;border-radius:20px;padding:3px 11px;white-space:nowrap}
   .tr-tag.amber{background:#FBF1D8;color:#9A7B36}
   .tr-tag.red{background:#F3DADA;color:#9A2B2B}
@@ -676,7 +677,7 @@ function renderInbox(){
 }
 function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.checkin?' · '+esc(s.checkin):'')); return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${m}</span></span>${tag||''}</button>`; }
 let arrWin=0;
-const ARR_BANDS=[[0,14,'0–14'],[15,30,'15–30'],[31,60,'30–60'],[61,90,'60–90']];
+const ARR_BANDS=[[0,14,'0–14'],[15,30,'15–30'],[31,60,'30–60'],[61,90,'60–90'],[91,999999,'90+']];
 window.setArrWin=function(i){ arrWin=i; renderArrivalsPanel(); };
 function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
@@ -685,10 +686,10 @@ function renderArrivalsPanel(){
   const band=(a,b)=>pub.filter(s=>{const d=daysUntil(s.checkin);return d>=a&&d<=b;}).sort((x,y)=>(x.checkin||'').localeCompare(y.checkin||''));
   const cur=ARR_BANDS[arrWin]||ARR_BANDS[0];
   const list=band(cur[0],cur[1]);
-  const chip=(i)=>{const b=ARR_BANDS[i];const cnt=band(b[0],b[1]).length;return `<button class="awin ${arrWin===i?'on':''}" onclick="setArrWin(${i})"><span class="awin-n">${cnt}</span>${b[2]}</button>`;};
+  const chip=(i)=>{const b=ARR_BANDS[i];const cnt=band(b[0],b[1]).length;return `<button class="awin ${arrWin===i?'on':''}" onclick="setArrWin(${i})"><span class="awin-n">${cnt}</span><span>${b[2]}</span><span class="awin-u">days</span></button>`;};
   host.innerHTML=`
     <div class="label">Upcoming arrivals</div>
-    <div class="awin-row">${chip(0)}${chip(1)}${chip(2)}${chip(3)}</div>
+    <div class="awin-row">${chip(0)}${chip(1)}${chip(2)}${chip(3)}${chip(4)}</div>
     ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${esc(s.checkin||'')}</span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
 }
 let todayGroups={};
@@ -734,7 +735,7 @@ function renderToday(){
   const totCollect=unpaid.reduce((a,s)=>a+(s.unpaidTotal||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
-  const statTxt=(txt,lbl,key,hot)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${txt}</div><div class="lbl">${lbl}</div></div>`;
+  const statTxt=(txt,lbl,key,hot)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:22px;white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
   el.innerHTML=`
@@ -1076,7 +1077,7 @@ function stayVitals(s){
       <div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect</div>
         <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'var(--gold)':'var(--ink)'};margin-top:1px">US$${unpaidTot.toLocaleString()}</div>
-        <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus)+((s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''):(unpaidTot>0?'Balance due':'Nothing due')}</div>
+        <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus)+((s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(usdStr(s.balanceDue)):''):(unpaidTot>0?'Balance due':'Nothing due')}</div>
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Add-ons</div>
@@ -1273,7 +1274,7 @@ function renderEditor(){
       <div class="f"><label>Total stay charge</label><input id="payTotal" value="${esc(cur.totalCharge||'')}" oninput="recalcBalance()" placeholder="e.g. US$5,000"></div>
       <div class="f"><label>Paid so far</label><input id="payPaid" value="${esc(cur.amountPaid||'')}" oninput="recalcBalance()" placeholder="e.g. US$2,600"></div>
       <div class="f"><label>Due by (optional)</label><input id="payBy" value="${esc(cur.balanceDueBy||'')}" oninput="recalcBalance()" placeholder="e.g. Jul 1"></div>
-      <div class="f full"><label>Balance due (calculated)</label><div id="payBal" style="font-size:20px;font-weight:600;color:var(--accent);padding:6px 2px 2px">${esc(cur.balanceDue||'—')}</div><div class="reqmeta" style="margin-top:0">Total charge minus paid — fills automatically.</div></div>
+      <div class="f full"><label>Balance due (calculated)</label><div id="payBal" style="font-size:20px;font-weight:600;color:var(--accent);padding:6px 2px 2px">${esc(usdStr(cur.balanceDue||'—'))}</div><div class="reqmeta" style="margin-top:0">Total charge minus paid — fills automatically.</div></div>
       <div class="f full"><label>Security deposit</label><input value="${esc(cur.securityDeposit||'')}" oninput="set('securityDeposit',this.value)" placeholder="e.g. US$1,000 held · refundable on checkout"></div>
       <div class="f full counter">Internal only — the guest never sees this.</div>
     </div></div>
