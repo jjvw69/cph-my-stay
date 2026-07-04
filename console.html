@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   /* Wimbledon "Centre Court" palette: dark stand grey · green scoreboard · light seating greys · white court · purple status · soft-yellow live accent. */
-  :root{--bg:#E6E9E7;--panel:#EDEFED;--card:#FFF;--ink:#14231A;--accent:#12794D;--accent2:#0C4A2F;--soft:#6B746F;--line:#D5D9D6;--gold:#5A3A88;--login:#0C3226;
+  :root{--bg:#E6E9E7;--panel:#EDEFED;--card:#FFF;--ink:#14231A;--accent:#12794D;--accent2:#0C4A2F;--soft:#6B746F;--line:#D5D9D6;--gold:#A37E2C;--login:#0C3226;
     --purple:#5A3A88;--yellow:#DEE86B;--hedge:#0C4A2F;--stand:#333C39;
     --okbg:#DCEBE1;--oktx:#12794D;--drbg:#E7EAE6;--drtx:#5C665E;--nibg:#F2E3DC;--nitx:#9E5B43;
     --display:'Montserrat',-apple-system,'Segoe UI',sans-serif;--ui:'Montserrat',-apple-system,'Segoe UI',sans-serif;}
@@ -60,7 +60,7 @@
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   .staycard .g{display:flex;align-items:center}
-  .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--purple);display:inline-block;margin-left:8px;flex:0 0 auto}
+  .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
@@ -147,7 +147,7 @@
   details.sec[open] .tl-hint-closed{display:none}
   details.sec[open] .tl-hint-open{display:inline}
   .msave{display:none}
-  .reqcount{display:inline-block;font-size:12px;background:var(--purple);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:700}
+  .reqcount{display:inline-block;font-size:12px;background:var(--gold);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:700}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -306,7 +306,7 @@
   .pulse.off{color:#9A7B36}
   .act-sec{margin-bottom:16px}
   .act-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:8px}
-  .act-n{background:var(--purple);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0;font-weight:700}
+  .act-n{background:var(--gold);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0;font-weight:700}
   .act-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
   .act-card.warn{border-color:#E4C58C;background:#FCF7EC}
   .act-title{font-size:14px;font-weight:600;color:var(--ink)}
@@ -1130,7 +1130,7 @@ function renderEditor(){
   }).join('');
   const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
-    <div class="ehd"><div><h2>${esc(cur.leadName||'New stay')}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
+    <div class="ehd"><div><h2>${(function(){const n=String(cur.leadName||'New stay').trim();const p=n.split(/\s+/);if(p.length<2)return esc(n);const last=p.pop();return esc(p.join(' '))+' <b style="font-weight:800">'+esc(last)+'</b>';})()}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span>${cur.status==='published'?`<button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button>`:`<button id="saveBtn" class="b-fill" onclick="publish()">Save &amp; Publish</button>`}<button class="b-out" onclick="removeStay()" style="background:#C0392B;color:#fff;border-color:#C0392B">Delete</button></div></div>
     `;  /* editor chat mode removed 2026-07 — guest messaging moved to WhatsApp */
   document.getElementById('editor').innerHTML=head+`
