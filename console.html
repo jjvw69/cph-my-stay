@@ -767,7 +767,7 @@ function renderToday(){
   const totCollect=unpaid.reduce((a,s)=>a+(s.unpaidTotal||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
-  const statTxt=(txt,lbl,key,hot)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:22px;white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
+  const statTxt=(txt,lbl,key,hot,wide)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden${wide?';grid-column:span 2':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:${wide?'28px':'22px'};white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
   el.innerHTML=`
@@ -780,11 +780,10 @@ function renderToday(){
       ${stat(depToday.length,'Departing today','depToday')}
       ${stat(xfToday.length,'Transfers today','xfToday',true)}
       ${stat(notReady.length,'Arrivals not ready','notReady',true)}
-      ${stat(notOpened.length,'Not opened app','notOpened')}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
       ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
-      ${statTxt('US$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0)}
+      ${statTxt('US$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0,true)}
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
@@ -794,7 +793,6 @@ function renderToday(){
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
     ${sec('In-house now','inhouse', inhouse.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`, esc(s.villa||'—')+' · until '+esc(s.checkout||''))))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
-    ${sec('Haven’t opened the app','notOpened', notOpened.map(s=>{const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag amber">not opened</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d'));}))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
     ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">US$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
