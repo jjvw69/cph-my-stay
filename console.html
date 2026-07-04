@@ -123,6 +123,19 @@
   .tr-tag.amber{background:#FBF1D8;color:#9A7B36}
   .tr-tag.red{background:#F3DADA;color:#9A2B2B}
   .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
+  .nrx{margin-bottom:8px}
+  .nrx .nrx-head{margin-bottom:0}
+  .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
+  .nrx.open .nrx-chev{transform:rotate(90deg)}
+  .nrx.open .nrx-head{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+  .nrx-body{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff;padding:6px 14px 11px}
+  .nrx-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);padding:5px 0}
+  .nrx-ic{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:0 0 auto}
+  .nrx-ic.ok{background:#E2EFE0;color:#3F6B4E}
+  .nrx-ic.no{background:#F3DADA;color:#9A2B2B}
+  .nrx-pend{color:#9A2B2B;font-size:11.5px;font-weight:600}
+  .nrx-open{margin-top:8px;background:none;border:0;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;padding:2px 0;font-family:var(--ui)}
+  .nrx-open:hover{text-decoration:underline}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   /* ---- #6 quick wins ---- */
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
@@ -676,6 +689,25 @@ function renderInbox(){
     ${L.length?rows:`<div class="today-clear">No guest messages yet.</div>`}`;
 }
 function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.checkin?' · '+esc(s.checkin):'')); return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${m}</span></span>${tag||''}</button>`; }
+// Tap-to-expand "not ready" row — shows the 3 pre-arrival items with done/pending state at a glance.
+let nrOpen=new Set();
+window.toggleNR=function(id){ const open=!nrOpen.has(id); if(open)nrOpen.add(id);else nrOpen.delete(id); const w=document.getElementById('nrx-'+id); const b=document.getElementById('nrb-'+id); if(w)w.classList.toggle('open',open); if(b)b.style.display=open?'block':'none'; };
+function notReadyRow(s){
+  const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
+  const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
+  return `<div class="nrx ${open?'open':''}" id="nrx-${s.id}">
+    <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
+      <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${d===0?'arrives today':'in '+d+'d'}</span></span>
+      <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
+    </button>
+    <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
+      ${item(!!R.preCheckin,'Pre check-in')}
+      ${item(!!R.passports,'Passports')}
+      ${item(!!R.transferReady,'Airport transfer')}
+      <button class="nrx-open" onclick="event.stopPropagation();selectStay('${s.id}')">Open stay →</button>
+    </div>
+  </div>`;
+}
 let arrWin=0;
 const ARR_BANDS=[[0,14,'0–14'],[15,30,'15–30'],[31,60,'30–60'],[61,90,'60–90'],[91,999999,'90+']];
 window.setArrWin=function(i){ arrWin=i; renderArrivalsPanel(); };
@@ -756,7 +788,7 @@ function renderToday(){
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
-    ${sec('Arrivals not ready','notReady', notReady.map(s=>{const miss=(s.readiness&&s.readiness.missing)||[];const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag red">${miss.length} to fix</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d')+' · missing '+miss.join(', '));}))}
+    ${sec('Arrivals not ready','notReady', notReady.map(s=>notReadyRow(s)))}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
