@@ -1319,7 +1319,8 @@ function invLbl(){ return 'display:block;font-size:11.5px;letter-spacing:.12em;t
 function invPickOptions(sel){ let h='';
   const sent=(cur&&cur.sentServices)||[];
   if(sent.length){ h+='<optgroup label="Offered services">'+sent.map((s,idx)=>`<option value="svc:${idx}"${sel==='svc:'+idx?' selected':''}>${esc([s.name,s.option].filter(Boolean).join(' · '))}${s.rate?' · '+esc(s.rate):''}</option>`).join('')+'</optgroup>'; }
-  const ad=(typeof BOOT!=='undefined'&&BOOT.addons)||[];
+  // 'arrivalmeals' / 'grocery' aren't charged via the service invoice (meals aren't billed; groceries use the grocery invoice), so hide them here.
+  const ad=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).filter(a=>a.id!=='arrivalmeals'&&a.id!=='grocery');
   if(ad.length){ h+='<optgroup label="Villa add-ons">'+ad.map(a=>`<option value="addon:${esc(a.id)}"${sel==='addon:'+a.id?' selected':''}>${esc(a.name)}${a.rates?' · '+esc(a.rates):''}</option>`).join('')+'</optgroup>'; }
   return h;
 }
@@ -1344,16 +1345,24 @@ window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; co
   renderInvItems();
 };
 function invRow(it,i){
-  const perDay=!!(String(it.rate||'').trim());                                  // per-day service (golf cart, car rental) → dates × rate
-  const rt=/round\s*-?\s*trip/i.test((it.svcOpt||'')+' '+(it.label||''));        // round-trip transfer → arrival + departure dates
+  const combo=(it.svcOpt||'')+' '+(it.label||'');
+  const hasRate=!!(String(it.rate||'').trim());
+  const isDay=/day/i.test(combo);                                                // per-DAY rental (golf cart, car rental)
+  const perDay=hasRate&&isDay;                                                   // rental → Pick-up → Return, nights × rate
+  const perUnit=hasRate&&!isDay;                                                 // rate but not per-day (e.g. per-hour) → single date + rate × qty
+  const rt=/round\s*-?\s*trip/i.test(combo);                                     // round-trip transfer → arrival + departure dates
   const dinp=(k,ttl)=>`<input type="date" value="${esc(it[k]||'')}" onchange="invDates(${i},'${k}',this.value)" title="${ttl}" style="${invInput('flex:1;min-width:0')}">`;
   const amt=`<input id="invamt${i}" value="${esc(String(it.amount))}" oninput="invField(${i},'amount',this.value)" placeholder="$0" title="Line total" style="${invInput('flex:1;min-width:0')}">`;
   const lbl=t=>`<span style="color:#9AA49B;font-size:12px;flex:0 0 auto">${t}</span>`;
   let block;
   if(perDay){
-    block=`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Service dates')}${dinp('dateFrom','Service start date')}<span style="color:#9AA49B;font-size:13px">→</span>${dinp('dateTo','Service end date (extend for multiple days)')}</div>`
-      +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px"><input value="${esc(String(it.rate||''))}" oninput="invField(${i},'rate',this.value)" placeholder="$/day" title="Rate per day" style="${invInput('flex:0 0 78px;width:78px')}"><span style="color:#9AA49B;font-size:13px">×</span><input value="${esc(String(it.days||''))}" oninput="invField(${i},'days',this.value)" placeholder="days" title="Days (from the dates)" style="${invInput('flex:0 0 62px;width:62px')}"><span style="color:#9AA49B;font-size:13px">=</span>${amt}</div>`
-      +`<div style="font-size:11px;color:#9AA49B;margin-top:4px">Per-day service — pick the dates, days fill in (rate × days). One day = same start &amp; end date.</div>`;
+    block=`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Pick-up')}${dinp('dateFrom','Pick-up date')}${lbl('Return')}${dinp('dateTo','Return date')}</div>`
+      +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px"><input value="${esc(String(it.rate||''))}" oninput="invField(${i},'rate',this.value)" placeholder="$/day" title="Rate per day" style="${invInput('flex:0 0 78px;width:78px')}"><span style="color:#9AA49B;font-size:13px">×</span><input value="${esc(String(it.days||''))}" oninput="invField(${i},'days',this.value)" placeholder="days" title="Days (nights between pick-up &amp; return)" style="${invInput('flex:0 0 62px;width:62px')}"><span style="color:#9AA49B;font-size:13px">=</span>${amt}</div>`
+      +`<div style="font-size:11px;color:#9AA49B;margin-top:4px">Rental — nights between pick-up &amp; return × the daily rate. Same day = 1.</div>`;
+  } else if(perUnit){
+    block=`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Service date')}${dinp('dateFrom','Date of service')}</div>`
+      +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px"><input value="${esc(String(it.rate||''))}" oninput="invField(${i},'rate',this.value)" placeholder="rate" title="Rate per unit" style="${invInput('flex:0 0 78px;width:78px')}"><span style="color:#9AA49B;font-size:13px">×</span><input value="${esc(String(it.days||''))}" oninput="invField(${i},'days',this.value)" placeholder="qty" title="Quantity (hours / sessions / people)" style="${invInput('flex:0 0 62px;width:62px')}"><span style="color:#9AA49B;font-size:13px">=</span>${amt}</div>`
+      +`<div style="font-size:11px;color:#9AA49B;margin-top:4px">Rate × quantity. Enter the date of the service.</div>`;
   } else if(rt){
     block=`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Arrival')}${dinp('dateFrom','Arrival transfer date')}${lbl('Departure')}${dinp('dateTo','Departure transfer date')}</div>`
       +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Amount')}${amt}</div>`
@@ -1377,21 +1386,25 @@ window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; cons
 };
 /* Service dates → number of days (inclusive; single date = 1 day) × rate = line total. */
 function invDaysInclusive(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const d=Math.round((b-a)/86400000)+1; return d>=1?d:1; }
+/* Rental days = NIGHTS between pick-up and return (same day = 1). Jul 12 → Jul 22 = 10. */
+function invDaysSpan(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const n=Math.round((b-a)/86400000); return n>=1?n:1; }
 function invDateRange(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; }
 /* Date text printed on the invoice line: per-day = range; round-trip transfer = arr/dep; else a single date. */
-function invServiceDateLabel(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; const perDay=!!(String(it.rate||'').trim()); const rt=/round\s*-?\s*trip/i.test((it.svcOpt||'')+' '+(it.label||'')); if(perDay){ if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; } if(rt&&it.dateTo){ const b=f(it.dateTo); return b?('arr '+a+' · dep '+b):a; } return a; }
+function invServiceDateLabel(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; const combo=(it.svcOpt||'')+' '+(it.label||''); const perDay=!!(String(it.rate||'').trim())&&/day/i.test(combo); const rt=/round\s*-?\s*trip/i.test(combo); if(perDay){ if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; } if(rt&&it.dateTo){ const b=f(it.dateTo); return b?('arr '+a+' · dep '+b):a; } return a; }
 window.invDates=function(i,which,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[which]=v;
-  const perDay=!!(String(it.rate||'').trim());
-  const rt=/round\s*-?\s*trip/i.test((it.svcOpt||'')+' '+(it.label||''));
+  const combo=(it.svcOpt||'')+' '+(it.label||''); const hasRate=!!(String(it.rate||'').trim()); const isDay=/day/i.test(combo);
+  const perDay=hasRate&&isDay; const rt=/round\s*-?\s*trip/i.test(combo);
   if(perDay){
-    // Per-day service: dates drive the day count. Start date fills the end date (single day = 1) — never blank.
+    // Rental (golf cart / car rental): Pick-up → Return. Start fills the end (same day) so it is never blank. Days = NIGHTS between them (min 1).
     if(which==='dateFrom'){ if(!it.dateTo||it.dateTo<it.dateFrom) it.dateTo=it.dateFrom; }
     if(which==='dateTo'){ if(!it.dateFrom) it.dateFrom=it.dateTo; if(it.dateTo&&it.dateFrom&&it.dateTo<it.dateFrom) it.dateFrom=it.dateTo; }
-    if(it.dateFrom){ const d=invDaysInclusive(it.dateFrom,it.dateTo); it.days=String(d); const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&String(it.rate).trim()!==''){ it.amount=String(Math.round(rate*d*100)/100); } }
+    if(it.dateFrom){ const d=invDaysSpan(it.dateFrom,it.dateTo); it.days=String(d); const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&String(it.rate).trim()!==''){ it.amount=String(Math.round(rate*d*100)/100); } }
+  } else if(hasRate){
+    // Per-unit service (e.g. per-hour): a single service date; quantity & amount stay manual.
+    it.dateTo='';
   } else {
-    // Flat service (e.g. airport transfer): the date(s) only record WHEN the service happens — no day math, no rate multiply.
-    if(!rt) it.dateTo='';   // one-way / one-off → a single date
-    it.days='';
+    // Flat service (e.g. airport transfer): the date(s) only record WHEN. One-way = single date.
+    if(!rt) it.dateTo=''; it.days='';
   }
   renderInvItems();
 };
