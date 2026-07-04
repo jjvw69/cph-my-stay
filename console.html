@@ -869,7 +869,7 @@ const SECNAV_GROUPS=[
 ];
 const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow-up','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 // Sections that stay grouped in the middle column but get NO top-bar chip.
-const SECNAV_HIDE=new Set(['csec-concierge-welcome']);
+const SECNAV_HIDE=new Set(['csec-concierge-welcome','csec-yacht-charter-proposal']);
 function buildSecNav(){
   // The section-nav now lives in the full-width #secbar between the top bar and the columns.
   // It still reflects only the sections actually present in the editor for this stay.
