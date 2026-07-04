@@ -425,6 +425,8 @@ function blankStay() {
     airport: 'LRM', flight: '', transferArranged: false,
     offeredAddOnIds: ['transfer', 'golfcart', 'yacht'],
     conciergeId: 'maria-fernanda', assigneeId: '', internalNotes: '', wifiHandover: 'Wi-Fi & keys handed over in person at the villa.',
+    // Arrivals-board ops fields (STAFF ONLY — never sent to the guest app). Mirror the Excel arrivals sheet.
+    agent: '', cartConfig: '', staffCount: '', accessCodes: '', transferNote: '', provisioning: '', extras: '',
     welcomeMessage: "Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.",
     requests: [],
     messages: [],
@@ -488,7 +490,10 @@ function summaryStay(s) {
     transferArranged: !!s.transferArranged, preCheckinDone: !!s.guestCheckin, hasReg: !!String(s.registrationNumber || '').trim(),
     readiness: stayReadiness(s),
     transfers: (s.requests || []).filter(r => r.type === 'addon' && r.refId === 'transfer' && r.status !== 'cancelled').map(r => ({ date: r.date || '', endDate: r.endDate || '' })),
-    assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '' };
+    assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '',
+    ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
+    agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
+    transferNote: s.transferNote || '', provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
@@ -558,7 +563,7 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
