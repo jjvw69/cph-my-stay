@@ -733,7 +733,7 @@ function renderArrivalsBoard(){
   const rows=L.map(s=>{const g=(s.ppl||s.guests||'');return `<tr>
       <td class="ab-dt">${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
       <td class="ab-dt">${esc(fmtDay(s.checkout)||s.checkout||'')}</td>
-      <td class="ab-guest"><button onclick="selectStay('${s.id}')">${esc(fmtName(s.guest))}</button>${s.status==='draft'?' <span class="ab-draft">draft</span>':''}</td>
+      <td class="ab-guest"><button onclick="selectStay('${s.id}')">${fmtName(s.guest)}</button>${s.status==='draft'?' <span class="ab-draft">draft</span>':''}</td>
       <td class="ab-villa">${esc(s.villa||'—')}</td>
       <td class="ab-ppl">${g||'–'}</td>
       <td>${inp(s,'agent','IV/RE')}</td>
