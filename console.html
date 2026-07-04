@@ -1337,13 +1337,9 @@ function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)retur
 window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it.svcOpt=val;
   if(val){ const p=String(val).split('||'); const opt=p[0]||'', rate=p[1]||'';
     const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===it.svcId)||{};
-    const _ctx=invCtx(); it.label=[a.name||it.label,opt].filter(Boolean).join(' — ')+(_ctx?' · '+_ctx:'');
+    it.label=[a.name||it.label,opt].filter(Boolean).join(' — ');
     const fm=firstMoney(rate); const num=fm.n;
-    if(isFinite(num)&&num>0){
-      if(it.svcId!=='yacht-charter'&&/day/i.test(rate)){ it.rate=String(num); const dz=invStayNights(); it.days=dz?String(dz):''; it.amount=dz?String(Math.round(num*dz*100)/100):''; }
-      else if(it.svcId!=='yacht-charter'&&/hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; }
-      else { it.amount=String(num); it.rate=''; it.days=''; }
-    }
+    if(isFinite(num)&&num>0){ if(it.svcId!=='yacht-charter'&&/day|hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
   }
   renderInvItems();
 };
@@ -1355,28 +1351,41 @@ function invRow(it,i){ return `<div style="border:1px solid var(--line);border-r
     <button onclick="removeInvLine(${i})" title="Remove line" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:9px;padding:0 11px;cursor:pointer">✕</button>
   </div>
   <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
+    <span style="color:#9AA49B;font-size:12px;flex:0 0 auto">Service dates</span>
+    <input type="date" value="${esc(it.dateFrom||'')}" onchange="invDates(${i},'dateFrom',this.value)" title="Service start date" style="${invInput('flex:1;min-width:0')}">
+    <span style="color:#9AA49B;font-size:13px">→</span>
+    <input type="date" value="${esc(it.dateTo||'')}" onchange="invDates(${i},'dateTo',this.value)" title="Service end date (leave blank for a single day)" style="${invInput('flex:1;min-width:0')}">
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;margin-top:7px">
     <input value="${esc(String(it.rate||''))}" oninput="invField(${i},'rate',this.value)" placeholder="$/day" title="Rate per day" style="${invInput('flex:0 0 78px;width:78px')}">
     <span style="color:#9AA49B;font-size:13px">×</span>
-    <input value="${esc(String(it.days||''))}" oninput="invField(${i},'days',this.value)" placeholder="days" title="Number of days" style="${invInput('flex:0 0 62px;width:62px')}">
+    <input value="${esc(String(it.days||''))}" oninput="invField(${i},'days',this.value)" placeholder="days" title="Days (auto-filled from the dates above)" style="${invInput('flex:0 0 62px;width:62px')}">
     <span style="color:#9AA49B;font-size:13px">=</span>
     <input id="invamt${i}" value="${esc(String(it.amount))}" oninput="invField(${i},'amount',this.value)" placeholder="$0" title="Line total" style="${invInput('flex:1;min-width:0')}">
   </div>
-  <div style="font-size:11px;color:#9AA49B;margin-top:4px">Enter $/day × days to auto-total, or just type the amount.</div>
+  <div style="font-size:11px;color:#9AA49B;margin-top:4px">Pick the service dates and days fill in automatically (rate × days). Single date = 1 day. Or just type the amount.</div>
 </div>`; }
 function renderInvItems(){ const c=document.getElementById('invItems'); if(c)c.innerHTML=(_invDraft.items||[]).map((it,i)=>invRow(it,i)).join(''); renderInvTotals(); }
 window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[k]=v;
   if(k==='rate'||k==='days'){ const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); const days=parseFloat(String(it.days).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&isFinite(days)&&String(it.rate).trim()!==''&&String(it.days).trim()!==''){ it.amount=String(Math.round(rate*days*100)/100); const amtEl=document.getElementById('invamt'+i); if(amtEl)amtEl.value=it.amount; } renderInvTotals(); return; }
   if(k==='amount')renderInvTotals();
 };
+/* Service dates → number of days (inclusive; single date = 1 day) × rate = line total. */
+function invDaysInclusive(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const d=Math.round((b-a)/86400000)+1; return d>=1?d:1; }
+function invDateRange(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; }
+window.invDates=function(i,which,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[which]=v;
+  if(it.dateFrom){ const d=invDaysInclusive(it.dateFrom,it.dateTo); it.days=String(d); const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); if(isFinite(rate)&&String(it.rate).trim()!==''){ it.amount=String(Math.round(rate*d*100)/100); } }
+  renderInvItems();
+};
 window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return; const it=_invDraft.items[i]; let name='',rate='';
   it.svcSel=val; it.svcId=''; it.svcOpt='';
   if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
   else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if(invSvcOpts(id).length)it.svcId=id; }
-  if(name){ const _ctx=invCtx(); it.label=name+(_ctx?' · '+_ctx:''); }
+  if(name)it.label=name;
   if(it.svcId){ it.rate=''; it.days=''; it.amount=''; renderInvItems(); return; } // options exist — wait for the option pick to set the price
   const fm=firstMoney(rate); const num=fm.n;
   if(fm.multi){ it.rate=''; it.days=''; it.amount=''; } // tiered rate text — don't guess, staff types the price
-  else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); const dz=invStayNights(); it.days=dz?String(dz):''; it.amount=dz?String(Math.round(num*dz*100)/100):''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+  else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
   renderInvItems();
 };
 window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push(_invDraft.kind==='yacht'?{label:'',amount:'',rate:'',days:'',svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}:{label:'',amount:'',rate:'',days:''}); renderInvItems(); };
@@ -1419,7 +1428,7 @@ function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){
   </div>`;
 }
 let _invBusy=false; // double-click guard: a second tap while saving would create a duplicate invoice
-window.saveInvoice=async function(send){ if(!cur||!_invDraft||_invBusy)return; _invBusy=true; try{ const title=((document.getElementById('invTitle')||{}).value||'').trim()||'Invoice'; const dueBy=((document.getElementById('invDue')||{}).value||'').trim(); const note=((document.getElementById('invNote')||{}).value||'').trim(); const items=(_invDraft.items||[]).map(it=>({label:String(it.label||'').trim(),amount:parseFloat(String(it.amount).replace(/[^0-9.]/g,''))||0,rate:String(it.rate||'').trim(),days:String(it.days||'').trim()})).filter(it=>it.label||it.amount); if(!items.length){ alert('Add at least one line item.'); return; } const legalPct=Number(_invDraft.legalPct)||0, servicePct=Number(_invDraft.servicePct)||0; const body=JSON.stringify({title,items,legalPct,servicePct,dueBy,note,requestId:_invDraft.requestId||'',yachtId:_invDraft.yachtId||''}); let r; if(_invDraft.id){ r=await api('/api/staff/stays/'+cur.id+'/invoices/'+_invDraft.id,{method:'PUT',body}); } else { r=await api('/api/staff/stays/'+cur.id+'/invoices',{method:'POST',body}); } if(!r.ok||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not save invoice.'); return; } let iv=r.body.invoice; if(!_invDraft.id)_invDraft.id=iv.id; let sendOk=true; if(send){ const r2=await api('/api/staff/stays/'+cur.id+'/invoices/'+iv.id+'/send',{method:'POST'}); if(r2.ok&&r2.body.invoice)iv=r2.body.invoice; else sendOk=false; } cur.invoices=cur.invoices||[]; const i=cur.invoices.findIndex(x=>x.id===iv.id); if(i>=0)cur.invoices[i]=iv; else cur.invoices.push(iv); closeInvoice(); renderEditor(); toast&&toast(send?(sendOk?'Invoice sent to the guest.':'Saved as DRAFT — sending failed. Use "Send" on the invoice below.'):'Invoice saved as draft.'); }finally{ _invBusy=false; } };
+window.saveInvoice=async function(send){ if(!cur||!_invDraft||_invBusy)return; _invBusy=true; try{ const title=((document.getElementById('invTitle')||{}).value||'').trim()||'Invoice'; const dueBy=((document.getElementById('invDue')||{}).value||'').trim(); const note=((document.getElementById('invNote')||{}).value||'').trim(); const items=(_invDraft.items||[]).map(it=>{ let label=String(it.label||'').trim(); const dr=invDateRange(it); if(dr&&label.indexOf(dr)<0) label=(label?label+' · ':'')+dr; return ({label,amount:parseFloat(String(it.amount).replace(/[^0-9.]/g,''))||0,rate:String(it.rate||'').trim(),days:String(it.days||'').trim()}); }).filter(it=>it.label||it.amount); if(!items.length){ alert('Add at least one line item.'); return; } const legalPct=Number(_invDraft.legalPct)||0, servicePct=Number(_invDraft.servicePct)||0; const body=JSON.stringify({title,items,legalPct,servicePct,dueBy,note,requestId:_invDraft.requestId||'',yachtId:_invDraft.yachtId||''}); let r; if(_invDraft.id){ r=await api('/api/staff/stays/'+cur.id+'/invoices/'+_invDraft.id,{method:'PUT',body}); } else { r=await api('/api/staff/stays/'+cur.id+'/invoices',{method:'POST',body}); } if(!r.ok||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not save invoice.'); return; } let iv=r.body.invoice; if(!_invDraft.id)_invDraft.id=iv.id; let sendOk=true; if(send){ const r2=await api('/api/staff/stays/'+cur.id+'/invoices/'+iv.id+'/send',{method:'POST'}); if(r2.ok&&r2.body.invoice)iv=r2.body.invoice; else sendOk=false; } cur.invoices=cur.invoices||[]; const i=cur.invoices.findIndex(x=>x.id===iv.id); if(i>=0)cur.invoices[i]=iv; else cur.invoices.push(iv); closeInvoice(); renderEditor(); toast&&toast(send?(sendOk?'Invoice sent to the guest.':'Saved as DRAFT — sending failed. Use "Send" on the invoice below.'):'Invoice saved as draft.'); }finally{ _invBusy=false; } };
 window.invoiceAction=async function(id,action){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id+'/invoices/'+id+'/'+action,{method:'POST'}); if(!r.ok||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not update invoice.'); return; } const i=(cur.invoices||[]).findIndex(x=>x.id===id); if(i>=0)cur.invoices[i]=r.body.invoice; renderEditor(); toast&&toast(action==='send'?'Invoice sent.':action==='paid'?'Marked paid.':'Updated.'); };
 window.deleteInvoiceUI=async function(id){ if(!cur)return; if(!confirm('Delete this invoice? This cannot be undone.')) return; const r=await api('/api/staff/stays/'+cur.id+'/invoices/'+id,{method:'DELETE'}); if(!r.ok){ alert((r.body&&r.body.error)||'Could not delete.'); return; } cur.invoices=(cur.invoices||[]).filter(x=>x.id!==id); renderEditor(); };
 window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; if(iv.kind==='grocery')return invoiceGroceryPDF(id); const bd=invBreakdown(iv); const money=n=>'$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}); const rows=(iv.items||[]).map(it=>`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">${esc(it.label||'')}</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`).join(''); const feeRows=(bd.lp||bd.sp)?`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">Subtotal</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right">${money(bd.sub)}</td></tr>${bd.lp?`<tr><td style="padding:6px 0">${bd.lp}% legal fee</td><td style="padding:6px 0;text-align:right">${money(bd.legal)}</td></tr>`:''}${bd.sp?`<tr><td style="padding:6px 0">${bd.sp}% service fee</td><td style="padding:6px 0;text-align:right">${money(bd.service)}</td></tr>`:''}`:''; const v=(BOOT.villas.find(x=>x.id===cur.villaId)||{}); const html=`<!doctype html><html><head><meta charset="utf-8"><title>Invoice #${iv.no} — ${esc(cur.leadName||'')}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:640px;margin:24px auto;padding:0 22px">
