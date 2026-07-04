@@ -440,6 +440,37 @@ function listStays() {
   return stays.slice().sort((a, b) => (a.checkin || '').localeCompare(b.checkin || '')).map(summaryStay);
 }
 function nextFollowUp(s){ const a=(s.followUps&&s.followUps.length)?s.followUps.slice():(s.followUpDate?[{date:s.followUpDate,note:s.followUpNote||''}]:[]); const b=a.filter(x=>x&&x.date); if(!b.length)return null; b.sort((x,y)=>String(x.date).localeCompare(String(y.date))); return b[0]; }
+/** Single source of truth for pre-arrival readiness. Three things must be in place before a
+ *  guest arrives: pre check-in, guest passport numbers, and the airport transfer. Used by BOTH
+ *  the guest app banner and the console pre-arrival alert so the two can never drift.
+ *  Transfer has two thresholds: the guest's part is done once they've ANSWERED the transport
+ *  question (organize OR self) or a transfer is booked; the console (operational) gate is
+ *  stricter — a transfer must actually be arranged OR the guest self-declared. */
+function stayReadiness(s) {
+  const gc = s.guestCheckin || null;
+  const preCheckin = !!gc;
+  const passports = (s.guestList || []).some(g => g && String(g.passport || '').trim());
+  const transferArranged = !!s.transferArranged;
+  const transferSelf = !!(gc && gc.transportMode === 'self');
+  const transferAnswered = transferArranged || !!(gc && (gc.transportMode === 'self' || gc.transportMode === 'organize'));
+  const transferReady = transferArranged || transferSelf;      // console / operational
+  const transferGuestDone = transferArranged || transferAnswered; // guest side
+  const missing = [];
+  if (!preCheckin) missing.push('pre check-in');
+  if (!passports) missing.push('passports');
+  if (!transferReady) missing.push('transfer');
+  const guestMissing = [];
+  if (!preCheckin) guestMissing.push('precheckin');
+  if (!passports) guestMissing.push('passports');
+  if (!transferGuestDone) guestMissing.push('transfer');
+  return {
+    preCheckin, passports,
+    transferArranged, transferSelf, transferAnswered, transferReady, transferGuestDone,
+    ready: missing.length === 0, missing,
+    guestReady: guestMissing.length === 0, guestMissing,
+    done: 3 - missing.length, total: 3,
+  };
+}
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
@@ -454,6 +485,7 @@ function summaryStay(s) {
     unpaid: (s.invoices || []).filter(i => i.status === 'sent').length,
     unpaidTotal: (s.invoices || []).filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0),
     transferArranged: !!s.transferArranged, preCheckinDone: !!s.guestCheckin, hasReg: !!String(s.registrationNumber || '').trim(),
+    readiness: stayReadiness(s),
     transfers: (s.requests || []).filter(r => r.type === 'addon' && r.refId === 'transfer' && r.status !== 'cancelled').map(r => ({ date: r.date || '', endDate: r.endDate || '' })),
     assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '' };
 }
@@ -1023,6 +1055,7 @@ function toGuestStay(s) {
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
+    readiness: stayReadiness(s),
     grocery: s.grocery || null,
     mealPlan: s.mealPlan || null,
   };
