@@ -1654,12 +1654,13 @@ function renderPreview(){
       <div class="act-meta">Turn the choice into an invoice to lock it in.</div>
       <div class="act-row"><button class="b-fill" onclick="openInvoiceForYacht('${esc(yChosen.name)}','${esc(yChosen.rate||'')}')">Create invoice</button></div>
     </div>`);
-  fuDue.forEach(f=>moveCards.push(`<div class="act-card warn">
-      <div class="act-title">Follow-up due</div>
-      <div class="act-meta">${esc(f.note||'Follow up with the guest')}${f.date?' · '+esc(f.date):''}</div>
-      <div class="act-row"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Open follow-ups</button></div>
-    </div>`));
   const moveBody=moveCards.join('');
+
+  // Notice board — every follow-up reminder for this stay, pinned like sticky notes (overdue / today highlighted).
+  const fuSorted=fuList.slice().filter(f=>f&&(f.date||f.note)).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  const noticeBody=fuSorted.length
+    ? `<div style="display:flex;flex-direction:column;gap:7px">${fuSorted.map(f=>{const over=f.date&&f.date<todayISO;const due=f.date&&f.date===todayISO;const tone=over?'#9A2B2B':due?'#8A6D2E':'#5B6E5F';return `<div class="act-card" style="background:#FFF9E6;border-color:#EBD98A"><div class="act-title" style="font-weight:600">📌 ${esc(f.note||'Reminder')}</div><div class="act-meta" style="color:${tone};font-weight:${(over||due)?'600':'400'}">${f.date?((over?'Overdue · ':due?'Today · ':'')+fmtDay(f.date)):'No date set'}</div></div>`;}).join('')}<div class="act-row"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Edit reminders</button></div></div>`
+    : `<div class="act-empty">No reminders pinned.<div class="act-row" style="margin-top:7px"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Add a reminder</button></div></div>`;
 
   const awaitBits=[];
   if(svcAwait.length) awaitBits.push(svcAwait.length+' service'+(svcAwait.length===1?'':'s')+' awaiting reply');
@@ -1681,6 +1682,7 @@ function renderPreview(){
     ${sec('Needs action', pending.length, needsBody)}
     ${moneyBody?sec('Money to collect', unpaid.length, moneyBody):''}
     ${moveBody?sec('Your move', moveCards.length, moveBody):''}
+    ${sec('Notice board', fuSorted.length, noticeBody)}
     ${showReady?sec('Arrival readiness', missing.length, readyBody):''}
     ${awaitBody?sec('Awaiting guest', 0, awaitBody):''}
     ${sec('Quick actions', 0, qaBody)}
