@@ -1051,7 +1051,7 @@ function stayVitals(s){
   if(!s.guestLastSeen&&din!=null&&din>=0&&din<=14)actionBits.push('<span class="vpill amber">App not opened yet</span>');
   const hasAction=actionBits.length>0;
   if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
-  const appTxt=s.guestLastSeen?('App '+String(guestPulse(s.guestLastSeen)).replace(/·\s*/,'').trim()):'App not opened';
+  const appTxt=s.guestLastSeen?('App '+String(guestPulse(s.guestLastSeen)).replace(/<[^>]*>/g,'').replace(/·\s*/,'').trim()):'App not opened';
   const heroChip=(txt,strong)=>`<span style="background:${strong?'rgba(215,230,107,.18)':'rgba(255,255,255,.14)'};border:1px solid ${strong?'rgba(255,255,255,.30)':'transparent'};border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600">${txt}</span>`;
   const detailCell=(k,v)=>`<div><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">${k}</div><div style="font-weight:600;font-size:13.5px;margin-top:2px">${v}</div></div>`;
   const arrLine=esc(arr)+((s.checkin&&din!=null&&din>0&&fmtD(s.checkin))?(' · '+esc(fmtD(s.checkin))+(s.checkinTime?' · '+esc(s.checkinTime):'')):'');
