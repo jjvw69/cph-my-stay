@@ -709,30 +709,50 @@ function renderToday(){
   const unpaid=L.filter(s=>(s.unpaid||0)>0);
   const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
-  todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue};
+  // Guests currently on property: checked in, not yet checked out.
+  const inhouse=L.filter(s=>s.checkin&&s.checkout&&s.checkin<=today&&today<s.checkout);
+  // Airport transfers happening today — an arrival (date) or a departure (endDate) that lands on today.
+  const xfToday=L.filter(s=>(s.transfers||[]).some(t=>t.date===today||t.endDate===today));
+  // Arrivals in the next 3 days still missing pre check-in, a transfer, or the villa registration number.
+  const soon=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&d>=0&&d<=3;});
+  const notReady=soon.filter(s=>!s.preCheckinDone||!s.transferArranged||!s.hasReg);
+  // Upcoming arrivals (within a week) who have never opened the guest app.
+  const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d>=0&&d<=7;});
+  todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
   const totMsgs=msgs.reduce((a,s)=>a+unreadMsgs(s),0);
   const totUnpaid=unpaid.reduce((a,s)=>a+(s.unpaid||0),0);
+  const totCollect=unpaid.reduce((a,s)=>a+(s.unpaidTotal||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  const statTxt=(txt,lbl,key,hot)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${txt}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
-  const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length;
+  const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="today-head">Today’s overview</div>
     <div class="today-date">${dstr}</div>
     <div class="today-stats">
+      ${stat(inhouse.length,'In-house now','inhouse')}
       ${stat(arrToday.length,'Arriving today','arrToday')}
       ${stat(depToday.length,'Departing today','depToday')}
+      ${stat(xfToday.length,'Transfers today','xfToday',true)}
+      ${stat(notReady.length,'Arrivals not ready','notReady',true)}
+      ${stat(notOpened.length,'Not opened app','notOpened')}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
       ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
+      ${statTxt('$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0)}
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
+    ${sec('Arrivals not ready','notReady', notReady.map(s=>{const miss=[];if(!s.preCheckinDone)miss.push('pre check-in');if(!s.transferArranged)miss.push('transfer');if(!s.hasReg)miss.push('registration #');const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag red">${miss.length} to fix</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d')+' · missing '+miss.join(', '));}))}
+    ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
+    ${sec('In-house now','inhouse', inhouse.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`, esc(s.villa||'—')+' · until '+esc(s.checkout||''))))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
+    ${sec('Haven’t opened the app','notOpened', notOpened.map(s=>{const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag amber">not opened</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d'));}))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
     ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
@@ -1170,7 +1190,7 @@ function renderEditor(){
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
         <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
           <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
-          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>
+          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndNote" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
@@ -1338,7 +1358,7 @@ function invPickOptions(sel){ let h='';
 function svcOpts(id){ const src=(typeof BOOT!=='undefined'&&BOOT.serviceOptions)||null; return (src&&src[id])||SVC_OPTIONS[id]||[]; }
 function invSvcOpts(id){ if(!id)return []; const o=svcOpts(id); if(o.length)return o; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
 function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)return '';
-  return `<select onchange="invOptPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— pick an option (destination / type / rate) —</option>${opts.map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}"${it.svcOpt===raw?' selected':''}>${esc(o[0])} · ${esc(o[1])}</option>`;}).join('')}</select>`;
+  return `<select onchange="invOptPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— pick an option (destination / type / rate) —</option>${opts.map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}"${it.svcOpt===raw?' selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>`;
 }
 window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it.svcOpt=val;
   if(val){ const p=String(val).split('||'); const opt=p[0]||'', rate=p[1]||'';

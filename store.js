@@ -66,6 +66,8 @@ const SERVICE_OPTIONS = {
   massage:[['60 minutes','$120'],['90 minutes','$140'],['120 minutes','$160']],
   yoga:[['1 person · 60 min','$120 / hour'],['2 people · 60 min','$95 / hour per person'],['3–6 people · 60 min','$240 / hour'],['7–10 people · 60 min','$60 / hour per person']],
   babygear:[['Crib','$45 / day'],['High chair','$20 / day'],['Playpen / Pack’n’Play','$30 / day']],
+  // Luxury private travel is quote-based (pricing varies by aircraft/vehicle & route) — options with NO set rate; the concierge types the amount.
+  privatetravel:[['Private jet charter',''],['Group charter flight',''],['Air ambulance / medical',''],['Luxury SUV transfer',''],['Luxury van / minibus',''],['VIP airport fast-track & greeter',''],['Other','']],
 };
 
 const CONCIERGES = [
@@ -451,6 +453,8 @@ function summaryStay(s) {
     revenue: stayRevenue(s), confirmed: (s.requests || []).filter(r => r.status === 'confirmed').length,
     unpaid: (s.invoices || []).filter(i => i.status === 'sent').length,
     unpaidTotal: (s.invoices || []).filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0),
+    transferArranged: !!s.transferArranged, preCheckinDone: !!s.guestCheckin, hasReg: !!String(s.registrationNumber || '').trim(),
+    transfers: (s.requests || []).filter(r => r.type === 'addon' && r.refId === 'transfer' && r.status !== 'cancelled').map(r => ({ date: r.date || '', endDate: r.endDate || '' })),
     assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
