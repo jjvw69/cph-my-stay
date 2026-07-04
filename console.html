@@ -675,12 +675,12 @@ function renderArrivalsPanel(){
   const L=LIST||[];
   const pub=L.filter(s=>s.status==='published'&&s.checkin&&daysUntil(s.checkin)!=null);
   const within=n=>pub.filter(s=>daysUntil(s.checkin)<=n).sort((a,b)=>(a.checkin||'').localeCompare(b.checkin||''));
-  const c7=within(7).length, c15=within(15).length, c30=within(30).length;
+  const c7=within(7).length, c30=within(30).length, c60=within(60).length;
   const list=within(arrWin);
   const chip=(n,lbl,cnt)=>`<button class="awin ${arrWin===n?'on':''}" onclick="setArrWin(${n})"><span class="awin-n">${cnt}</span>${lbl}</button>`;
   host.innerHTML=`
     <div class="label">Upcoming arrivals</div>
-    <div class="awin-row">${chip(7,'≤7 days',c7)}${chip(15,'≤15 days',c15)}${chip(30,'≤30 days',c30)}</div>
+    <div class="awin-row">${chip(7,'≤7 days',c7)}${chip(30,'≤30 days',c30)}${chip(60,'≤60 days',c60)}</div>
     ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${esc(s.checkin||'')}</span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button>`;}).join(''):`<div class="act-empty">No published arrivals within ${arrWin} days.</div>`}`;
 }
 let todayGroups={};
