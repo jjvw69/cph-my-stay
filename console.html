@@ -621,7 +621,7 @@ function renderList(){
     const srcB=s.source?`<span class="srcpill ${isDirect?'direct':'partner'}">${isDirect?'Direct':esc(s.source)}</span>`:'';
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
-    const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">$${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
+    const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">US$${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
     const unread=isUnread(s);
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
@@ -695,12 +695,12 @@ function upsellCard(){
   return `<div class="ups-card">
     <div class="ups-h">Upsell performance</div>
     <div class="ups-row">
-      <div class="ups-stat"><div class="ups-num">$${(m.totalRevenue||0).toLocaleString()}</div><div class="ups-lbl">Add-on revenue</div></div>
+      <div class="ups-stat"><div class="ups-num">US$${(m.totalRevenue||0).toLocaleString()}</div><div class="ups-lbl">Add-on revenue</div></div>
       <div class="ups-stat"><div class="ups-num">${m.confirmed||0}</div><div class="ups-lbl">Confirmed</div></div>
       <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
       ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Pending</div></div>`:''}
     </div>
-    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">Top converting</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.confirmed}/${e.requested} booked · $${(e.revenue||0).toLocaleString()}</span></div>`).join('')}</div>`:''}
+    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">Top converting</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.confirmed}/${e.requested} booked · US$${(e.revenue||0).toLocaleString()}</span></div>`).join('')}</div>`:''}
   </div>`;
 }
 function renderToday(){
@@ -746,7 +746,7 @@ function renderToday(){
       ${stat(totPending,'Awaiting confirmation','pending',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
       ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
-      ${statTxt('$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0)}
+      ${statTxt('US$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0)}
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
@@ -758,7 +758,7 @@ function renderToday(){
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Haven’t opened the app','notOpened', notOpened.map(s=>{const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag amber">not opened</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d'));}))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
-    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
+    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">US$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
 }
@@ -794,7 +794,7 @@ function activityTimeline(s){
     if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
   });
   (s.messages||[]).forEach(m=>{ ev.push({at:m.at,cls:m.from==='guest'?'g':'s',what:`${m.from==='guest'?esc(s.leadName||'Guest'):(m.auto?'Auto-message':'You')}: ${esc(m.text)}`}); });
-  const _mny=n=>'$'+(Number(n)||0).toLocaleString('en-US');
+  const _mny=n=>'US$'+(Number(n)||0).toLocaleString('en-US');
   (s.invoices||[]).forEach(iv=>{
     if(iv.sentAt) ev.push({at:iv.sentAt,cls:'s',what:`Invoice <b>#${iv.no} ${esc(iv.title||'')}</b> sent · ${_mny(invBreakdown(iv).total)}`});
     if(iv.paidAt) ev.push({at:iv.paidAt,cls:'ok',what:`Invoice <b>#${iv.no}</b> marked paid`});
@@ -823,23 +823,23 @@ function activityTimeline(s){
 // Sections that should START collapsed ("tap to expand"); all others start open.
 const COLLAPSED_DEFAULT = { 'csec-recommended-services':1, 'csec-concierge-welcome':1, 'csec-concierge-chat':1 };
 const SVC_OPTIONS = {
-  golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
-  carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
+  golfcart:[['4-seater · year-round','US$80 / day'],['4-seater · Easter & holidays','US$120 / day'],['6-seater · year-round','US$105 / day'],['6-seater · Easter & holidays','US$150 / day']],
+  carrental:[['Small SUV','US$85 / day'],['Luxury SUV','US$120 / day'],['Mid-size SUV (3 rows)','US$140 / day'],['Minivan (Hyundai H-1)','US$125 / day'],['Minivan Full','US$160 / day'],['Minibus (up to 15)','US$160 / day'],['Chevrolet Tahoe','US$320 / day'],['Chevrolet Suburban','US$360 / day']],
   transfer:[
-    ['LRM → Casa de Campo · Standard · One-way','$50'],['LRM → Casa de Campo · Standard · Round-trip','$90'],
-    ['LRM → Casa de Campo · Comfort · One-way','$80'],['LRM → Casa de Campo · Comfort · Round-trip','$150'],
-    ['LRM → Casa de Campo · VIP Black · One-way','$150'],['LRM → Casa de Campo · VIP Black · Round-trip','$280'],
-    ['PUJ → Casa de Campo · Standard · One-way','$125'],['PUJ → Casa de Campo · Standard · Round-trip','$240'],
-    ['PUJ → Casa de Campo · Comfort · One-way','$160'],['PUJ → Casa de Campo · Comfort · Round-trip','$300'],
-    ['PUJ → Casa de Campo · VIP Black · One-way','$290'],['PUJ → Casa de Campo · VIP Black · Round-trip','$560'],
-    ['SDQ → Casa de Campo · Standard · One-way','$140'],['SDQ → Casa de Campo · Standard · Round-trip','$270'],
-    ['SDQ → Casa de Campo · Comfort · One-way','$190'],['SDQ → Casa de Campo · Comfort · Round-trip','$360'],
-    ['SDQ → Casa de Campo · VIP Black · One-way','$320'],['SDQ → Casa de Campo · VIP Black · Round-trip','$620'],
-    ['Casa de Campo → LRM (La Romana) · Standard · One-way','$50'],['Casa de Campo → LRM (La Romana) · Comfort · One-way','$80'],['Casa de Campo → LRM (La Romana) · VIP Black · One-way','$150'],
-    ['Casa de Campo → PUJ (Punta Cana) · Standard · One-way','$125'],['Casa de Campo → PUJ (Punta Cana) · Comfort · One-way','$160'],['Casa de Campo → PUJ (Punta Cana) · VIP Black · One-way','$290'],
-    ['Casa de Campo → SDQ (Santo Domingo) · Standard · One-way','$140'],['Casa de Campo → SDQ (Santo Domingo) · Comfort · One-way','$190'],['Casa de Campo → SDQ (Santo Domingo) · VIP Black · One-way','$320']],
-  nannies:[['Daytime nanny','$26 / hour'],['Evening babysitting','$20 / hour']],
-  staff:[['Private chef','$150 / day · rate may vary with skills & experience'],['Waiter','$50 / day · rate may vary with skills & experience']],
+    ['LRM → Casa de Campo · Standard · One-way','US$50'],['LRM → Casa de Campo · Standard · Round-trip','US$90'],
+    ['LRM → Casa de Campo · Comfort · One-way','US$80'],['LRM → Casa de Campo · Comfort · Round-trip','US$150'],
+    ['LRM → Casa de Campo · VIP Black · One-way','US$150'],['LRM → Casa de Campo · VIP Black · Round-trip','US$280'],
+    ['PUJ → Casa de Campo · Standard · One-way','US$125'],['PUJ → Casa de Campo · Standard · Round-trip','US$240'],
+    ['PUJ → Casa de Campo · Comfort · One-way','US$160'],['PUJ → Casa de Campo · Comfort · Round-trip','US$300'],
+    ['PUJ → Casa de Campo · VIP Black · One-way','US$290'],['PUJ → Casa de Campo · VIP Black · Round-trip','US$560'],
+    ['SDQ → Casa de Campo · Standard · One-way','US$140'],['SDQ → Casa de Campo · Standard · Round-trip','US$270'],
+    ['SDQ → Casa de Campo · Comfort · One-way','US$190'],['SDQ → Casa de Campo · Comfort · Round-trip','US$360'],
+    ['SDQ → Casa de Campo · VIP Black · One-way','US$320'],['SDQ → Casa de Campo · VIP Black · Round-trip','US$620'],
+    ['Casa de Campo → LRM (La Romana) · Standard · One-way','US$50'],['Casa de Campo → LRM (La Romana) · Comfort · One-way','US$80'],['Casa de Campo → LRM (La Romana) · VIP Black · One-way','US$150'],
+    ['Casa de Campo → PUJ (Punta Cana) · Standard · One-way','US$125'],['Casa de Campo → PUJ (Punta Cana) · Comfort · One-way','US$160'],['Casa de Campo → PUJ (Punta Cana) · VIP Black · One-way','US$290'],
+    ['Casa de Campo → SDQ (Santo Domingo) · Standard · One-way','US$140'],['Casa de Campo → SDQ (Santo Domingo) · Comfort · One-way','US$190'],['Casa de Campo → SDQ (Santo Domingo) · VIP Black · One-way','US$320']],
+  nannies:[['Daytime nanny','US$26 / hour'],['Evening babysitting','US$20 / hour']],
+  staff:[['Private chef','US$150 / day · rate may vary with skills & experience'],['Waiter','US$50 / day · rate may vary with skills & experience']],
 };
 function secSlug(t){ return 'csec-'+String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,44); }
 function collapsibleSections(){
@@ -938,12 +938,12 @@ function reqSuggestedPrice(r){
   if(!r) return '';
   if(r.price) return r.price;
   const ref=r.refId||'', sl=(r.serviceLevel||''), ct=(r.cartType||'');
-  if(ref==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black':[320,620]}}; const hay=sl+' '+(r.note||''); const code=/PUJ/.test(hay)?'PUJ':/SDQ/.test(hay)?'SDQ':'LRM'; const T=TT[code]; const round=/round-?trip/i.test(sl); let lvl=''; Object.keys(T).forEach(k=>{ if(sl.indexOf(k)>=0) lvl=k; }); if(T[lvl]) return '$'+(round?T[lvl][1]:T[lvl][0]); }
-  if(ref==='golfcart'){ const m=ct.match(/(\d+)\s*[×x]\s*4-seater/i)||ct.match(/(\d+)\s*[×x]\s*6-seater/i); const qty=m?Number(m[1]):1; const six=/6-seater/.test(ct); const hol=golfHoliday(r.date,r.endDate); const per=six?(hol?150:105):(hol?120:80); return '$'+(per*qty)+'/day'+(hol?' · holiday rate':''); }
-  if(ref==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; const svc=sl.split(' · ').pop(); if(C[svc]) return '$'+C[svc]+'/day'; }
-  if(ref==='catalina') return '$48/adult';
-  if(ref==='nannies'||ref==='family-nannies'){ if(/evening|babysitt|night/i.test(sl)) return '$20/hr'; if(/nanny|daytime|day/i.test(sl)) return '$26/hr'; }
-  if(ref==='equestrian'||ref==='horseback-tour'){ const E={'Horseback ride':'$65/hr','Pony ride (kids 4–6)':'$50','Riding / jumping lesson':'$100','Polo lesson':'$150','Donkey polo':'$65/person','Ranch horseback tour':'$300/person'}; if(E[sl]) return E[sl]; if(/peligro|ranch/i.test(sl)) return '$300/person'; }
+  if(ref==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black':[320,620]}}; const hay=sl+' '+(r.note||''); const code=/PUJ/.test(hay)?'PUJ':/SDQ/.test(hay)?'SDQ':'LRM'; const T=TT[code]; const round=/round-?trip/i.test(sl); let lvl=''; Object.keys(T).forEach(k=>{ if(sl.indexOf(k)>=0) lvl=k; }); if(T[lvl]) return 'US$'+(round?T[lvl][1]:T[lvl][0]); }
+  if(ref==='golfcart'){ const m=ct.match(/(\d+)\s*[×x]\s*4-seater/i)||ct.match(/(\d+)\s*[×x]\s*6-seater/i); const qty=m?Number(m[1]):1; const six=/6-seater/.test(ct); const hol=golfHoliday(r.date,r.endDate); const per=six?(hol?150:105):(hol?120:80); return 'US$'+(per*qty)+'/day'+(hol?' · holiday rate':''); }
+  if(ref==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; const svc=sl.split(' · ').pop(); if(C[svc]) return 'US$'+C[svc]+'/day'; }
+  if(ref==='catalina') return 'US$48/adult';
+  if(ref==='nannies'||ref==='family-nannies'){ if(/evening|babysitt|night/i.test(sl)) return 'US$20/hr'; if(/nanny|daytime|day/i.test(sl)) return 'US$26/hr'; }
+  if(ref==='equestrian'||ref==='horseback-tour'){ const E={'Horseback ride':'US$65/hr','Pony ride (kids 4–6)':'US$50','Riding / jumping lesson':'US$100','Polo lesson':'US$150','Donkey polo':'US$65/person','Ranch horseback tour':'US$300/person'}; if(E[sl]) return E[sl]; if(/peligro|ranch/i.test(sl)) return 'US$300/person'; }
   return r.suggestedPrice||'';
 }
 /* At-a-glance stay summary at the top of the editor: arrival countdown + nights + party vs
@@ -955,14 +955,14 @@ function mealsSortedC(mp){ if(!mp) return []; const has=m=>!!(m&&(m.date||m.time
 // One guest-request card — shared by the active "Guest requests" list and the "Request log".
 function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.test(r.title||'')||!!(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime); return `<div class="reqitem"${(r.status==='cancelled'||r.status==='done')?' style="opacity:.72"':''}>
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="toggleReqEdit('${r.id}')" style="color:#5B6E5F">✎ Edit</button>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="reopenReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">↩ Reopen &amp; edit</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
-        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. $150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
+        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. US$150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime)?`<div class="reqmeta">✈ ${[[esc(r.airline||''),esc(r.flightNo||'')].filter(Boolean).join(' '),r.flightOrigin?'from '+esc(r.flightOrigin):'',r.arrivalTime?'arr '+esc(r.arrivalTime):''].filter(Boolean).join(' · ')}</div>`:''}
         <div class="reqmeta" style="display:flex;align-items:center;gap:7px;margin-top:6px"><span style="white-space:nowrap;color:#9AA49B">Head of family</span><input id="fam_${r.id}" value="${esc(r.familyName||'')}" onchange="setReqFamily('${r.id}',this.value)" placeholder="e.g. Matz family — to tell two transfers apart" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:#fff"></div>
         ${r.createdAt?`<div class="reqmeta" style="color:#9AA49B">Requested ${fmtReqDate(r.createdAt)}</div>`:''}
         ${r.status==='cancelled'&&r.cancelledAt?`<div class="reqmeta" style="color:#9A2B2B">⊘ Cancelled by guest ${fmtReqDate(r.cancelledAt)}</div>`:''}
         ${r.note?`<div class="reqnote">“${esc(r.note)}”</div>`:''}
-        ${(r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done')?`<div class="reqconfirm"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}','px')">Confirm &amp; send price</button></div>${reqSuggestedPrice(r)?`<div class="reqmeta" style="color:#9AA49B;margin-top:4px">Suggested from resort rates — edit if needed</div>`:''}`:''}
+        ${(r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done')?`<div class="reqconfirm"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. US$150"><button class="b-fill" onclick="confirmReq('${r.id}','px')">Confirm &amp; send price</button></div>${reqSuggestedPrice(r)?`<div class="reqmeta" style="color:#9AA49B;margin-top:4px">Suggested from resort rates — edit if needed</div>`:''}`:''}
         <div class="reqedit" id="edit_${r.id}" style="display:none">
           <div class="reqedit-h">Edit request — changes sync to the guest's My Plan</div>
           <div class="reqedit-grid">
@@ -977,7 +977,7 @@ function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.te
             <label>Flight #<input id="ed_flightNo_${r.id}" value="${esc(r.flightNo||'')}"></label>
             <label>Flying from<input id="ed_flightOrigin_${r.id}" value="${esc(r.flightOrigin||'')}"></label>
             <label>Arrival time<input id="ed_arrivalTime_${r.id}" value="${esc(r.arrivalTime||'')}"></label>`:''}
-            <label>Price<input id="ed_price_${r.id}" value="${esc(r.price||'')}" placeholder="e.g. $150"></label>
+            <label>Price<input id="ed_price_${r.id}" value="${esc(r.price||'')}" placeholder="e.g. US$150"></label>
             <label class="full">Head of family<input id="ed_familyName_${r.id}" value="${esc(r.familyName||'')}"></label>
             <label class="full">Note<textarea id="ed_note_${r.id}" rows="2">${esc(r.note||'')}</textarea></label>
           </div>
@@ -1043,7 +1043,7 @@ function stayVitals(s){
   if(awaiting)actionBits.push(`<span class="vpill amber">${awaiting} awaiting price</span>`);
   if(svcAwait)actionBits.push(`<span class="vpill amber">${svcAwait} service${svcAwait===1?'':'s'} awaiting reply</span>`);
   if(unread)actionBits.push(`<span class="vpill amber">${unread} unread message${unread===1?'':'s'}</span>`);
-  if(unpaidTot>0)actionBits.push(`<span class="vpill red">$${unpaidTot.toLocaleString()} to collect</span>`);
+  if(unpaidTot>0)actionBits.push(`<span class="vpill red">US$${unpaidTot.toLocaleString()} to collect</span>`);
   if(!s.transferArranged&&din!=null&&din>=0&&din<=5)actionBits.push('<span class="vpill amber">Transfer not arranged</span>');
   if(fuDue)actionBits.push(`<span class="vpill amber">Follow-up due${s.followUpNote?': '+esc(s.followUpNote):''}</span>`);
   // Arrival-readiness nudges — only within 14 days of check-in, so they don't nag too early.
@@ -1070,12 +1070,12 @@ function stayVitals(s){
     <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-top:11px">
       <div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect</div>
-        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'var(--gold)':'var(--ink)'};margin-top:1px">$${unpaidTot.toLocaleString()}</div>
+        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'var(--gold)':'var(--ink)'};margin-top:1px">US$${unpaidTot.toLocaleString()}</div>
         <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus)+((s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''):(unpaidTot>0?'Balance due':'Nothing due')}</div>
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Add-ons</div>
-        <div style="font-size:18px;font-weight:700;margin-top:1px">${confirmed.length} · $${rev.toLocaleString()}</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px">${confirmed.length} · US$${rev.toLocaleString()}</div>
         <div style="font-size:11.5px;color:var(--soft);margin-top:1px">confirmed</div>
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
@@ -1265,11 +1265,11 @@ function renderEditor(){
 
     <div class="sec"><h3>Payment &amp; balance</h3><div class="grid">
       <div class="f"><label>Payment status</label><select onchange="set('paymentStatus',this.value)"><option value="">—</option>${['Unpaid','Deposit paid','Balance due','Paid in full'].map(o=>`<option ${cur.paymentStatus===o?'selected':''}>${o}</option>`).join('')}</select></div>
-      <div class="f"><label>Total stay charge</label><input id="payTotal" value="${esc(cur.totalCharge||'')}" oninput="recalcBalance()" placeholder="e.g. $5,000"></div>
-      <div class="f"><label>Paid so far</label><input id="payPaid" value="${esc(cur.amountPaid||'')}" oninput="recalcBalance()" placeholder="e.g. $2,600"></div>
+      <div class="f"><label>Total stay charge</label><input id="payTotal" value="${esc(cur.totalCharge||'')}" oninput="recalcBalance()" placeholder="e.g. US$5,000"></div>
+      <div class="f"><label>Paid so far</label><input id="payPaid" value="${esc(cur.amountPaid||'')}" oninput="recalcBalance()" placeholder="e.g. US$2,600"></div>
       <div class="f"><label>Due by (optional)</label><input id="payBy" value="${esc(cur.balanceDueBy||'')}" oninput="recalcBalance()" placeholder="e.g. Jul 1"></div>
       <div class="f full"><label>Balance due (calculated)</label><div id="payBal" style="font-size:20px;font-weight:600;color:var(--accent);padding:6px 2px 2px">${esc(cur.balanceDue||'—')}</div><div class="reqmeta" style="margin-top:0">Total charge minus paid — fills automatically.</div></div>
-      <div class="f full"><label>Security deposit</label><input value="${esc(cur.securityDeposit||'')}" oninput="set('securityDeposit',this.value)" placeholder="e.g. $1,000 held · refundable on checkout"></div>
+      <div class="f full"><label>Security deposit</label><input value="${esc(cur.securityDeposit||'')}" oninput="set('securityDeposit',this.value)" placeholder="e.g. US$1,000 held · refundable on checkout"></div>
       <div class="f full counter">Internal only — the guest never sees this.</div>
     </div></div>
 
@@ -1280,7 +1280,7 @@ function renderEditor(){
         const badge=iv.status==='paid'?`<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>`:iv.status==='sent'?`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Sent</span>`:`<span style="font-size:11px;background:#EEE9DF;color:#6E7B71;border-radius:20px;padding:2px 9px;font-weight:600">Draft</span>`;
         const lreq=iv.requestId?((cur.requests||[]).find(x=>x.id===iv.requestId)||null):null;
         const cancelWarn=(lreq&&lreq.status==='cancelled'&&iv.status!=='paid')?` <span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">⚠ Guest cancelled the linked request — review</span>`:'';
-        return `<div class="reqitem"><div class="reqtop"><b>#${iv.no} · ${esc(iv.title)}</b>${iv.kind==='grocery'?' <span style="font-size:10px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 8px;font-weight:600">Grocery</span>':''}${badge}${cancelWarn}</div><div class="reqmeta">$${tot.toLocaleString('en-US')}${iv.dueBy?' · due '+esc(iv.dueBy):''} · ${(iv.items||[]).length} line${(iv.items||[]).length==1?'':'s'}${lreq?' · linked to: '+esc(lreq.title||'request'):(iv.yachtId&&cur.yachtProposal&&cur.yachtProposal.id===iv.yachtId)?' · linked to: yacht charter':''}</div>
+        return `<div class="reqitem"><div class="reqtop"><b>#${iv.no} · ${esc(iv.title)}</b>${iv.kind==='grocery'?' <span style="font-size:10px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 8px;font-weight:600">Grocery</span>':''}${badge}${cancelWarn}</div><div class="reqmeta">US$${tot.toLocaleString('en-US')}${iv.dueBy?' · due '+esc(iv.dueBy):''} · ${(iv.items||[]).length} line${(iv.items||[]).length==1?'':'s'}${lreq?' · linked to: '+esc(lreq.title||'request'):(iv.yachtId&&cur.yachtProposal&&cur.yachtProposal.id===iv.yachtId)?' · linked to: yacht charter':''}</div>
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="reqx" onclick="${iv.kind==='grocery'?'openGroceryInvoice':'openInvoice'}('${iv.id}')">Edit</button>${iv.status!=='sent'?`<button class="reqx" onclick="invoiceAction('${iv.id}','send')" style="color:var(--accent);border-color:#BFD3C2">Send to guest</button>`:''}${iv.status!=='paid'?`<button class="reqx" onclick="invoiceAction('${iv.id}','paid')">Mark paid</button>`:''}<button class="reqx" onclick="invoicePDF('${iv.id}')">PDF</button><button class="reqx" onclick="deleteInvoiceUI('${iv.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button></div></div>`;
       }).join('')||'<div class="counter" style="margin:0 0 10px">No invoices yet.</div>'}</div>
       <button onclick="openInvoice('')" style="margin-top:10px;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">+ Service invoice</button>
@@ -1341,7 +1341,7 @@ window.addCustomServiceUI=async function(){ const name=(document.getElementById(
 window.deleteCustomServiceUI=async function(id,name){ if(!confirm('Delete “'+(name||'this service')+'”? It will be removed from every guest’s plan.')) return; const r=await api('/api/staff/services/'+id,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not delete.'); return; } await refreshServices(); };
 function openExternal(url){ try{ const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; document.body.appendChild(a); a.click(); setTimeout(function(){ try{a.remove();}catch(e){} },0); }catch(e){ try{ window.open(url,'_blank'); }catch(_){ try{ location.href=url; }catch(__){} } } }
 window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const ref=cur.reference||''; const lastN=String(cur.lastName||'').trim()||((cur.leadName||'').trim().split(/\s+/).filter(Boolean).pop()||''); const name=lastN?(lastN+' family'):'there'; const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(ref); const msg='Hi '+name+', here is your Caribbean Paradise Homes “My Stay” link for booking '+ref+':\n'+url+'\n\nOpen it and sign in with your booking reference ('+ref+') and the lead guest’s last name. Any trouble signing in, just reply here and we’ll help.'; const wa = ph ? ('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)) : ('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
-window.recalcBalance=function(){ if(!cur)return; const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const tv=(document.getElementById('payTotal')||{}).value||''; const pv=(document.getElementById('payPaid')||{}).value||''; const by=((document.getElementById('payBy')||{}).value||'').trim(); cur.totalCharge=tv; cur.amountPaid=pv; cur.balanceDueBy=by; const total=num(tv), paid=num(pv); let out='—'; if(tv.trim()||pv.trim()){ const bal=Math.max(0,total-paid); out='$'+bal.toLocaleString('en-US')+(by?' by '+by:''); } cur.balanceDue=(out==='—')?'':out; const el=document.getElementById('payBal'); if(el)el.textContent=out; if(typeof markDirty==='function')markDirty(); };
+window.recalcBalance=function(){ if(!cur)return; const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const tv=(document.getElementById('payTotal')||{}).value||''; const pv=(document.getElementById('payPaid')||{}).value||''; const by=((document.getElementById('payBy')||{}).value||'').trim(); cur.totalCharge=tv; cur.amountPaid=pv; cur.balanceDueBy=by; const total=num(tv), paid=num(pv); let out='—'; if(tv.trim()||pv.trim()){ const bal=Math.max(0,total-paid); out='US$'+bal.toLocaleString('en-US')+(by?' by '+by:''); } cur.balanceDue=(out==='—')?'':out; const el=document.getElementById('payBal'); if(el)el.textContent=out; if(typeof markDirty==='function')markDirty(); };
 window.setSndRate=function(v){ _sndRate=v; };
 window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; renderEditor(); };
 window.selSendOpt=function(v){ _sndOptVal=v; const p=String(v||'').split('||'); _sndRate=(v&&p[1]!=null)?p[1]:''; const r=document.getElementById('sndRate'); if(r)r.value=_sndRate; };
@@ -1360,14 +1360,14 @@ function invCtx(){ const d=invStayDates(), p=invParty(); return [d, p?(p+' guest
 function invDraftSubtotal(){ return ((_invDraft&&_invDraft.items)||[]).reduce((s,x)=>s+(parseFloat(String(x.amount).replace(/[^0-9.]/g,''))||0),0); }
 function invDraftBreakdown(){ const sub=invDraftSubtotal(); const lp=Number(_invDraft&&_invDraft.legalPct)||0, sp=Number(_invDraft&&_invDraft.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invDraftTotal(){ return invDraftBreakdown().total; }
-const _m=n=>'$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
+const _m=n=>'US$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2});
 function invTotalsHtml(){ const b=invDraftBreakdown(); const row=(l,v,bold)=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:13.5px;${bold?'font-weight:700;border-top:1px solid var(--line);padding-top:7px;margin-top:4px;font-size:16px':'color:var(--soft)'}"><span>${l}</span><span${bold?' style="color:var(--accent)"':''}>${_m(v)}</span></div>`;
   return row('Subtotal',b.sub)+(b.lp?row('+ '+b.lp+'% legal fee',b.legal):'')+(b.sp?row('+ '+b.sp+'% service fee',b.service):'')+row('Total',b.total,true); }
 function renderInvTotals(){ const c=document.getElementById('invTotals'); if(c)c.innerHTML=invTotalsHtml(); }
 window.invToggleFee=function(which,on){ if(!_invDraft)return; if(which==='legal')_invDraft.legalPct=on?18:0; else _invDraft.servicePct=on?10:0; renderInvTotals(); };
 /* Right-rail "Send reminder" — opens WhatsApp pre-filled with the outstanding balance + My Stay link. */
 window.openGuestApp=function(){ if(!cur)return; const last=String(cur.lastName||'').trim()||((cur.leadName||'').trim().split(/\s+/).filter(Boolean).pop()||''); openExternal('https://cph-my-stay.onrender.com/?ref='+encodeURIComponent(cur.reference||'')+'&last='+encodeURIComponent(last)); };
-window.remindBalanceWA=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const name=((cur.leadName||'').split(' ')[0])||'there'; const invs=(cur.invoices||[]).filter(iv=>iv.status==='sent'); const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0); const tot=invs.reduce((a,iv)=>a+invTot(iv),0); const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(cur.reference||''); const msg='Hi '+name+', a friendly reminder that you have a balance of $'+tot.toLocaleString('en-US')+' outstanding for booking '+(cur.reference||'')+'. You can review and settle it in your My Stay app:\n'+url+'\n\nThank you!'; const wa=ph?('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)):('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
+window.remindBalanceWA=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const lastN=String(cur.lastName||'').trim()||((cur.leadName||'').trim().split(/\s+/).filter(Boolean).pop()||''); const name=lastN?(lastN+' family'):'there'; const invs=(cur.invoices||[]).filter(iv=>iv.status==='sent'); const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0); const tot=invs.reduce((a,iv)=>a+invTot(iv),0); const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(cur.reference||''); const msg='Hi '+name+', a friendly reminder that you have a balance of US$'+tot.toLocaleString('en-US')+' outstanding for booking '+(cur.reference||'')+'. You can review and settle it in your My Stay app:\n'+url+'\n\nThank you!'; const wa=ph?('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)):('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
 function invBreakdown(iv){ const sub=(iv.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); const lp=Number(iv.legalPct)||0, sp=Number(iv.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invInput(extra){ return 'width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;'+(extra||''); }
 function invLbl(){ return 'display:block;font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin:11px 0 5px'; }
@@ -1407,7 +1407,7 @@ function invRow(it,i){
   const perUnit=hasRate&&!isDay;                                                 // rate but not per-day (e.g. per-hour) → single date + rate × qty
   const rt=/round\s*-?\s*trip/i.test(combo);                                     // round-trip transfer → arrival + departure dates
   const dinp=(k,ttl)=>`<input type="date" value="${esc(it[k]||'')}" onchange="invDates(${i},'${k}',this.value)" title="${ttl}" style="${invInput('flex:1;min-width:0')}">`;
-  const amt=`<input id="invamt${i}" value="${esc(String(it.amount))}" oninput="invField(${i},'amount',this.value)" placeholder="$0" title="Line total" style="${invInput('flex:1;min-width:0')}">`;
+  const amt=`<input id="invamt${i}" value="${esc(String(it.amount))}" oninput="invField(${i},'amount',this.value)" placeholder="US$0" title="Line total" style="${invInput('flex:1;min-width:0')}">`;
   const lbl=t=>`<span style="color:#9AA49B;font-size:12px;flex:0 0 auto">${t}</span>`;
   let block;
   if(perDay){
@@ -1518,7 +1518,7 @@ let _invBusy=false; // double-click guard: a second tap while saving would creat
 window.saveInvoice=async function(send){ if(!cur||!_invDraft||_invBusy)return; _invBusy=true; try{ const title=((document.getElementById('invTitle')||{}).value||'').trim()||'Invoice'; const dueBy=((document.getElementById('invDue')||{}).value||'').trim(); const note=((document.getElementById('invNote')||{}).value||'').trim(); const items=(_invDraft.items||[]).map(it=>{ let label=String(it.label||'').trim(); const dr=invServiceDateLabel(it); if(dr&&label.indexOf(dr)<0) label=(label?label+' · ':'')+dr; return ({label,amount:parseFloat(String(it.amount).replace(/[^0-9.]/g,''))||0,rate:String(it.rate||'').trim(),days:String(it.days||'').trim()}); }).filter(it=>it.label||it.amount); if(!items.length){ alert('Add at least one line item.'); return; } const legalPct=Number(_invDraft.legalPct)||0, servicePct=Number(_invDraft.servicePct)||0; const body=JSON.stringify({title,items,legalPct,servicePct,dueBy,note,requestId:_invDraft.requestId||'',yachtId:_invDraft.yachtId||''}); let r; if(_invDraft.id){ r=await api('/api/staff/stays/'+cur.id+'/invoices/'+_invDraft.id,{method:'PUT',body}); } else { r=await api('/api/staff/stays/'+cur.id+'/invoices',{method:'POST',body}); } if(!r.ok||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not save invoice.'); return; } let iv=r.body.invoice; if(!_invDraft.id)_invDraft.id=iv.id; let sendOk=true; if(send){ const r2=await api('/api/staff/stays/'+cur.id+'/invoices/'+iv.id+'/send',{method:'POST'}); if(r2.ok&&r2.body.invoice)iv=r2.body.invoice; else sendOk=false; } cur.invoices=cur.invoices||[]; const i=cur.invoices.findIndex(x=>x.id===iv.id); if(i>=0)cur.invoices[i]=iv; else cur.invoices.push(iv); closeInvoice(); renderEditor(); toast&&toast(send?(sendOk?'Invoice sent to the guest.':'Saved as DRAFT — sending failed. Use "Send" on the invoice below.'):'Invoice saved as draft.'); }finally{ _invBusy=false; } };
 window.invoiceAction=async function(id,action){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id+'/invoices/'+id+'/'+action,{method:'POST'}); if(!r.ok||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not update invoice.'); return; } const i=(cur.invoices||[]).findIndex(x=>x.id===id); if(i>=0)cur.invoices[i]=r.body.invoice; renderEditor(); toast&&toast(action==='send'?'Invoice sent.':action==='paid'?'Marked paid.':'Updated.'); };
 window.deleteInvoiceUI=async function(id){ if(!cur)return; if(!confirm('Delete this invoice? This cannot be undone.')) return; const r=await api('/api/staff/stays/'+cur.id+'/invoices/'+id,{method:'DELETE'}); if(!r.ok){ alert((r.body&&r.body.error)||'Could not delete.'); return; } cur.invoices=(cur.invoices||[]).filter(x=>x.id!==id); renderEditor(); };
-window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; if(iv.kind==='grocery')return invoiceGroceryPDF(id); const bd=invBreakdown(iv); const money=n=>'$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}); const rows=(iv.items||[]).map(it=>`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">${esc(it.label||'')}</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`).join(''); const feeRows=(bd.lp||bd.sp)?`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">Subtotal</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right">${money(bd.sub)}</td></tr>${bd.lp?`<tr><td style="padding:6px 0">${bd.lp}% legal fee</td><td style="padding:6px 0;text-align:right">${money(bd.legal)}</td></tr>`:''}${bd.sp?`<tr><td style="padding:6px 0">${bd.sp}% service fee</td><td style="padding:6px 0;text-align:right">${money(bd.service)}</td></tr>`:''}`:''; const v=(BOOT.villas.find(x=>x.id===cur.villaId)||{}); const html=`<!doctype html><html><head><meta charset="utf-8"><title>Invoice #${iv.no} — ${esc(cur.leadName||'')}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:640px;margin:24px auto;padding:0 22px">
+window.invoicePDF=function(id){ if(!cur)return; const iv=(cur.invoices||[]).find(x=>x.id===id); if(!iv)return; if(iv.kind==='grocery')return invoiceGroceryPDF(id); const bd=invBreakdown(iv); const money=n=>'US$'+(Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2}); const rows=(iv.items||[]).map(it=>`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">${esc(it.label||'')}</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`).join(''); const feeRows=(bd.lp||bd.sp)?`<tr><td style="padding:8px 0;border-top:1px solid #E6E9E2">Subtotal</td><td style="padding:8px 0;border-top:1px solid #E6E9E2;text-align:right">${money(bd.sub)}</td></tr>${bd.lp?`<tr><td style="padding:6px 0">${bd.lp}% legal fee</td><td style="padding:6px 0;text-align:right">${money(bd.legal)}</td></tr>`:''}${bd.sp?`<tr><td style="padding:6px 0">${bd.sp}% service fee</td><td style="padding:6px 0;text-align:right">${money(bd.service)}</td></tr>`:''}`:''; const v=(BOOT.villas.find(x=>x.id===cur.villaId)||{}); const html=`<!doctype html><html><head><meta charset="utf-8"><title>Invoice #${iv.no} — ${esc(cur.leadName||'')}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:640px;margin:24px auto;padding:0 22px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #16241E;padding-bottom:12px"><div style="display:flex;align-items:center;gap:12px"><img src="https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/11/CPH-Seal-Clear.png" alt="" style="height:52px;width:auto"><div><div style="font-size:21px;font-weight:700">Caribbean Paradise Homes</div><div style="font-size:11px;color:#6B756C;letter-spacing:.16em;margin-top:3px">INVOICE</div></div></div><div style="text-align:right;font-size:12.5px;color:#54605A">Invoice #${iv.no}<br>${new Date(iv.createdAt||Date.now()).toLocaleDateString('en-US')}${iv.dueBy?'<br>Due: '+esc(iv.dueBy):''}</div></div>
     <div style="margin:16px 0;font-size:13.5px"><b>Bill to:</b> ${esc(cur.leadName||'Guest')}${cur.reference?' · Booking '+esc(cur.reference):''}${v.name?'<br>'+esc(v.name)+(cur.villaInternal?' · '+esc(cur.villaInternal):''):''}</div>
     <div style="font-size:15px;font-weight:600;margin:6px 0">${esc(iv.title||'Invoice')}</div>
@@ -1669,12 +1669,12 @@ function renderPreview(){
       ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
       ${r.status==='confirmed'
         ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(r.price):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
-        : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. $150"><button class="b-fill" onclick="confirmReq('${r.id}','pa')">Confirm</button></div>`}
+        : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. US$150"><button class="b-fill" onclick="confirmReq('${r.id}','pa')">Confirm</button></div>`}
     </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`;
 
   const moneyBody=unpaid.length?`<div class="act-card" style="border-color:#E3C4B6;background:#FBF1EC">
-      <div class="act-title" style="color:#9A2B2B">$${unpaidTot.toLocaleString('en-US')} outstanding</div>
-      ${unpaid.map(iv=>`<div class="act-meta">#${iv.no} · ${esc(iv.title||'Invoice')} · $${invTot(iv).toLocaleString('en-US')}${iv.sentAt?' · sent '+fmtAgo(iv.sentAt):''}</div>`).join('')}
+      <div class="act-title" style="color:#9A2B2B">US$${unpaidTot.toLocaleString('en-US')} outstanding</div>
+      ${unpaid.map(iv=>`<div class="act-meta">#${iv.no} · ${esc(iv.title||'Invoice')} · US$${invTot(iv).toLocaleString('en-US')}${iv.sentAt?' · sent '+fmtAgo(iv.sentAt):''}</div>`).join('')}
       <div class="act-row"><button class="b-fill" onclick="remindBalanceWA()">Send reminder</button><button class="b-out" onclick="jumpSec('csec-invoices')">Open invoices</button></div>
     </div>`:'';
 
