@@ -743,6 +743,11 @@ function renderToday(){
 function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
 function concOpts(sel){ return BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
 function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); markDirty(); }
+/* Lead full name → auto-fill the login "last name" from the last word, unless the concierge has typed a different one. */
+window.setLead=function(v){ if(!cur)return; const tok=t=>{ const p=String(t||'').trim().split(/\s+/).filter(Boolean); return p.length?p[p.length-1]:''; }; const prevLast=tok(cur.leadName); cur.leadName=v;
+  if(!String(cur.lastName||'').trim() || cur.lastName===prevLast){ cur.lastName=tok(v); const el=document.getElementById('fLastName'); if(el)el.value=cur.lastName; }
+  markDirty(); renderPreview();
+};
 /* pick() = for buttons/toggles/segments that change the editor's own visuals — re-renders the editor so the selection shows. */
 function pick(k,v){ cur[k]=v; renderEditor(); renderPreview(); markDirty(); }
 window.pick=pick;
@@ -1122,8 +1127,8 @@ function renderEditor(){
 
     <div class="sec"><h3>Guest &amp; party</h3><div class="grid">
       <div class="f full"><label>Booking source</label><select onchange="set('source',this.value)"><option ${cur.source==='Direct Booking'?'selected':''}>Direct Booking</option><optgroup label="──────── Partner / agency bookings ────────">${['AMA Selections','Bonvido','Dream Exotics Rentals','Duffy Destinations','Exceptional Villas','Gathering Vacations','Heaven Villas','Home & Villas by Marriott Bonvoy','Hosted Villas','In Veritas','Jetset World Travel','LaCure','One Fine Stay','Personal Villas','Rental Escapes','Top Villas','Villaway'].map(o=>`<option ${cur.source===o?'selected':''}>${o}</option>`).join('')}</optgroup></select></div>
-      <div class="f"><label>Lead guest (full name)</label><input value="${esc(cur.leadName)}" oninput="set('leadName',this.value)"></div>
-      <div class="f"><label>Last name (for login)</label><input value="${esc(cur.lastName)}" oninput="set('lastName',this.value)"></div>
+      <div class="f"><label>Lead guest (full name)</label><input value="${esc(cur.leadName)}" oninput="setLead(this.value)"></div>
+      <div class="f"><label>Last name (for login)</label><input id="fLastName" value="${esc(cur.lastName)}" oninput="set('lastName',this.value)"></div>
       <div class="f"><label>Email</label><input value="${esc(cur.email)}" oninput="set('email',this.value)"></div>
       <div class="f"><label>Phone / WhatsApp</label><input value="${esc(cur.phone)}" oninput="set('phone',this.value)"></div>
       <div class="f"><label>Adults</label><div class="step"><button onclick="adj('adults',-1)">−</button><span>${cur.adults}</span><button onclick="adj('adults',1)">＋</button></div></div>
