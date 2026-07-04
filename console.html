@@ -136,6 +136,16 @@
   .nrx-pend{color:#9A2B2B;font-size:11.5px;font-weight:600}
   .nrx-open{margin-top:8px;background:none;border:0;color:var(--accent);font-size:12.5px;font-weight:600;cursor:pointer;padding:2px 0;font-family:var(--ui)}
   .nrx-open:hover{text-decoration:underline}
+  .arr-row{flex-direction:column;align-items:stretch;gap:8px}
+  .arr-main{display:flex;align-items:center;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;text-align:left}
+  .arr-main .tr-tag{margin-left:auto}
+  .arr-greet{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px dashed var(--line)}
+  .arr-greet-lbl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);font-weight:700}
+  .greet-sel{margin-left:auto;font-size:11.5px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;background:#fff;color:var(--ink);cursor:pointer;font-family:var(--ui)}
+  .greet-sel:hover{border-color:var(--accent)}
+  .greet-sel.set{border-color:var(--accent);color:var(--accent);font-weight:600;background:#F4F8F2}
+  .nrx-item .inx-amt{margin-left:auto;font-weight:600;color:#9A2B2B;white-space:nowrap;padding-left:10px}
+  .inx-no{color:var(--soft);font-size:11.5px}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   /* ---- #6 quick wins ---- */
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
@@ -708,9 +718,31 @@ function notReadyRow(s){
     </div>
   </div>`;
 }
+// Tap-to-expand unpaid-invoices row — shows each outstanding invoice (title · amount · due) at a glance.
+let invOpen=new Set();
+window.toggleInv=function(id){ const open=!invOpen.has(id); if(open)invOpen.add(id);else invOpen.delete(id); const w=document.getElementById('inx-'+id); const b=document.getElementById('inb-'+id); if(w)w.classList.toggle('open',open); if(b)b.style.display=open?'block':'none'; };
+function unpaidRow(s){
+  const inv=(s.unpaidInvoices||[]); const open=invOpen.has(s.id);
+  const lines=inv.length?inv.map(i=>`<div class="nrx-item"><span>${esc(i.title)}${i.no?' <span class="inx-no">#'+esc(String(i.no))+'</span>':''}${i.dueBy?' <span class="nrx-pend" style="color:var(--soft)">· due '+esc(i.dueBy)+'</span>':''}</span><span class="inx-amt">US$${(i.total||0).toLocaleString()}</span></div>`).join(''):`<div class="nrx-item">No itemised invoices found.</div>`;
+  return `<div class="nrx ${open?'open':''}" id="inx-${s.id}">
+    <button class="today-row nrx-head" onclick="toggleInv('${s.id}')">
+      <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${inv.length} invoice${inv.length==1?'':'s'}</span></span>
+      <span class="tr-tag red">US$${(s.unpaidTotal||0).toLocaleString()} due</span><span class="nrx-chev">▸</span>
+    </button>
+    <div class="nrx-body" id="inb-${s.id}" style="display:${open?'block':'none'}">
+      ${lines}
+      <button class="nrx-open" onclick="event.stopPropagation();selectStay('${s.id}')">Open stay →</button>
+    </div>
+  </div>`;
+}
 let arrWin=0;
 const ARR_BANDS=[[0,14,'0–14'],[15,30,'15–30'],[31,60,'30–60'],[61,90,'60–90'],[91,999999,'90+']];
 window.setArrWin=function(i){ arrWin=i; renderArrivalsPanel(); };
+// Meet & greet — staff-only per-stay assignment (never sent to the guest app). Persists on assigneeId.
+const GREETERS=[{id:'maria',name:'Maria'},{id:'ivonna',name:'Ivonna'},{id:'jan',name:'Jan'}];
+function greeterName(id){ const g=GREETERS.find(x=>x.id===id); return g?g.name:''; }
+function greetSel(s){ return `<select class="greet-sel ${s.assigneeId?'set':''}" title="Who is meeting &amp; greeting (staff only)" onclick="event.stopPropagation()" onchange="setGreeter('${s.id}',this.value)"><option value="">Unassigned</option>${GREETERS.map(g=>`<option value="${g.id}" ${s.assigneeId===g.id?'selected':''}>${g.name}</option>`).join('')}</select>`; }
+window.setGreeter=async function(id,val){ const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it.assigneeId||'')===String(val||''))return; const r=await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify({assigneeId:val})}); if(r&&r.ok){ if(it)it.assigneeId=val; if(cur&&cur.id===id)cur.assigneeId=val; renderArrivalsPanel(); toast&&toast(val?('Meet & greet: '+greeterName(val)):'Greeter cleared'); } else toast&&toast('Could not save'); };
 function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
   const L=LIST||[];
@@ -722,7 +754,7 @@ function renderArrivalsPanel(){
   host.innerHTML=`
     <div class="label">Upcoming arrivals</div>
     <div class="awin-row">${chip(0)}${chip(1)}${chip(2)}${chip(3)}${chip(4)}</div>
-    ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${esc(s.checkin||'')}</span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
+    ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<div class="today-row arr-row"><button class="arr-main" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${esc(s.checkin||'')}</span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button><div class="arr-greet"><span class="arr-greet-lbl">Meet &amp; greet</span>${greetSel(s)}</div></div>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
 }
 let todayGroups={};
 window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) return; if(arr.length===1){ selectStay(arr[0].id); return; } const sec=document.getElementById('tsec-'+key); if(sec){ try{sec.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){ sec.scrollIntoView(); } } };
@@ -794,7 +826,7 @@ function renderToday(){
     ${sec('In-house now','inhouse', inhouse.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`, esc(s.villa||'—')+' · until '+esc(s.checkout||''))))}
     ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
-    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>todayRow(s,`<span class="tr-tag red">US$${(s.unpaidTotal||0).toLocaleString()} due</span>`)))}
+    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
   refreshTodayBtn();
 }

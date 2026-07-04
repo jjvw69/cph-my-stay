@@ -484,6 +484,7 @@ function summaryStay(s) {
     revenue: stayRevenue(s), confirmed: (s.requests || []).filter(r => r.status === 'confirmed').length,
     unpaid: (s.invoices || []).filter(i => i.status === 'sent').length,
     unpaidTotal: (s.invoices || []).filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0),
+    unpaidInvoices: (s.invoices || []).filter(i => i.status === 'sent').map(i => ({ no: i.no || '', title: i.title || 'Invoice', kind: i.kind || '', total: invoiceTotal(i), dueBy: i.dueBy || '' })),
     transferArranged: !!s.transferArranged, preCheckinDone: !!s.guestCheckin, hasReg: !!String(s.registrationNumber || '').trim(),
     readiness: stayReadiness(s),
     transfers: (s.requests || []).filter(r => r.type === 'addon' && r.refId === 'transfer' && r.status !== 'cancelled').map(r => ({ date: r.date || '', endDate: r.endDate || '' })),
