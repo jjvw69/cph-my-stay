@@ -51,6 +51,8 @@
   .dot{width:7px;height:7px;border-radius:50%;background:#5B9E6F;display:inline-block}
   .who{color:var(--ink)}
   .cols{flex:1;display:grid;grid-template-columns:372px 1fr 372px;overflow:hidden}
+  .cols.board-mode{grid-template-columns:372px 1fr}
+  .cols.board-mode .col.right{display:none}
   .col{overflow-y:auto;height:100%}
   .left{border-right:1px solid var(--line);background:var(--panel);padding:16px 14px}
   .left .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -374,7 +376,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .empty{color:var(--soft);font-size:16px;padding:40px 10px;text-align:center}
   /* Landscape iPad: keep all three columns (incl. the guest preview) but slim the sides to fit. */
-  @media(min-width:1024px) and (max-width:1180px){ .cols{grid-template-columns:300px 1fr 300px} .center{padding:18px 18px} .right{padding:16px 12px} }
+  @media(min-width:1024px) and (max-width:1180px){ .cols{grid-template-columns:300px 1fr 300px} .cols.board-mode{grid-template-columns:300px 1fr} .center{padding:18px 18px} .right{padding:16px 12px} }
   /* Portrait iPad & narrower: two columns, hide the preview. */
   @media(max-width:1023px){ .cols{grid-template-columns:280px 1fr} .right{display:none} }
   .backlist{display:none}
@@ -680,7 +682,7 @@ function setView(detail){ const a=document.getElementById('app'); if(a)a.classLi
 window.backToList=function(){ setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
-  const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); renderList(); renderEditor(); renderPreview(); setView(true); } };
+  const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); renderList(); renderEditor(); renderPreview(); setView(true); } };
 
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -693,7 +695,7 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); if(centerView==='inbox') renderInbox(); else if(centerView==='arrivals') renderArrivalsBoard(); else renderToday(); renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const cols=document.querySelector('.cols'); if(cols)cols.classList.toggle('board-mode',board); if(centerView==='inbox') renderInbox(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const btns=n.querySelectorAll('button'); const idx=cur?-1:(centerView==='arrivals'?1:0); btns.forEach((b,i)=>b.classList.toggle('on',i===idx)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); }
 window.showToday=function(){
