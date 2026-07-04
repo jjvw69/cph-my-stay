@@ -51,7 +51,7 @@
   .dot{width:7px;height:7px;border-radius:50%;background:#5B9E6F;display:inline-block}
   .who{color:var(--ink)}
   .cols{flex:1;display:grid;grid-template-columns:372px 1fr 372px;overflow:hidden}
-  .cols.board-mode{grid-template-columns:300px 1fr}
+  .cols.board-mode{grid-template-columns:208px 1fr}
   .cols.board-mode .col.right{display:none}
   .col{overflow-y:auto;height:100%}
   .left{border-right:1px solid var(--line);background:var(--panel);padding:16px 14px}
@@ -381,7 +381,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .empty{color:var(--soft);font-size:16px;padding:40px 10px;text-align:center}
   /* Landscape iPad: keep all three columns (incl. the guest preview) but slim the sides to fit. */
-  @media(min-width:1024px) and (max-width:1180px){ .cols{grid-template-columns:300px 1fr 300px} .cols.board-mode{grid-template-columns:300px 1fr} .center{padding:18px 18px} .right{padding:16px 12px} }
+  @media(min-width:1024px) and (max-width:1180px){ .cols{grid-template-columns:300px 1fr 300px} .cols.board-mode{grid-template-columns:190px 1fr} .center{padding:18px 18px} .right{padding:16px 12px} }
   /* Portrait iPad & narrower: two columns, hide the preview. */
   @media(max-width:1023px){ .cols{grid-template-columns:280px 1fr} .right{display:none} }
   .backlist{display:none}
