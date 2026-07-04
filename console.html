@@ -1693,7 +1693,7 @@ function renderPreview(){
     : `<div class="act-empty">No reminders pinned.<div class="act-row" style="margin-top:7px"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Add a reminder</button></div></div>`;
   const notesTxt=String(cur.internalNotes||'').trim();
   const notesBody=notesTxt
-    ? `<div class="act-card" style="background:#F1F4EF;border-color:#cfe0c8"><div class="act-meta" style="white-space:pre-wrap;color:var(--ink);font-size:12.5px;line-height:1.5">${esc(notesTxt)}</div><div class="act-row" style="margin-top:8px"><button class="b-out" onclick="jumpSec('csec-internal-notes')">Edit notes</button></div></div>`
+    ? `<div class="act-card" style="background:#F1F4EF;border-color:#cfe0c8"><div class="act-meta" style="white-space:pre-wrap;color:var(--ink);font-size:12.5px;line-height:1.5">${esc(notesTxt)}</div></div>`
     : `<div class="act-empty">No internal notes.<div class="act-row" style="margin-top:7px"><button class="b-out" onclick="jumpSec('csec-internal-notes')">Add a note</button></div></div>`;
 
   const awaitBits=[];
