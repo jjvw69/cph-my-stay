@@ -24,7 +24,7 @@
   body{font-family:var(--ui);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
   button{font-family:var(--ui);cursor:pointer;border:0;background:none}
   input,select,textarea{font-family:var(--ui);font-size:16px;color:var(--ink)}
-  .label{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft)}
+  .label{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft);font-weight:600}
   /* Gate */
   #gate{position:fixed;inset:0;background:linear-gradient(160deg,#1B2B23,#16241E);display:flex;align-items:center;justify-content:center;z-index:50}
   .gatecard{width:382px;max-width:92vw;background:var(--bg);border-radius:22px;padding:34px 30px;text-align:center;box-shadow:0 30px 70px -30px rgba(0,0,0,.6)}
@@ -60,7 +60,7 @@
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   .staycard .g{display:flex;align-items:center}
-  .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);box-shadow:0 0 0 1.5px #B6C24E;display:inline-block;margin-left:8px;flex:0 0 auto}
+  .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--purple);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
@@ -95,7 +95,7 @@
   .ibx-prev{flex-basis:100%;font-size:12.5px;color:var(--soft);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
   .tr-tag.grey{background:#EFEBE0;color:#8B8475}
   /* ---- Today overview (center) ---- */
-  .today-head{font-family:var(--display);font-weight:600;font-size:26px;color:var(--ink)}
+  .today-head{font-family:var(--display);font-weight:700;font-size:26px;color:var(--ink)}
   .today-date{font-size:13px;color:var(--soft);margin:2px 0 16px}
   .today-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px;margin-bottom:8px}
   .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px}
@@ -107,7 +107,7 @@
   .stat.hot .num{color:#9E5B43}
   .stat .lbl{font-size:12px;color:var(--soft);margin-top:5px}
   .today-sec{margin-top:22px}
-  .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:9px}
+  .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:9px}
   .today-row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;text-align:left;width:100%}
   .today-row:hover{border-color:var(--accent)}
   .tr-main{flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap}
@@ -127,7 +127,7 @@
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
   .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .topPending{display:none;background:var(--yellow);color:#14231A;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .topPending{display:none;background:var(--purple);color:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
   .topPending.show{display:inline-block}
   .tmpl{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
   .tmpl button{font-size:12.5px;border:1px solid var(--line);background:#FBF8F1;border-radius:18px;padding:6px 12px;color:var(--accent);cursor:pointer}
@@ -147,7 +147,7 @@
   details.sec[open] .tl-hint-closed{display:none}
   details.sec[open] .tl-hint-open{display:inline}
   .msave{display:none}
-  .reqcount{display:inline-block;font-size:12px;background:var(--yellow);color:#14231A;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:600}
+  .reqcount{display:inline-block;font-size:12px;background:var(--purple);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:700}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -174,7 +174,7 @@
   .reqconfirm button{white-space:nowrap;padding:8px 14px;font-size:13px;border-radius:9px}
   .center{padding:22px 26px}
   .center .ehd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px}
-  .center h2{font-family:var(--display);font-weight:600;font-size:28px}
+  .center h2{font-family:var(--display);font-weight:700;font-size:28px}
   .center .ref{font-size:13.5px;color:var(--soft);margin-bottom:16px}
   .ebtns{display:flex;gap:8px;flex:0 0 auto}
   .ebtns button{font-size:14px;padding:9px 14px;border-radius:10px}
@@ -223,7 +223,7 @@
   .vchip{font-size:11.5px;border-radius:20px;padding:3px 10px;background:#F4F2EC;color:#9AA49B;border:1px solid var(--line)}
   .vchip.on{background:#EAF1EA;color:#3F6B4E;border-color:#cfe0c8}
   .sec{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
-  .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+  .sec h3{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:700}
   /* pinned section quick-nav for the stay editor */
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
   .secbar{display:flex;flex-direction:column;gap:9px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
@@ -278,7 +278,7 @@
   .pv-hero{height:120px;background:linear-gradient(135deg,var(--accent),#1E2B25) center/cover}
   .pv-body{padding:14px}
   .pv-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--soft)}
-  .pv-villa{font-family:var(--display);font-weight:600;font-size:22px;margin:2px 0}
+  .pv-villa{font-family:var(--display);font-weight:700;font-size:22px;margin:2px 0}
   .pv-loc{font-size:13.5px;color:var(--soft);margin-bottom:10px}
   .pv-count{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px;display:flex;justify-content:space-between;align-items:center}
   .pv-count .big{font-family:var(--display);font-size:30px;color:var(--accent);line-height:1}
@@ -288,7 +288,7 @@
   .pv-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-top:8px;font-size:14px}
   /* ---- live Guest Activity panel ---- */
   .apv-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:14px}
-  .apv-villa{font-family:var(--display);font-weight:600;font-size:19px;color:var(--ink);line-height:1.15}
+  .apv-villa{font-family:var(--display);font-weight:700;font-size:19px;color:var(--ink);line-height:1.15}
   .apv-rev{font-size:12.5px;color:#3F6B4E;font-weight:600;margin-top:6px}
   .ups-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:18px}
   .ups-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:10px}
@@ -306,7 +306,7 @@
   .pulse.off{color:#9A7B36}
   .act-sec{margin-bottom:16px}
   .act-h{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:8px}
-  .act-n{background:var(--yellow);color:#14231A;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0;font-weight:600}
+  .act-n{background:var(--purple);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;letter-spacing:0;font-weight:700}
   .act-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px}
   .act-card.warn{border-color:#E4C58C;background:#FCF7EC}
   .act-title{font-size:14px;font-weight:600;color:var(--ink)}
