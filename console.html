@@ -167,7 +167,7 @@
   .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
   .ab-cart{white-space:nowrap;color:var(--ink);font-size:11.5px}
   .ab-color{width:1%;padding-right:2px}
-  .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 4px;font-size:10.5px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:62px}
+  .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
   .ab-greet{min-width:96px}
   table.ab .greet-sel{margin-left:0;width:100%;min-width:88px}
@@ -724,10 +724,11 @@ function escA(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g
 // Golf-cart billing status for the Invoices section — derived from the arrivals-board cart config (staff-only).
 // Arrivals-board per-row highlight colours (staff-only, like the Excel sheet). Soft tints.
 const ROWCOLORS={green:'#DFEFDD',yellow:'#FBF3C4',orange:'#FBE3C6',red:'#F6D6D6',blue:'#D7E5F5',purple:'#E6DAF1',gray:'#E4E7E3'};
+const ROWDOT={'':'–',green:'🟢',yellow:'🟡',orange:'🟠',red:'🔴',blue:'🔵',purple:'🟣',gray:'⚪'};
 function colorSel(s){
   const cur=s.rowColor||''; const bg=ROWCOLORS[cur]||'#fff';
-  const opts=[['','None'],['green','Green'],['yellow','Yellow'],['orange','Orange'],['red','Red'],['blue','Blue'],['purple','Purple'],['gray','Gray']];
-  return `<select class="rowcol-sel${cur?' set':''}" style="background:${bg}" title="Row colour" onclick="event.stopPropagation()" onchange="setRowColor('${s.id}',this.value)">${opts.map(o=>`<option value="${o[0]}" ${cur===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`;
+  const order=['','green','yellow','orange','red','blue','purple','gray'];
+  return `<select class="rowcol-sel${cur?' set':''}" style="background:${bg}" title="Row colour" onclick="event.stopPropagation()" onchange="setRowColor('${s.id}',this.value)">${order.map(k=>`<option value="${k}" ${cur===k?'selected':''}>${ROWDOT[k]}</option>`).join('')}</select>`;
 }
 window.setRowColor=async function(id,val){
   const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it.rowColor||'')===String(val||''))return;
