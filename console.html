@@ -717,6 +717,16 @@ window.showArrivals=function(){
 // Arrivals board — spreadsheet-style ops view mirroring the Excel arrivals sheet. Ops fields
 // autosave via a partial PUT (only whitelisted keys are written). All staff-only.
 function escA(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Golf-cart billing status for the Invoices section — derived from the arrivals-board cart config (staff-only).
+function golfCartNote(cfg){
+  const raw=String(cfg||'').trim(); if(!raw||/^\?+$/.test(raw)) return '';
+  if(/^none$/i.test(raw)) return 'Golf cart — pending (to confirm).';
+  const segs=raw.split(/\n|&|\+|\s+y\s+/i).map(x=>x.trim()).filter(Boolean);
+  let hasBill=false, hasVilla=false;
+  for(const seg of segs){ if(/^none$/i.test(seg))continue; const hasCart=/\d\s*p/i.test(seg); if(/villa/i.test(seg)){hasVilla=true;} else if(hasCart){hasBill=true;} }
+  if(!hasBill && hasVilla) return 'Golf cart — provided by villa/owner, not billed.';
+  return '';
+}
 window.setStayField=async function(id,field,val){
   const ALLOWED=['agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','internalNotes'];
   if(!ALLOWED.includes(field))return;
@@ -1419,6 +1429,7 @@ function renderEditor(){
 
     <div class="sec"><h3>Invoices ${(cur.invoices||[]).length?`<span class="reqcount">${(cur.invoices||[]).length}</span>`:''}</h3>
       <div class="counter" style="margin:0 0 10px">Create an invoice, review &amp; edit it, then send it to the guest. They see it in their app with your Zelle/bank details; mark it paid once settled.</div>
+      ${(function(){const n=golfCartNote(cur.cartConfig);return n?`<div style="margin:0 0 10px;background:#FBF3E7;border:1px solid #E7C9A0;color:#8A6D2E;border-radius:10px;padding:9px 12px;font-size:12.5px;line-height:1.45">🛺 ${esc(n)}</div>`:'';})()}
       <div class="reqlist">${(cur.invoices||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).map(iv=>{
         const tot=iv.kind==='grocery'?groBreakdown(iv).totalUSD:invBreakdown(iv).total;
         const badge=iv.status==='paid'?`<span style="font-size:11px;background:#E2EAE0;color:var(--accent);border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>`:iv.status==='sent'?`<span style="font-size:11px;background:#F3ECDD;color:#7A5A2E;border-radius:20px;padding:2px 9px;font-weight:600">Sent</span>`:`<span style="font-size:11px;background:#EEE9DF;color:#6E7B71;border-radius:20px;padding:2px 9px;font-weight:600">Draft</span>`;
