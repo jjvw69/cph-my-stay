@@ -474,6 +474,35 @@ function stayReadiness(s) {
     done: 3 - missing.length, total: 3,
   };
 }
+/** Normalized golf-cart display for the arrivals board — DERIVED from the booking file:
+ *  billable carts come from the golf-cart invoice (source of truth, edited there), villa &
+ *  pending come from the cart status. Format: "2× 6-seater", "1× 4-seater villa", "Pending". */
+function golfCartDisplay(s) {
+  const parts = [];
+  const inv = (s.invoices || []).find(i => /golf cart/i.test(i.title || ''));
+  if (inv) {
+    (inv.items || []).forEach(it => {
+      const m = String(it.label || '').match(/(\d+)\s*[×x]\s*(\d)\s*-?\s*seater/i);
+      if (m) { parts.push(m[1] + '× ' + m[2] + '-seater'); return; }
+      const rate = parseFloat(String(it.rate || '').replace(/[^0-9.]/g, '')) || 0;
+      const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || 0;
+      const amt = Number(it.amount) || 0;
+      const seat = (rate === 105 || rate === 150) ? 6 : (rate === 80 || rate === 120) ? 4 : 0;
+      const qty = (rate && days) ? Math.round(amt / (rate * days)) : 0;
+      if (seat && qty) parts.push(qty + '× ' + seat + '-seater');
+    });
+  }
+  const raw = String(s.cartConfig || '').trim();
+  if (!parts.length && /^none$/i.test(raw)) return 'Pending';
+  raw.split(/\n|&|\+|\s+y\s+/i).map(x => x.trim()).filter(Boolean).forEach(seg => {
+    if (!/villa/i.test(seg)) return;
+    const c = seg.match(/(\d+)\s*(?:de|x|\*)?\s*(\d)\s*p/i);
+    if (c) { parts.push(c[1] + '× ' + c[2] + '-seater villa'); return; }
+    const c2 = seg.match(/(\d)\s*p/i);
+    parts.push(c2 ? '1× ' + c2[1] + '-seater villa' : 'villa');
+  });
+  return parts.join(' · ');
+}
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
@@ -495,7 +524,7 @@ function summaryStay(s) {
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     transferNote: s.transferNote || '', provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '' };
+    bookingAgent: s.bookingAgent || '', golfCart: golfCartDisplay(s) };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
