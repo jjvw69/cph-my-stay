@@ -1021,19 +1021,21 @@ function stayVitals(s){
   // ---- Booked & reserved: rendered as the same labeled tiles as the rest of the dashboard ----
   const rqStatus=r=>r.status==='confirmed'?['Confirmed','v-green']:r.status==='done'?['Arranged','v-green']:['Requested','v-amber'];
   const svcStatus=x=>x.status==='confirmed'?['Confirmed','v-green']:x.status==='declined'?['Declined','v-soft']:['Awaiting reply','v-amber'];
-  const bkTile=(name,val,cls,sub)=>`<div class="vstat"><span class="vk">${esc(name)}</span><span class="vv ${cls||''}">${val}${sub?`<span class="vsub">${sub}</span>`:''}</span></div>`;
-  const bookedTiles=[];
+  const bkPill=(txt,cls)=>{const map={'v-green':['#E2EFE0','#3F6B4E'],'v-amber':['#FBF1D8','#9A7B36'],'v-soft':['#EFEBE0','#8B8475']};const c=map[cls]||map['v-soft'];return `<span style="flex:0 0 auto;font-size:11px;font-weight:600;background:${c[0]};color:${c[1]};border-radius:20px;padding:3px 10px;white-space:nowrap">${esc(txt)}</span>`;};
+  const bkIcon=n=>{n=(n||'').toLowerCase();return /transfer|airport/.test(n)?'✈':/yacht|catamaran|boat/.test(n)?'⛵':/golf\s*cart|buggy/.test(n)?'🛺':/car\s*rent|rental\s*car/.test(n)?'🚗':/golf/.test(n)?'⛳':/chef|meal|dining/.test(n)?'🍽':/massage|spa|yoga|wellness/.test(n)?'🌿':/nann|baby|child/.test(n)?'🧸':/jet|private travel/.test(n)?'🛩':'✦';};
+  const bkRow=(icon,title,price,meta,statusTxt,statusCls)=>`<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:0 0 auto;width:28px;height:28px;border-radius:8px;background:#E9F1EB;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px">${icon}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;line-height:1.3">${esc(title)}${price?` <span style="color:#3F6B4E">${esc(price)}</span>`:''}</div>${meta?`<div style="font-size:11.5px;color:var(--soft);line-height:1.42;margin-top:1px">${meta}</div>`:''}</div>${bkPill(statusTxt,statusCls)}</div>`;
+  const bookedArr=[];
   (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
-    const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?(' · '+esc((''+r.price).trim())):'';
+    const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?('· '+(''+r.price).trim()):'';
     const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):'')].filter(Boolean).map(esc).join(' · ');
     const flt=hasFlight(r)?flightLine(r):'';
-    bookedTiles.push(bkTile(r.title||r.refId||'Request', lab+pr, cls, [meta,flt].filter(Boolean).join('<br>')));
+    bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
   });
   (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
-    const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?(' · '+esc((''+x.price).trim())):'';
-    bookedTiles.push(bkTile(x.name||'Service', lab+pr, cls, 'Sent to guest'));
+    const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?('· '+(''+x.price).trim()):'';
+    bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,'Sent to guest',lab,cls));
   });
-  const bookedBody=bookedTiles.length?bookedTiles.join(''):'<div class="vstat"><span class="vv v-soft">Nothing booked or reserved yet.</span></div>';
+  const bookedRows=bookedArr.length?bookedArr.join(''):'<div style="font-size:13px;color:var(--soft)">Nothing booked or reserved yet.</div>';
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
   const ready=[['Pre check-in',!!s.guestCheckin],['Guest list',!!(s.guestList&&s.guestList.length)],['Groceries',!!(s.grocery&&((s.grocery.items&&s.grocery.items.length)||s.grocery.note))],['Arrival meals',!!(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))],['Registration #',!!(s.registrationNumber&&String(s.registrationNumber).trim())]];
@@ -1047,36 +1049,60 @@ function stayVitals(s){
   // Arrival-readiness nudges — only within 14 days of check-in, so they don't nag too early.
   if(!s.guestCheckin&&din!=null&&din>=0&&din<=14)actionBits.push('<span class="vpill amber">Pre check-in incomplete</span>');
   if(!s.guestLastSeen&&din!=null&&din>=0&&din<=14)actionBits.push('<span class="vpill amber">App not opened yet</span>');
+  const hasAction=actionBits.length>0;
   if(!actionBits.length)actionBits.push('<span class="vpill calm">Nothing pending ✓</span>');
-  return `<div class="vitals">
-    <div class="vtitle">Dashboard</div>
-    <div class="vrow">
-      ${stat('Villa',villa?esc(villa):'—')}
-      ${stat('Villa #',(s.villaNumber||s.villaInternal)?esc(s.villaNumber||s.villaInternal):'—')}
-      ${stat('Arrival',esc(arr),arrCls)}
-      ${stat('Nights',nights!=null?String(nights):'—')}
-      ${stat('Party',esc(partyTxt),(cap&&party>cap)?'v-amber':'')}
-      ${stat('Guest app',(s.guestLastSeen?guestPulse(s.guestLastSeen).replace(/·\s*/,''):'not opened yet'),'')}
+  const appTxt=s.guestLastSeen?('App '+String(guestPulse(s.guestLastSeen)).replace(/·\s*/,'').trim()):'App not opened';
+  const heroChip=(txt,strong)=>`<span style="background:${strong?'rgba(215,230,107,.18)':'rgba(255,255,255,.14)'};border:1px solid ${strong?'rgba(255,255,255,.30)':'transparent'};border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600">${txt}</span>`;
+  const detailCell=(k,v)=>`<div><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">${k}</div><div style="font-weight:600;font-size:13.5px;margin-top:2px">${v}</div></div>`;
+  const arrLine=esc(arr)+((s.checkin&&din!=null&&din>0&&fmtD(s.checkin))?(' · '+esc(fmtD(s.checkin))+(s.checkinTime?' · '+esc(s.checkinTime):'')):'');
+  return `<div class="vitals" style="background:transparent;border:0;padding:0">
+    <div style="background:var(--accent);border-radius:14px;padding:15px 17px;color:#fff">
+      <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600">${arrLine}</div>
+      <div style="font-size:24px;font-weight:700;margin-top:3px;letter-spacing:-.01em">${fmtName(s.leadName||'New stay')}${villa?`<span style="font-weight:400;opacity:.78;font-size:18px"> · ${esc(villa)}</span>`:''}</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">
+        ${nights!=null?heroChip(nights+' nights'):''}
+        ${heroChip(esc(partyTxt),(cap&&party>cap))}
+        ${(s.villaNumber||s.villaInternal)?heroChip('Villa '+esc(s.villaNumber||s.villaInternal)):''}
+        ${heroChip(esc(appTxt),!!s.guestLastSeen)}
+      </div>
     </div>
-    <div class="vrow">
-      ${stat('Check-in',esc(ciTxt))}
-      ${stat('Check-out',esc(coTxt))}
-      ${stat('Concierge',conc?esc(conc):'<span class="v-amber">Unassigned</span>')}
-      ${stat('Registration #',(s.registrationNumber&&String(s.registrationNumber).trim())?esc(s.registrationNumber):'<span class="v-amber">Not set</span>')}
-      ${stat('Requests', awaiting?('<span class="v-amber">'+awaiting+' awaiting price</span>'):((s.requests||[]).filter(r=>r.status!=='cancelled').length?'<span class="v-green">All handled</span>':'—'))}
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-top:11px">
+      <div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect</div>
+        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'var(--gold)':'var(--ink)'};margin-top:1px">$${unpaidTot.toLocaleString()}</div>
+        <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus)+((s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''):(unpaidTot>0?'Balance due':'Nothing due')}</div>
+      </div>
+      <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Add-ons</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px">${confirmed.length} · $${rev.toLocaleString()}</div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">confirmed</div>
+      </div>
+      <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Services sent</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px">${(s.sentServices||[]).length?svcConfirmed:'—'}</div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">${(s.sentServices||[]).length?(svcConfirmed+' confirmed'+(svcAwait?' · '+svcAwait+' pending':'')):'none yet'}</div>
+      </div>
     </div>
-    <div class="vbk-h">Booked &amp; reserved</div>
-    <div class="vrow vrow-booked">${bookedBody}</div>
-    <div class="vrow">
-      ${stat('Confirmed add-ons',confirmed.length+' · $'+rev.toLocaleString(),'v-green')}
-      ${stat('Services sent',(s.sentServices||[]).length?(svcConfirmed+' confirmed'+(svcAwait?' · '+svcAwait+' pending':'')):'—')}
-      ${stat('To collect','$'+unpaidTot.toLocaleString(),unpaidTot>0?'v-amber':'')}
-      ${stat('Payment',s.paymentStatus?`<span class="${s.paymentStatus==='Paid in full'?'v-green':(s.paymentStatus==='Unpaid'||s.paymentStatus==='Balance due')?'v-amber':''}">${esc(s.paymentStatus)}${(s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(s.balanceDue):''}</span>`:'—')}
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-top:11px;display:grid;grid-template-columns:1fr 1fr;gap:11px 16px">
+      ${detailCell('Check-in',esc(ciTxt))}
+      ${detailCell('Check-out',esc(coTxt))}
+      ${detailCell('Concierge',conc?esc(conc):'<span style="color:#9A7B36">Unassigned</span>')}
+      ${detailCell('Registration #',(s.registrationNumber&&String(s.registrationNumber).trim())?esc(s.registrationNumber):'<span style="color:#9A7B36">Not set</span>')}
     </div>
-    <div class="vrow">
-      <div class="vstat" style="flex:1"><span class="vk">Action needed</span><span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:3px">${actionBits.join('')}</span></div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-top:11px">
+      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:10px">Booked &amp; reserved</div>
+      <div style="display:flex;flex-direction:column;gap:10px">${bookedRows}</div>
     </div>
-    <div class="vready">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:11px">
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px">
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px">Arrival readiness</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${ready.map(([l,ok])=>chip(l,ok)).join('')}</div>
+      </div>
+      <div style="background:${hasAction?'#FBF1EC':'#EFF4EE'};border:1px solid ${hasAction?'#E3C4B6':'#cfe0c8'};border-radius:12px;padding:13px 15px">
+        <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${hasAction?'#9A2B2B':'#3F6B4E'};font-weight:700;margin-bottom:8px">Needs attention</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${actionBits.join('')}</div>
+      </div>
+    </div>
   </div>`;
 }
 /* Top-of-editor alerts: VIP occasion + a consolidated dietary/allergy flag (gathered from
