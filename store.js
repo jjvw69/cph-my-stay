@@ -65,6 +65,7 @@ const SERVICE_OPTIONS = {
   staff:[['Private chef','$150 / day · rate may vary with skills & experience'],['Waiter','$50 / day · rate may vary with skills & experience']],
   massage:[['60 minutes','$120'],['90 minutes','$140'],['120 minutes','$160']],
   yoga:[['1 person · 60 min','$120 / hour'],['2 people · 60 min','$95 / hour per person'],['3–6 people · 60 min','$240 / hour'],['7–10 people · 60 min','$60 / hour per person']],
+  babygear:[['Crib','$45 / day'],['High chair','$20 / day'],['Playpen / Pack’n’Play','$30 / day']],
 };
 
 const CONCIERGES = [

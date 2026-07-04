@@ -837,7 +837,7 @@ const SECNAV_GROUPS=[
   {g:'Admin', ids:['csec-follow-up-reminders','csec-internal-notes']},
   {g:'Booking', ids:['csec-guest-party','csec-villa-information','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
   {g:'Guest requirements', ids:['csec-guest-pending-requests','csec-guest-booked-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals']},
-  {g:'Upsell & money', ids:['csec-payment-balance','csec-services-sent-to-guest','csec-invoices','csec-yacht-charter-proposal']},
+  {g:'Upsell & money', ids:['csec-services-sent-to-guest','csec-invoices','csec-payment-balance','csec-yacht-charter-proposal']},
 ];
 const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow-up','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 function buildSecNav(){
@@ -1413,7 +1413,8 @@ window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return;
   if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
   else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if(invSvcOpts(id).length)it.svcId=id; }
   if(name)it.label=name;
-  if(it.svcId){ it.rate=''; it.days=''; it.amount=''; renderInvItems(); return; } // options exist — wait for the option pick to set the price
+  it.rate=''; it.days=''; it.amount='';   // reset pricing whenever the service changes; set below ONLY if the new service carries a rate (so rate-less services like Live Entertainment start blank)
+  if(it.svcId){ renderInvItems(); return; } // options exist — wait for the option pick to set the price
   const fm=firstMoney(rate); const num=fm.n;
   if(fm.multi){ it.rate=''; it.days=''; it.amount=''; } // tiered rate text — don't guess, staff types the price
   else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
