@@ -1130,7 +1130,7 @@ function renderEditor(){
   }).join('');
   const head=`
     <button class="backlist" onclick="backToList()">← All stays</button>
-    <div class="ehd"><div><h2>${(function(){const n=String(cur.leadName||'New stay').trim();const p=n.split(/\s+/);if(p.length<2)return esc(n);const last=p.pop();return esc(p.join(' '))+' <b style="font-weight:800">'+esc(last)+'</b>';})()}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
+    <div class="ehd"><div><h2>${(function(){const n=String(cur.leadName||'New stay').trim();const p=n.split(/\s+/);if(p.length<2)return esc(n);const last=p.pop();return '<span style="font-weight:400">'+esc(p.join(' '))+'</span> <b style="font-weight:800">'+esc(last)+'</b>';})()}</h2><div class="ref">Booking ${esc(cur.reference)} · <span class="pill ${pill}" style="margin:0">${esc(cur.status)}</span></div></div>
       <div class="ebtns"><span id="dirtyTag" class="dirtytag">● Unsaved</span>${cur.status==='published'?`<button id="saveBtn" class="b-fill" onclick="saveDraft()">Save</button>`:`<button id="saveBtn" class="b-fill" onclick="publish()">Save &amp; Publish</button>`}<button class="b-out" onclick="removeStay()" style="background:#C0392B;color:#fff;border-color:#C0392B">Delete</button></div></div>
     `;  /* editor chat mode removed 2026-07 — guest messaging moved to WhatsApp */
   document.getElementById('editor').innerHTML=head+`
