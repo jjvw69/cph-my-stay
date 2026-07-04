@@ -335,8 +335,8 @@ function fillTokens(t,s){
 /* Personalized greeting ("Dear [surname] family,") + the concierge welcome body. Greeting is skipped if the message already opens with one, or if no surname is on file. */
 function welcomeBody(s){ return fillTokens(((s&&s.welcomeMessage)||'').trim()||DEFAULT_WELCOME, s); }
 function welcomeGreetOf(s){ const last=(s&&s.guest&&s.guest.lastName)||''; if(!last) return ''; if(/^\s*(dear|hi|hello|hey)\b/i.test(welcomeBody(s))) return ''; return 'Dear '+last+' family,'; }
-function welcomeHTML(s){ const g=welcomeGreetOf(s); const b=esc(welcomeBody(s)); return g?esc(g)+'<br><br>'+b:b; }
-function welcomeText(s){ const g=welcomeGreetOf(s); const b=welcomeBody(s); return g?g+'\n\n'+b:b; }
+function welcomeHTML(s){ const g=welcomeGreetOf(s); const b=esc(welcomeBody(s)); return g?esc(g)+'<br>'+b:b; }
+function welcomeText(s){ const g=welcomeGreetOf(s); const b=welcomeBody(s); return g?g+'\n'+b:b; }
 /* rebuild the concierge thread from the server-persisted messages so it survives reload/logout */
 function loadConversation(){
   const s=state.stay; if(!s) return;
