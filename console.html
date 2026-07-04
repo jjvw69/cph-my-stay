@@ -450,6 +450,8 @@ const SEAL="data:image/webp;base64,UklGRo4ZAABXRUJQVlA4WAoAAAAQAAAAlQAA1gAAQUxQS
 document.getElementById('seal').src=SEAL; document.getElementById('seal2').src=SEAL;
 if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js',{scope:'/console'}).catch(function(){}); }catch(e){} }
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Display-normalise a stored price string so legacy "$300" shows as "US$300". Leaves US$/RD$ and non-$ text untouched. */
+const usdStr=v=>String(v==null?'':v).replace(/(^|[^A-Za-z$])\$(?=\d)/g,(m,p1)=>p1+'US$');
 // Guest name display: light first name(s), bold surname (last word).
 const fmtName=n=>{ n=String(n||'').trim(); if(!n) return ''; const p=n.split(/\s+/); if(p.length<2) return esc(n); const last=p.pop(); return '<span style="font-weight:400">'+esc(p.join(' '))+'&nbsp;<b style="font-weight:800">'+esc(last)+'</b></span>'; };
 /* First money token in a rate string. Returns {n:number|null, multi:boolean}. Multi-number
@@ -622,11 +624,13 @@ function renderList(){
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
     const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">US$${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
+    const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&daysUntil(s.checkin)>=0;
+    const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
-      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${reqB}${srcB}${fuB}${upB}</div></div>`;
+      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
@@ -717,9 +721,10 @@ function renderToday(){
   const inhouse=L.filter(s=>s.checkin&&s.checkout&&s.checkin<=today&&today<s.checkout);
   // Airport transfers happening today — an arrival (date) or a departure (endDate) that lands on today.
   const xfToday=L.filter(s=>(s.transfers||[]).some(t=>t.date===today||t.endDate===today));
-  // Arrivals in the next 3 days still missing pre check-in, a transfer, or the villa registration number.
-  const soon=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&d>=0&&d<=3;});
-  const notReady=soon.filter(s=>!s.preCheckinDone||!s.transferArranged||!s.hasReg);
+  // Every upcoming published arrival still missing pre check-in, guest passports, or the airport
+  // transfer (arranged OR guest self-declared). Not day-gated — stays flagged until all three are in.
+  const upcomingPub=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&d>=0;});
+  const notReady=upcomingPub.filter(s=>s.readiness?!s.readiness.ready:(!s.preCheckinDone||!s.transferArranged||!s.hasReg));
   // Upcoming arrivals (within a week) who have never opened the guest app.
   const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d>=0&&d<=7;});
   todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened};
@@ -750,7 +755,7 @@ function renderToday(){
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
-    ${sec('Arrivals not ready','notReady', notReady.map(s=>{const miss=[];if(!s.preCheckinDone)miss.push('pre check-in');if(!s.transferArranged)miss.push('transfer');if(!s.hasReg)miss.push('registration #');const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag red">${miss.length} to fix</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d')+' · missing '+miss.join(', '));}))}
+    ${sec('Arrivals not ready','notReady', notReady.map(s=>{const miss=(s.readiness&&s.readiness.missing)||[];const d=daysUntil(s.checkin);return todayRow(s,`<span class="tr-tag red">${miss.length} to fix</span>`, esc(s.villa||'—')+' · '+(d===0?'arrives today':'in '+d+'d')+' · missing '+miss.join(', '));}))}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
@@ -789,7 +794,7 @@ function activityTimeline(s){
   const ev=[];
   (s.requests||[]).forEach(r=>{
     if(r.createdAt) ev.push({at:r.createdAt,cls:'g',what:`Guest requested <b>${esc(r.title||'a service')}</b>`});
-    if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(r.price):''}`});
+    if(r.status==='confirmed') ev.push({at:r.confirmedAt||r.createdAt,cls:'ok',what:`Concierge confirmed <b>${esc(r.title||'')}</b>${r.price?' · '+esc(usdStr(r.price)):''}`});
     if(r.status==='done') ev.push({at:r.doneAt||r.createdAt,cls:'ok',what:`Marked done <b>${esc(r.title||'')}</b>`});
     if(r.status==='cancelled') ev.push({at:r.cancelledAt||r.createdAt,cls:'no',what:`Guest cancelled <b>${esc(r.title||'')}</b>`});
   });
@@ -1026,13 +1031,13 @@ function stayVitals(s){
   const bkRow=(icon,title,price,meta,statusTxt,statusCls)=>`<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:0 0 auto;width:28px;height:28px;border-radius:8px;background:#E9F1EB;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px">${icon}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;line-height:1.3">${esc(title)}${price?` <span style="color:#3F6B4E">${esc(price)}</span>`:''}</div>${meta?`<div style="font-size:11.5px;color:var(--soft);line-height:1.42;margin-top:1px">${meta}</div>`:''}</div>${bkPill(statusTxt,statusCls)}</div>`;
   const bookedArr=[];
   (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
-    const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?('· '+(''+r.price).trim()):'';
+    const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?('· '+usdStr((''+r.price).trim())):'';
     const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):'')].filter(Boolean).map(esc).join(' · ');
     const flt=hasFlight(r)?flightLine(r):'';
     bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
   });
   (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
-    const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?('· '+(''+x.price).trim()):'';
+    const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?('· '+usdStr((''+x.price).trim())):'';
     bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,'Sent to guest',lab,cls));
   });
   const bookedRows=bookedArr.length?bookedArr.join(''):'<div style="font-size:13px;color:var(--soft)">Nothing booked or reserved yet.</div>';
@@ -1668,7 +1673,7 @@ function renderPreview(){
       <div class="act-meta">${reqMeta(r)}${r.createdAt?' · '+fmtReqDate(r.createdAt):''}</div>
       ${r.note?`<div class="act-meta">“${esc(r.note)}”</div>`:''}
       ${r.status==='confirmed'
-        ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(r.price):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
+        ? `<div class="act-meta" style="color:#3F6B4E;margin-top:5px">Confirmed${r.price?' · '+esc(usdStr(r.price)):''} — arrange &amp; mark done</div><div class="act-row"><button class="b-fill" onclick="markDoneReq('${r.id}')">Mark done</button></div>`
         : `<div class="act-row"><input id="pa_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Final price, e.g. US$150"><button class="b-fill" onclick="confirmReq('${r.id}','pa')">Confirm</button></div>`}
     </div>`).join(''):`<div class="act-empty">No requests waiting — all caught up.</div>`;
 
@@ -1749,7 +1754,7 @@ window.printStay=function(){
   if(!cur) return; const s=cur;
   const v=BOOT.villas.find(x=>x.id===s.villaId)||{}; const c=BOOT.concierges.find(x=>x.id===s.conciergeId)||{};
   const row=(k,val)=>val?`<tr><th>${esc(k)}</th><td>${esc(val)}</td></tr>`:'';
-  const reqs=(s.requests||[]).filter(r=>r.status!=='cancelled').map(r=>`<li><b>${esc(r.title||'')}</b> — ${esc(r.status==='confirmed'?('confirmed'+(r.price?' · '+r.price:'')):'pending')}${r.date?' · '+esc(r.date):''}${r.time?' '+esc(r.time):''}${r.guests?' · '+esc(r.guests)+' guests':''}${r.note?'<br><i>“'+esc(r.note)+'”</i>':''}</li>`).join('')||'<li>None</li>';
+  const reqs=(s.requests||[]).filter(r=>r.status!=='cancelled').map(r=>`<li><b>${esc(r.title||'')}</b> — ${esc(r.status==='confirmed'?('confirmed'+(r.price?' · '+usdStr(r.price):'')):'pending')}${r.date?' · '+esc(r.date):''}${r.time?' '+esc(r.time):''}${r.guests?' · '+esc(r.guests)+' guests':''}${r.note?'<br><i>“'+esc(r.note)+'”</i>':''}</li>`).join('')||'<li>None</li>';
   const groc=(s.grocery&&s.grocery.items&&s.grocery.items.length)?('<ul>'+(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});return Object.keys(by).map(cat=>'<li><b>'+esc(cat)+':</b> '+by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')+'</li>').join('');})(s.grocery)+(s.grocery.note?'<li><b>Notes:</b> '+esc(s.grocery.note)+'</li>':'')+'</ul>'):'<p>None submitted.</p>';
   const meals=(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))?('<ul>'+[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']].map(([k,l])=>{const m=s.mealPlan[k]||{};if(!(m.date||m.time||m.guests||m.desc))return '';return '<li><b>'+l+':</b> '+[m.date,m.time,m.guests?m.guests+' guests':''].filter(Boolean).map(esc).join(' · ')+(m.desc?' — '+esc(m.desc):'')+'</li>';}).join('')+'</ul>'):'<p>None submitted.</p>';
   const gl=(s.guestList&&s.guestList.length)?('<ol>'+s.guestList.map(g=>'<li>'+esc(g.name||'—')+' — passport '+esc(g.passport||'—')+'</li>').join('')+'</ol>'):'<p>Not submitted.</p>';
