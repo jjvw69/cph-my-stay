@@ -1064,6 +1064,7 @@ function stayVitals(s){
         ${heroChip(esc(partyTxt),(cap&&party>cap))}
         ${(s.villaNumber||s.villaInternal)?heroChip('Villa '+esc(s.villaNumber||s.villaInternal)):''}
         ${heroChip(esc(appTxt),!!s.guestLastSeen)}
+        <button onclick="openGuestApp()" title="Open the guest app for review" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.30);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px">Open guest app ↗</button>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-top:11px">
@@ -1365,6 +1366,7 @@ function invTotalsHtml(){ const b=invDraftBreakdown(); const row=(l,v,bold)=>`<d
 function renderInvTotals(){ const c=document.getElementById('invTotals'); if(c)c.innerHTML=invTotalsHtml(); }
 window.invToggleFee=function(which,on){ if(!_invDraft)return; if(which==='legal')_invDraft.legalPct=on?18:0; else _invDraft.servicePct=on?10:0; renderInvTotals(); };
 /* Right-rail "Send reminder" — opens WhatsApp pre-filled with the outstanding balance + My Stay link. */
+window.openGuestApp=function(){ if(!cur)return; openExternal('https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(cur.reference||'')); };
 window.remindBalanceWA=function(){ if(!cur)return; const ph=String(cur.phone||'').replace(/[^0-9]/g,''); const name=((cur.leadName||'').split(' ')[0])||'there'; const invs=(cur.invoices||[]).filter(iv=>iv.status==='sent'); const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0); const tot=invs.reduce((a,iv)=>a+invTot(iv),0); const url='https://caribbeanparadisehomes.com/my-stay?b='+encodeURIComponent(cur.reference||''); const msg='Hi '+name+', a friendly reminder that you have a balance of $'+tot.toLocaleString('en-US')+' outstanding for booking '+(cur.reference||'')+'. You can review and settle it in your My Stay app:\n'+url+'\n\nThank you!'; const wa=ph?('https://wa.me/'+ph+'?text='+encodeURIComponent(msg)):('https://wa.me/?text='+encodeURIComponent(msg)); openExternal(wa); if(!ph){ try{ navigator.clipboard.writeText(msg); }catch(e){} } };
 function invBreakdown(iv){ const sub=(iv.items||[]).reduce((s,x)=>s+(Number(x.amount)||0),0); const lp=Number(iv.legalPct)||0, sp=Number(iv.servicePct)||0; const legal=Math.round(sub*lp)/100, service=Math.round(sub*sp)/100; return {sub,lp,sp,legal,service,total:sub+legal+service}; }
 function invInput(extra){ return 'width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff;'+(extra||''); }
@@ -1689,6 +1691,10 @@ function renderPreview(){
   const noticeBody=fuSorted.length
     ? `<div style="display:flex;flex-direction:column;gap:7px">${fuSorted.map(f=>{const over=f.date&&f.date<todayISO;const due=f.date&&f.date===todayISO;const tone=over?'#9A2B2B':due?'#8A6D2E':'#5B6E5F';return `<div class="act-card" style="background:#FFF9E6;border-color:#EBD98A"><div class="act-title" style="font-weight:600">📌 ${esc(f.note||'Reminder')}</div><div class="act-meta" style="color:${tone};font-weight:${(over||due)?'600':'400'}">${f.date?((over?'Overdue · ':due?'Today · ':'')+fmtDay(f.date)):'No date set'}</div></div>`;}).join('')}</div>`
     : `<div class="act-empty">No reminders pinned.<div class="act-row" style="margin-top:7px"><button class="b-out" onclick="jumpSec('csec-follow-up-reminders')">Add a reminder</button></div></div>`;
+  const notesTxt=String(cur.internalNotes||'').trim();
+  const notesBody=notesTxt
+    ? `<div class="act-card" style="background:#F1F4EF;border-color:#cfe0c8"><div class="act-meta" style="white-space:pre-wrap;color:var(--ink);font-size:12.5px;line-height:1.5">${esc(notesTxt)}</div><div class="act-row" style="margin-top:8px"><button class="b-out" onclick="jumpSec('csec-internal-notes')">Edit notes</button></div></div>`
+    : `<div class="act-empty">No internal notes.<div class="act-row" style="margin-top:7px"><button class="b-out" onclick="jumpSec('csec-internal-notes')">Add a note</button></div></div>`;
 
   const awaitBits=[];
   if(svcAwait.length) awaitBits.push(svcAwait.length+' service'+(svcAwait.length===1?'':'s')+' awaiting reply');
@@ -1708,6 +1714,7 @@ function renderPreview(){
     <div class="label">Action panel</div>
     <div class="pvstatus" style="color:${statusLine[1]}"><span class="dot" style="background:${statusLine[1]}"></span>${statusLine[0]}</div>
     ${sec('Notice board', fuSorted.length, noticeBody)}
+    ${sec('Internal notes', 0, notesBody)}
     ${sec('Needs action', pending.length, needsBody)}
     ${moneyBody?sec('Money to collect', unpaid.length, moneyBody):''}
     ${moveBody?sec('Your move', moveCards.length, moveBody):''}
