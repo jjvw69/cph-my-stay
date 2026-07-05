@@ -1521,9 +1521,9 @@ function renderEditor(){
     </div>
 
     <div class="sec"><h3>Internal notes</h3><div class="grid">
-      <div class="f"><label>Staff — shows on the arrivals board</label><input value="${esc(cur.staffCount||'')}" oninput="set('staffCount',this.value)" placeholder="e.g. 3, or chef + butler"></div>
-      <div class="f"><label>Transfer — shows on the arrivals board</label><input value="${esc(cur.transferNote||'')}" oninput="set('transferNote',this.value)" placeholder="e.g. LRM pickup 3pm, self-arranged…"></div>
-      <div class="f full"><label>Extras — shows on the arrivals board</label><input value="${esc(cur.extras||'')}" oninput="set('extras',this.value)" placeholder="Anything else for the arrival"></div>
+      <div class="f"><label>Staff · on board</label><input value="${esc(cur.staffCount||'')}" oninput="set('staffCount',this.value)" placeholder="e.g. 3, or chef + butler"></div>
+      <div class="f"><label>Transfer · on board</label><input value="${esc(cur.transferNote||'')}" oninput="set('transferNote',this.value)" placeholder="e.g. LRM pickup 3pm, self-arranged…"></div>
+      <div class="f full"><label>Extras · on board</label><input value="${esc(cur.extras||'')}" oninput="set('extras',this.value)" placeholder="Anything else for the arrival"></div>
       <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
     </div></div>
     <div class="msave">${cur.status==='published'?`<button class="b-fill" onclick="saveDraft()">Save</button>`:`<button class="b-fill" onclick="publish()">Save &amp; Publish</button>`}</div>`;
