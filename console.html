@@ -758,7 +758,7 @@ window.exportBoardExcel=function(){
   const cols=['Arrive','Depart','Guest','Villa','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Extras'];
   let rows='';
   for(const s of L){ const bg=ROWCOLORS[s.rowColor]||''; const st=bg?` style="background:${bg}"`:'';
-    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),s.golfCart,s.staffCount,s.accessCodes,s.transferNote,s.provisioning,s.extras];
+    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),s.golfCart,s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,s.extras];
     rows+='<tr>'+vals.map((v,i)=>`<td${i<6?st:''}>${e(v)}</td>`).join('')+'</tr>';
   }
   const html=`<html><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0"><tr>${cols.map(c=>`<th style="background:#12794D;color:#fff">${c}</th>`).join('')}</tr>${rows}</table></body></html>`;
@@ -776,7 +776,7 @@ function golfCartNote(cfg){
   return '';
 }
 window.setStayField=async function(id,field,val){
-  const ALLOWED=['agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','internalNotes'];
+  const ALLOWED=['agent','cartConfig','staffCount','transferNote','extras','internalNotes'];
   if(!ALLOWED.includes(field))return;
   const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it[field]||'')===String(val||''))return;
   const patch={}; patch[field]=val;
@@ -801,11 +801,11 @@ function renderArrivalsBoard(){
       <td class="ab-prov"${ts} title="Derived from Booking source + CPH booking agent">${esc(boardProviderCode(s))}</td>
       <td class="ab-greet">${greetSel(s)}</td>
       <td class="ab-cart" title="From booking file (invoice + cart status) — edit via the invoice">${esc(s.golfCart||'—')}</td>
-      <td>${inp(s,'staffCount','staff')}</td>
-      <td>${inp(s,'accessCodes','codes')}</td>
-      <td>${inp(s,'transferNote','transfer')}</td>
+      <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.staffCount||'—')}</td>
+      <td class="ab-super" title="From the booking file — edit in Stay details → Registration #">${esc(s.registrationNumber||s.accessCodes||'—')}</td>
+      <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.transferNote||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
-      <td>${inp(s,'extras','extras')}</td>
+      <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.extras||'—')}</td>
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
     <div class="ab-btns">
@@ -1515,6 +1515,9 @@ function renderEditor(){
     </div>
 
     <div class="sec"><h3>Internal notes</h3><div class="grid">
+      <div class="f"><label>Staff — shows on the arrivals board</label><input value="${esc(cur.staffCount||'')}" oninput="set('staffCount',this.value)" placeholder="e.g. 3, or chef + butler"></div>
+      <div class="f"><label>Transfer — shows on the arrivals board</label><input value="${esc(cur.transferNote||'')}" oninput="set('transferNote',this.value)" placeholder="e.g. LRM pickup 3pm, self-arranged…"></div>
+      <div class="f full"><label>Extras — shows on the arrivals board</label><input value="${esc(cur.extras||'')}" oninput="set('extras',this.value)" placeholder="Anything else for the arrival"></div>
       <div class="f full"><label>Internal notes — staff only, the guest never sees these</label><textarea rows="3" oninput="set('internalNotes',this.value)" placeholder="Private notes for the team: special handling, VIP context, follow-ups, who's doing what…">${esc(cur.internalNotes||'')}</textarea></div>
     </div></div>
     <div class="msave">${cur.status==='published'?`<button class="b-fill" onclick="saveDraft()">Save</button>`:`<button class="b-fill" onclick="publish()">Save &amp; Publish</button>`}</div>`;
@@ -2015,7 +2018,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','staffCount','transferNote','extras']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;

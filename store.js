@@ -535,6 +535,7 @@ function summaryStay(s) {
     assigneeId: s.assigneeId || '', paymentStatus: s.paymentStatus || '',
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
+    registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
     transferNote: s.transferNote || '', provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
     bookingAgent: s.bookingAgent || '', golfCart: golfCartDisplay(s), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
 }
@@ -1091,7 +1092,9 @@ function toGuestStay(s) {
     staffReadAt: s.staffReadAt || 0,
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
-    wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '', registrationNumber: s.registrationNumber || '',
+    wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '',
+    // Registration # is shown to the guest ONLY once the stay is ready AND a number is entered — hidden while pre-arrival info is pending/missing.
+    registrationNumber: (stayReadiness(s).ready && String(s.registrationNumber || '').trim()) ? s.registrationNumber : '',
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
