@@ -1437,7 +1437,7 @@ function renderEditor(){
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
     <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
-      ${(function(){const opts=['MF: ALAIN','MF: ANY','MF: BELKIS','MF: CHEF','MF: IN PREP!','MF: IRIS','MF: JOAQUIN','MF: MARGOT','MF: MAYRA','MF: NICO','MF: YESENIA','MF: YOHA','MF: YULI','NARCISSA','YOLLMARY','IVO']; const curv=cur.grocerySuper||''; const isCustom=curv&&opts.indexOf(curv)===-1;
+      ${(function(){const opts=(BOOT&&BOOT.provisioningOptions&&BOOT.provisioningOptions.length)?BOOT.provisioningOptions:['MF: ALAIN','MF: ANY','MF: BELKIS','MF: CHEF','MF: IN PREP!','MF: IRIS','MF: JOAQUIN','MF: MARGOT','MF: MAYRA','MF: NICO','MF: YESENIA','MF: YOHA','MF: YULI','NARCISSA','YOLLMARY','IVO']; const curv=cur.grocerySuper||''; const isCustom=curv&&opts.indexOf(curv)===-1;
         return `<div style="margin:2px 0 14px">
         <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Provisioning (Super) — shows on the arrivals board</label>
         <select onchange="grocSuperPick(this)" style="width:100%;max-width:440px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)">

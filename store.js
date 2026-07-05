@@ -70,6 +70,16 @@ const SERVICE_OPTIONS = {
   privatetravel:[['Private jet charter',''],['Group charter flight',''],['Air ambulance / medical',''],['Luxury SUV transfer',''],['Luxury van / minibus',''],['VIP airport fast-track & greeter',''],['Other','']],
 };
 
+// Single source of truth for the grocery "Provisioning (Super)" dropdown in the console editor.
+// Served to the console via /api/staff/bootstrap (BOOT.provisioningOptions). To add/remove a
+// coordinator or helper, edit THIS list only — the console picks it up on next load. Names in CAPS.
+// The console still allows a free-typed value ("Type a new value…") for anything not listed here.
+const PROVISIONING_OPTIONS = [
+  'MF: ALAIN','MF: ANY','MF: BELKIS','MF: CHEF','MF: IN PREP!','MF: IRIS','MF: JOAQUIN',
+  'MF: MARGOT','MF: MAYRA','MF: NICO','MF: YESENIA','MF: YOHA','MF: YULI',
+  'NARCISSA','YOLLMARY','IVO',
+];
+
 const CONCIERGES = [
   { id: 'maria-fernanda', name: 'María Fernanda', phone: '+1 (829) 763-8801', avatarInitials: 'MF' },
   { id: 'ivonna',         name: 'Ivonna',         phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
@@ -1131,7 +1141,7 @@ ensureDir();
 seedStaffFromEnv();
 
 module.exports = {
-  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS,
+  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,
