@@ -458,6 +458,8 @@
 </style>
 </head>
 <body>
+<datalist id="suptransfer"><option value="Luxury"></option><option value="Direct"></option></datalist>
+<datalist id="supcart"><option value="Julio"></option><option value="Direct"></option></datalist>
 <div id="gate">
   <div class="gatecard">
     <img id="seal" alt=""><div class="wm">CARIBBEAN PARADISE HOMES</div>
@@ -1185,6 +1187,7 @@ function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.te
             <label>Flying from<input id="ed_flightOrigin_${r.id}" value="${esc(r.flightOrigin||'')}"></label>
             <label>Arrival time<input id="ed_arrivalTime_${r.id}" value="${esc(r.arrivalTime||'')}"></label>`:''}
             <label>Price<input id="ed_price_${r.id}" value="${esc(r.price||'')}" placeholder="e.g. US$150"></label>
+            ${(function(){ const c=(r.refId||'')+' '+(r.title||''); const isT=/private airport transfer|airport transfer|\btransfer\b/i.test(c); const isC=/golf\s*cart|golfcart/i.test(c); const isR=/car\s*rental|carrental/i.test(c); if(!(isT||isC||isR))return ''; const list=isT?'suptransfer':(isC?'supcart':''); return `<label>Supplier (staff only)<input id="ed_supplier_${r.id}" ${list?`list="${list}" `:''}value="${esc(r.supplier||'')}" placeholder="pick or type — not shown to guest"></label>`; })()}
             <label class="full">Head of family<input id="ed_familyName_${r.id}" value="${esc(r.familyName||'')}"></label>
             <label class="full">Note<textarea id="ed_note_${r.id}" rows="2">${esc(r.note||'')}</textarea></label>
           </div>
@@ -1546,7 +1549,7 @@ window.dismissReq=window.markDoneReq; // back-compat alias
 window.setReqFamily=async function(rid,val){ if(!cur)return; const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq&&String(rq.familyName||'')===String(val||'').trim())return; const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid+'/family',{method:'PUT',body:JSON.stringify({familyName:val})}); if(r.ok&&r.body.request){ if(rq)rq.familyName=r.body.request.familyName; renderPreview(); toast&&toast('Saved — the guest sees this label too.'); } else toast&&toast('Could not save'); };
 window.toggleReqEdit=function(rid){ const el=document.getElementById('edit_'+rid); if(!el)return; el.style.display=(el.style.display==='none'||!el.style.display)?'block':'none'; };
 window.saveReqEdit=async function(rid){ if(!cur)return; const g=k=>{ const el=document.getElementById('ed_'+k+'_'+rid); return el?el.value:undefined; };
-  const body={ title:g('title'),date:g('date'),endDate:g('endDate'),time:g('time'),guests:g('guests'),serviceLevel:g('serviceLevel'),cartType:g('cartType'),airline:g('airline'),flightNo:g('flightNo'),flightOrigin:g('flightOrigin'),arrivalTime:g('arrivalTime'),price:g('price'),familyName:g('familyName'),note:g('note') };
+  const body={ title:g('title'),date:g('date'),endDate:g('endDate'),time:g('time'),guests:g('guests'),serviceLevel:g('serviceLevel'),cartType:g('cartType'),airline:g('airline'),flightNo:g('flightNo'),flightOrigin:g('flightOrigin'),arrivalTime:g('arrivalTime'),price:g('price'),familyName:g('familyName'),note:g('note'),supplier:g('supplier') };
   const r=await api('/api/staff/stays/'+cur.id+'/requests/'+rid,{method:'PUT',body:JSON.stringify(body)});
   if(r.ok&&r.body.request){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq)Object.assign(rq,r.body.request); if(!dirty)renderEditor(); renderPreview(); if(typeof refreshMetrics==='function')refreshMetrics(); toast&&toast('Saved — the guest sees the update too'); } else toast&&toast('Could not save changes'); };
 window.reopenReq=async function(rid){ if(!cur)return; const id=cur.id; const r=await api('/api/staff/stays/'+id+'/requests/'+rid+'/reopen',{method:'POST'}); if(r.ok){ const rq=(cur.requests||[]).find(x=>x.id===rid); if(rq){ rq.status=''; rq.doneAt=''; rq.cancelledAt=''; } if(!dirty)renderEditor(); renderPreview(); const it=LIST.find(s=>s.id===id); if(it)it.pending=(it.pending||0)+1; renderList(); refreshTodayBtn&&refreshTodayBtn(); toast('Reopened — back in the active queue'); } else toast('Could not reopen'); };
@@ -1735,8 +1738,6 @@ function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){
     <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" placeholder="e.g. Spa day · Private tour · Photographer" style="${invInput()}">
     ${d.requestId?(function(){ const lr=(cur.requests||[]).find(x=>x.id===d.requestId)||{}; return `<div class="counter" style="margin:6px 0 0">Linked to request: ${esc(lr.title||d.requestId)}${lr.status==='cancelled'?' — <b style="color:#9A2B2B">cancelled by the guest</b>':''}</div>`; })():''}
     <label style="${invLbl()}">Line items</label><div id="invItems">${d.items.map((it,i)=>invRow(it,i)).join('')}</div>
-    <datalist id="suptransfer"><option value="Luxury"></option><option value="Direct"></option></datalist>
-    <datalist id="supcart"><option value="Julio"></option><option value="Direct"></option></datalist>
     <button onclick="addInvLine()" style="background:none;border:0;color:var(--accent);font-size:13.5px;font-weight:600;cursor:pointer;padding:2px 0">+ Add line</button>
     <div style="margin:12px 0;border-top:1px solid var(--line);padding-top:11px">
       <label style="display:flex;align-items:center;gap:9px;font-size:13.5px;margin-bottom:8px;cursor:pointer"><input type="checkbox" id="invLegal" ${d.legalPct?'checked':''} onchange="invToggleFee('legal',this.checked)" style="width:17px;height:17px"> Add 18% legal fee</label>

@@ -528,6 +528,18 @@ function invoiceItemSupplier(s, re) {
 }
 const RE_TRANSFER_LINE = /private airport transfer|airport transfer|\btransfer\b|\b(?:LRM|PUJ|SDQ)\b/i;
 const RE_CART_LINE = /golf\s*cart|golfcart|seater/i;
+/** Supplier set on a matching guest request (staff-only). Takes precedence over the invoice
+ *  supplier for the arrivals board, since the request is the primary booking record. */
+function requestSupplier(s, re) {
+  for (const r of (s.requests || [])) {
+    if (r.status === 'cancelled') continue;
+    const sup = String((r && r.supplier) || '').trim();
+    if (sup && (re.test(String((r && r.refId) || '')) || re.test(String((r && r.title) || '')))) return sup;
+  }
+  return '';
+}
+/** Board supplier for a column: request supplier first, else invoice-line supplier. */
+function boardSupplier(s, re) { return requestSupplier(s, re) || invoiceItemSupplier(s, re); }
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
@@ -549,8 +561,8 @@ function summaryStay(s) {
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
-    transferNote: [s.transferNote, invoiceItemSupplier(s, RE_TRANSFER_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '', golfCart: [golfCartDisplay(s), invoiceItemSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
+    transferNote: [s.transferNote, boardSupplier(s, RE_TRANSFER_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
+    bookingAgent: s.bookingAgent || '', golfCart: [golfCartDisplay(s), boardSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
@@ -739,6 +751,7 @@ function staffUpdateRequest(stayId, requestId, body) {
   if (body.flightOrigin != null) r.flightOrigin = norm(body.flightOrigin).slice(0, 60);
   if (body.arrivalTime != null) r.arrivalTime = norm(body.arrivalTime).slice(0, 40);
   if (body.price != null) r.price = norm(body.price).slice(0, 24);
+  if (body.supplier != null) r.supplier = norm(body.supplier).slice(0, 80); // internal supplier (staff-only; stripped from toGuestStay, exported to arrivals board)
   r.updatedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
