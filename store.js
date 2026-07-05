@@ -714,6 +714,13 @@ function removeGuestRequest(reference, requestId) {
 function removeStaffRequest(stayId, requestId) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return false;
   const i = s.requests.findIndex(r => r.id === requestId); if (i < 0) return false;
+  // Don't hard-delete a request that an invoice is linked to — that would dangle the
+  // invoice's requestId and drop the "linked / cancelled" review flag. Soft-cancel instead.
+  if (Array.isArray(s.invoices) && s.invoices.some(iv => iv.requestId === requestId)) {
+    const r = s.requests[i];
+    if (r.status !== 'cancelled') { r.status = 'cancelled'; r.cancelledAt = Date.now(); }
+    s.updatedAt = Date.now(); persistStays(); return true;
+  }
   s.requests.splice(i, 1); s.updatedAt = Date.now(); persistStays(); return true;
 }
 /** Staff marks a request done (arranged). We KEEP it as a record (status='done') so it stays
@@ -721,6 +728,7 @@ function removeStaffRequest(stayId, requestId) {
 function markRequestDone(stayId, requestId) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  if (r.status === 'cancelled') return null;
   r.status = 'done'; r.doneAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Staff reopens a previously done (or cancelled) request so it can be edited / re-arranged.
@@ -996,7 +1004,7 @@ function setInvoiceStatus(stayId, iid, status) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.invoices)) return null;
   const inv = s.invoices.find(x => x.id === iid); if (!inv) return null;
   if (status === 'sent') { inv.status = 'sent'; inv.sentAt = Date.now(); }
-  else if (status === 'paid') { inv.status = 'paid'; inv.paidAt = Date.now(); }
+  else if (status === 'paid') { if (inv.status !== 'sent') return null; inv.status = 'paid'; inv.paidAt = Date.now(); }
   else if (status === 'draft') { inv.status = 'draft'; inv.sentAt = 0; inv.paidAt = 0; }
   s.updatedAt = Date.now(); persistStays(); return inv;
 }
@@ -1048,6 +1056,7 @@ function chooseYacht(reference, optionId) {
 function confirmRequest(stayId, requestId, price) {
   const s = getStay(stayId); if (!s || !Array.isArray(s.requests)) return null;
   const r = s.requests.find(x => x.id === requestId); if (!r) return null;
+  if (r.status === 'cancelled') return null;
   r.status = 'confirmed'; r.price = norm(price).slice(0, 30); r.confirmedAt = Date.now();
   s.updatedAt = Date.now(); persistStays(); return r;
 }
