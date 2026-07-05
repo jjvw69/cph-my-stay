@@ -494,14 +494,16 @@ function golfCartDisplay(s) {
   const inv = (s.invoices || []).find(i => /golf cart/i.test(i.title || ''));
   if (inv) {
     (inv.items || []).forEach(it => {
+      const sup = String(it.supplier || '').trim();       // per-line supplier so each cart carries its own on the board
+      const tag = sup ? (' · ' + sup) : '';
       const m = String(it.label || '').match(/(\d+)\s*[×x]\s*(\d)\s*-?\s*seater/i);
-      if (m) { parts.push(m[1] + '× ' + m[2] + '-seater'); return; }
+      if (m) { parts.push(m[1] + '× ' + m[2] + '-seater' + tag); return; }
       const rate = parseFloat(String(it.rate || '').replace(/[^0-9.]/g, '')) || 0;
       const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || 0;
       const amt = Number(it.amount) || 0;
       const seat = (rate === 105 || rate === 150) ? 6 : (rate === 80 || rate === 120) ? 4 : 0;
       const qty = (rate && days) ? Math.round(amt / (rate * days)) : 0;
-      if (seat && qty) parts.push(qty + '× ' + seat + '-seater');
+      if (seat && qty) parts.push(qty + '× ' + seat + '-seater' + tag);
     });
   }
   const raw = String(s.cartConfig || '').trim();
@@ -513,7 +515,7 @@ function golfCartDisplay(s) {
     const c2 = seg.match(/(\d)\s*p/i);
     parts.push(c2 ? '1× ' + c2[1] + '-seater villa' : 'villa');
   });
-  return parts.join(' · ');
+  return parts.join('\n'); // one cart type per line on the arrivals board (see .ab-cart white-space:pre-line)
 }
 /** First non-empty supplier found on an invoice line whose label matches `re`.
  *  Staff-only — surfaced onto the arrivals board (Transfer / Cart columns) + Excel export. */
@@ -542,6 +544,10 @@ function requestSupplier(s, re) {
 function boardSupplier(s, re) { return requestSupplier(s, re) || invoiceItemSupplier(s, re); }
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
+  // Cart column: each golf cart on its own line. If the invoice lines already carry per-line
+  // suppliers (contain " · "), use them as-is; otherwise append one shared supplier line.
+  const gcDisp = golfCartDisplay(s);
+  const gcCart = (gcDisp.indexOf(' · ') >= 0) ? gcDisp : [gcDisp, boardSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join('\n');
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
     source: s.source || '', followUpDate: (fu&&fu.date)||'', followUpNote: (fu&&fu.note)||'', followUps: (s.followUps||[]).slice(), requests: (s.requests || []).length,
@@ -562,7 +568,7 @@ function summaryStay(s) {
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
     transferNote: [boardSupplier(s, RE_TRANSFER_LINE), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '', golfCart: [golfCartDisplay(s), boardSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
+    bookingAgent: s.bookingAgent || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }

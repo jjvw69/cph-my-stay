@@ -176,7 +176,7 @@
   .ab-in:hover{border-color:var(--line)}
   .ab-in:focus{border-color:var(--accent);background:#fff;outline:none}
   .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
-  .ab-cart{white-space:normal;overflow-wrap:anywhere;min-width:110px;max-width:170px;color:var(--ink);font-size:11.5px}
+  .ab-cart{white-space:pre-line;overflow-wrap:anywhere;min-width:110px;max-width:170px;color:var(--ink);font-size:11.5px}
   .ab-super{white-space:normal;overflow-wrap:anywhere;min-width:110px;max-width:190px;color:var(--ink);font-size:11.5px}
   .ab-color{width:1%;padding-right:2px}
   .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
@@ -761,7 +761,7 @@ window.exportBoardExcel=function(){
   const cols=['Arrive','Depart','Guest','Villa','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Extras'];
   let rows='';
   for(const s of L){ const bg=ROWCOLORS[s.rowColor]||''; const st=bg?` style="background:${bg}"`:'';
-    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),s.golfCart,s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,s.extras];
+    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,s.extras];
     rows+='<tr>'+vals.map((v,i)=>`<td${i<6?st:''}>${e(v)}</td>`).join('')+'</tr>';
   }
   const html=`<html><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0"><tr>${cols.map(c=>`<th style="background:#12794D;color:#fff">${c}</th>`).join('')}</tr>${rows}</table></body></html>`;
