@@ -876,7 +876,8 @@ function cleanItems(arr) {
     };
     const rate = String((it && it.rate) || '').replace(/[^0-9.]/g, '');   // optional per-day rate (calculator aid, kept so edits reload)
     const days = String((it && it.days) || '').replace(/[^0-9.]/g, '');
-    if (rate) o.rate = rate; if (days) o.days = days;
+    const supplier = norm(it && it.supplier).slice(0, 80);               // optional internal supplier (staff-only; stripped from toGuestStay)
+    if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier;
     return o;
   }).filter(it => it.label || it.amount);
 }
