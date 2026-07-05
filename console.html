@@ -177,6 +177,7 @@
   .ab-in:focus{border-color:var(--accent);background:#fff;outline:none}
   .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
   .ab-cart{white-space:nowrap;color:var(--ink);font-size:11.5px}
+  .ab-super{white-space:nowrap;color:var(--ink);font-size:11.5px}
   .ab-color{width:1%;padding-right:2px}
   .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
@@ -803,7 +804,7 @@ function renderArrivalsBoard(){
       <td>${inp(s,'staffCount','staff')}</td>
       <td>${inp(s,'accessCodes','codes')}</td>
       <td>${inp(s,'transferNote','transfer')}</td>
-      <td>${inp(s,'provisioning','super')}</td>
+      <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
       <td>${inp(s,'extras','extras')}</td>
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
@@ -1435,10 +1436,19 @@ function renderEditor(){
       <div class="reqlist reglist-cols">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
-    ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`<div class="sec"><h3>Grocery pre-stocking <span class="reqcount">${(cur.grocery.items||[]).length}</span></h3>
+    <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
+      ${(function(){const opts=[...new Set((LIST||[]).map(x=>String(x.grocerySuper||x.provisioning||'').trim()).filter(Boolean))].sort(); const curv=cur.grocerySuper||''; const inList=!curv||opts.includes(curv);
+        return `<div style="margin:2px 0 14px">
+        <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Provisioning (Super) — shows on the arrivals board</label>
+        <select onchange="set('grocerySuper',this.value)" style="width:100%;max-width:440px;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)">
+          <option value="">— None —</option>
+          ${opts.map(o=>`<option ${curv===o?'selected':''}>${esc(o)}</option>`).join('')}
+          ${inList?'':`<option selected>${esc(curv)}</option>`}
+        </select></div>`;})()}
+      ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`
       <div class="reqlist reqlist-2col">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem" style="grid-column:1/-1"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
       <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div>
-      <div style="margin-top:9px"><button class="reqx" onclick="printGrocery()">🖨 Print grocery list</button></div></div>`:''}
+      <div style="margin-top:9px"><button class="reqx" onclick="printGrocery()">🖨 Print grocery list</button></div>`:`<div class="counter">No guest pre-stocking list submitted yet.</div>`}</div>
 
     ${(cur.mealPlan&&mealsSortedC(cur.mealPlan).length)?`<div class="sec"><h3>Arrival meals</h3>
       <div class="reqlist reqlist-2col">${mealsSortedC(cur.mealPlan).map(({lbl,m})=>{const meta=[m.date?esc(m.date):'',m.time?esc(m.time):'',m.guests?esc(m.guests)+' guests':''].filter(Boolean).join(' · ');return `<div class="reqitem"><b>${esc(lbl)}</b><div class="reqmeta">${meta||'—'}</div>${m.desc?`<div class="reqmeta">${esc(m.desc)}</div>`:''}</div>`;}).join('')}${cur.mealPlan.note?`<div class="reqitem" style="grid-column:1/-1"><b>Notes / dietary</b><div class="reqmeta">${esc(cur.mealPlan.note)}</div></div>`:''}</div>
@@ -2003,7 +2013,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
