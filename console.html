@@ -183,6 +183,7 @@
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
   .ab-greet{min-width:0;width:78px}
   table.ab .greet-sel{margin-left:0;width:auto;min-width:0;max-width:74px;font-size:11px;padding:3px 5px}
+  table.ab tr.ab-year td{background:var(--hedge);color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;padding:5px 10px;text-align:left;border-top:2px solid var(--yellow)}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   /* ---- #6 quick wins ---- */
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
@@ -791,7 +792,12 @@ function renderArrivalsBoard(){
   const today=todayStr();
   const L=(LIST||[]).filter(s=>s.checkin && (!s.checkout || s.checkout>=today) && (s.status==='published'||s.status==='draft')).sort((a,b)=>(a.checkin||'').localeCompare(b.checkin||''));
   const inp=(s,field,ph)=>`<input class="ab-in" value="${escA(s[field]||'')}" placeholder="${ph||''}" onclick="event.stopPropagation()" onchange="setStayField('${s.id}','${field}',this.value)">`;
-  const rows=L.map(s=>{const g=(s.ppl||s.guests||'');const tint=ROWCOLORS[s.rowColor]||'';const ts=tint?` style="background:${tint}"`:'';return `<tr>
+  let prevYear=null;
+  const rows=L.map(s=>{const g=(s.ppl||s.guests||'');const tint=ROWCOLORS[s.rowColor]||'';const ts=tint?` style="background:${tint}"`:'';
+    const yr=String(s.checkin||'').slice(0,4);
+    let divider='';
+    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="14">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
+    return divider+`<tr>
       <td class="ab-color"${ts}>${colorSel(s)}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkout)||s.checkout||'')}</td>
