@@ -1437,14 +1437,11 @@ function renderEditor(){
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
     <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
-      ${(function(){const opts=[...new Set((LIST||[]).map(x=>String(x.grocerySuper||x.provisioning||'').trim()).filter(Boolean))].sort(); const curv=cur.grocerySuper||''; const inList=!curv||opts.includes(curv);
+      ${(function(){const opts=[...new Set((LIST||[]).map(x=>String(x.grocerySuper||x.provisioning||'').trim()).filter(Boolean))].sort(); const curv=cur.grocerySuper||'';
         return `<div style="margin:2px 0 14px">
         <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Provisioning (Super) — shows on the arrivals board</label>
-        <select onchange="set('grocerySuper',this.value)" style="width:100%;max-width:440px;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)">
-          <option value="">— None —</option>
-          ${opts.map(o=>`<option ${curv===o?'selected':''}>${esc(o)}</option>`).join('')}
-          ${inList?'':`<option selected>${esc(curv)}</option>`}
-        </select></div>`;})()}
+        <input list="grocSuperList" value="${escA(curv)}" placeholder="Pick one or type a new value…" onchange="set('grocerySuper',this.value)" style="width:100%;max-width:440px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)">
+        <datalist id="grocSuperList">${opts.map(o=>`<option value="${escA(o)}"></option>`).join('')}</datalist></div>`;})()}
       ${(cur.grocery&&((cur.grocery.items&&cur.grocery.items.length)||cur.grocery.note))?`
       <div class="reqlist reqlist-2col">${(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});let h=Object.keys(by).map(cat=>`<div class="reqitem"><b>${esc(cat)}</b><div class="reqmeta">${by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')}</div>${(g.other&&g.other[cat])?`<div class="reqmeta" style="color:#9A7B36">Other: ${esc(g.other[cat])}</div>`:''}</div>`).join('');if(g.note)h+=`<div class="reqitem" style="grid-column:1/-1"><b>Notes / allergies</b><div class="reqmeta">${esc(g.note)}</div></div>`;return h;})(cur.grocery)}</div>
       <div class="counter">Guest's pre-stocking list${cur.grocery.updatedAt?' · updated '+fmtReqDate(cur.grocery.updatedAt):''} — order these for the villa before arrival.</div>
