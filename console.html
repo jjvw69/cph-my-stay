@@ -1655,8 +1655,16 @@ function invRow(it,i){
     +`${invOptRow(it,i)}`
     +`<div style="display:flex;gap:8px;align-items:center"><input value="${esc(it.label)}" oninput="invField(${i},'label',this.value)" placeholder="Description (e.g. Crib · baby gear)" style="${invInput('flex:1;min-width:0')}"><button onclick="removeInvLine(${i})" title="Remove line" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:9px;padding:0 11px;cursor:pointer">✕</button></div>`
     +block
-    +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Supplier')}<input value="${esc(it.supplier||'')}" oninput="invField(${i},'supplier',this.value)" placeholder="internal — who fulfils this (staff only, not shown to guest)" style="${invInput('flex:1;min-width:0')}"></div>`
+    +`<div style="display:flex;gap:6px;align-items:center;margin-top:7px">${lbl('Supplier')}${supplierInput(it,i)}</div>`
     +`</div>`;
+}
+/* Supplier input (staff-only, never shown to guest). Airport-transfer & golf-cart lines get a
+   preset dropdown (datalist) — Luxury/Direct and Julio/Direct — while still allowing free text. */
+function supplierInput(it,i){
+  const c=((it.svcId||'')+' '+(it.svcOpt||'')+' '+(it.label||''));
+  const list=/private airport transfer|airport transfer|\btransfer\b|\b(?:LRM|PUJ|SDQ)\b/i.test(c)?'suptransfer':(/golf\s*cart|golfcart|seater/i.test(c)?'supcart':'');
+  const ph=list?'pick a supplier or type your own (staff only)':'internal — who fulfils this (staff only, not shown to guest)';
+  return `<input ${list?`list="${list}" `:''}value="${esc(it.supplier||'')}" oninput="invField(${i},'supplier',this.value)" placeholder="${ph}" style="${invInput('flex:1;min-width:0')}">`;
 }
 function renderInvItems(){ const c=document.getElementById('invItems'); if(c)c.innerHTML=(_invDraft.items||[]).map((it,i)=>invRow(it,i)).join(''); renderInvTotals(); }
 window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; const it=_invDraft.items[i]; it[k]=v;
@@ -1727,6 +1735,8 @@ function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){
     <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" placeholder="e.g. Spa day · Private tour · Photographer" style="${invInput()}">
     ${d.requestId?(function(){ const lr=(cur.requests||[]).find(x=>x.id===d.requestId)||{}; return `<div class="counter" style="margin:6px 0 0">Linked to request: ${esc(lr.title||d.requestId)}${lr.status==='cancelled'?' — <b style="color:#9A2B2B">cancelled by the guest</b>':''}</div>`; })():''}
     <label style="${invLbl()}">Line items</label><div id="invItems">${d.items.map((it,i)=>invRow(it,i)).join('')}</div>
+    <datalist id="suptransfer"><option value="Luxury"></option><option value="Direct"></option></datalist>
+    <datalist id="supcart"><option value="Julio"></option><option value="Direct"></option></datalist>
     <button onclick="addInvLine()" style="background:none;border:0;color:var(--accent);font-size:13.5px;font-weight:600;cursor:pointer;padding:2px 0">+ Add line</button>
     <div style="margin:12px 0;border-top:1px solid var(--line);padding-top:11px">
       <label style="display:flex;align-items:center;gap:9px;font-size:13.5px;margin-bottom:8px;cursor:pointer"><input type="checkbox" id="invLegal" ${d.legalPct?'checked':''} onchange="invToggleFee('legal',this.checked)" style="width:17px;height:17px"> Add 18% legal fee</label>

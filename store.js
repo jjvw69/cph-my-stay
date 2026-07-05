@@ -515,6 +515,19 @@ function golfCartDisplay(s) {
   });
   return parts.join(' · ');
 }
+/** First non-empty supplier found on an invoice line whose label matches `re`.
+ *  Staff-only — surfaced onto the arrivals board (Transfer / Cart columns) + Excel export. */
+function invoiceItemSupplier(s, re) {
+  for (const inv of (s.invoices || [])) {
+    for (const it of (inv.items || [])) {
+      const sup = String((it && it.supplier) || '').trim();
+      if (sup && re.test(String((it && it.label) || ''))) return sup;
+    }
+  }
+  return '';
+}
+const RE_TRANSFER_LINE = /private airport transfer|airport transfer|\btransfer\b|\b(?:LRM|PUJ|SDQ)\b/i;
+const RE_CART_LINE = /golf\s*cart|golfcart|seater/i;
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
@@ -536,8 +549,8 @@ function summaryStay(s) {
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
-    transferNote: s.transferNote || '', provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '', golfCart: golfCartDisplay(s), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
+    transferNote: [s.transferNote, invoiceItemSupplier(s, RE_TRANSFER_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
+    bookingAgent: s.bookingAgent || '', golfCart: [golfCartDisplay(s), invoiceItemSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
