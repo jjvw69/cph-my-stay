@@ -540,23 +540,8 @@ function requestSupplier(s, re) {
 }
 /** Board supplier for a column: request supplier first, else invoice-line supplier. */
 function boardSupplier(s, re) { return requestSupplier(s, re) || invoiceItemSupplier(s, re); }
-/** Compact summary of the stay's booked airport-transfer request(s) for the arrivals-board
- *  Transfer column: service level · dates · flight · supplier. Multiple transfers joined by " | ".
- *  Cancelled requests are skipped. */
-function transferRequestSummary(s) {
-  const reqs = (s.requests || []).filter(r => r && r.status !== 'cancelled' &&
-    (String(r.refId || '') === 'transfer' || /airport transfer|\btransfer\b/i.test(String(r.title || '')) || r.airline || r.flightNo || r.flightOrigin || r.arrivalTime));
-  return reqs.map(r => {
-    const flight = [[r.airline, r.flightNo].filter(Boolean).join(' ').trim(), r.flightOrigin ? ('from ' + r.flightOrigin) : '', r.arrivalTime ? ('arr ' + r.arrivalTime) : ''].filter(Boolean).join(' · ');
-    return [String(r.serviceLevel || '').trim(),
-      r.date ? (r.date + (r.endDate && r.endDate !== r.date ? (' → ' + r.endDate) : '')) : '',
-      flight ? ('✈ ' + flight) : '',
-      String(r.supplier || '').trim()].filter(Boolean).join(' · ');
-  }).filter(Boolean).join(' | ');
-}
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
-  const tReq = transferRequestSummary(s);
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
     source: s.source || '', followUpDate: (fu&&fu.date)||'', followUpNote: (fu&&fu.note)||'', followUps: (s.followUps||[]).slice(), requests: (s.requests || []).length,
@@ -576,7 +561,7 @@ function summaryStay(s) {
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
-    transferNote: [tReq, s.transferNote, tReq ? '' : invoiceItemSupplier(s, RE_TRANSFER_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
+    transferNote: [boardSupplier(s, RE_TRANSFER_LINE), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
     bookingAgent: s.bookingAgent || '', golfCart: [golfCartDisplay(s), boardSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join(' · '), rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }

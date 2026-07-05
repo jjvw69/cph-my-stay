@@ -811,7 +811,7 @@ function renderArrivalsBoard(){
       <td class="ab-cart" title="From booking file (invoice + cart status) — edit via the invoice">${esc(s.golfCart||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.staffCount||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in Stay details → Registration #">${esc(s.registrationNumber||s.accessCodes||'—')}</td>
-      <td class="ab-super" title="Auto-filled from the booked airport-transfer request (service level · dates · flight · supplier), then your Internal-notes Transfer text">${esc(s.transferNote||'—')}</td>
+      <td class="ab-super" title="Supplier from the booked airport-transfer request (or invoice), then your Internal-notes Transfer text">${esc(s.transferNote||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.extras||'—')}</td>
     </tr>`;}).join('');
