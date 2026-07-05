@@ -181,8 +181,8 @@
   .ab-color{width:1%;padding-right:2px}
   .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
-  .ab-greet{min-width:96px}
-  table.ab .greet-sel{margin-left:0;width:100%;min-width:88px}
+  .ab-greet{min-width:0;width:78px}
+  table.ab .greet-sel{margin-left:0;width:auto;min-width:0;max-width:74px;font-size:11px;padding:3px 5px}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   /* ---- #6 quick wins ---- */
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
@@ -874,7 +874,7 @@ window.setArrWin=function(i){ arrWin=i; renderArrivalsPanel(); };
 // Meet & greet — staff-only per-stay assignment (never sent to the guest app). Persists on assigneeId.
 const GREETERS=[{id:'maria',name:'Maria'},{id:'ivonna',name:'Ivonna'},{id:'jan',name:'Jan'}];
 function greeterName(id){ const g=GREETERS.find(x=>x.id===id); return g?g.name:''; }
-function greetSel(s){ return `<select class="greet-sel ${s.assigneeId?'set':''}" title="Who is meeting &amp; greeting (staff only)" onclick="event.stopPropagation()" onchange="setGreeter('${s.id}',this.value)"><option value="">Unassigned</option>${GREETERS.map(g=>`<option value="${g.id}" ${s.assigneeId===g.id?'selected':''}>${g.name}</option>`).join('')}</select>`; }
+function greetSel(s){ return `<select class="greet-sel ${s.assigneeId?'set':''}" title="Who is meeting &amp; greeting (staff only)" onclick="event.stopPropagation()" onchange="setGreeter('${s.id}',this.value)"><option value="">None</option>${GREETERS.map(g=>`<option value="${g.id}" ${s.assigneeId===g.id?'selected':''}>${g.name}</option>`).join('')}</select>`; }
 window.setGreeter=async function(id,val){ const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it.assigneeId||'')===String(val||''))return; const r=await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify({assigneeId:val})}); if(r&&r.ok){ if(it)it.assigneeId=val; if(cur&&cur.id===id)cur.assigneeId=val; renderArrivalsPanel(); toast&&toast(val?('Meet & greet: '+greeterName(val)):'Greeter cleared'); } else toast&&toast('Could not save'); };
 function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
