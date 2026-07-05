@@ -152,6 +152,10 @@
   .arr-row{flex-direction:column;align-items:stretch;gap:8px}
   .arr-main{display:flex;align-items:center;width:100%;background:none;border:0;padding:0;cursor:pointer;font-family:inherit;text-align:left}
   .arr-main .tr-tag{margin-left:auto}
+  .arr-main .tr-main{flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:2px}
+  .arr-main .tr-d{font-size:11.5px;color:var(--soft)}
+  .arr-main .tr-line{display:flex;align-items:baseline;min-width:0;max-width:100%;overflow:hidden;white-space:nowrap}
+  .arr-main .tr-line .tr-m{overflow:hidden;text-overflow:ellipsis}
   .arr-greet{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px dashed var(--line)}
   .arr-greet-lbl{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);font-weight:700}
   .greet-sel{margin-left:auto;font-size:11.5px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;background:#fff;color:var(--ink);cursor:pointer;font-family:var(--ui)}
@@ -895,7 +899,7 @@ function renderArrivalsPanel(){
   host.innerHTML=`
     <div class="label">Upcoming arrivals</div>
     <div class="awin-row">${chip(0)}${chip(1)}${chip(2)}${chip(3)}${chip(4)}</div>
-    ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<div class="today-row arr-row"><button class="arr-main" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${esc(s.checkin||'')}</span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button><div class="arr-greet"><span class="arr-greet-lbl">Meet &amp; greet</span>${greetSel(s)}</div></div>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
+    ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<div class="today-row arr-row"><button class="arr-main" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-d">${esc(s.checkin||'')}</span><span class="tr-line"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')}</span></span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button><div class="arr-greet"><span class="arr-greet-lbl">Meet &amp; greet</span>${greetSel(s)}</div></div>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
 }
 let todayGroups={};
 window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) return; if(arr.length===1){ selectStay(arr[0].id); return; } const sec=document.getElementById('tsec-'+key); if(sec){ try{sec.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){ sec.scrollIntoView(); } } };
