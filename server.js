@@ -47,9 +47,9 @@ const NOTIFY_FROM = process.env.NOTIFY_FROM || 'My Stay <onboarding@resend.dev>'
 const APP_URL = process.env.APP_URL || 'https://cph-my-stay.onrender.com';
 const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'index.html'));
 const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
-// Advisor headshots (real-estate tab), served as static assets.
+// Advisor headshots (real-estate tab) + hosted villa hero images, served as static assets.
 const STATIC_IMAGES = {};
-['jan.jpg','ivonna.jpg','azimut.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
+['jan.jpg','ivonna.jpg','azimut.jpg','casa-del-mar.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
 // Content hash of the app files — changes only when a new build is deployed (stable across
 // restarts/cold-starts). The guest app and console poll this and refresh when it changes.
 // Includes store.js + server.js so a data-layer/server-only deploy also bumps the version.
