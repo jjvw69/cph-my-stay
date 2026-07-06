@@ -1490,6 +1490,13 @@ function renderEditor(){
         </div>
         ${amt>0?`<div class="counter">${paid?('Deposit of US$'+amt+' marked PAID by the guest.'):('Deposit of US$'+amt+' is PENDING — collect from the guest.')}</div>`:'<div class="counter">Set a deposit amount to track whether the guest has paid.</div>'}
         </div>`;})()}
+      ${(function(){const gInvs=(cur.invoices||[]).filter(iv=>iv.kind==='grocery');
+        const pill=(bg,fg)=>`font-size:11px;background:${bg};color:${fg};border-radius:20px;padding:2px 9px;font-weight:600`;
+        const badge=st=>st==='paid'?`<span style="${pill('#E2EAE0','var(--accent)')}">✓ Paid</span>`:st==='sent'?`<span style="${pill('#F3ECDD','#7A5A2E')}">⏳ Pending</span>`:`<span style="${pill('#EEE9DF','#6E7B71')}">Draft — not sent</span>`;
+        return `<div style="margin:2px 0 16px">
+        <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Grocery invoice — pending / paid</label>
+        ${gInvs.length?gInvs.map(iv=>{const tot=groBreakdown(iv).totalUSD||0; return `<div class="reqmeta" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px"><b>#${iv.no} · US$${tot.toLocaleString('en-US')}</b> ${badge(iv.status)}${iv.status==='sent'?`<button class="reqx" onclick="invoiceAction('${iv.id}','paid')">Mark paid</button>`:''}<button class="reqx" onclick="openGroceryInvoice('${iv.id}')">Edit</button></div>`;}).join(''):`<div class="counter">No grocery invoice yet. <button class="reqx" onclick="openGroceryInvoice('')" style="color:var(--accent);border-color:#BFD3C2">Create grocery invoice</button></div>`}
+        </div>`;})()}
       ${(function(){const opts=(BOOT&&BOOT.provisioningOptions&&BOOT.provisioningOptions.length)?BOOT.provisioningOptions:['MF: ALAIN','MF: ANY','MF: BELKIS','MF: CHEF','MF: IN PREP!','MF: IRIS','MF: JOAQUIN','MF: MARGOT','MF: MAYRA','MF: NICO','MF: YESENIA','MF: YOHA','MF: YULI','NARCISSA','YOLLMARY','IVO']; const curv=cur.grocerySuper||''; const isCustom=curv&&opts.indexOf(curv)===-1;
         return `<div style="margin:2px 0 14px">
         <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Provisioning (Super) — shows on the arrivals board</label>
