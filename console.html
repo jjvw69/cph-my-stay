@@ -781,10 +781,10 @@ function boardRows(){ const today=todayStr(); return (LIST||[]).filter(s=>s.chec
 // Download the arrivals board as an Excel file (HTML-table .xls — keeps the row colours).
 window.exportBoardExcel=function(){
   const L=boardRows(); const e=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cols=['Arrive','Depart','Guest','Villa','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Extras'];
+  const cols=['Arrive','Depart','Guest','Villa','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Deposit','Extras'];
   let rows='';
   for(const s of L){ const bg=ROWCOLORS[s.rowColor]||''; const st=bg?` style="background:${bg}"`:'';
-    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,s.extras];
+    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,boardDepositText(s),s.extras];
     rows+='<tr>'+vals.map((v,i)=>`<td${i<6?st:''}>${e(v)}</td>`).join('')+'</tr>';
   }
   const html=`<html><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0"><tr>${cols.map(c=>`<th style="background:#12794D;color:#fff">${c}</th>`).join('')}</tr>${rows}</table></body></html>`;
@@ -809,6 +809,8 @@ window.setStayField=async function(id,field,val){
   const r=await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify(patch)});
   if(r&&r.ok){ if(it)it[field]=val; if(cur&&cur.id===id)cur[field]=val; toast&&toast('Saved'); } else toast&&toast('Could not save');
 };
+function boardDepositText(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return ''; return 'US$'+a+(s.groceryDepositPaid?' paid':' pending'); }
+function boardDepositCell(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return '—'; const paid=!!s.groceryDepositPaid; const c=paid?'#12794D':'#B8860B'; return `<span style="white-space:nowrap;font-weight:700;color:${c}">US$${a}<br><span style="font-weight:600;font-size:10px">${paid?'✓ paid':'⚠ pending'}</span></span>`; }
 function renderArrivalsBoard(){
   const el=document.getElementById('editor'); if(!el)return;
   // Don't repaint while the user is mid-edit in a board cell (poll refresh would blow away focus).
@@ -821,7 +823,7 @@ function renderArrivalsBoard(){
   const rows=L.map(s=>{const g=(s.ppl||s.guests||'');const tint=ROWCOLORS[s.rowColor]||'';const ts=tint?` style="background:${tint}"`:'';
     const yr=String(s.checkin||'').slice(0,4);
     let divider='';
-    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="14">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
+    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="15">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
     return divider+`<tr>
       <td class="ab-color"${ts}>${colorSel(s)}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
@@ -836,6 +838,7 @@ function renderArrivalsBoard(){
       <td class="ab-super" title="From the booking file — edit in Stay details → Registration #">${esc(s.registrationNumber||s.accessCodes||'—')}</td>
       <td class="ab-super" title="Supplier from the booked airport-transfer request (or invoice), then your Internal-notes Transfer text">${esc(s.transferNote||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
+      <td class="ab-super" title="Grocery deposit — edit in the Grocery pre-stocking section">${boardDepositCell(s)}</td>
       <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.extras||'—')}</td>
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
@@ -849,8 +852,8 @@ function renderArrivalsBoard(){
     ${colorLegend()}
     <div class="ab-editnote" style="font-size:11px;color:var(--soft);margin:2px 0 10px;line-height:1.55;white-space:normal">Columns <b>Cart → Extras</b> are read-only mirrors of the booking file (hover a cell for its source) — edit on the guest's stay: <b>Cart</b> via the invoice · <b>Staff</b> &amp; <b>Extras</b> in Internal notes · <b>Access</b> in Stay details → Registration # · <b>Transfer</b> in the transfer request / Internal notes · <b>Super</b> (supermarket / grocery provisioning) in Grocery pre-stocking.</div>
     <div class="ab-scroll"><table class="ab"><thead><tr>
-      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Extras</th>
-    </tr></thead><tbody>${rows||`<tr><td colspan="14" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
+      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th>
+    </tr></thead><tbody>${rows||`<tr><td colspan="15" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function renderInbox(){
@@ -1471,6 +1474,22 @@ function renderEditor(){
       <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
 
     <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
+      ${(function(){const amt=parseFloat(cur.groceryDeposit)||0; const paid=!!cur.groceryDepositPaid; const presets=[500,1000,2000]; const isCustom=amt>0&&presets.indexOf(amt)===-1;
+        const selStyle='max-width:200px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)';
+        const pill=(on,bg)=>`padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid ${on?bg:'var(--line)'};background:${on?bg:'#fff'};color:${on?'#fff':'var(--soft)'}`;
+        return `<div style="margin:2px 0 16px">
+        <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Grocery deposit (US$) — staff only, shows on the arrivals board</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+          <select onchange="grocDepPick(this)" style="${selStyle}">
+            <option value="" ${amt===0?'selected':''}>— none —</option>
+            ${isCustom?`<option value="${amt}" selected>US$${amt} (custom)</option>`:''}
+            ${presets.map(p=>`<option value="${p}" ${amt===p?'selected':''}>US$${p}</option>`).join('')}
+            <option value="__custom__">➕ Custom…</option>
+          </select>
+          ${amt>0?`<span onclick="grocDepStatus(false)" style="${pill(!paid,'#B8860B')}">Pending</span><span onclick="grocDepStatus(true)" style="${pill(paid,'#12794D')}">Paid</span>`:''}
+        </div>
+        ${amt>0?`<div class="counter">${paid?('Deposit of US$'+amt+' marked PAID by the guest.'):('Deposit of US$'+amt+' is PENDING — collect from the guest.')}</div>`:'<div class="counter">Set a deposit amount to track whether the guest has paid.</div>'}
+        </div>`;})()}
       ${(function(){const opts=(BOOT&&BOOT.provisioningOptions&&BOOT.provisioningOptions.length)?BOOT.provisioningOptions:['MF: ALAIN','MF: ANY','MF: BELKIS','MF: CHEF','MF: IN PREP!','MF: IRIS','MF: JOAQUIN','MF: MARGOT','MF: MAYRA','MF: NICO','MF: YESENIA','MF: YOHA','MF: YULI','NARCISSA','YOLLMARY','IVO']; const curv=cur.grocerySuper||''; const isCustom=curv&&opts.indexOf(curv)===-1;
         return `<div style="margin:2px 0 14px">
         <label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Provisioning (Super) — shows on the arrivals board</label>
@@ -1561,6 +1580,8 @@ function renderEditor(){
 }
 window.set=set;
 window.grocSuperPick=function(sel){ var v=sel.value; if(v==='__new__'){ var t=prompt('Enter a new provisioning value:',''); if(t===null||!t.trim()){ renderEditor(); return; } v=t.trim(); } set('grocerySuper',v); renderEditor(); };
+window.grocDepPick=function(sel){ var v=sel.value; if(v==='__custom__'){ var t=prompt('Enter grocery deposit amount in US$:', String(parseFloat(cur.groceryDeposit)||'')); if(t===null){ renderEditor(); return; } v=parseFloat(String(t).replace(/[^0-9.]/g,''))||0; } var amt=parseFloat(v)||0; set('groceryDeposit',amt); if(!amt) set('groceryDepositPaid',false); renderEditor(); };
+window.grocDepStatus=function(paid){ if(!(parseFloat(cur.groceryDeposit)||0))return; set('groceryDepositPaid',!!paid); renderEditor(); };
 /* Copy the guest's submitted arrival airport & flight into the staff fields (one tap). */
 window.applyCheckin=function(){ if(!cur||!cur.guestCheckin)return; const gc=cur.guestCheckin; if(gc.airport)cur.airport=gc.airport; if(gc.flight!=null)cur.flight=gc.flight; renderEditor(); renderPreview(); markDirty(); toast("Applied the guest's arrival details — remember to Save"); };
 window.clearFollowUp=function(){ if(!cur)return; cur.followUps=[]; cur.followUpDate=''; cur.followUpNote=''; renderEditor(); renderPreview(); markDirty(); };
@@ -2062,7 +2083,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','staffCount','transferNote','extras']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;

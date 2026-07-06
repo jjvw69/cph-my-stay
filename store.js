@@ -440,6 +440,7 @@ function blankStay() {
     bookingAgent: '', // CPH booking agent (ivonna | jan) — internal owner of the booking, staff-only
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
     grocerySuper: '', // grocery-section provisioning pick (staff-only) — independent of the board Super/provisioning field
+    groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
     welcomeMessage: "Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.",
     requests: [],
     messages: [],
@@ -568,7 +569,8 @@ function summaryStay(s) {
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
     transferNote: [boardSupplier(s, RE_TRANSFER_LINE), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '' };
+    bookingAgent: s.bookingAgent || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '',
+    groceryDeposit: parseFloat(s.groceryDeposit) || 0, groceryDepositPaid: !!s.groceryDepositPaid };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
@@ -638,7 +640,7 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
