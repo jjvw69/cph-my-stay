@@ -320,6 +320,26 @@ if (!services.customAddOns) services.customAddOns = [];
 if (!services.suppliers) services.suppliers = {};
 if (!services.rates) services.rates = {};
 function persistServices() { writeJSON(SERVICES_FILE, services); }
+
+// ----- global invoice numbering ------------------------------------------------
+// ONE running sequence across ALL bookings — every invoice gets its own unique
+// number, starting at 001. Never per-stay (two bookings must never share a no).
+if (typeof services.invoiceSeq !== 'number') services.invoiceSeq = 0;
+function invNoFmt(n) { return String(n).padStart(3, '0'); } // 1 -> "001", 42 -> "042", 1000 -> "1000"
+function nextInvoiceNo() { services.invoiceSeq = (services.invoiceSeq || 0) + 1; persistServices(); return invNoFmt(services.invoiceSeq); }
+// One-time migration: renumber every existing invoice into a single global
+// sequence (ordered by when it was created) so historical duplicates are removed.
+(function migrateInvoiceSequence() {
+  if (services.invoiceSeqMigrated) return;
+  const all = [];
+  stays.forEach(s => (s.invoices || []).forEach(iv => all.push(iv)));
+  all.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || String(a.id || '').localeCompare(String(b.id || '')));
+  let n = 0; all.forEach(iv => { n += 1; iv.no = invNoFmt(n); });
+  services.invoiceSeq = n; services.invoiceSeqMigrated = true;
+  if (all.length) persistStays();
+  persistServices();
+})();
+
 /** Built-in catalog (with any supplier override) + custom services. supplier is INTERNAL — never sent to guests. */
 function allAddOns() {
   const builtins = ADDON_CATALOG.map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: '', rates: services.rates[a.id] || '', supplier: services.suppliers[a.id] || '', custom: false }));
@@ -951,11 +971,11 @@ function cleanItems(arr) {
 function createInvoice(stayId, b) {
   const s = getStay(stayId); if (!s) return null;
   if (!Array.isArray(s.invoices)) s.invoices = [];
-  s._invSeq = (s._invSeq || 0) + 1;
+  const invNo = nextInvoiceNo(); // global running sequence — unique across all bookings
   const iid = 'inv' + Date.now().toString(36) + Math.random().toString(36).slice(2, 4);
   const money = v => Math.max(0, Math.round((parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0) * 100) / 100);
   const inv = (b && b.kind === 'grocery') ? {
-    id: iid, no: s._invSeq, kind: 'grocery',
+    id: iid, no: invNo, kind: 'grocery',
     title: norm(b && b.title).slice(0, 120) || 'Grocery pre-stocking',
     items: cleanGroceryItems(b && b.items),
     totalRD: money(b && b.totalRD),
@@ -969,7 +989,7 @@ function createInvoice(stayId, b) {
     status: 'draft', createdAt: Date.now(), sentAt: 0, paidAt: 0,
   } : {
     id: iid,
-    no: s._invSeq,
+    no: invNo,
     title: norm(b && b.title).slice(0, 120) || 'Invoice',
     items: cleanItems(b && b.items),
     requestId: norm(b && b.requestId).slice(0, 40), // optional link to the guest request this invoice bills — lets the console flag it if the request is later cancelled
