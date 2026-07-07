@@ -968,6 +968,8 @@ function cleanItems(arr) {
     return o;
   }).filter(it => it.label || it.amount);
 }
+// Who the guest pays for this invoice — one of a small fixed set. Defaults to Jan.
+function cleanPayTo(v) { return String(v || '').trim().toLowerCase() === 'ivonna' ? 'ivonna' : 'jan'; }
 function createInvoice(stayId, b) {
   const s = getStay(stayId); if (!s) return null;
   if (!Array.isArray(s.invoices)) s.invoices = [];
@@ -986,6 +988,7 @@ function createInvoice(stayId, b) {
     legalPct: 0, servicePct: 0,
     dueBy: norm(b && b.dueBy).slice(0, 40),
     note: norm(b && b.note).slice(0, 400),
+    payTo: cleanPayTo(b && b.payTo),
     status: 'draft', createdAt: Date.now(), sentAt: 0, paidAt: 0,
   } : {
     id: iid,
@@ -998,6 +1001,7 @@ function createInvoice(stayId, b) {
     servicePct: clampPct(b && b.servicePct, 10), // 10% service fee by default
     dueBy: norm(b && b.dueBy).slice(0, 40),
     note: norm(b && b.note).slice(0, 400),
+    payTo: cleanPayTo(b && b.payTo),
     status: 'draft', createdAt: Date.now(), sentAt: 0, paidAt: 0,
   };
   if (inv.kind === 'grocery') {
@@ -1035,6 +1039,7 @@ function updateInvoice(stayId, iid, b) {
     if (autoTotal) inv.totalUSD = autoTotal;
     if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
     if (b.note != null) inv.note = norm(b.note).slice(0, 400);
+    if (b.payTo != null) inv.payTo = cleanPayTo(b.payTo);
     s.updatedAt = Date.now(); persistStays(); return inv;
   }
   if (b.title != null) inv.title = norm(b.title).slice(0, 120) || inv.title;
@@ -1045,6 +1050,7 @@ function updateInvoice(stayId, iid, b) {
   if (b.servicePct != null) inv.servicePct = clampPct(b.servicePct, 10);
   if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
   if (b.note != null) inv.note = norm(b.note).slice(0, 400);
+  if (b.payTo != null) inv.payTo = cleanPayTo(b.payTo);
   s.updatedAt = Date.now(); persistStays(); return inv;
 }
 function setInvoiceStatus(stayId, iid, status) {
@@ -1193,7 +1199,7 @@ function toGuestStay(s) {
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
-    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
+    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     readiness: stayReadiness(s),
