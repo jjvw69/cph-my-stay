@@ -1264,15 +1264,23 @@ function stayVitals(s){
   const bkIcon=n=>{n=(n||'').toLowerCase();return /transfer|airport/.test(n)?'✈':/yacht|catamaran|boat/.test(n)?'⛵':/golf\s*cart|buggy/.test(n)?'🛺':/car\s*rent|rental\s*car/.test(n)?'🚗':/golf/.test(n)?'⛳':/chef|meal|dining/.test(n)?'🍽':/massage|spa|yoga|wellness/.test(n)?'🌿':/nann|baby|child/.test(n)?'🧸':/jet|private travel/.test(n)?'🛩':'✦';};
   const bkRow=(icon,title,price,meta,statusTxt,statusCls)=>`<div style="display:flex;gap:10px;align-items:flex-start"><span style="flex:0 0 auto;width:28px;height:28px;border-radius:8px;background:#E9F1EB;color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px">${icon}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13.5px;line-height:1.3">${esc(title)}${price?` <span style="color:#3F6B4E">${esc(price)}</span>`:''}</div>${meta?`<div style="font-size:11.5px;color:var(--soft);line-height:1.42;margin-top:1px">${meta}</div>`:''}</div>${bkPill(statusTxt,statusCls)}</div>`;
   const bookedArr=[];
+  // Per-day rentals (golf cart, car rental) are stored as a daily rate ("US$105/day"). On the
+  // dashboard we disclose the BOOKING TOTAL = daily rate × nights (invDaysSpan, same as the invoice
+  // calc), with a small "10 days × US$105/day" breakdown — never the bare per-day figure.
+  const perDayTotal=(raw,dFrom,dTo)=>{ raw=(raw!=null)?(''+raw).trim():''; if(!raw)return {pr:'',note:''};
+    const m=raw.match(/US\$?\s*([\d,]+(?:\.\d+)?)\s*\/\s*day\b/i);
+    if(m){ const per=parseFloat(m[1].replace(/,/g,'')); const nights=invDaysSpan(dFrom,dTo);
+      if(isFinite(per)&&nights>=1){ const tot=Math.round(per*nights*100)/100; let note=nights+' day'+(nights===1?'':'s')+' × US$'+per.toLocaleString('en-US')+'/day'; const tail=raw.replace(m[0],'').replace(/^\s*·\s*/,'').trim(); if(tail)note+=' · '+tail; return {pr:'· US$'+tot.toLocaleString('en-US'),note:note}; } }
+    return {pr:'· '+usdStr(raw),note:''}; };
   (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
-    const [lab,cls]=rqStatus(r); const pr=(r.price!=null&&(''+r.price).trim())?('· '+usdStr((''+r.price).trim())):'';
-    const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):'')].filter(Boolean).map(esc).join(' · ');
+    const [lab,cls]=rqStatus(r); const {pr,note}=perDayTotal(r.price,r.date,r.endDate);
+    const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):''),note].filter(Boolean).map(esc).join(' · ');
     const flt=hasFlight(r)?flightLine(r):'';
     bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
   });
   (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
-    const [lab,cls]=svcStatus(x); const pr=(x.price!=null&&(''+x.price).trim())?('· '+usdStr((''+x.price).trim())):'';
-    bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,'Sent to guest',lab,cls));
+    const [lab,cls]=svcStatus(x); const {pr,note}=perDayTotal(x.price,x.dateFrom||x.date,x.dateTo||x.endDate);
+    bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,['Sent to guest',note].filter(Boolean).map(esc).join(' · '),lab,cls));
   });
   const bookedRows=bookedArr.length?bookedArr.join(''):'<div style="font-size:13px;color:var(--soft)">Nothing booked or reserved yet.</div>';
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
