@@ -1317,7 +1317,7 @@ function stayVitals(s){
     <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-top:11px">
       <div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect</div>
-        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'var(--gold)':'var(--ink)'};margin-top:1px">US$${allInvTot.toLocaleString()}</div>
+        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'#C0392B':'var(--ink)'};margin-top:1px">US$${allInvTot.toLocaleString()}</div>
         <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus)+((s.paymentStatus==='Balance due'&&s.balanceDue)?' · '+esc(usdStr(s.balanceDue)):''):(unpaidTot>0?'Balance due':'Nothing due')}</div>
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
