@@ -884,14 +884,21 @@ function saveCheckin(reference, data) {
   if (s.guestCheckin.flight) s.flight = s.guestCheckin.flight;
   s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
-/** Staff resets a pre-arrival item so the guest re-does just that part (not a blanket wipe).
- *  part: 'precheckin' (clears the pre check-in form + transport answer) | 'passports' (clears the
- *  guest list / passport numbers) | 'all' (both). Re-arms the pre check-in auto-reminder. */
+/** Staff resets a single pre-arrival SECTION so the guest re-does just that part (not a blanket wipe).
+ *  part: 'party' (adults/children/ages) | 'documents'|'passports' (guest list + passport numbers) |
+ *  'transportation' (transport answer + airport/flight) | 'preferences' (occasion/dietary) |
+ *  'all' (everything — clears the whole pre check-in + guest list, re-arms the auto-reminder). */
 function resetCheckin(stayId, part) {
   const s = getStay(stayId); if (!s) return null;
-  part = String(part || 'precheckin');
-  if (part === 'precheckin' || part === 'all') { s.guestCheckin = null; if (s.autoSent) s.autoSent.precheckin = false; }
-  if (part === 'passports' || part === 'all') { s.guestList = []; }
+  part = String(part || 'all');
+  const gc = s.guestCheckin;
+  if (part === 'all') { s.guestCheckin = null; s.guestList = []; if (s.autoSent) s.autoSent.precheckin = false; }
+  else if (part === 'documents' || part === 'passports') { s.guestList = []; }
+  else if (gc) {
+    if (part === 'party') { gc.adults = 0; gc.children = 0; gc.childAges = []; }
+    else if (part === 'transportation') { gc.transportMode = ''; gc.transportCompany = ''; gc.transportArrival = ''; gc.transportDeparture = ''; gc.airport = ''; gc.flight = ''; gc.transferType = ''; }
+    else if (part === 'preferences') { gc.occasion = ''; gc.dietary = ''; }
+  }
   s.updatedAt = Date.now(); persistStays(); return s;
 }
 // ----- concierge-pushed services (console sends → guest confirms/declines). Two-way sync. -----
