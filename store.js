@@ -414,7 +414,25 @@ function seedStaffFromEnv() {
 }
 
 // ------------------------------------------------------------------- villas
-function listVillas() { return VILLAS; }
+// Per-villa nightly rate (US$), source: CPH public listings "From $X/night" (caribbeanparadisehomes.com),
+// keyed to the villa's 365villas property number. Drives the security-deposit preset (= one night) on
+// NON-direct bookings. Villas not listed on CPH (e.g. Casa del Mar, Villa Serenity) are intentionally
+// omitted → no preset, staff fill the deposit manually. Add/refresh rates here as they change.
+const NIGHTLY_RATES = {
+  'casa-caleton': 9800, 'casa-minitas': 13800, 'el-cocotal': 6350, 'villa-farallon': 12300,
+  'casa-minitas-8br': 9200, 'villa-oasis': 4350, 'casa-aguila': 10350, 'villa-esperanza': 2900,
+  'villa-palms': 4050, 'casa-al-mare': 9200, 'casa-sam': 3400, 'casa-zens': 2900,
+  'la-brisa': 2300, 'la-menina': 7050, 'ocean-bliss': 9200, 'villa-isabel': 1800,
+  'villa-le-blanc': 4050, 'villa-royale': 3450, 'villa-serenita': 5200, 'bahia-azul': 8650,
+  'casa-batey': 3200, 'casa-bo': 2600, 'casa-bosque': 2600, 'cerezas-modern': 1700,
+  'golf-villa-v': 1050, 'la-madera': 3650, 'punta-arrecife': 5200, 'river-house': 4600,
+  'villa-agua': 3450, 'casa-del-sol': 2700, 'casa-roble': 5200, 'minitas-garden': 3150,
+  'la-florentina': 5200,
+  // Not yet on file (add when known): la-plage, casa-cana, villa-mar-azul, villa-palmeras,
+  // los-mangos, aqua-vista, casa-aurea, casa-calm, las-ramas, villa-alfa, villa-farallon-6br,
+  // villa-marfil, villa-sueno, la-sultana, palm-west, tropical-modern.
+};
+function listVillas() { return VILLAS.map(v => ({ ...v, nightlyRate: NIGHTLY_RATES[v.id] || 0 })); }
 function getVilla(id) { return VILLAS.find(v => v.id === id) || null; }
 
 // -------------------------------------------------------------------- stays
@@ -446,7 +464,7 @@ function blankStay() {
     messages: [],
     guestList: [],
     guestCheckin: null,
-    followUpDate: '', followUpNote: '', followUps: [],
+    followUpDate: '', followUpNote: '', followUps: [], depositReminderAdded: false,
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
     paymentStatus: '', balanceDue: '', securityDeposit: '', totalCharge: '', amountPaid: '', balanceDueBy: '',
     createdAt: Date.now(), updatedAt: Date.now(),
@@ -640,7 +658,7 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   s.updatedAt = Date.now();
   persistStays(); return s;
