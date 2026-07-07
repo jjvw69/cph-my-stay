@@ -2583,7 +2583,7 @@ function renderGroceryList(){
 }
 
 /* ---------------- ARRIVAL MEALS (PDF-style: breakfast / lunch / dinner) ---------------- */
-const MEALS_DEF=[['snacks','Welcome snacks & drinks'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
+const MEALS_DEF=[['snacks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
 const MEAL_SUMMARY_KEYS=[['snacks','Welcome snacks & drinks'],['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']];
 function mealItemHas(m){ return !!(m&&(m.date||m.time||m.guests||m.desc)); }
 function mealPlanHasAny(mp){ if(!mp) return false; return MEAL_SUMMARY_KEYS.some(([k])=>mealItemHas(mp[k])) || (mp.extra||[]).some(mealItemHas); }
