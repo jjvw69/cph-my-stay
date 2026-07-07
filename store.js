@@ -1131,7 +1131,7 @@ function toGuestStay(s) {
       adults: Number(s.adults) || null, children: Number(s.children) || 0,
       airport: s.airport || 'LRM', flight: s.flight || '', transferArranged: !!s.transferArranged,
     },
-    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: villa.hero, gallery: [], amenities: [], staffIncluded: String(s.staffIncluded || v.staff || 'Chef · Butler · Housekeeper').split(/\s*·\s*|\s*,\s*/).filter(Boolean), description: '' },
+    villa: { id: villa.id, name: villa.name, area: villa.area, view: villa.view, suites: villa.suites, sleeps: villa.sleeps, internalName: villa.internalName, hero: s.heroPhoto || villa.hero, gallery: [], amenities: [], staffIncluded: String(s.staffIncluded || v.staff || 'Chef · Butler · Housekeeper').split(/\s*·\s*|\s*,\s*/).filter(Boolean), description: '' },
     staffHours: s.staffHours || '8:00 AM – 5:00 PM',
     staffReadAt: s.staffReadAt || 0,
     concierge: c,
