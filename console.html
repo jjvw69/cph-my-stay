@@ -432,6 +432,9 @@
     #app.view-detail .col.left{display:none}
     #app.view-detail .col.center{display:block}
     #app.view-detail .col.right{display:block;border-top:1px solid var(--line);margin-top:10px}
+    /* Mobile Today overview (view-detail but NOT the booking editor): hide the Upcoming-arrivals
+       right column — it's redundant with the Arrivals tab. The editor's Action Panel still shows. */
+    #app.view-detail:not(.editing) .col.right{display:none}
     .backlist{display:inline-flex;align-items:center;gap:6px;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:14px;color:var(--accent)}
     .topbar{flex-direction:column;align-items:flex-start;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px}
     .topbar .brand{align-items:center;gap:11px}
