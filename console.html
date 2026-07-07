@@ -1232,14 +1232,20 @@ function stayVitals(s){
   const cap=Number(s.villaSleeps||((BOOT.villas.find(v=>v.id===s.villaId)||{}).sleeps))||null;
   const partyTxt=party+(cap?(' / '+cap):'')+' guest'+(party===1?'':'s')+(cap&&party>cap?' ⚠ over capacity':'');
   const reqs=s.requests||[]; const num=p=>parseFloat((''+(p||'')).replace(/[^0-9.]/g,''))||0;
-  const confirmed=reqs.filter(r=>r.status==='confirmed');
-  const rev=confirmed.reduce((a,r)=>a+num(r.price),0);
+  // (Add-ons count/revenue is computed below, after invoice totals — see addonCount / addonRev.)
   const awaiting=reqs.filter(r=>r.status!=='confirmed'&&r.status!=='cancelled'&&r.status!=='done').length;
   const unread=unreadMsgs(s);
   // Money — outstanding = invoices sent to the guest but not yet paid.
   const invs=s.invoices||[]; const invTot=iv=>iv.kind==='grocery'?(groBreakdown(iv).totalUSD||0):(invBreakdown(iv).total||0);
   const unpaidInv=invs.filter(iv=>iv.status==='sent'); const unpaidTot=unpaidInv.reduce((a,iv)=>a+invTot(iv),0);
   const issuedInv=invs.filter(iv=>iv.status==='sent'||iv.status==='paid'); const allInvTot=issuedInv.reduce((a,iv)=>a+invTot(iv),0); // total of every issued invoice (paid + unpaid)
+  // Add-ons card = booked extras. Invoice-driven when the stay has invoices (excluding grocery /
+  // deposit / pre-stock provisioning); otherwise the guest's confirmed OR arranged add-on requests.
+  const isProvisionInv=iv=> iv.kind==='grocery' || /deposit|grocer|pre[\s-]?stock|provision/i.test(iv.title||'');
+  const addonInvs=invs.filter(iv=>!isProvisionInv(iv));
+  const addonReqs=(s.requests||[]).filter(r=>r.status==='confirmed'||r.status==='done');
+  const addonCount = invs.length ? addonInvs.length : addonReqs.length;
+  const addonRev = invs.length ? addonInvs.reduce((a,iv)=>a+invTot(iv),0) : addonReqs.reduce((a,r)=>a+num(r.price),0);
   // Concierge-pushed services still awaiting the guest's yes/no.
   const svcAwait=(s.sentServices||[]).filter(x=>x.status!=='confirmed'&&x.status!=='declined'&&x.status!=='cancelled').length;
   const svcConfirmed=(s.sentServices||[]).filter(x=>x.status==='confirmed').length;
@@ -1332,8 +1338,8 @@ function stayVitals(s){
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Add-ons</div>
-        <div style="font-size:18px;font-weight:700;margin-top:1px">${confirmed.length} · US$${rev.toLocaleString()}</div>
-        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">confirmed</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px">${addonCount} · US$${addonRev.toLocaleString()}</div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">booked</div>
       </div>
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Services sent</div>
