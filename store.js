@@ -434,10 +434,10 @@ const NIGHTLY_RATES = {
   'casa-adri': 1350, 'casa-blue': 1600, 'casa-bonita': 1350, 'casa-ceiba': 2880,
   'casa-mota': 1250, 'golf-villa-ix': 850, 'hacienda-mallet': 2100, 'la-serenite': 1050,
   'vista-del-polo': 1600, 'bella-vista': 600, 'golf-villa-8': 600, 'villa-uchi': 900,
-  'villa-marfil': 1500, 'palm-west': 3650,
-  // Still to add (not surfaced in CPH featured listing): casa-cana, villa-palmeras, los-mangos,
+  'villa-marfil': 1500, 'palm-west': 3650, 'villa-santorini': 5200, 'casa-cana': 4700,
+  // Still to add (pull from individual /property/N-... pages when needed): villa-palmeras, los-mangos,
   // aqua-vista, casa-aurea, las-ramas, villa-alfa, la-sultana, tropical-modern, villa-kari,
-  // villa-kiki, villa-volcan, casa-bliss, la-fabulosa, le-cheval, villa-porton, villa-santorini.
+  // villa-kiki, villa-volcan, casa-bliss, la-fabulosa, le-cheval, villa-porton.
 };
 function listVillas() { return VILLAS.map(v => ({ ...v, nightlyRate: NIGHTLY_RATES[v.id] || 0 })); }
 function getVilla(id) { return VILLAS.find(v => v.id === id) || null; }
