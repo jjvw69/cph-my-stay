@@ -1584,7 +1584,27 @@ window.grocSuperPick=function(sel){ var v=sel.value; if(v==='__new__'){ var t=pr
 window.grocDepPick=function(sel){ var v=sel.value; if(v==='__custom__'){ var t=prompt('Enter grocery deposit amount in US$:', String(parseFloat(cur.groceryDeposit)||'')); if(t===null){ renderEditor(); return; } v=parseFloat(String(t).replace(/[^0-9.]/g,''))||0; } var amt=parseFloat(v)||0; set('groceryDeposit',amt); if(!amt) set('groceryDepositPaid',false); renderEditor(); };
 window.grocDepStatus=function(paid){ if(!(parseFloat(cur.groceryDeposit)||0))return; set('groceryDepositPaid',!!paid); renderEditor(); };
 // ---- Staff-editable grocery pre-stocking + arrival meals (shared with the guest app) ----
-const GROC_CATS=['Breakfast / Desayuno','Dairy / Lácteos','Cheese / Quesos','Table Items / Artículos de Mesa','Breads / Panes','Frozen / Congelados','Pasta','Pasta Sauce / Salsa para Pastas','Sweets / Dulce','Snacks / Picadera','Meats / Carnes','Fish / Pescado','Drinks / Bebidas','Fruits / Frutas (Seasonal)','Vegetables / Vegetales','Pantry / Otros','Cleaning / Limpieza'];
+const GROC_CATALOG=[
+  {t:'Breakfast / Desayuno', items:['Cereal','Oats / Avena','Eggs / Huevos','Bacon / Tocineta','Sausages / Salchichas','Coffee / Café','Decaf Coffee / Café Descafeinado','Tea / Té','Decaf Tea / Té Descafeinado','Creamer / Crema para Café']},
+  {t:'Dairy / Lácteos', items:['Whole Milk / Leche Entera','Skim Milk / Leche Semi-Descremada','Low-fat Milk / Leche Descremada','Almond Milk / Leche de Almendra','Soy Milk / Leche de Soya','Butter / Mantequilla','Yogurt / Yogur']},
+  {t:'Cheese / Quesos', items:['Cream cheese / Crema','Cheddar','Swiss / Suizo','Brie','Camembert','Mozzarella','Parmesan']},
+  {t:'Table Items / Artículos de Mesa', items:['Ketchup','Mustard / Mostaza','Mayonnaise / Mayonesa','Salt / Sal','Pepper / Pimienta','Vinegar / Vinagre','Salad Dressing / Salsa para Ensalada','Olive Oil / Aceite de Oliva','BBQ Sauce / Salsa BBQ','Soy Sauce / Salsa de Soya']},
+  {t:'Breads / Panes', items:['Sliced Bread White / Pan Blanco','Sliced Bread Whole Wheat / Pan Integral','Baguette','Pita','Hamburger buns','Hot Dog buns','Bagels']},
+  {t:'Frozen / Congelados', items:['French Fries / Papas Fritas','Empanadas']},
+  {t:'Pasta', items:['Spaghetti','Penne','Macaroni']},
+  {t:'Pasta Sauce / Salsa para Pastas', items:['Pesto','Marinara / Tomate','Bolognese / Carne','Cheese / Queso']},
+  {t:'Sweets / Dulce', items:['Jam / Mermelada','Sugar / Azúcar','Splenda','Pancake Mix','Pancake Syrup / Sirop','Peanut Butter / Mantequilla de Maní','Ice Cream / Helado']},
+  {t:'Snacks / Picadera', items:['Pretzels','Peanuts / Maní','Cashews / Cajuil','Potato Chips / Papitas','Popcorn','Oreo','Ritz','Tostitos','Salsa']},
+  {t:'Meats / Carnes', items:['Whole Chicken / Pollo Entero','Chicken Breast / Pechuga de Pollo','Ground Beef / Carne Molida','Churrasco','Beef Steak / Filete de Res','Hamburgers','Hot Dogs','Ham / Jamón','Pork Chops / Chuletas']},
+  {t:'Fish / Pescado', items:['Salmon','Mahi Mahi / Dorado','Shrimp / Camarones','Tuna']},
+  {t:'Drinks / Bebidas', items:['Apple Juice / Manzana','Orange Juice / Naranja','Cranberry','Coca Cola','Coca Cola (diet)','Sprite / 7Up','Sprite / 7Up (diet)','Club Soda','Tonic Water / Agua Tónica','Sparkling Water / Agua con Gas','Beer / Cerveza','Beer Light / Cerveza Light','Whiskey','Vodka','Tequila','White Wine / Vino Blanco','Red Wine / Vino Tinto']},
+  {t:'Fruits / Frutas (Seasonal)', items:['Bananas / Guineo','Apples / Manzanas','Grapes / Uvas','Melon','Pineapple / Piña','Papaya / Lechoza','Lemons / Limones','Mango']},
+  {t:'Vegetables / Vegetales', items:['Lettuce / Lechuga','Avocado / Aguacate','Tomatoes / Tomate','Onions / Cebolla','Garlic / Ajo','Carrots / Zanahoria','Broccoli / Brócoli','Potatoes / Papas','Plantains / Plátanos','Peppers / Pimientos','Zucchini / Calabacín']},
+  {t:'Pantry / Otros', items:['Rice / Arroz','Beans / Habichuelas','Vegetable Oil / Aceite Vegetal']},
+  {t:'Cleaning / Limpieza', items:['Laundry Detergent / Detergente (Tide)']},
+];
+const GROC_CATS=GROC_CATALOG.map(c=>c.t);
+function grocItemOpts(cat){ const c=GROC_CATALOG.find(x=>x.t===cat); const items=c?c.items:[]; return `<option value="">— pick an item —</option>`+items.map(n=>`<option value="${escA(n)}">${esc(n)}</option>`).join('')+`<option value="__custom__">➕ Custom…</option>`; }
 const MEAL_DEFS=[['snacks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
 const MEAL_TYPES=[['Welcome snacks & drinks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['Breakfast','Breakfast / Desayuno'],['Lunch','Lunch / Comida'],['Dinner','Dinner / Cena'],['Other','Other / Otro']];
 const GIN='border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;font-family:var(--ui);box-sizing:border-box';
@@ -1598,11 +1618,16 @@ function grocEditor(){
   const catOpts=GROC_CATS.map(c=>`<option value="${escA(c)}">${esc(c)}</option>`).join('');
   const rows=cats.map(cat=>`<div style="margin-bottom:9px"><div style="font-weight:700;font-size:12.5px;margin-bottom:4px">${esc(cat)}</div>${(by[cat]||[]).map(({it,idx})=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px"><input value="${escA(it.name||'')}" onchange="grocItem(${idx},'name',this.value)" style="flex:1;${GIN}"><input type="number" min="0" value="${escA(String(it.qty!=null?it.qty:1))}" onchange="grocItem(${idx},'qty',this.value)" style="width:58px;${GIN}"><button class="reqx" onclick="grocItem(${idx},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button></div>`).join('')}${(g.other&&g.other[cat])?`<input value="${escA(g.other[cat])}" onchange="grocOther('${escA(cat)}',this.value)" placeholder="Other — ${esc(cat)}" style="width:100%;${GIN};border-style:dashed;color:#9A7B36;margin-top:2px">`:''}</div>`).join('');
   return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:6px">Empty list — add items below.</div>'}
-    <div style="display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap">
-      <select id="grocAddCat" style="${GIN};max-width:210px">${catOpts}</select>
-      <input id="grocAddName" placeholder="Item to add" style="flex:1;min-width:120px;${GIN}">
-      <input id="grocAddQty" type="number" min="1" value="1" style="width:56px;${GIN}">
-      <button class="reqx" onclick="grocAdd()" style="color:var(--accent);border-color:#BFD3C2">+ Add</button>
+    <div style="margin-top:12px;padding:12px 13px;border:1px solid #CDE0D2;border-radius:12px;background:#F1F6F1">
+      <div style="font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);font-weight:800;margin-bottom:9px">➕ Add items to the list</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="grocAddCat" onchange="grocAddCatChange()" style="${GIN};max-width:210px">${catOpts}</select>
+        <select id="grocAddItem" onchange="grocAddItemChange()" style="flex:1;min-width:140px;${GIN}">${grocItemOpts(GROC_CATS[0])}</select>
+        <input id="grocAddCustom" placeholder="Custom item" style="flex:1;min-width:120px;${GIN};display:none">
+        <input id="grocAddQty" type="number" min="1" value="1" style="width:56px;${GIN}">
+        <button class="reqx" onclick="grocAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--soft);margin-top:7px">Pick a category, choose an item (or “Custom…” to type your own), set the quantity, then <b>+ Add</b>. Remember to Save.</div>
     </div>
     <div style="margin-top:10px"><label style="display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:4px">Notes / allergies</label>
       <textarea rows="2" onchange="grocNote(this.value)" style="width:100%;${GIN}">${esc(g.note||'')}</textarea></div>
@@ -1611,13 +1636,15 @@ function grocEditor(){
 }
 window.grocStart=function(){ grocEnsure(); markDirty(); renderEditor(); };
 window.grocItem=function(idx,field,val){ grocEnsure(); const it=cur.grocery.items[idx]; if(!it)return; if(field==='remove'){ cur.grocery.items.splice(idx,1); grocTouch(); renderEditor(); return; } if(field==='qty'){ it.qty=Math.max(0,parseInt(val,10)||0); } else if(field==='name'){ it.name=String(val); } grocTouch(); };
-window.grocAdd=function(){ grocEnsure(); const cat=(document.getElementById('grocAddCat')||{}).value||GROC_CATS[0]; const name=((document.getElementById('grocAddName')||{}).value||'').trim(); const qty=Math.max(1,parseInt((document.getElementById('grocAddQty')||{}).value,10)||1); if(!name)return; cur.grocery.items.push({category:cat,name:name,qty:qty}); grocTouch(); renderEditor(); };
+window.grocAddCatChange=function(){ const cat=(document.getElementById('grocAddCat')||{}).value; const sel=document.getElementById('grocAddItem'); if(sel)sel.innerHTML=grocItemOpts(cat); const cu=document.getElementById('grocAddCustom'); if(cu){ cu.style.display='none'; cu.value=''; } };
+window.grocAddItemChange=function(){ const v=(document.getElementById('grocAddItem')||{}).value; const cu=document.getElementById('grocAddCustom'); if(cu)cu.style.display=(v==='__custom__')?'':'none'; if(v==='__custom__'&&cu)cu.focus(); };
+window.grocAdd=function(){ grocEnsure(); const cat=(document.getElementById('grocAddCat')||{}).value||GROC_CATS[0]; let name=(document.getElementById('grocAddItem')||{}).value||''; if(name==='__custom__'||name===''){ name=((document.getElementById('grocAddCustom')||{}).value||'').trim(); } if(!name||name==='__custom__'){ toast&&toast('Pick or type an item first'); return; } const qty=Math.max(1,parseInt((document.getElementById('grocAddQty')||{}).value,10)||1); cur.grocery.items.push({category:cat,name:name,qty:qty}); grocTouch(); renderEditor(); };
 window.grocOther=function(cat,val){ grocEnsure(); if(String(val).trim())cur.grocery.other[cat]=String(val); else delete cur.grocery.other[cat]; grocTouch(); };
 window.grocNote=function(val){ grocEnsure(); cur.grocery.note=String(val); grocTouch(); };
 function mealEnsure(){ if(!cur.mealPlan||typeof cur.mealPlan!=='object')cur.mealPlan={}; if(!Array.isArray(cur.mealPlan.extra))cur.mealPlan.extra=[]; MEAL_DEFS.forEach(([k])=>{ if(!cur.mealPlan[k]||typeof cur.mealPlan[k]!=='object')cur.mealPlan[k]={}; }); }
 function mealTouch(){ mealEnsure(); cur.mealPlan.updatedAt=Date.now(); markDirty(); }
 function mealRowHtml(k,lbl,m,ei){
-  const head=ei!=null?`<select onchange="mealExtraSet(${ei},'type',this.value)" style="flex:1;${GIN};font-weight:700">${MEAL_TYPES.map(([v,t])=>`<option value="${escA(v)}" ${(m.type||'Dinner')===v?'selected':''}>${esc(t)}</option>`).join('')}</select><button class="reqx" onclick="mealRemoveExtra(${ei})" style="color:#9E5B43;border-color:#E3C4B6;white-space:nowrap">Remove</button>`:`<div style="font-weight:700;font-size:12.5px">${esc(lbl)}</div>`;
+  const head=ei!=null?`<select onchange="mealExtraSet(${ei},'type',this.value)" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${GIN};font-weight:700">${MEAL_TYPES.map(([v,t])=>`<option value="${escA(v)}" ${(m.type||'Dinner')===v?'selected':''}>${esc(t)}</option>`).join('')}</select><button class="reqx" onclick="mealRemoveExtra(${ei})" style="color:#9E5B43;border-color:#E3C4B6;white-space:nowrap;flex-shrink:0">✕ Delete</button>`:`<div style="font-weight:700;font-size:12.5px">${esc(lbl)}</div>`;
   const oc=sub=>ei!=null?`mealExtraSet(${ei},'${sub}',this.value)`:`mealSet('${k}','${sub}',this.value)`;
   return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">${head}</div>
