@@ -1268,7 +1268,7 @@ function stayVitals(s){
   // dashboard we disclose the BOOKING TOTAL = daily rate × nights (invDaysSpan, same as the invoice
   // calc), with a small "10 days × US$105/day" breakdown — never the bare per-day figure.
   const perDayTotal=(raw,dFrom,dTo)=>{ raw=(raw!=null)?(''+raw).trim():''; if(!raw)return {pr:'',note:''};
-    const m=raw.match(/US\$?\s*([\d,]+(?:\.\d+)?)\s*\/\s*day\b/i);
+    const m=raw.match(/(?:US\$|\$|US)?\s*([\d,]+(?:\.\d+)?)\s*\/\s*day\b/i);
     if(m){ const per=parseFloat(m[1].replace(/,/g,'')); const nights=invDaysSpan(dFrom,dTo);
       if(isFinite(per)&&nights>=1){ const tot=Math.round(per*nights*100)/100; let note=nights+' day'+(nights===1?'':'s')+' × US$'+per.toLocaleString('en-US')+'/day'; const tail=raw.replace(m[0],'').replace(/^\s*·\s*/,'').trim(); if(tail)note+=' · '+tail; return {pr:'· US$'+tot.toLocaleString('en-US'),note:note}; } }
     return {pr:'· '+usdStr(raw),note:''}; };
