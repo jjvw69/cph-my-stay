@@ -1272,16 +1272,26 @@ function stayVitals(s){
     if(m){ const per=parseFloat(m[1].replace(/,/g,'')); const nights=invDaysSpan(dFrom,dTo);
       if(isFinite(per)&&nights>=1){ const tot=Math.round(per*nights*100)/100; let note=nights+' day'+(nights===1?'':'s')+' × US$'+per.toLocaleString('en-US')+'/day'; const tail=raw.replace(m[0],'').replace(/^\s*·\s*/,'').trim(); if(tail)note+=' · '+tail; return {pr:'· US$'+tot.toLocaleString('en-US'),note:note}; } }
     return {pr:'· '+usdStr(raw),note:''}; };
-  (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
-    const [lab,cls]=rqStatus(r); const {pr,note}=perDayTotal(r.price,r.date,r.endDate);
-    const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):''),note].filter(Boolean).map(esc).join(' · ');
-    const flt=hasFlight(r)?flightLine(r):'';
-    bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
-  });
-  (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
-    const [lab,cls]=svcStatus(x); const {pr,note}=perDayTotal(x.price,x.dateFrom||x.date,x.dateTo||x.endDate);
-    bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,['Sent to guest',note].filter(Boolean).map(esc).join(' · '),lab,cls));
-  });
+  // "Booked & reserved" is INVOICE-DRIVEN so its Total matches the To collect / Total stay charge
+  // above — every invoice is a line, and the total = sum of invoices. When there are no invoices
+  // yet we fall back to the guest's booked requests & concierge services so early stays still read.
+  const invList=(s.invoices||[]);
+  const invStat=st=> st==='paid'?['Paid','v-green']:st==='sent'?['Sent','v-amber']:['Draft','v-soft'];
+  if(invList.length){
+    invList.slice().sort((a,b)=>(a.no||0)-(b.no||0)).forEach(iv=>{ const [lab,cls]=invStat(iv.status); const tot=invTot(iv); bookedArr.push(bkRow(bkIcon(iv.title),iv.title||('Invoice #'+iv.no),'· US$'+tot.toLocaleString('en-US'),'Invoice #'+(iv.no||'')+(iv.kind==='grocery'?' · grocery':''),lab,cls)); });
+    bookedArr.push(`<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:9px;margin-top:1px"><span style="font-weight:700;font-size:13.5px">Total billed</span><span style="font-weight:700;font-size:13.5px;color:var(--accent)">US$${allInvTot.toLocaleString('en-US')}</span></div><div style="font-size:11px;color:var(--soft);margin-top:-4px">Sum of all invoices — matches “To collect”.</div>`);
+  } else {
+    (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
+      const [lab,cls]=rqStatus(r); const {pr,note}=perDayTotal(r.price,r.date,r.endDate);
+      const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):''),note].filter(Boolean).map(esc).join(' · ');
+      const flt=hasFlight(r)?flightLine(r):'';
+      bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
+    });
+    (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
+      const [lab,cls]=svcStatus(x); const {pr,note}=perDayTotal(x.price,x.dateFrom||x.date,x.dateTo||x.endDate);
+      bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,['Sent to guest',note].filter(Boolean).map(esc).join(' · '),lab,cls));
+    });
+  }
   const bookedRows=bookedArr.length?bookedArr.join(''):'<div style="font-size:13px;color:var(--soft)">Nothing booked or reserved yet.</div>';
   const stat=(lbl,val,cls)=>`<div class="vstat"><span class="vk">${lbl}</span><span class="vv ${cls||''}">${val}</span></div>`;
   const chip=(txt,ok)=>`<span class="vchip ${ok?'on':''}">${ok?'✓':'○'} ${txt}</span>`;
