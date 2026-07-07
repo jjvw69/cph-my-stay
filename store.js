@@ -420,17 +420,24 @@ function seedStaffFromEnv() {
 // omitted → no preset, staff fill the deposit manually. Add/refresh rates here as they change.
 const NIGHTLY_RATES = {
   'casa-caleton': 9800, 'casa-minitas': 13800, 'el-cocotal': 6350, 'villa-farallon': 12300,
-  'casa-minitas-8br': 9200, 'villa-oasis': 4350, 'casa-aguila': 10350, 'villa-esperanza': 2900,
-  'villa-palms': 4050, 'casa-al-mare': 9200, 'casa-sam': 3400, 'casa-zens': 2900,
-  'la-brisa': 2300, 'la-menina': 7050, 'ocean-bliss': 9200, 'villa-isabel': 1800,
-  'villa-le-blanc': 4050, 'villa-royale': 3450, 'villa-serenita': 5200, 'bahia-azul': 8650,
-  'casa-batey': 3200, 'casa-bo': 2600, 'casa-bosque': 2600, 'cerezas-modern': 1700,
-  'golf-villa-v': 1050, 'la-madera': 3650, 'punta-arrecife': 5200, 'river-house': 4600,
-  'villa-agua': 3450, 'casa-del-sol': 2700, 'casa-roble': 5200, 'minitas-garden': 3150,
-  'la-florentina': 5200,
-  // Not yet on file (add when known): la-plage, casa-cana, villa-mar-azul, villa-palmeras,
-  // los-mangos, aqua-vista, casa-aurea, casa-calm, las-ramas, villa-alfa, villa-farallon-6br,
-  // villa-marfil, villa-sueno, la-sultana, palm-west, tropical-modern.
+  'la-plage': 9200, 'casa-del-sol': 2700, 'casa-minitas-8br': 9200, 'villa-mar-azul': 6900,
+  'villa-oasis': 4350, 'casa-aguila': 10350, 'villa-esperanza': 2900, 'villa-palms': 4050,
+  'casa-al-mare': 9200, 'casa-roble': 5200, 'casa-sam': 3400, 'casa-zens': 2900,
+  'la-brisa': 2300, 'la-florentina': 5200, 'la-menina': 7050, 'ocean-bliss': 9200,
+  'villa-farallon-6br': 10250, 'villa-isabel': 1800, 'villa-le-blanc': 4050, 'villa-royale': 3450,
+  'villa-serenita': 5200, 'villa-sueno': 9750, 'bahia-azul': 8650, 'casa-batey': 3200,
+  'casa-bo': 2600, 'casa-bosque': 2600, 'cerezas-modern': 1700, 'golf-villa-v': 1050,
+  'la-madera': 3650, 'minitas-garden': 3150, 'punta-arrecife': 5200, 'river-house': 4600,
+  'villa-agua': 3450, 'casa-calm': 5750, 'casa-del-lago': 2300, 'villa-solara': 1750,
+  'villa-miramar': 13800, 'villa-cielo': 1050, 'porta-azul': 1450, 'villa-coral': 2500,
+  'villa-esfera': 3450, 'villa-palma-real': 4050, 'villa-sky': 2600, 'villa-tranquila': 3450,
+  'casa-adri': 1350, 'casa-blue': 1600, 'casa-bonita': 1350, 'casa-ceiba': 2880,
+  'casa-mota': 1250, 'golf-villa-ix': 850, 'hacienda-mallet': 2100, 'la-serenite': 1050,
+  'vista-del-polo': 1600, 'bella-vista': 600, 'golf-villa-8': 600, 'villa-uchi': 900,
+  'villa-marfil': 1500, 'palm-west': 3650,
+  // Still to add (not surfaced in CPH featured listing): casa-cana, villa-palmeras, los-mangos,
+  // aqua-vista, casa-aurea, las-ramas, villa-alfa, la-sultana, tropical-modern, villa-kari,
+  // villa-kiki, villa-volcan, casa-bliss, la-fabulosa, le-cheval, villa-porton, villa-santorini.
 };
 function listVillas() { return VILLAS.map(v => ({ ...v, nightlyRate: NIGHTLY_RATES[v.id] || 0 })); }
 function getVilla(id) { return VILLAS.find(v => v.id === id) || null; }

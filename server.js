@@ -49,7 +49,7 @@ const INDEX_HTML = fs.readFileSync(path.join(__dirname, 'index.html'));
 const CONSOLE_HTML = fs.readFileSync(path.join(__dirname, 'console.html'));
 // Advisor headshots (real-estate tab) + hosted villa hero images, served as static assets.
 const STATIC_IMAGES = {};
-['jan.jpg','ivonna.jpg','azimut.jpg','casa-del-mar.jpg','villa-serenity.jpg'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
+['jan.jpg','ivonna.jpg','azimut.jpg','casa-del-mar.jpg','villa-serenity.jpg','barranca-29.webp'].forEach(f=>{ try{ STATIC_IMAGES['/'+f]=fs.readFileSync(path.join(__dirname,f)); }catch(e){} });
 // Content hash of the app files — changes only when a new build is deployed (stable across
 // restarts/cold-starts). The guest app and console poll this and refresh when it changes.
 // Includes store.js + server.js so a data-layer/server-only deploy also bumps the version.
@@ -365,7 +365,7 @@ async function route(req,res){
   }
 
   // pages
-  if(m==='GET'&&STATIC_IMAGES[url]){ res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'public, max-age=86400'}); return res.end(STATIC_IMAGES[url]); }
+  if(m==='GET'&&STATIC_IMAGES[url]){ const _ct=/\.webp$/i.test(url)?'image/webp':/\.png$/i.test(url)?'image/png':'image/jpeg'; res.writeHead(200,{'Content-Type':_ct,'Cache-Control':'public, max-age=86400'}); return res.end(STATIC_IMAGES[url]); }
   if(m==='GET'&&url==='/sw.js'){ res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-cache','Service-Worker-Allowed':'/'}); return res.end(SW_JS); }
   if(m==='GET'&&url==='/manifest.webmanifest'){ res.writeHead(200,{'Content-Type':'application/manifest+json; charset=utf-8','Cache-Control':'no-cache'}); return res.end(MANIFEST_JSON); }
   if(m==='GET'&&(url==='/console'||url.startsWith('/console'))) return sendHTML(res,CONSOLE_HTML);
