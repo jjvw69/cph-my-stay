@@ -336,6 +336,8 @@ async function route(req,res){
     const rm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)$/);
     if(rm&&m==='DELETE'){ return store.removeStaffRequest(rm[1],rm[2])?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     if(rm&&m==='PUT'){ const b=await readBody(req); const r=store.staffUpdateRequest(rm[1],rm[2],b); if(r) broadcastStaff({type:'update'}); return r?sendJSON(res,200,{ok:true,request:r}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const rcM=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/reset-checkin$/);
+    if(rcM&&m==='POST'){ const b=await readBody(req); const s=store.resetCheckin(rcM[1],String(b.part||'precheckin')); if(s) broadcastStaff({type:'update'}); return s?sendJSON(res,200,{ok:true,stay:store.toGuestStay(s)}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     const ssA=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/sent-services$/);
     if(ssA&&m==='POST'){ const b=await readBody(req); const it=store.sendService(ssA[1],b); if(it){ const st=store.getStay(ssA[1]); if(st&&st.status==='published') notifyGuest(st,'A service has been arranged for you',['Your concierge has set up a service for your stay — please open My Stay to review and confirm.','',`${it.name}${it.option?' · '+it.option:''}${it.rate?' · '+it.rate:''}`].join('\n')); broadcastStaff({type:'update'}); } return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,400,{ok:false,error:'A service name is required.'}); }
     const ssB=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/sent-services\/([A-Za-z0-9]+)$/);

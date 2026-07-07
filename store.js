@@ -884,6 +884,16 @@ function saveCheckin(reference, data) {
   if (s.guestCheckin.flight) s.flight = s.guestCheckin.flight;
   s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
+/** Staff resets a pre-arrival item so the guest re-does just that part (not a blanket wipe).
+ *  part: 'precheckin' (clears the pre check-in form + transport answer) | 'passports' (clears the
+ *  guest list / passport numbers) | 'all' (both). Re-arms the pre check-in auto-reminder. */
+function resetCheckin(stayId, part) {
+  const s = getStay(stayId); if (!s) return null;
+  part = String(part || 'precheckin');
+  if (part === 'precheckin' || part === 'all') { s.guestCheckin = null; if (s.autoSent) s.autoSent.precheckin = false; }
+  if (part === 'passports' || part === 'all') { s.guestList = []; }
+  s.updatedAt = Date.now(); persistStays(); return s;
+}
 // ----- concierge-pushed services (console sends → guest confirms/declines). Two-way sync. -----
 /** Console pushes a service to the guest's plan. */
 function sendService(stayId, b) {
@@ -1247,7 +1257,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
-  addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
+  addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
 };
