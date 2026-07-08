@@ -517,9 +517,9 @@
     <div class="col right" id="preview"><div class="empty">No stay selected.</div></div>
   </div>
   <nav class="botnav">
-    <button onclick="showToday()"><span class="ic">▦</span>Today</button>
-    <button onclick="showArrivals()"><span class="ic">▤</span>Arrivals</button>
-    <button onclick="backToList()"><span class="ic">≣</span>Stays</button>
+    <button data-view="today" onclick="showToday()"><span class="ic">▦</span>Today</button>
+    <button data-view="stays" onclick="backToList()"><span class="ic">≣</span>Stays</button>
+    <button data-view="arrivals" onclick="showArrivals()"><span class="ic">▤</span>Arrivals</button>
   </nav>
 </div>
 <div class="toast" id="toast"></div>
@@ -753,7 +753,7 @@ function refreshTodayBtn(){
 }
 let centerView='today';
 function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const cols=document.querySelector('.cols'); if(cols)cols.classList.toggle('board-mode',board); if(centerView==='inbox') renderInbox(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board) renderArrivalsPanel(); refreshHomeBtns(); }
-function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const btns=n.querySelectorAll('button'); const idx=cur?-1:(centerView==='arrivals'?1:0); btns.forEach((b,i)=>b.classList.toggle('on',i===idx)); }
+function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
