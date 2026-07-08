@@ -736,7 +736,7 @@ function renderList(){
   }).join('');
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); };
+window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols)_cols.classList.remove('board-mode'); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); renderList(); renderEditor(); renderPreview(); setView(true); } };
