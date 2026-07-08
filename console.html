@@ -757,18 +757,15 @@ function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
-  cur=null; setDirty(false); centerView='today'; renderList(); renderHome();
-  setView(true);
+  cur=null; setDirty(false); centerView='today'; setView(true); renderList(); renderHome();
 };
 window.showInbox=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
-  cur=null; setDirty(false); centerView='inbox'; renderList(); renderHome();
-  setView(true);
+  cur=null; setDirty(false); centerView='inbox'; setView(true); renderList(); renderHome();
 };
 window.showArrivals=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
-  cur=null; setDirty(false); centerView='arrivals'; renderList(); renderHome();
-  setView(true);
+  cur=null; setDirty(false); centerView='arrivals'; setView(true); renderList(); renderHome();
 };
 // Arrivals board — spreadsheet-style ops view mirroring the Excel arrivals sheet. Ops fields
 // autosave via a partial PUT (only whitelisted keys are written). All staff-only.
