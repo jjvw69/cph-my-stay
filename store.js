@@ -926,6 +926,22 @@ function sendService(stayId, b) {
     option: norm(b && b.option).slice(0, 120),
     rate: norm(b && b.rate).slice(0, 40),
     note: norm(b && b.note).slice(0, 300),
+    // Per-service booking details (mirror the guest request form) so a pushed service carries the
+    // same context and can prefill an invoice. All optional.
+    date: norm(b && b.date).slice(0, 20),
+    endDate: norm(b && b.endDate).slice(0, 20),
+    time: norm(b && b.time).slice(0, 20),
+    guests: Math.max(0, Math.min(99, Number(b && b.guests) || 0)) || '',
+    qty: Math.max(0, Math.min(99, Number(b && b.qty) || 0)) || '',
+    trip: norm(b && b.trip).slice(0, 20),
+    airline: norm(b && b.airline).slice(0, 40),
+    flightNo: norm(b && b.flightNo).slice(0, 24),
+    flightOrigin: norm(b && b.flightOrigin).slice(0, 60),
+    arrivalTime: norm(b && b.arrivalTime).slice(0, 40),
+    returnAirline: norm(b && b.returnAirline).slice(0, 40),
+    returnFlightNo: norm(b && b.returnFlightNo).slice(0, 24),
+    returnDest: norm(b && b.returnDest).slice(0, 60),
+    returnTime: norm(b && b.returnTime).slice(0, 40),
     status: 'sent', sentAt: Date.now(), respondedAt: 0,
   };
   s.sentServices.push(item); s.updatedAt = Date.now(); persistStays(); return item;
@@ -938,6 +954,20 @@ function updateSentService(stayId, sid, b) {
   if (b.rate != null) it.rate = norm(b.rate).slice(0, 40);
   if (b.note != null) it.note = norm(b.note).slice(0, 300);
   if (b.name != null) { const n = norm(b.name).slice(0, 80); if (n) it.name = n; }
+  if (b.date != null) it.date = norm(b.date).slice(0, 20);
+  if (b.endDate != null) it.endDate = norm(b.endDate).slice(0, 20);
+  if (b.time != null) it.time = norm(b.time).slice(0, 20);
+  if (b.guests != null) it.guests = Math.max(0, Math.min(99, Number(b.guests) || 0)) || '';
+  if (b.qty != null) it.qty = Math.max(0, Math.min(99, Number(b.qty) || 0)) || '';
+  if (b.trip != null) it.trip = norm(b.trip).slice(0, 20);
+  if (b.airline != null) it.airline = norm(b.airline).slice(0, 40);
+  if (b.flightNo != null) it.flightNo = norm(b.flightNo).slice(0, 24);
+  if (b.flightOrigin != null) it.flightOrigin = norm(b.flightOrigin).slice(0, 60);
+  if (b.arrivalTime != null) it.arrivalTime = norm(b.arrivalTime).slice(0, 40);
+  if (b.returnAirline != null) it.returnAirline = norm(b.returnAirline).slice(0, 40);
+  if (b.returnFlightNo != null) it.returnFlightNo = norm(b.returnFlightNo).slice(0, 24);
+  if (b.returnDest != null) it.returnDest = norm(b.returnDest).slice(0, 60);
+  if (b.returnTime != null) it.returnTime = norm(b.returnTime).slice(0, 40);
   it.status = 'sent'; it.respondedAt = 0; s.updatedAt = Date.now(); persistStays(); return it;
 }
 /** Console cancels (removes) a sent service. */
@@ -1226,7 +1256,7 @@ function toGuestStay(s) {
 
     explore: EXPLORE_SCENES,
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', returnAirline: r.returnAirline || '', returnFlightNo: r.returnFlightNo || '', returnDest: r.returnDest || '', returnTime: r.returnTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
-    sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
+    sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),

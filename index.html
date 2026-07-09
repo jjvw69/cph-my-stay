@@ -2381,11 +2381,15 @@ function renderPlan(){
     </div>
     ${(function(){ const ss=(s.sentServices||[]); if(!ss.length) return '';
       const row=(x)=>{ const meta=[x.option,x.rate].filter(Boolean).map(esc).join(' · ');
+        const det=[x.trip||'', x.date?(fmtDate(x.date)+(x.endDate&&x.endDate!==x.date?' – '+fmtDate(x.endDate):'')):'', x.qty?(x.qty+'×'):'', x.guests?(x.guests+' guests'):'', x.time||''].filter(Boolean).map(esc).join(' · ');
+        const flt=(x.airline||x.flightNo||x.flightOrigin||x.arrivalTime)?('✈ '+[[x.airline,x.flightNo].filter(Boolean).join(' '),x.flightOrigin?'from '+x.flightOrigin:'',x.arrivalTime?'arr '+x.arrivalTime:''].filter(Boolean).map(esc).join(' · ')):'';
+        const rfl=(x.returnAirline||x.returnFlightNo||x.returnDest||x.returnTime)?('↩ '+[[x.returnAirline,x.returnFlightNo].filter(Boolean).join(' '),x.returnDest?'to '+x.returnDest:'',x.returnTime?'dep '+x.returnTime:''].filter(Boolean).map(esc).join(' · ')):'';
+        const extra=[det,flt,rfl].filter(Boolean).map(t=>`<span style="display:block;margin-top:3px;font-size:12.5px;color:var(--soft)">${t}</span>`).join('');
         let action;
         if(x.status==='confirmed') action=`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 10px;font-weight:600">✓ Confirmed</span>`;
         else if(x.status==='declined') action=`<span style="font-size:11px;background:#F6E5DD;color:#9E5B43;border-radius:20px;padding:3px 10px;font-weight:600">Declined</span> <button onclick="respondSent('${esc(x.id)}','confirmed')" style="margin-left:6px;background:none;border:0;color:var(--accent);font-size:12.5px;text-decoration:underline;cursor:pointer">Confirm instead</button>`;
         else action=`<div style="display:flex;gap:9px"><button onclick="respondSent('${esc(x.id)}','confirmed')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 16px;font-size:13px">Confirm</button><button onclick="respondSent('${esc(x.id)}','declined')" style="border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:11px;padding:9px 16px;font-size:13px">Decline</button></div>`;
-        return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(x.name)}</b>${meta?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${meta}</span>`:''}${x.note?`<span style="display:block;margin-top:3px">${esc(x.note)}</span>`:''}<div style="margin-top:10px">${action}</div></span></div>`; };
+        return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(x.name)}</b>${meta?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${meta}</span>`:''}${extra}${x.note?`<span style="display:block;margin-top:3px">${esc(x.note)}</span>`:''}<div style="margin-top:10px">${action}</div></span></div>`; };
       return `<div class="sec-title">Arranged for you</div><div style="font-size:12.5px;color:var(--soft);margin:0 0 4px;line-height:1.5">Your concierge has set these up for your stay — please confirm or decline.</div>${ss.map(row).join('')}`;
     })()}
     ${(function(){ const yp=s.yachtProposal; if(!yp||!(yp.options||[]).length) return '';
