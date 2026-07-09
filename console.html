@@ -1436,6 +1436,14 @@ function chatPanelFull(s){
     <div class="counter" style="margin-top:6px">The guest sees your replies live in their app chat. WhatsApp/SMS replies land here too.</div>
   </div>`;
 }
+// Auto-grow editor textareas (Notes / allergies, meal notes, rates…) so they
+// expand to fit their content while reading or typing — no inner scrollbar.
+function autoGrowTA(t){ if(!t||t.tagName!=='TEXTAREA')return; t.style.overflowY='hidden'; t.style.height='auto'; t.style.height=Math.max(t.scrollHeight,34)+'px'; }
+function autoGrowAll(){ const ed=document.getElementById('editor'); if(!ed)return; ed.querySelectorAll('textarea').forEach(autoGrowTA); }
+if(!window.__taAutoGrow){ window.__taAutoGrow=true;
+  document.addEventListener('input',function(e){ if(e.target&&e.target.tagName==='TEXTAREA'&&e.target.closest&&e.target.closest('#editor')) autoGrowTA(e.target); },true);
+  (function(){ const ed=document.getElementById('editor'); if(ed&&window.MutationObserver){ new MutationObserver(function(){ autoGrowAll(); }).observe(ed,{childList:true,subtree:true}); } })();
+}
 function renderEditor(){
   if(!cur){ document.getElementById('editor').innerHTML='<div class="empty">Select a stay.</div>'; return; }
   if(window.innerWidth>=1024) editorMode='edit'; // on wide screens chat lives in the right column
