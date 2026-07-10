@@ -805,11 +805,11 @@ function boardRows(){ const today=todayStr(); return (LIST||[]).filter(s=>s.chec
 // Download the arrivals board as an Excel file (HTML-table .xls — keeps the row colours).
 window.exportBoardExcel=function(){
   const L=boardRows(); const e=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cols=['Arrive','Depart','Guest','Villa','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Deposit','Extras'];
+  const cols=['Arrive','Depart','Guest','Villa Name','Villa Number','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Deposit','Extras'];
   let rows='';
   for(const s of L){ const bg=ROWCOLORS[s.rowColor]||''; const st=bg?` style="background:${bg}"`:'';
-    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,boardDepositText(s),s.extras];
-    rows+='<tr>'+vals.map((v,i)=>`<td${i<6?st:''}>${e(v)}</td>`).join('')+'</tr>';
+    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,s.villaInternal,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,boardDepositText(s),s.extras];
+    rows+='<tr>'+vals.map((v,i)=>`<td${i<7?st:''}>${e(v)}</td>`).join('')+'</tr>';
   }
   const html=`<html><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0"><tr>${cols.map(c=>`<th style="background:#12794D;color:#fff">${c}</th>`).join('')}</tr>${rows}</table></body></html>`;
   const blob=new Blob(['﻿'+html],{type:'application/vnd.ms-excel'});
@@ -847,13 +847,14 @@ function renderArrivalsBoard(){
   const rows=L.map(s=>{const g=(s.ppl||s.guests||'');const tint=ROWCOLORS[s.rowColor]||'';const ts=tint?` style="background:${tint}"`:'';
     const yr=String(s.checkin||'').slice(0,4);
     let divider='';
-    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="15">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
+    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="16">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
     return divider+`<tr>
       <td class="ab-color"${ts}>${colorSel(s)}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkout)||s.checkout||'')}</td>
       <td class="ab-guest"${ts}><button onclick="selectStay('${s.id}')">${fmtName(s.guest)}</button>${s.status==='draft'?' <span class="ab-draft">draft</span>':''}</td>
       <td class="ab-villa"${ts}>${esc(s.villa||'—')}</td>
+      <td class="ab-villa"${ts}>${esc(s.villaInternal||'—')}</td>
       <td class="ab-ppl"${ts}>${g||'–'}</td>
       <td class="ab-prov"${ts} title="Derived from Booking source + CPH booking agent">${esc(boardProviderCode(s))}</td>
       <td class="ab-greet">${greetSel(s)}</td>
@@ -876,8 +877,8 @@ function renderArrivalsBoard(){
     ${colorLegend()}
     <div class="ab-editnote" style="font-size:11px;color:var(--soft);margin:2px 0 10px;line-height:1.55;white-space:normal">Columns <b>Cart → Extras</b> are read-only mirrors of the booking file (hover a cell for its source) — edit on the guest's stay: <b>Cart</b> via the invoice · <b>Staff</b> &amp; <b>Extras</b> in Internal notes · <b>Access</b> in Stay details → Registration # · <b>Transfer</b> in the transfer request / Internal notes · <b>Super</b> (supermarket / grocery provisioning) in Grocery pre-stocking.</div>
     <div class="ab-scroll"><table class="ab"><thead><tr>
-      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th>
-    </tr></thead><tbody>${rows||`<tr><td colspan="15" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
+      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa Name</th><th>Villa Number</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th>
+    </tr></thead><tbody>${rows||`<tr><td colspan="16" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function renderInbox(){
