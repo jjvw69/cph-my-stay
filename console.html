@@ -186,6 +186,7 @@
   .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
   .ab-cart{white-space:pre-line;overflow-wrap:anywhere;min-width:110px;max-width:170px;color:var(--ink);font-size:11.5px}
   .ab-super{white-space:normal;overflow-wrap:anywhere;min-width:110px;max-width:190px;color:var(--ink);font-size:11.5px}
+  .ab-staff{white-space:nowrap;width:1%;min-width:0;max-width:none;color:var(--ink);font-size:11.5px}
   .ab-color{width:1%;padding-right:2px}
   .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
@@ -859,7 +860,7 @@ function renderArrivalsBoard(){
       <td class="ab-prov"${ts} title="Derived from Booking source + CPH booking agent">${esc(boardProviderCode(s))}</td>
       <td class="ab-greet">${greetSel(s)}</td>
       <td class="ab-cart" title="From booking file (invoice + cart status) — edit via the invoice">${esc(s.golfCart||'—')}</td>
-      <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.staffCount||'—')}</td>
+      <td class="ab-staff" title="From the booking file — edit in Internal notes (staff only)">${esc(s.staffCount||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in Stay details → Registration #">${esc(s.registrationNumber||s.accessCodes||'—')}</td>
       <td class="ab-super" title="Supplier from the booked airport-transfer request (or invoice), then your Internal-notes Transfer text">${esc(s.transferNote||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
