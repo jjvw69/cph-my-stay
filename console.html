@@ -186,11 +186,12 @@
   .ab-prov{white-space:nowrap;color:var(--ink);font-weight:600;font-size:11.5px}
   .ab-cart{white-space:pre-line;overflow-wrap:anywhere;min-width:110px;max-width:170px;color:var(--ink);font-size:11.5px}
   .ab-super{white-space:normal;overflow-wrap:anywhere;min-width:110px;max-width:190px;color:var(--ink);font-size:11.5px}
-  .ab-staff{white-space:nowrap;width:1%;min-width:0;max-width:none;color:var(--ink);font-size:11.5px}
-  /* Auto-fit: every data column sizes to its content (width:1% + no wrap). Cart keeps per-line breaks via pre. Greeter stays a fixed control. */
-  .ab-dt,.ab-guest,.ab-ppl,.ab-prov,.ab-villa,.ab-cart,.ab-super{width:1%;min-width:0;max-width:none}
-  .ab-villa,.ab-super{white-space:nowrap;overflow-wrap:normal}
-  .ab-cart{white-space:pre;overflow-wrap:normal}
+  .ab-staff{color:var(--ink);font-size:11.5px}
+  /* Auto-fit + wrap: columns size to their content, but long text wraps (capped by max-width) instead of forcing horizontal scroll. min-width:0 keeps short cells compact; cart keeps its per-line breaks via pre-line. */
+  .ab-dt,.ab-guest,.ab-ppl,.ab-prov,.ab-villa,.ab-cart,.ab-super,.ab-staff{min-width:0;white-space:normal;overflow-wrap:break-word}
+  .ab-villa{max-width:150px}
+  .ab-cart{max-width:170px;white-space:pre-line}
+  .ab-super,.ab-staff{max-width:190px}
   .ab-color{width:1%;padding-right:2px}
   .rowcol-sel{border:1px solid var(--line);border-radius:6px;padding:3px 3px;font-size:12px;cursor:pointer;font-family:var(--ui);color:var(--ink);min-width:42px;text-align:center}
   .rowcol-sel.set{border-color:#B9C3B7;font-weight:600}
