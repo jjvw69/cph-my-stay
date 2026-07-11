@@ -685,8 +685,10 @@ function runAutomations() {
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
+  // Staff may edit the registration list from the console — sanitise exactly like the guest-submitted path.
+  if ('guestList' in patch) s.guestList = sanitizeGuestList(patch.guestList);
   s.updatedAt = Date.now();
   persistStays(); return s;
 }
@@ -860,13 +862,18 @@ function saveMealPlan(reference, data) {
   })).filter(m => m.type || m.date || m.time || m.guests || m.desc);
   s.mealPlan = out; s.updatedAt = Date.now(); persistStays(); return out;
 }
+/** Shared shape guard for the registration list — used by both the guest submit and the console editor. */
+function sanitizeGuestList(guests) {
+  if (!Array.isArray(guests)) return [];
+  return guests.slice(0, 40)
+    .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
+    .filter(g => g.name || g.passport);
+}
 /** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */
 function setGuestList(reference, guests) {
   const s = findPublishedStayByRef(reference); if (!s) return null;
   if (!Array.isArray(guests)) return null;
-  s.guestList = guests.slice(0, 40)
-    .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
-    .filter(g => g.name || g.passport);
+  s.guestList = sanitizeGuestList(guests);
   s.updatedAt = Date.now(); persistStays(); return s.guestList;
 }
 /** Guest submits pre check-in (airport, transfer, party, flight, occasion, dietary) — persist

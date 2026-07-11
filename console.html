@@ -668,7 +668,8 @@ async function refreshCurrent(){
   const newReqs=(fresh.requests||[]).length-((cur.requests||[]).length);
   const newMsgs=guestMsgCount(fresh.messages)-guestMsgCount(cur.messages);
   // Merge: never clobber the editable form while the staffer has unsaved edits.
-  if(dirty){ ['requests','messages','guestCheckin','guestList','grocery','mealPlan','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; }); }
+  // guestList / grocery / mealPlan are staff-editable too — don't pull them from the server mid-edit or unsaved work is lost.
+  if(dirty){ ['requests','messages','guestCheckin','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; }); }
   else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
   // Re-render, preserving any in-progress typing/scroll.
   // Don't re-render the editor while a native <select> dropdown is open (it would slam shut before a pick).
@@ -1544,9 +1545,8 @@ function renderEditor(){
       </div>
     </div>
 
-    ${(cur.guestList&&cur.guestList.length)?`<div class="sec"><h3>Guest registration list <span class="reqcount">${cur.guestList.length}</span></h3>
-      <div class="reqlist reglist-cols">${cur.guestList.map((g,i)=>`<div class="reqitem"><b>${i+1}. ${esc(g.name||'—')}</b><div class="reqmeta">Passport: ${esc(g.passport||'—')}</div></div>`).join('')}</div>
-      <div class="counter">Submitted by the guest for Casa de Campo pre-registration — use these names &amp; passport numbers to register the group.</div></div>`:''}
+    <div class="sec"><h3>Guest registration list ${(cur.guestList&&cur.guestList.length)?`<span class="reqcount">${cur.guestList.length}</span>`:''}</h3>
+      ${glEditor()}</div>
 
     <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
       ${(function(){const amt=parseFloat(cur.groceryDeposit)||0; const paid=!!cur.groceryDepositPaid; const presets=[500,1000,2000]; const isCustom=amt>0&&presets.indexOf(amt)===-1;
@@ -1703,6 +1703,29 @@ function grocItemOpts(cat){ const c=GROC_CATALOG.find(x=>x.t===cat); const items
 const MEAL_DEFS=[['snacks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
 const MEAL_TYPES=[['Welcome snacks & drinks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['Breakfast','Breakfast / Desayuno'],['Lunch','Lunch / Comida'],['Dinner','Dinner / Cena'],['Other','Other / Otro']];
 const GIN='border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;font-family:var(--ui);box-sizing:border-box';
+/* ---- guest registration list (staff-editable · shared with the guest app) ---- */
+function glEnsure(){ if(!Array.isArray(cur.guestList))cur.guestList=[]; }
+function glTouch(){ glEnsure(); markDirty(); renderPreview(); }
+function glEditor(){
+  glEnsure(); const list=cur.guestList;
+  const rows=list.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
+      <span style="width:20px;flex:none;text-align:right;font-size:12px;color:var(--soft);font-weight:700">${i+1}.</span>
+      <input id="glName${i}" value="${escA(g.name||'')}" onchange="glItem(${i},'name',this.value)" placeholder="Full name (as on passport)" style="flex:1.4;min-width:120px;${GIN}">
+      <input value="${escA(g.passport||'')}" onchange="glItem(${i},'passport',this.value)" placeholder="Passport number" style="flex:1;min-width:100px;${GIN}">
+      <button class="reqx" onclick="glItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
+    </div>`).join('');
+  return `<div style="margin-top:6px">
+    ${rows||'<div class="counter" style="margin-bottom:8px">Nobody on the list yet — add the group below, or wait for the guest to submit it from their app.</div>'}
+    <div style="margin-top:10px"><button class="reqx" onclick="glAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add person</button></div>
+    <div class="counter">Names &amp; passport numbers used to register the group with Casa de Campo. Shared list — your edits show in the guest's app too. Remember to Save.</div>
+  </div>`;
+}
+window.glItem=function(i,f,v){ glEnsure(); const g=cur.guestList[i]; if(!g)return;
+  if(f==='remove'){ cur.guestList.splice(i,1); glTouch(); renderEditor(); return; }
+  g[f]=String(v||''); glTouch(); };
+window.glAdd=function(){ glEnsure(); if(cur.guestList.length>=40){ toast('Maximum 40 people on the registration list'); return; }
+  cur.guestList.push({name:'',passport:''}); const n=cur.guestList.length-1; glTouch(); renderEditor();
+  setTimeout(()=>{ const el=document.getElementById('glName'+n); if(el)el.focus(); },30); };
 function grocEnsure(){ if(!cur.grocery||typeof cur.grocery!=='object')cur.grocery={items:[],other:{},note:''}; if(!Array.isArray(cur.grocery.items))cur.grocery.items=[]; if(!cur.grocery.other||typeof cur.grocery.other!=='object')cur.grocery.other={}; }
 function grocTouch(){ grocEnsure(); cur.grocery.updatedAt=Date.now(); markDirty(); }
 function grocEditor(){
@@ -2324,7 +2347,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras','grocery','mealPlan']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras','grocery','mealPlan','guestList']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;
