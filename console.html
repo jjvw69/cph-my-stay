@@ -668,13 +668,20 @@ async function refreshCurrent(){
   const newReqs=(fresh.requests||[]).length-((cur.requests||[]).length);
   const newMsgs=guestMsgCount(fresh.messages)-guestMsgCount(cur.messages);
   // Merge: never clobber the editable form while the staffer has unsaved edits.
-  // guestList / grocery / mealPlan are staff-editable too — don't pull them from the server mid-edit or unsaved work is lost.
-  if(dirty){ ['requests','messages','guestCheckin','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; }); }
+  // The SHARED sections (guestList / grocery / mealPlan) are editable on BOTH sides: always pull the
+  // guest's newer copy UNLESS the staffer is actively editing that same section here.
+  let sharedChanged=false;
+  if(dirty){
+    ['requests','messages','guestCheckin','guestLastSeen','sentServices','invoices','yachtProposal'].forEach(k=>{ cur[k]=fresh[k]; });
+    SHARED_FIELDS.forEach(k=>{ if(dirtyFields.has(k))return;   // staffer edited this one — keep theirs until they Save
+      if(JSON.stringify(cur[k]||null)!==JSON.stringify(fresh[k]||null)){ cur[k]=fresh[k]; sharedChanged=true; } });
+  }
   else { const id=cur.id; cur=fresh; if(cur.id!==id) return; }
   // Re-render, preserving any in-progress typing/scroll.
   // Don't re-render the editor while a native <select> dropdown is open (it would slam shut before a pick).
   const _ed=document.getElementById('editor'); const _act=document.activeElement; const _selOpen=!!(_act&&_act.tagName==='SELECT'&&_ed&&_ed.contains(_act));
-  if(!dirty && !_selOpen){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
+  if((!dirty||sharedChanged) && !_selOpen){ const eS=snapshotInputs('editor'); renderEditor(); restoreInputs('editor',eS); }
+  if(sharedChanged) toast('Guest just updated their details — this booking has been refreshed.');
   const pS=snapshotInputs('preview'); renderPreview(); restoreInputs('preview',pS);
   markViewed(cur); renderList();
   if(newReqs>0){ toast('New request from '+(cur.leadName||'guest')); chime(); }
@@ -1048,8 +1055,13 @@ window.pick=pick;
 function pickVilla(id){ if(!id)return; const x=BOOT.villas.find(v=>v.id===id)||{}; cur.villaId=id; cur.villaName=x.name||''; cur.villaArea=x.area||''; cur.villaView=x.view||''; cur.villaSuites=x.suites||''; cur.villaSleeps=x.sleeps||''; cur.villaInternal=x.internalName||''; cur.villaNumber=cur.villaNumber||x.internalName||''; cur.staffIncluded=x.staff||cur.staffIncluded||'Chef · Butler · Housekeeper'; cur.heroPhoto=x.hero||''; renderEditor(); renderPreview(); markDirty(); }
 window.pickVilla=pickVilla;
 let dirty=false;
-function setDirty(v){ dirty=v; const t=document.getElementById('dirtyTag'); if(t)t.style.display=v?'inline-flex':'none'; const s=document.getElementById('saveBtn'); if(s)s.classList.toggle('hot',v); }
-function markDirty(){ setDirty(true); }
+/* Fields the GUEST can also edit (guestList / grocery / mealPlan). We track which of them the staffer
+   has actually touched, so that (a) an untouched section always keeps live-syncing from the guest, and
+   (b) Save never sends a stale console copy of a section the staffer never opened. */
+const SHARED_FIELDS=['guestList','grocery','mealPlan'];
+const dirtyFields=new Set();
+function setDirty(v){ dirty=v; if(!v)dirtyFields.clear(); const t=document.getElementById('dirtyTag'); if(t)t.style.display=v?'inline-flex':'none'; const s=document.getElementById('saveBtn'); if(s)s.classList.toggle('hot',v); }
+function markDirty(field){ if(field)dirtyFields.add(field); setDirty(true); }
 /* The chat panel can exist twice (chat popup on body + editor chat mode) — always prefer the popup's instance. */
 function chatEl(sel){ const ov=document.getElementById('chatOv'); return (ov&&ov.querySelector(sel))||document.querySelector(sel); }
 window.fillMsg=function(t){ const el=chatEl('#staffMsg'); if(!el)return; el.value=t; el.focus(); };
@@ -1718,7 +1730,7 @@ const MEAL_TYPES=[['Welcome snacks & drinks','Welcome snacks & drinks / Picadera
 const GIN='border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;font-family:var(--ui);box-sizing:border-box';
 /* ---- guest registration list (staff-editable · shared with the guest app) ---- */
 function glEnsure(){ if(!Array.isArray(cur.guestList))cur.guestList=[]; }
-function glTouch(){ glEnsure(); markDirty(); renderPreview(); }
+function glTouch(){ glEnsure(); markDirty('guestList'); renderPreview(); }
 function glEditor(){
   glEnsure(); const list=cur.guestList;
   const rows=list.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
@@ -1740,7 +1752,7 @@ window.glAdd=function(){ glEnsure(); if(cur.guestList.length>=40){ toast('Maximu
   cur.guestList.push({name:'',passport:''}); const n=cur.guestList.length-1; glTouch(); renderEditor();
   setTimeout(()=>{ const el=document.getElementById('glName'+n); if(el)el.focus(); },30); };
 function grocEnsure(){ if(!cur.grocery||typeof cur.grocery!=='object')cur.grocery={items:[],other:{},note:''}; if(!Array.isArray(cur.grocery.items))cur.grocery.items=[]; if(!cur.grocery.other||typeof cur.grocery.other!=='object')cur.grocery.other={}; }
-function grocTouch(){ grocEnsure(); cur.grocery.updatedAt=Date.now(); markDirty(); }
+function grocTouch(){ grocEnsure(); cur.grocery.updatedAt=Date.now(); markDirty('grocery'); }
 function grocEditor(){
   const g=cur.grocery;
   if(!g||typeof g!=='object'){ return `<div class="counter">No pre-stocking list yet. <button class="reqx" onclick="grocStart()" style="color:var(--accent);border-color:#BFD3C2">Start a grocery list</button> — or the guest can submit one from their app.</div>`; }
@@ -1765,7 +1777,7 @@ function grocEditor(){
     <div class="counter">Shared list${g.updatedAt?' · updated '+fmtReqDate(g.updatedAt):''} — your edits show in the guest's app too. Remember to Save.</div>
     <div style="margin-top:6px"><button class="reqx" onclick="printGrocery()">🖨 Print grocery list</button></div></div>`;
 }
-window.grocStart=function(){ grocEnsure(); markDirty(); renderEditor(); };
+window.grocStart=function(){ grocEnsure(); markDirty('grocery'); renderEditor(); };
 window.grocItem=function(idx,field,val){ grocEnsure(); const it=cur.grocery.items[idx]; if(!it)return; if(field==='remove'){ cur.grocery.items.splice(idx,1); grocTouch(); renderEditor(); return; } if(field==='qty'){ it.qty=Math.max(0,parseInt(val,10)||0); } else if(field==='name'){ it.name=String(val); } grocTouch(); };
 window.grocAddCatChange=function(){ const cat=(document.getElementById('grocAddCat')||{}).value; const sel=document.getElementById('grocAddItem'); if(sel)sel.innerHTML=grocItemOpts(cat); const cu=document.getElementById('grocAddCustom'); if(cu){ cu.style.display='none'; cu.value=''; } };
 window.grocAddItemChange=function(){ const v=(document.getElementById('grocAddItem')||{}).value; const cu=document.getElementById('grocAddCustom'); if(cu)cu.style.display=(v==='__custom__')?'':'none'; if(v==='__custom__'&&cu)cu.focus(); };
@@ -1773,7 +1785,7 @@ window.grocAdd=function(){ grocEnsure(); const cat=(document.getElementById('gro
 window.grocOther=function(cat,val){ grocEnsure(); if(String(val).trim())cur.grocery.other[cat]=String(val); else delete cur.grocery.other[cat]; grocTouch(); };
 window.grocNote=function(val){ grocEnsure(); cur.grocery.note=String(val); grocTouch(); };
 function mealEnsure(){ if(!cur.mealPlan||typeof cur.mealPlan!=='object')cur.mealPlan={}; if(!Array.isArray(cur.mealPlan.extra))cur.mealPlan.extra=[]; MEAL_DEFS.forEach(([k])=>{ if(!cur.mealPlan[k]||typeof cur.mealPlan[k]!=='object')cur.mealPlan[k]={}; }); }
-function mealTouch(){ mealEnsure(); cur.mealPlan.updatedAt=Date.now(); markDirty(); }
+function mealTouch(){ mealEnsure(); cur.mealPlan.updatedAt=Date.now(); markDirty('mealPlan'); }
 function mealRowHtml(k,lbl,m,ei){
   const head=ei!=null?`<select onchange="mealExtraSet(${ei},'type',this.value)" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${GIN};font-weight:700">${MEAL_TYPES.map(([v,t])=>`<option value="${escA(v)}" ${(m.type||'Dinner')===v?'selected':''}>${esc(t)}</option>`).join('')}</select><button class="reqx" onclick="mealRemoveExtra(${ei})" style="color:#9E5B43;border-color:#E3C4B6;white-space:nowrap;flex-shrink:0">✕ Delete</button>`:`<div style="font-weight:700;font-size:12.5px">${esc(lbl)}</div>`;
   const oc=sub=>ei!=null?`mealExtraSet(${ei},'${sub}',this.value)`:`mealSet('${k}','${sub}',this.value)`;
@@ -1803,7 +1815,7 @@ function mealEditor(){
     <div class="counter">Shared plan${mp.updatedAt?' · updated '+fmtReqDate(mp.updatedAt):''} — your edits show in the guest's app too. Remember to Save.</div>
     <div style="margin-top:6px"><button class="reqx" onclick="printMeals()">🖨 Print meal plan</button></div></div>`;
 }
-window.mealStart=function(){ mealEnsure(); markDirty(); renderEditor(); };
+window.mealStart=function(){ mealEnsure(); markDirty('mealPlan'); renderEditor(); };
 window.mealSet=function(k,sub,val){ mealEnsure(); if(!cur.mealPlan[k])cur.mealPlan[k]={}; cur.mealPlan[k][sub]=String(val); mealTouch(); };
 window.mealExtraSet=function(i,sub,val){ mealEnsure(); const e=cur.mealPlan.extra[i]; if(!e)return; e[sub]=String(val); mealTouch(); };
 window.mealAddExtra=function(){ mealEnsure(); cur.mealPlan.extra.push({type:'Dinner',date:'',time:'',guests:'',desc:''}); mealTouch(); renderEditor(); };
@@ -2381,7 +2393,11 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras','grocery','mealPlan','guestList']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||''; return o; }
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||'';
+  // Shared guest↔console sections are only sent when the staffer actually edited them — otherwise a
+  // console copy loaded minutes ago would silently overwrite whatever the guest submitted since.
+  SHARED_FIELDS.forEach(k=>{ if(dirtyFields.has(k)) o[k]=cur[k]; });
+  return o; }
 window.removeStay=async function(){ if(!cur)return; const label=cur.status==='published'?'reservation':'draft'; if(!confirm('Delete this '+label+' for '+(cur.leadName||cur.reference)+'?\n\nThis permanently removes it and cannot be undone.'))return; const r=await api('/api/staff/stays/'+cur.id,{method:'DELETE'}); if(r.ok){ cur=null; setDirty(false); await loadList(); renderHome(); setView(false); toast('Deleted'); } else { toast('Could not delete'); } };
 async function saveDraft(){ if(!cur)return; const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify(Object.assign(payload(),{status:cur.status==='published'?'published':'draft'}))}); if(r.ok){ cur=r.body.stay; setDirty(false); await loadList(cur.id); toast('Saved'); } }
 window.saveDraft=saveDraft;

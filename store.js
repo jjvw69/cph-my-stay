@@ -865,9 +865,13 @@ function saveMealPlan(reference, data) {
 /** Shared shape guard for the registration list — used by both the guest submit and the console editor. */
 function sanitizeGuestList(guests) {
   if (!Array.isArray(guests)) return [];
+  const seen = new Set();
   return guests.slice(0, 40)
     .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
-    .filter(g => g.name || g.passport);
+    .filter(g => g.name || g.passport)
+    // Drop exact repeats (same name + same passport) — a guest submitting while staff had the list open
+    // used to produce doubled rows. Same name with a DIFFERENT passport is kept: they're two people.
+    .filter(g => { const k = g.name.toLowerCase() + '|' + g.passport.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
 }
 /** Guest submits the pre-arrival guest list (names + passport numbers) for resort registration. */
 function setGuestList(reference, guests) {
