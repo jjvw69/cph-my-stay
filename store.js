@@ -1311,6 +1311,7 @@ function toGuestStay(s) {
     concierge: c,
     welcomeMessage: s.welcomeMessage || '',
     wifiName: s.wifiName || '', wifiPassword: s.wifiPassword || '', villaNumber: s.villaNumber || '',
+    wifiHandover: s.wifiHandover || '', // console-editable handover line — shown to the guest when no Wi-Fi name/password is set yet
     // Registration # is shown to the guest ONLY once the stay is ready AND a number is entered — hidden while pre-arrival info is pending/missing.
     registrationNumber: (stayReadiness(s).ready && String(s.registrationNumber || '').trim()) ? s.registrationNumber : '',
     guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),

@@ -1895,6 +1895,7 @@ async function pollStay(){
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
   if('sentServices' in f) s.sentServices=f.sentServices;
+  if('yachtProposal' in f) s.yachtProposal=f.yachtProposal; // was in the signature but never merged — a proposal sent while the app was open never appeared
   if('addOns' in f) s.addOns=f.addOns; // rate edits in the console reach an open guest app
   if(document.querySelector('.reqov')) return;          // don't disrupt an open request modal
   const top=state.stack.length?state.stack[state.stack.length-1]:null;
@@ -2239,7 +2240,7 @@ function renderGuide(){
       <div style="font-size:13px;color:rgba(255,255,255,.85)">Everything to make your stay seamless.</div>
     </div>
     ${card('Emergency numbers','General emergencies — <a href="tel:911" style="color:var(--accent)">911</a><br>Fire department — <b>5555</b><br>Resort security — <b>5193 / 5194</b>')}
-    ${card('Wi-Fi',(state.stay.wifiName||state.stay.wifiPassword)?`Network: <b>${esc(state.stay.wifiName||'—')}</b><br>Password: <b>${esc(state.stay.wifiPassword||'—')}</b>`:'Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.')}
+    ${card('Wi-Fi',(state.stay.wifiName||state.stay.wifiPassword)?`Network: <b>${esc(state.stay.wifiName||'—')}</b><br>Password: <b>${esc(state.stay.wifiPassword||'—')}</b>`:esc(state.stay.wifiHandover||'Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.'))}
     ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
     ${card('Getting around','Google Maps and Waze both work inside Casa de Campo — we recommend pinning your villa for easy reference.')}
     ${card('Groceries &amp; shopping','The Marina has wine &amp; spirits shops, a fresh bakery and the El Nacional supermarket. Larger supermarkets are in La Romana, just outside the resort.')}
@@ -2507,7 +2508,7 @@ window.printItinerary=function(){
     <table style="font-size:13px;border-collapse:collapse;width:100%">
       ${gk('Villa staff','Daily 8 AM–5 PM unless arranged. Beyond hours: US$60 per staff member (cash).')}
       ${gk('Tipping','Suggested US$35–45 per day, per staff member, in cash. ATMs at the Hotel, Minitas Beach and the Marina.')}
-      ${(s.wifiName||s.wifiPassword)?gk('Wi‑Fi','Network <b>'+esc(s.wifiName||'—')+'</b> · Password <b>'+esc(s.wifiPassword||'—')+'</b>'):gk('Wi‑Fi','Provided in your villa on arrival.')}
+      ${(s.wifiName||s.wifiPassword)?gk('Wi‑Fi','Network <b>'+esc(s.wifiName||'—')+'</b> · Password <b>'+esc(s.wifiPassword||'—')+'</b>'):gk('Wi‑Fi',esc(s.wifiHandover||'Provided in your villa on arrival.'))}
       ${gk('Getting around','Google Maps &amp; Waze work inside the resort — pin your villa. Photograph your golf cart to find it easily.')}
       ${gk('Groceries','Marina: wine &amp; spirits, bakery, El Nacional supermarket. Larger supermarkets in La Romana.')}
       ${gk('Check‑out','By '+esc(b.checkOutTime||'11:00 AM')+' — late check‑out on request.')}
