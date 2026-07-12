@@ -339,6 +339,13 @@ function nextInvoiceNo() { services.invoiceSeq = (services.invoiceSeq || 0) + 1;
   if (all.length) persistStays();
   persistServices();
 })();
+// Self-heal on every boot: an invoice must ALWAYS carry a number. Anything missing one (legacy row,
+// interrupted write) gets the next number in the global sequence, so no console row can render blank.
+(function backfillInvoiceNos() {
+  let fixed = 0;
+  stays.forEach(s => (s.invoices || []).forEach(iv => { if (!iv.no || !String(iv.no).trim()) { iv.no = nextInvoiceNo(); fixed++; } }));
+  if (fixed) { console.log('[invoices] backfilled %d invoice number(s)', fixed); persistStays(); }
+})();
 
 /** Built-in catalog (with any supplier override) + custom services. supplier is INTERNAL — never sent to guests. */
 function allAddOns() {

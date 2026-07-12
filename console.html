@@ -1334,18 +1334,22 @@ function stayVitals(s){
   const invList=(s.invoices||[]);
   const invStat=st=> st==='paid'?['Paid','v-green']:st==='sent'?['Sent','v-amber']:['Draft','v-soft'];
   if(invList.length){
-    invList.slice().sort((a,b)=>(a.no||0)-(b.no||0)).forEach(iv=>{ const [lab,cls]=invStat(iv.status); const tot=invTot(iv); bookedArr.push(bkRow(bkIcon(iv.title),iv.title||('Invoice #'+iv.no),'· US$'+tot.toLocaleString('en-US'),'Invoice #'+(iv.no||'')+(iv.kind==='grocery'?' · grocery':''),lab,cls)); });
+    invList.slice().sort((a,b)=>(a.no||0)-(b.no||0)).forEach(iv=>{ const [lab,cls]=invStat(iv.status); const tot=invTot(iv);
+      const no=String(iv.no||'').trim(); const noTxt=no?('Invoice #'+no):'⚠ No invoice number — reopen the invoice and save';
+      // Invoice # goes on the TITLE line too, so it's readable at a glance without hunting the grey sub-line.
+      bookedArr.push(bkRow(bkIcon(iv.title),(iv.title||'Invoice')+(no?(' · #'+no):''),'· US$'+tot.toLocaleString('en-US'),noTxt+(iv.kind==='grocery'?' · grocery':''),lab,cls)); });
     bookedArr.push(`<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:9px;margin-top:1px"><span style="font-weight:700;font-size:13.5px">Total billed</span><span style="font-weight:700;font-size:13.5px;color:var(--accent)">US$${allInvTot.toLocaleString('en-US')}</span></div><div style="font-size:11px;color:var(--soft);margin-top:-4px">Sum of all invoices — matches “Billed / paid”. Of this, US$${unpaidTot.toLocaleString('en-US',{maximumFractionDigits:2})} is still to collect.</div>`);
   } else {
     (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
       const [lab,cls]=rqStatus(r); const {pr,note}=perDayTotal(r.price,r.date,r.endDate);
       const meta=[r.serviceLevel,r.cartType,r.date&&r.endDate?(r.date+' → '+r.endDate):r.date,(r.guests?r.guests+' guests':''),(r.familyName?('for '+r.familyName):''),note].filter(Boolean).map(esc).join(' · ');
       const flt=hasFlight(r)?flightLine(r):'';
-      bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,flt].filter(Boolean).join('<br>'),lab,cls));
+      // No invoices on this stay yet — say so on every row rather than leaving the invoice line blank.
+      bookedArr.push(bkRow(bkIcon(r.title||r.refId),r.title||r.refId||'Request',pr,[meta,'Not invoiced yet',flt].filter(Boolean).join('<br>'),lab,cls));
     });
     (s.sentServices||[]).filter(x=>x.status!=='cancelled').forEach(x=>{
       const [lab,cls]=svcStatus(x); const {pr,note}=perDayTotal(x.price,x.dateFrom||x.date,x.dateTo||x.endDate);
-      bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,['Sent to guest',note].filter(Boolean).map(esc).join(' · '),lab,cls));
+      bookedArr.push(bkRow(bkIcon(x.name),x.name||'Service',pr,['Sent to guest',note,'Not invoiced yet'].filter(Boolean).map(esc).join(' · '),lab,cls));
     });
   }
   const bookedRows=bookedArr.length?bookedArr.join(''):'<div style="font-size:13px;color:var(--soft)">Nothing booked or reserved yet.</div>';
