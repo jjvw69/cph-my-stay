@@ -1016,7 +1016,7 @@ function renderToday(){
       ${stat(totPending,'Awaiting confirmation','pending',true)}
       ${stat(fudue.length,'Follow-ups due','fudue',true)}
       ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
-      ${statTxt('US$'+totCollect.toLocaleString(),'To collect','unpaid',totCollect>0,true)}
+      ${statTxt('US$'+totCollect.toLocaleString(),'To collect · unpaid','unpaid',totCollect>0,true)}
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
@@ -1323,7 +1323,7 @@ function stayVitals(s){
   const invStat=st=> st==='paid'?['Paid','v-green']:st==='sent'?['Sent','v-amber']:['Draft','v-soft'];
   if(invList.length){
     invList.slice().sort((a,b)=>(a.no||0)-(b.no||0)).forEach(iv=>{ const [lab,cls]=invStat(iv.status); const tot=invTot(iv); bookedArr.push(bkRow(bkIcon(iv.title),iv.title||('Invoice #'+iv.no),'· US$'+tot.toLocaleString('en-US'),'Invoice #'+(iv.no||'')+(iv.kind==='grocery'?' · grocery':''),lab,cls)); });
-    bookedArr.push(`<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:9px;margin-top:1px"><span style="font-weight:700;font-size:13.5px">Total billed</span><span style="font-weight:700;font-size:13.5px;color:var(--accent)">US$${allInvTot.toLocaleString('en-US')}</span></div><div style="font-size:11px;color:var(--soft);margin-top:-4px">Sum of all invoices — matches “To collect”.</div>`);
+    bookedArr.push(`<div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:9px;margin-top:1px"><span style="font-weight:700;font-size:13.5px">Total billed</span><span style="font-weight:700;font-size:13.5px;color:var(--accent)">US$${allInvTot.toLocaleString('en-US')}</span></div><div style="font-size:11px;color:var(--soft);margin-top:-4px">Sum of all invoices — matches “Billed / paid”. Of this, US$${unpaidTot.toLocaleString('en-US',{maximumFractionDigits:2})} is still to collect.</div>`);
   } else {
     (s.requests||[]).filter(r=>r.status!=='cancelled').forEach(r=>{
       const [lab,cls]=rqStatus(r); const {pr,note}=perDayTotal(r.price,r.date,r.endDate);
@@ -1369,15 +1369,28 @@ function stayVitals(s){
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:9px;margin-top:11px">
-      <div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
-        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect</div>
-        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'#C0392B':'var(--ink)'};margin-top:1px">US$${allInvTot.toLocaleString()}</div>
-        <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${s.paymentStatus==='Paid in full'?'#3F6B4E':(unpaidTot>0?'#9A2B2B':'var(--soft)')}">${s.paymentStatus?esc(s.paymentStatus):(unpaidTot>0?'Balance due':'Nothing due')}</div>
-      </div>
-      ${(function(){ const numB=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const _tot=numB(s.totalCharge),_paid=numB(s.amountPaid); const _has=!!(String(s.totalCharge||'').trim()||String(s.amountPaid||'').trim()); const _bal=Math.max(0,_tot-_paid); const _paidFull=s.paymentStatus==='Paid in full'||(_has&&_bal<=0); const _open=_has&&_bal>0&&!_paidFull; const _amt=_has?('US$'+_bal.toLocaleString('en-US')):'—'; const _sub=_paidFull?'Paid in full':(_has?(s.balanceDueBy?'by '+fmtDueBy(s.balanceDueBy):'Outstanding'):'Not set'); return `<div style="background:${_open?'#FBF3E7':'#F1F4F0'};border:1px solid ${_open?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
-        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${_open?'#8A6D2E':'var(--soft)'};font-weight:600">Balance due</div>
-        <div style="font-size:18px;font-weight:700;margin-top:1px;color:${_paidFull?'#3F6B4E':(_open?'#C0392B':'var(--ink)')}">${esc(_amt)}</div>
-        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">${esc(_sub)}</div>
+      ${(function(){
+        /* TO COLLECT = what the guest still owes (unpaid invoices only). Never the total billed —
+           that lives in the neutral Billed / paid card next to it. */
+        const openTxt=(function(){
+          if(!unpaidTot) return s.paymentStatus==='Paid in full'?'Paid in full':'Nothing due';
+          const names=unpaidInv.map(iv=>'#'+(iv.no||'')+' '+String(iv.title||'Invoice').replace(/\s*pre-stocking/i,''));
+          const due=unpaidInv.map(iv=>iv.dueBy).filter(Boolean)[0]||s.balanceDueBy||'';
+          const who=names.length<=2?names.join(' · '):(unpaidInv.length+' unpaid invoices');
+          return who+(due?' · due '+fmtDueBy(due):'');
+        })();
+        return `<div style="background:${unpaidTot>0?'#FBF3E7':'#F1F4F0'};border:1px solid ${unpaidTot>0?'#E7D4B4':'var(--line)'};border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${unpaidTot>0?'#8A6D2E':'var(--soft)'};font-weight:600">To collect${unpaidTot>0?' · unpaid':''}</div>
+        <div style="font-size:21px;font-weight:700;color:${unpaidTot>0?'#C0392B':'#3F6B4E'};margin-top:1px">US$${unpaidTot.toLocaleString('en-US',{maximumFractionDigits:2})}</div>
+        <div style="font-size:11.5px;font-weight:600;margin-top:1px;color:${unpaidTot>0?'#9A2B2B':'var(--soft)'}">${esc(openTxt)}</div>
+      </div>`; })()}
+      ${(function(){ /* Neutral context — not a to-do. */
+        const n=issuedInv.length, np=invs.filter(iv=>iv.status==='paid').length;
+        const sub=n?('US$'+paidInvTot.toLocaleString('en-US',{maximumFractionDigits:2})+' paid · '+np+' of '+n+' invoice'+(n===1?'':'s')):'No invoices yet';
+        return `<div style="background:#F1F4F0;border:1px solid var(--line);border-radius:12px;padding:12px 14px">
+        <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Billed / paid</div>
+        <div style="font-size:18px;font-weight:700;margin-top:1px;color:var(--ink)">US$${allInvTot.toLocaleString('en-US',{maximumFractionDigits:2})}</div>
+        <div style="font-size:11.5px;color:var(--soft);margin-top:1px">${esc(sub)}</div>
       </div>`; })()}
       <div style="background:#F1F4F0;border-radius:12px;padding:12px 14px">
         <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600">Add-ons</div>
