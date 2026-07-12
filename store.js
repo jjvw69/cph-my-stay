@@ -491,7 +491,7 @@ function blankStay() {
     agent: '', cartConfig: '', staffCount: '', accessCodes: '', transferNote: '', provisioning: '', extras: '',
     bookingAgent: '', // CPH booking agent (ivonna | jan) — internal owner of the booking, staff-only
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
-    grocerySuper: '', // grocery-section provisioning pick (staff-only) — independent of the board Super/provisioning field
+    grocerySuper: '', // grocery-section provisioning pick (staff-only) — SAME VALUE as `provisioning` (board Super column); always kept mirrored, see syncProvisioning()
     groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
     welcomeMessage: "Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.",
     requests: [],
@@ -690,12 +690,36 @@ function runAutomations() {
   return sent;
 }
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
+// The arrivals-board "Super" column (`provisioning`, imported from the old Excel sheet) and the
+// Grocery pre-stocking "Provisioning (Super)" picker (`grocerySuper`) are ONE value shown in two
+// places. Whichever side writes, both fields are set — never let them drift apart.
+function syncProvisioning(s, patch) {
+  const hasG = patch && 'grocerySuper' in patch, hasP = patch && 'provisioning' in patch;
+  if (hasG && !hasP) s.provisioning = s.grocerySuper || '';
+  else if (hasP && !hasG) s.grocerySuper = s.provisioning || '';
+  else if (hasG && hasP) { const v = s.grocerySuper || s.provisioning || ''; s.grocerySuper = v; s.provisioning = v; }
+  return s;
+}
+// One-time backfill: legacy bookings only carry the imported `provisioning` value, so the console
+// picker showed "— none —" while the board showed e.g. NARCISSA. Copy it across on boot.
+(function backfillProvisioning() {
+  let fixed = 0;
+  stays.forEach(s => {
+    const g = String(s.grocerySuper || '').trim(), p = String(s.provisioning || '').trim();
+    if (!g && p) { s.grocerySuper = p; fixed++; }
+    else if (g && !p) { s.provisioning = g; fixed++; }
+  });
+  if (fixed) { console.log('[provisioning] synced Super/grocerySuper on %d stay(s)', fixed); persistStays(); }
+})();
+
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
   const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   // Staff may edit the registration list from the console — sanitise exactly like the guest-submitted path.
   if ('guestList' in patch) s.guestList = sanitizeGuestList(patch.guestList);
+  syncProvisioning(s, patch); // board Super ↔ grocery Provisioning (Super) are one field
+
   s.updatedAt = Date.now();
   persistStays(); return s;
 }
