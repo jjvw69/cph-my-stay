@@ -1012,15 +1012,23 @@ function cleanGroceryItems(arr) {
 /** Grocery/pre-stocking invoice — every value is entered manually by staff (no calculations):
  *  RD line items, the Total in RD, the US$ sub-total, the US$ service fee, and the US$ total. */
 function groceryBreakdown(inv) {
+  const totalUSD = Number(inv && inv.totalUSD) || 0;
+  // Deposit / funds the guest already handed over for the shopping — subtracted from the invoice total.
+  const deposit = Number(inv && inv.depositUSD) || 0;
+  const finalUSD = Math.round((totalUSD - deposit) * 100) / 100; // may be negative = we owe the guest a refund
   return {
     totalRD: Number(inv && inv.totalRD) || 0,
     subUSD: Number(inv && inv.subUSD) || 0,
     svc: Number(inv && inv.serviceFeeUSD) || 0,
     pickup: Number(inv && inv.pickupUSD) || 0,
-    totalUSD: Number(inv && inv.totalUSD) || 0,
+    totalUSD,
+    deposit,
+    finalUSD,
+    dueUSD: Math.max(0, finalUSD),   // what's still collectable — a credit never offsets other invoices
+    refundUSD: Math.max(0, -finalUSD),
   };
 }
-function invoiceTotal(inv) { return (inv && inv.kind === 'grocery') ? groceryBreakdown(inv).totalUSD : invoiceBreakdown(inv).total; }
+function invoiceTotal(inv) { return (inv && inv.kind === 'grocery') ? groceryBreakdown(inv).dueUSD : invoiceBreakdown(inv).total; }
 function cleanItems(arr) {
   return (Array.isArray(arr) ? arr : []).slice(0, 40).map(it => {
     const o = {
@@ -1051,6 +1059,7 @@ function createInvoice(stayId, b) {
     serviceFeeUSD: money(b && b.serviceFeeUSD),
     pickupUSD: money(b && b.pickupUSD),
     totalUSD: money(b && b.totalUSD),
+    depositUSD: money(b && b.depositUSD),   // funds already received from the guest — deducted from the total
     legalPct: 0, servicePct: 0,
     dueBy: norm(b && b.dueBy).slice(0, 40),
     note: norm(b && b.note).slice(0, 400),
@@ -1102,6 +1111,7 @@ function updateInvoice(stayId, iid, b) {
     if (b.serviceFeeUSD != null) inv.serviceFeeUSD = money(b.serviceFeeUSD);
     if (b.pickupUSD != null) inv.pickupUSD = money(b.pickupUSD);
     if (b.totalUSD != null) inv.totalUSD = money(b.totalUSD);
+    if (b.depositUSD != null) inv.depositUSD = money(b.depositUSD);
     if (autoTotal) inv.totalUSD = autoTotal;
     if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
     if (b.note != null) inv.note = norm(b.note).slice(0, 400);
@@ -1265,7 +1275,7 @@ function toGuestStay(s) {
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', returnAirline: r.returnAirline || '', returnFlightNo: r.returnFlightNo || '', returnDest: r.returnDest || '', returnTime: r.returnTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
-    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, total: g.totalUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
+    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, invoiceUSD: g.totalUSD, depositUSD: g.deposit, finalUSD: g.finalUSD, refundUSD: g.refundUSD, total: g.dueUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     readiness: stayReadiness(s),
