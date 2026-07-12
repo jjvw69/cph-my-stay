@@ -1031,12 +1031,22 @@ function respondSentService(reference, sid, response) {
 function clampPct(v, def) { if (v === undefined || v === null || v === '') return def; const n = Number(v); return (isFinite(n) && n >= 0 && n <= 100) ? n : def; }
 function invoiceSubtotal(inv) { return (inv && Array.isArray(inv.items) ? inv.items : []).reduce((a, x) => a + (Number(x && x.amount) || 0), 0); }
 /** Full money breakdown: subtotal → 18% legal fee (ITBIS) + 10% service fee (each optional) → total. */
+/** Flat extra charges on a service invoice (e.g. "Pick up & delivery" US$50). Any label, any
+ *  amount — added AFTER the % fees, so they are never marked up. */
+function cleanExtras(arr) {
+  return (Array.isArray(arr) ? arr : []).slice(0, 10).map(x => ({
+    label: norm(x && x.label).slice(0, 120),
+    amount: Math.max(0, Math.round((parseFloat(String(x && x.amount).replace(/[^0-9.]/g, '')) || 0) * 100) / 100),
+  })).filter(x => x.label || x.amount);
+}
 function invoiceBreakdown(inv) {
   const subtotal = invoiceSubtotal(inv);
   const legalPct = Number(inv && inv.legalPct) || 0, servicePct = Number(inv && inv.servicePct) || 0;
   const legal = Math.round(subtotal * legalPct) / 100;     // subtotal * legalPct/100, to cents
   const service = Math.round(subtotal * servicePct) / 100;
-  return { subtotal, legalPct, servicePct, legal, service, total: subtotal + legal + service };
+  const extras = cleanExtras(inv && inv.extras);
+  const extrasTotal = Math.round(extras.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  return { subtotal, legalPct, servicePct, legal, service, extras, extrasTotal, total: Math.round((subtotal + legal + service + extrasTotal) * 100) / 100 };
 }
 function cleanGroceryItems(arr) {
   return (Array.isArray(arr) ? arr : []).slice(0, 60).map(it => ({
@@ -1109,6 +1119,7 @@ function createInvoice(stayId, b) {
     yachtId: norm(b && b.yachtId).slice(0, 40),     // optional link to the yacht proposal — locks the guest's boat choice once invoiced
     legalPct: clampPct(b && b.legalPct, 18),     // 18% ITBIS / legal fee by default
     servicePct: clampPct(b && b.servicePct, 10), // 10% service fee by default
+    extras: cleanExtras(b && b.extras),          // flat extra charges (e.g. Pick up & delivery US$50) — any label, any amount
     dueBy: norm(b && b.dueBy).slice(0, 40),
     note: norm(b && b.note).slice(0, 400),
     payTo: cleanPayTo(b && b.payTo),
@@ -1159,6 +1170,7 @@ function updateInvoice(stayId, iid, b) {
   if (b.yachtId != null) inv.yachtId = norm(b.yachtId).slice(0, 40);
   if (b.legalPct != null) inv.legalPct = clampPct(b.legalPct, 18);
   if (b.servicePct != null) inv.servicePct = clampPct(b.servicePct, 10);
+  if (b.extras != null) inv.extras = cleanExtras(b.extras);
   if (b.dueBy != null) inv.dueBy = norm(b.dueBy).slice(0, 40);
   if (b.note != null) inv.note = norm(b.note).slice(0, 400);
   if (b.payTo != null) inv.payTo = cleanPayTo(b.payTo);
@@ -1310,7 +1322,7 @@ function toGuestStay(s) {
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', returnAirline: r.returnAirline || '', returnFlightNo: r.returnFlightNo || '', returnDest: r.returnDest || '', returnTime: r.returnTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
-    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, invoiceUSD: g.totalUSD, depositUSD: g.deposit, finalUSD: g.finalUSD, refundUSD: g.refundUSD, total: g.dueUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
+    invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, invoiceUSD: g.totalUSD, depositUSD: g.deposit, finalUSD: g.finalUSD, refundUSD: g.refundUSD, total: g.dueUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, extras: bd.extras, extrasTotal: bd.extrasTotal, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),
     guestCheckin: s.guestCheckin || null,
     readiness: stayReadiness(s),
