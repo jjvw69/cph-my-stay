@@ -121,15 +121,35 @@ const AGENT_LETTER = { jan:'J', ivonna:'I', maria:'M' };
 
 /* Pull the guest's real flight times off the airport transfer. The transfer can live in either place:
    a guest REQUEST (they asked for it) or a concierge-SENT service (staff arranged it) — both carry the
-   same flight fields. Cancelled ones are ignored. Arrival leg = arrivalTime; return leg = returnTime. */
+   same flight fields. Cancelled ones are ignored.
+
+   CRITICAL: the flight fields are DIRECTION-DEPENDENT (see index.html rqRouteChange).
+     · Round-trip        → arrivalTime = landing,  returnTime = departure flight.
+     · One-way ARRIVAL   → arrivalTime = landing.
+     · One-way DEPARTURE → arrivalTime is RELABELLED "flight departure time", and flightOrigin is
+                           relabelled "flight destination". There is NO returnTime on a one-way.
+   So a one-way departure transfer must be read out of the *arrival* fields, or its time is lost and the
+   event silently falls back to the 11:00 AM check-out default. Direction comes from the route text
+   ("Route: Casa de Campo → LRM", stored in the note) and, failing that, from the leg's date. */
 function transferLegs(s){
   const out={arrTime:'',arrAirline:'',arrFlightNo:'',arrFrom:'',depTime:'',depAirline:'',depFlightNo:'',depTo:''};
   const isTransfer=x=>x && (x.refId==='transfer' || x.serviceId==='transfer' || /transfer/i.test(String(x.name||x.title||'')));
   const live=x=>x && x.status!=='cancelled' && x.status!=='declined';
-  const legs=[].concat(s.requests||[], s.sentServices||[]).filter(x=>isTransfer(x)&&live(x));
-  legs.forEach(r=>{
-    if(!out.arrTime && r.arrivalTime){ out.arrTime=r.arrivalTime; out.arrAirline=r.airline||''; out.arrFlightNo=r.flightNo||''; out.arrFrom=r.flightOrigin||''; }
-    if(!out.depTime && r.returnTime){ out.depTime=r.returnTime; out.depAirline=r.returnAirline||''; out.depFlightNo=r.returnFlightNo||''; out.depTo=r.returnDest||''; }
+  const setArr=(t,al,fn,pl)=>{ if(out.arrTime)return; out.arrTime=t||''; out.arrAirline=al||''; out.arrFlightNo=fn||''; out.arrFrom=pl||''; };
+  const setDep=(t,al,fn,pl)=>{ if(out.depTime)return; out.depTime=t||''; out.depAirline=al||''; out.depFlightNo=fn||''; out.depTo=pl||''; };
+  [].concat(s.requests||[], s.sentServices||[]).filter(x=>isTransfer(x)&&live(x)).forEach(r=>{
+    const txt=[r.note,r.title,r.option,r.serviceLevel,r.trip,r.name].filter(Boolean).join(' ');
+    const roundTrip=/round[- ]?trip/i.test(txt) || !!r.returnTime;
+    if(roundTrip){                                   // one request carries BOTH legs
+      setArr(r.arrivalTime, r.airline, r.flightNo, r.flightOrigin);
+      setDep(r.returnTime, r.returnAirline, r.returnFlightNo, r.returnDest);
+      return;
+    }
+    // One-way. Which leg is it? Route text wins; otherwise fall back to matching the date.
+    const routeSaysDeparture=/casa de campo\s*(?:→|->|to\b)/i.test(txt);
+    const dateSaysDeparture=!!(r.date && s.checkout && r.date===s.checkout && r.date!==s.checkin);
+    if(routeSaysDeparture || dateSaysDeparture) setDep(r.arrivalTime, r.airline, r.flightNo, r.flightOrigin);
+    else setArr(r.arrivalTime, r.airline, r.flightNo, r.flightOrigin);
   });
   return out;
 }
