@@ -420,7 +420,7 @@ function preArrivalBanner(s){
   const done = 3 - miss.length;
   const LABELS = {
     precheckin: ['Complete pre check-in', "push('checkin')"],
-    passports:  ['Add guest passport details', "push('guestlist')"],
+    passports:  ['Add guest passport details', "openGuestList()"],
     transfer:   ['Arrange your airport transfer', "push('checkin')"],
   };
   const rows = miss.map(k=>{ const it=LABELS[k]||['','']; return `
@@ -1902,15 +1902,24 @@ async function pollStay(){
   // NOT via the main signature — so it never forces a full view re-render (which would collapse
   // open accordions / reset scroll on Home/Stay/Plan).
   if(f.staffReadAt!=null && f.staffReadAt!==s.staffReadAt){ s.staffReadAt=f.staffReadAt; const _mel=document.getElementById('msgs'); if(_mel) updateMsgs(); }
-  const sig=JSON.stringify([f.booking,f.villa,f.concierge&&f.concierge.id,(f.addOns||[]).map(a=>a.id+':'+(a.rates||a.price||'')+':'+(a.recommended?1:0)).join('|'),f.staffHours,f.wifiName,f.wifiPassword,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.invoices,f.sentServices,f.yachtProposal]);
+  // GOLDEN RULE: anything MERGED below must also be in this signature — a field that's merged but not
+  // signed is dead code (an isolated change to it leaves the sig identical, so we early-return and
+  // never merge it). wifiHandover and guest were exactly that: merged, unsigned, therefore never synced.
+  const sig=JSON.stringify([f.booking,f.villa,f.concierge&&f.concierge.id,(f.addOns||[]).map(a=>a.id+':'+(a.rates||a.price||'')+':'+(a.recommended?1:0)).join('|'),f.staffHours,f.wifiName,f.wifiPassword,f.wifiHandover,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guest,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.readiness,f.invoices,f.sentServices,f.yachtProposal]);
   if(sig===_staySig) return; _staySig=sig;
   // merge static + guest-owned fields (leave requests/messages to their pollers)
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
+  if(f.guest) s.guest=f.guest;   // a name/email/phone correction in the console reaches an open app
   ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
   s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin; s.readiness=f.readiness;
   // A guest list edited in the console must reach an ALREADY-OPEN guest app: refresh the pre check-in
   // rows from the shared list. Empty rows only — never overwrite what the guest is typing.
   if(state.checkin) state.checkin.docs=docsFromGuestList(s.guestList, state.checkin.docs);
+  // The guest-list screen keeps its own working copy (state._gl) that was only ever cleared on a
+  // successful Save. If the guest opened it, backed out, and staff then added people, reopening
+  // showed the STALE copy — and saving it wiped the staff's additions. Drop the working copy whenever
+  // that screen isn't the one on top, so it re-seeds from the shared list on next open.
+  if((state.stack.length?state.stack[state.stack.length-1]:null)!=='guestlist') state._gl=null;
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
   if('sentServices' in f) s.sentServices=f.sentServices;
@@ -2219,7 +2228,7 @@ function renderArrival(){
   const dist=DIST[(b.airport||'LRM')]||DIST.LRM;
   const steps=[
     {t:'Before you arrive',d:'Please note that you must fill out the E-TICKET to enter and leave the Dominican Republic: <a href="https://eticket.migracion.gob.do/" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:underline;word-break:break-word">https://eticket.migracion.gob.do/</a><br><br>Your address in the Dominican Republic is:<br>Street: Casa de Campo<br>City: La Romana<br>Province: La Romana<br>Section: Central Romana<br>Country: Dominican Republic'},
-    {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="push('guestlist')" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
+    {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="openGuestList()" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
     {t:'Land at '+(b.airport||'LRM'),d:'The driver will be waiting just outside customs with a sign showing the client’s name. Our operations department monitors your flight’s arrival and landing time, and the driver will wait for up to 1 hour after you land. After that time, an additional charge applies.'},
     {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
     {t:'Resort fee',d:'Please take into account that a resort fee applies:<br>• US$30 per adult, per day (12 years of age and older)<br>• US$15 per child, per day (between 4–12 years old)<br>• Children 3 years of age and under are granted free access.'},
@@ -2330,6 +2339,10 @@ function glView(){
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="glSave()">Submit guest list</button>`;
   shell('Guest registration', inner);
 }
+/* Always re-seed the working copy from the shared list when OPENING the screen (matches how
+   openGrocery/openMeals behave). Without this, a working copy left over from an earlier visit shadows
+   a guest list the concierge has since edited. */
+window.openGuestList=function(){ state._gl=null; push('guestlist'); };
 window.glSet=function(i,k,v){ if(state._gl&&state._gl[i]) state._gl[i][k]=v; };
 window.glAdd=function(){ state._gl.push({name:'',passport:''}); glView(); };
 window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:''}); glView(); };
