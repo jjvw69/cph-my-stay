@@ -145,16 +145,20 @@ function calendarICS(who){
       const guests=(Number(s.adults)||0)+(Number(s.children)||0);
       const notes=['Booking '+(s.reference||''), villaFull?('Villa: '+villaFull+(s.villaName?(' · '+s.villaName):'')):'',
         guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):'', '', link].filter(Boolean).join('\n');
-      const ev=(uid,summary,start)=>{ L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
-        'SUMMARY:'+icsEsc(summary),'DTSTART:'+start,'DTEND:'+icsPlusHour(start));
+      // ALL-DAY events (VALUE=DATE). This is what makes Apple render them as SOLID colour blocks in
+      // month view — a timed event only ever draws a thin bar + text. DTEND is exclusive → day + 1.
+      // The clock time therefore isn't shown on the block; it's carried in the notes instead.
+      const ev=(uid,summary,day,timeLabel)=>{
+        const d1=icsDate(day), d2=icsDatePlus(day,1); if(!d1||!d2) return;
+        L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
+          'SUMMARY:'+icsEsc(summary),'DTSTART;VALUE=DATE:'+d1,'DTEND;VALUE=DATE:'+d2);
         if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
-        L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
-      // (J) ARR | BAH3 | Hartley   —  timed at the villa's check-in time (default 3:00 PM)
-      const a=icsStampLocal(s.checkin,s.checkinTime,15);
-      if(a) ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, a);
-      // (J) DEP | BAH3 | Hartley   —  timed at the villa's check-out time (default 11:00 AM)
-      const d=icsStampLocal(s.checkout,s.checkoutTime,11);
-      if(d) ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, d);
+        L.push('DESCRIPTION:'+icsEsc((timeLabel?(timeLabel+'\n'):'')+notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT');
+      };
+      // (J) ARR | BAH3 | Hartley   —  on the check-in day
+      ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, s.checkin, 'Check-in '+(s.checkinTime||'3:00 PM'));
+      // (J) DEP | BAH3 | Hartley   —  on the check-out day
+      ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, s.checkout, 'Check-out '+(s.checkoutTime||'11:00 AM'));
     });
   L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n')+'\r\n';
