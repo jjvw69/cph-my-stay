@@ -119,6 +119,21 @@ const CAL_COLORS = { maria:'#12794D', ivonna:'#5A3A88', jan:'#D7E600', none:'#B4
 const CAL_CSSCOLOR = { maria:'seagreen', ivonna:'darkslateblue', jan:'yellow', none:'darkgray' };
 const AGENT_LETTER = { jan:'J', ivonna:'I', maria:'M' };
 
+/* Pull the guest's real flight times off the airport transfer. The transfer can live in either place:
+   a guest REQUEST (they asked for it) or a concierge-SENT service (staff arranged it) — both carry the
+   same flight fields. Cancelled ones are ignored. Arrival leg = arrivalTime; return leg = returnTime. */
+function transferLegs(s){
+  const out={arrTime:'',arrAirline:'',arrFlightNo:'',arrFrom:'',depTime:'',depAirline:'',depFlightNo:'',depTo:''};
+  const isTransfer=x=>x && (x.refId==='transfer' || x.serviceId==='transfer' || /transfer/i.test(String(x.name||x.title||'')));
+  const live=x=>x && x.status!=='cancelled' && x.status!=='declined';
+  const legs=[].concat(s.requests||[], s.sentServices||[]).filter(x=>isTransfer(x)&&live(x));
+  legs.forEach(r=>{
+    if(!out.arrTime && r.arrivalTime){ out.arrTime=r.arrivalTime; out.arrAirline=r.airline||''; out.arrFlightNo=r.flightNo||''; out.arrFrom=r.flightOrigin||''; }
+    if(!out.depTime && r.returnTime){ out.depTime=r.returnTime; out.depAirline=r.returnAirline||''; out.depFlightNo=r.returnFlightNo||''; out.depTo=r.returnDest||''; }
+  });
+  return out;
+}
+
 /** Build the .ics for one greeter feed. `who` is a key of CAL_FEEDS; 'none' = no greeter assigned. */
 function calendarICS(who){
   const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
@@ -143,21 +158,32 @@ function calendarICS(who){
       const link=APP_URL+'/console?stay='+s.id;
       const stamp=new Date(s.updatedAt||s.createdAt||Date.now()).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
       const guests=(Number(s.adults)||0)+(Number(s.children)||0);
-      const notes=['Booking '+(s.reference||''), villaFull?('Villa: '+villaFull+(s.villaName?(' · '+s.villaName):'')):'',
-        guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):'', '', link].filter(Boolean).join('\n');
-      // TIMED events (1h) at the villa's actual check-in / check-out time, so they sort by hour within
-      // the day and show the clock time. Apple draws a timed event as a colour bar + text, not a
-      // filled block — that's Apple's rendering rule for timed events and is not configurable here.
-      const ev=(uid,summary,start)=>{ L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
+      // Apple subscriptions are READ-ONLY — the time can't be edited in Calendar, so it has to be right
+      // at the source. Prefer the guest's real FLIGHT time from the airport transfer (request or
+      // concierge-sent service); fall back to the villa's check-in / check-out time.
+      const tf=transferLegs(s);
+      const arrTime=tf.arrTime||s.checkinTime;    // flight lands → else 3:00 PM
+      const depTime=tf.depTime||s.checkoutTime;   // return flight → else 11:00 AM
+      const flightLine=(t,f)=>{ const bits=[f.airline,f.flightNo].filter(Boolean).join(' ');
+        return (bits||f.time)?(t+': '+[bits,f.place,f.time].filter(Boolean).join(' · ')):''; };
+      const baseNotes=['Booking '+(s.reference||''), villaFull?('Villa: '+villaFull+(s.villaName?(' · '+s.villaName):'')):'',
+        guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):''].filter(Boolean);
+      // Link is NOT repeated in the notes — the URL property below already gives Apple a tappable row.
+      const notesFor=(extra)=>[...(extra?[extra]:[]), ...baseNotes].filter(Boolean).join('\n');
+      // TIMED events (1h). Apple draws a timed event as a colour bar + text, not a filled block —
+      // that's Apple's rendering rule for timed events and is not configurable here.
+      const ev=(uid,summary,start,notes)=>{ L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
         'SUMMARY:'+icsEsc(summary),'DTSTART:'+start,'DTEND:'+icsPlusHour(start));
         if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
         L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
-      // (J) ARR | BAH3 | Hartley   —  at the villa's check-in time (default 3:00 PM)
-      const a=icsStampLocal(s.checkin,s.checkinTime,15);
-      if(a) ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, a);
-      // (J) DEP | BAH3 | Hartley   —  at the villa's check-out time (default 11:00 AM)
-      const d=icsStampLocal(s.checkout,s.checkoutTime,11);
-      if(d) ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, d);
+      // (J) ARR | BAH3 | Hartley   —  at the arrival flight time, else the villa's check-in time
+      const a=icsStampLocal(s.checkin,arrTime,15);
+      if(a) ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, a,
+        notesFor(flightLine('Arrival flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:tf.arrTime})));
+      // (J) DEP | BAH3 | Hartley   —  at the return flight time, else the villa's check-out time
+      const d=icsStampLocal(s.checkout,depTime,11);
+      if(d) ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, d,
+        notesFor(flightLine('Return flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:tf.depTime})));
     });
   L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n')+'\r\n';
