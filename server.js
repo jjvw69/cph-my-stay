@@ -109,17 +109,26 @@ function villaCode(internal, fallbackName){
   if(br && br!==numTok.replace(/\D/g,'')) code+='-'+br+'BR';
   return code;
 }
-// The four greeter feeds. Colour is set once per calendar in Apple Calendar — it can't be set per event.
+// The four greeter feeds. Apple colours per CALENDAR, not per event — so each greeter gets its own
+// feed, and the feed carries its own colour via X-APPLE-CALENDAR-COLOR (the exact hex the console
+// uses for that greeter's chip), so Apple Calendar picks it up on subscribe with no manual step.
 const CAL_FEEDS = { maria:'Maria', ivonna:'Ivonna', jan:'Jan', none:'Unassigned' };
+// Must stay in lockstep with console.html .greet-sel.g-* rules (and CAL_FEED_COLORS there).
+const CAL_COLORS = { maria:'#12794D', ivonna:'#5A3A88', jan:'#D7E600', none:'#B4B2A9' };
+// RFC 7986 COLOR takes a CSS3 name (used by Google/Outlook); Apple uses the hex above.
+const CAL_CSSCOLOR = { maria:'seagreen', ivonna:'darkslateblue', jan:'yellow', none:'darkgray' };
 const AGENT_LETTER = { jan:'J', ivonna:'I', maria:'M' };
 
 /** Build the .ics for one greeter feed. `who` is a key of CAL_FEEDS; 'none' = no greeter assigned. */
 function calendarICS(who){
   const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
   const label=CAL_FEEDS[who]||'Arrivals';
+  const hex=CAL_COLORS[who]||'#B4B2A9';
   const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Caribbean Paradise Homes//My Stay Console//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
     'X-WR-CALNAME:'+icsEsc('CPH · '+label),
     'X-WR-CALDESC:'+icsEsc('Caribbean Paradise Homes — arrivals & departures'+(who==='none'?' with no greeter assigned':' met by '+label)),
+    'X-APPLE-CALENDAR-COLOR:'+hex+'FF',      // Apple Calendar: exact greeter colour, applied on subscribe
+    'COLOR:'+(CAL_CSSCOLOR[who]||'darkgray'), // RFC 7986: Google / Outlook honour a CSS3 colour name
     'X-WR-TIMEZONE:America/Santo_Domingo','REFRESH-INTERVAL;VALUE=DURATION:PT1H','X-PUBLISHED-TTL:PT1H'];
   store.exportAll()
     .filter(s=>s.status==='published'&&s.checkin&&s.checkout)

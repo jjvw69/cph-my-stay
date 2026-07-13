@@ -845,7 +845,7 @@ window.showCalendarSync=function(){
       <span style="width:14px;height:14px;border-radius:4px;background:${c};flex:none;border:1px solid rgba(0,0,0,.12)"></span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13.5px;font-weight:600">CPH · ${esc(f.label)}</div>
-        <div style="font-size:11.5px;color:var(--soft)">Set this calendar's colour to <b>${esc(CAL_FEED_COLORNAME[f.id]||'')}</b></div>
+        <div style="font-size:11.5px;color:var(--soft)">Arrives as <b>${esc(CAL_FEED_COLORNAME[f.id]||'')}</b> <span style="font-family:ui-monospace,Menlo,monospace">${esc(c)}</span> — the greeter chip colour</div>
       </div>
       <button class="ab-actbtn" style="flex:none" onclick="window.open('${f.url.replace(/^https?:/,'webcal:')}','_self')">Subscribe</button>
       <button class="ab-actbtn" style="flex:none" onclick="copyCalUrl('${esc(f.url)}')">Copy URL</button>
@@ -856,11 +856,12 @@ window.showCalendarSync=function(){
       <div style="font-size:17px;font-weight:800">Sync to Calendar</div>
       <button class="ab-actbtn" onclick="closeCalendarSync()">✕</button>
     </div>
-    <div style="font-size:12.5px;color:var(--soft);line-height:1.55;margin-bottom:14px">Published bookings appear as <b>ARR</b> and <b>DEP</b> events, one calendar per greeter. Subscribe to all four, then set each calendar's colour in Apple Calendar to match the console. Updates flow through automatically — the calendar refreshes about once an hour.</div>
+    <div style="font-size:12.5px;color:var(--soft);line-height:1.55;margin-bottom:14px">Published bookings appear as <b>ARR</b> and <b>DEP</b> events, one calendar per greeter. Each feed carries its own colour, so it lands in Apple Calendar already matching the greeter chips on the board. Updates flow through automatically — the calendar refreshes about once an hour.</div>
     ${rows||'<div style="font-size:13px;color:var(--soft)">Feed URLs unavailable — reload the console.</div>'}
     <div style="font-size:11.5px;color:var(--soft);line-height:1.55;margin-top:14px">
-      <b>Mac:</b> Calendar → File → New Calendar Subscription → paste the URL → set Auto-refresh to Every hour, and pick the colour.<br>
+      <b>Mac:</b> Calendar → File → New Calendar Subscription → paste the URL → set Auto-refresh to Every hour.<br>
       <b>iPhone:</b> tap Subscribe above, or Settings → Apps → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.<br>
+      If a calendar ever shows the wrong colour, right-click it → Get Info → Custom, and paste the hex shown above.<br>
       <span style="color:#B4522A">These links are private — anyone with the URL can read the bookings. Don't post them publicly.</span>
     </div>
   </div>`;
