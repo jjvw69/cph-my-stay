@@ -68,6 +68,89 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   + "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
   + "self.addEventListener('fetch',function(e){/* network passthrough — installability shell only */});\n";
 
+// ---- Apple Calendar / iCal subscription feed (read-only) ----
+// Staff subscribe once to  {APP_URL}/calendar/<token>.ics  in Apple Calendar (or Google/Outlook).
+// PUBLISHED stays only. Per stay we emit: one all-day block (arrival→departure) plus a timed
+// ARRIVAL and DEPARTURE event. Notes carry a deep link back to the booking in the console.
+// The token is derived from SESSION_SECRET (stable across deploys) unless CALENDAR_TOKEN is set.
+const CALENDAR_TOKEN = process.env.CALENDAR_TOKEN
+  || crypto.createHmac('sha256', SESSION_SECRET || 'insecure-dev').update('calendar-feed-v1').digest('hex').slice(0, 32);
+const CAL_TZ_OFFSET = 4; // America/Santo_Domingo is a fixed UTC-4 (no DST) — local + 4h = UTC.
+
+function icsEsc(t){ return String(t == null ? '' : t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n'); }
+// RFC 5545: fold content lines at 75 octets, continuation lines start with a single space.
+function icsFold(line){ if(Buffer.byteLength(line)<=74) return line; const out=[]; let cur=''; for(const ch of line){ if(Buffer.byteLength(cur+ch)>73){ out.push(cur); cur=' '; } cur+=ch; } out.push(cur); return out.join('\r\n'); }
+function icsDate(d){ return String(d||'').replace(/-/g,''); }            // 2026-07-13 -> 20260713
+function icsDatePlus(d,days){ const t=Date.parse(String(d)+'T00:00:00Z'); if(!isFinite(t)) return ''; return new Date(t+days*86400000).toISOString().slice(0,10).replace(/-/g,''); }
+// "3:00 PM" / "15:00" (local DR time) -> UTC stamp on the given date, e.g. 20260713T190000Z
+function icsStampLocal(date,timeStr,fallbackHour){
+  const t=Date.parse(String(date)+'T00:00:00Z'); if(!isFinite(t)) return '';
+  let h=fallbackHour, mi=0;
+  const m=String(timeStr||'').trim().match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+  if(m){ h=parseInt(m[1],10); mi=parseInt(m[2]||'0',10); const ap=(m[3]||'').toUpperCase();
+    if(ap==='PM'&&h<12) h+=12; if(ap==='AM'&&h===12) h=0; }
+  return new Date(t+(h+CAL_TZ_OFFSET)*3600000+mi*60000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+}
+function icsPlusHour(stamp){ const iso=stamp.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/,'$1-$2-$3T$4:$5:$6Z'); return new Date(Date.parse(iso)+3600000).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''); }
+
+// Villa short code, Jan's arrivals-sheet shorthand: first 3 letters of the internal property name +
+// its number  →  "Bahia Minitas 3" = BAH3, "Barranca Este 71" = BAR71, "Punta Aguila 22" = PUN22.
+// Only one pair collides under that rule (Los Almendros 4 / Los Lagos 4) — hard-mapped below.
+const VILLA_CODE_OVERRIDES = { 'Los Almendros 4':'ALM4', 'Los Lagos 4':'LAG4' };
+function villaCode(internal, fallbackName){
+  const n=String(internal||'').trim();
+  if(!n) return String(fallbackName||'').replace(/[^A-Za-z0-9]/g,'').slice(0,6).toUpperCase();
+  if(VILLA_CODE_OVERRIDES[n]) return VILLA_CODE_OVERRIDES[n];
+  const toks=n.replace(/[()]/g,' ').split(/\s+/).filter(Boolean);
+  const word=toks.find(t=>/^[A-Za-z]/.test(t))||'';
+  const numTok=toks.find(t=>/^\d/.test(t))||'';          // first number wins: "34 (8br)" → 34
+  const br=(n.match(/(\d+)\s*br/i)||[])[1]||'';          // bedroom variant suffix, e.g. "- 6br"
+  let code=word.slice(0,3).toUpperCase()+numTok.toUpperCase();
+  if(br && br!==numTok.replace(/\D/g,'')) code+='-'+br+'BR';
+  return code;
+}
+// The four greeter feeds. Colour is set once per calendar in Apple Calendar — it can't be set per event.
+const CAL_FEEDS = { maria:'Maria', ivonna:'Ivonna', jan:'Jan', none:'Unassigned' };
+const AGENT_LETTER = { jan:'J', ivonna:'I', maria:'M' };
+
+/** Build the .ics for one greeter feed. `who` is a key of CAL_FEEDS; 'none' = no greeter assigned. */
+function calendarICS(who){
+  const now=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const label=CAL_FEEDS[who]||'Arrivals';
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Caribbean Paradise Homes//My Stay Console//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'X-WR-CALNAME:'+icsEsc('CPH · '+label),
+    'X-WR-CALDESC:'+icsEsc('Caribbean Paradise Homes — arrivals & departures'+(who==='none'?' with no greeter assigned':' met by '+label)),
+    'X-WR-TIMEZONE:America/Santo_Domingo','REFRESH-INTERVAL;VALUE=DURATION:PT1H','X-PUBLISHED-TTL:PT1H'];
+  store.exportAll()
+    .filter(s=>s.status==='published'&&s.checkin&&s.checkout)
+    .filter(s=>{ const g=String(s.assigneeId||'').trim(); return who==='none' ? !CAL_FEEDS[g] : g===who; })
+    .forEach(s=>{
+      const v=store.getVilla(s.villaId)||{};
+      const villaFull=s.villaInternal||v.internalName||s.villaName||v.name||'';
+      const code=villaCode(s.villaInternal||v.internalName||'', s.villaName||v.name||'');
+      const name=(s.lastName||s.leadName||'Guest').trim();
+      const agent=AGENT_LETTER[String(s.bookingAgent||'').toLowerCase()]||'';
+      const prefix=agent?('('+agent+') '):'';                       // no agent set → no empty "( )"
+      const link=APP_URL+'/console?stay='+s.id;
+      const stamp=new Date(s.updatedAt||s.createdAt||Date.now()).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+      const guests=(Number(s.adults)||0)+(Number(s.children)||0);
+      const notes=['Booking '+(s.reference||''), villaFull?('Villa: '+villaFull+(s.villaName?(' · '+s.villaName):'')):'',
+        guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):'', '', link].filter(Boolean).join('\n');
+      const ev=(uid,summary,start)=>{ L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
+        'SUMMARY:'+icsEsc(summary),'DTSTART:'+start,'DTEND:'+icsPlusHour(start));
+        if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
+        L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
+      // (J) ARR | BAH3 | Hartley   —  timed at the villa's check-in time (default 3:00 PM)
+      const a=icsStampLocal(s.checkin,s.checkinTime,15);
+      if(a) ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, a);
+      // (J) DEP | BAH3 | Hartley   —  timed at the villa's check-out time (default 11:00 AM)
+      const d=icsStampLocal(s.checkout,s.checkoutTime,11);
+      if(d) ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, d);
+    });
+  L.push('END:VCALENDAR');
+  return L.map(icsFold).join('\r\n')+'\r\n';
+}
+
 // ---- Server-Sent Events: push instant console updates (no more 18s lag) ----
 const sseClients = new Set();
 function broadcastStaff(obj){ const s='data: '+JSON.stringify(obj||{type:'changed'})+'\n\n'; for(const r of sseClients){ try{ r.write(s); }catch(e){} } }
@@ -316,7 +399,7 @@ async function route(req,res){
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);
-    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES,yachtCatalog:store.YACHT_CATALOG,serviceOptions:store.SERVICE_OPTIONS,provisioningOptions:store.PROVISIONING_OPTIONS});
+    if(m==='GET' &&url==='/api/staff/bootstrap') return sendJSON(res,200,{ok:true,villas:store.listVillas(),addons:store.listServicesForStaff(),concierges:store.CONCIERGES,yachtCatalog:store.YACHT_CATALOG,serviceOptions:store.SERVICE_OPTIONS,provisioningOptions:store.PROVISIONING_OPTIONS,calendarFeeds:Object.keys(CAL_FEEDS).map(k=>({id:k,label:CAL_FEEDS[k],url:APP_URL+'/calendar/'+CALENDAR_TOKEN+'/'+k+'.ics'}))});
     if(m==='POST'&&url==='/api/staff/services'){ const b=await readBody(req); const it=store.addCustomService(b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,400,{ok:false,error:'A service name is required.'}); }
     const svU=url.match(/^\/api\/staff\/services\/([A-Za-z0-9]+)$/);
     if(svU&&m==='PUT'){ const b=await readBody(req); const it=store.updateService(svU[1],b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Service not found'}); }
@@ -364,6 +447,19 @@ async function route(req,res){
       if(m==='DELETE'){ return store.deleteStay(id)?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     }
     return sendJSON(res,404,{ok:false,error:'Unknown staff route'});
+  }
+
+  // ---- iCal subscription feeds (Apple Calendar / Google / Outlook). Secret token in the path. ----
+  // One feed per greeter: /calendar/<token>/{maria|ivonna|jan|none}.ics — Apple colours per CALENDAR,
+  // not per event, so a separate feed per greeter is the only way to colour by who's meeting the guest.
+  const calM=url.match(/^\/calendar\/([A-Za-z0-9_-]+)\/([a-z]+)\.ics$/);
+  if(calM&&(m==='GET'||m==='HEAD')){
+    const got=Buffer.from(calM[1]), want=Buffer.from(CALENDAR_TOKEN);
+    const okTok = got.length===want.length && crypto.timingSafeEqual(got,want);
+    if(!okTok || !CAL_FEEDS[calM[2]]){ res.writeHead(404,{'Content-Type':'text/plain'}); return res.end('Not found'); }
+    const body=calendarICS(calM[2]);
+    res.writeHead(200,{'Content-Type':'text/calendar; charset=utf-8','Content-Disposition':'inline; filename="cph-'+calM[2]+'.ics"','Cache-Control':'no-cache, must-revalidate','Content-Length':Buffer.byteLength(body)});
+    return m==='HEAD'?res.end():res.end(body);
   }
 
   // pages

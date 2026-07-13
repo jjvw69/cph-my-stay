@@ -830,6 +830,44 @@ window.exportBoardExcel=function(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Arrivals-board-'+todayStr()+'.xls'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
 };
 window.printBoard=function(){ window.print(); };
+// ---- Sync to Calendar: the four greeter iCal feeds (Apple Calendar / Google / Outlook) ----
+// Apple colours per CALENDAR, not per event — so each greeter gets their own subscription, and
+// the colour is set once in Calendar to match the console's greeter colours.
+const CAL_FEED_COLORS={maria:'#12794D',ivonna:'#5A3A88',jan:'#D7E600',none:'#B4B2A9'};
+const CAL_FEED_COLORNAME={maria:'Green',ivonna:'Purple',jan:'Yellow',none:'Graphite / grey'};
+window.showCalendarSync=function(){
+  const feeds=(BOOT&&BOOT.calendarFeeds)||[];
+  let ov=document.getElementById('calOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='calOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeCalendarSync(); }; document.body.appendChild(ov); }
+  const rows=feeds.map(f=>{
+    const c=CAL_FEED_COLORS[f.id]||'#B4B2A9'; const dark=(f.id==='jan');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)">
+      <span style="width:14px;height:14px;border-radius:4px;background:${c};flex:none;border:1px solid rgba(0,0,0,.12)"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13.5px;font-weight:600">CPH · ${esc(f.label)}</div>
+        <div style="font-size:11.5px;color:var(--soft)">Set this calendar's colour to <b>${esc(CAL_FEED_COLORNAME[f.id]||'')}</b></div>
+      </div>
+      <button class="ab-actbtn" style="flex:none" onclick="window.open('${f.url.replace(/^https?:/,'webcal:')}','_self')">Subscribe</button>
+      <button class="ab-actbtn" style="flex:none" onclick="copyCalUrl('${esc(f.url)}')">Copy URL</button>
+    </div>`;
+  }).join('');
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;padding:22px 24px;box-shadow:0 18px 50px rgba(20,35,26,.28)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div style="font-size:17px;font-weight:800">Sync to Calendar</div>
+      <button class="ab-actbtn" onclick="closeCalendarSync()">✕</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--soft);line-height:1.55;margin-bottom:14px">Published bookings appear as <b>ARR</b> and <b>DEP</b> events, one calendar per greeter. Subscribe to all four, then set each calendar's colour in Apple Calendar to match the console. Updates flow through automatically — the calendar refreshes about once an hour.</div>
+    ${rows||'<div style="font-size:13px;color:var(--soft)">Feed URLs unavailable — reload the console.</div>'}
+    <div style="font-size:11.5px;color:var(--soft);line-height:1.55;margin-top:14px">
+      <b>Mac:</b> Calendar → File → New Calendar Subscription → paste the URL → set Auto-refresh to Every hour, and pick the colour.<br>
+      <b>iPhone:</b> tap Subscribe above, or Settings → Apps → Calendar → Accounts → Add Account → Other → Add Subscribed Calendar.<br>
+      <span style="color:#B4522A">These links are private — anyone with the URL can read the bookings. Don't post them publicly.</span>
+    </div>
+  </div>`;
+};
+window.closeCalendarSync=function(){ const ov=document.getElementById('calOv'); if(ov)ov.remove(); };
+window.copyCalUrl=function(u){ try{ navigator.clipboard.writeText(u); toast&&toast('Feed URL copied'); }catch(e){ prompt('Copy this URL:',u); } };
+
 function golfCartNote(cfg){
   const raw=String(cfg||'').trim(); if(!raw||/^\?+$/.test(raw)) return '';
   if(/^none$/i.test(raw)) return 'Golf cart — pending (to confirm).';
@@ -885,6 +923,7 @@ function renderArrivalsBoard(){
       <button class="todaybtn ab-today" onclick="showToday()">▦ Today</button>
       <button class="ab-actbtn ab-today" onclick="exportBoardExcel()">⬇ View in Excel</button>
       <button class="ab-actbtn ab-today" onclick="printBoard()">🖨 Print</button>
+      <button class="ab-actbtn ab-today" onclick="showCalendarSync()">📅 Sync to Calendar</button>
     </div>
     <div class="today-head"><span style="font-weight:400">Upcoming</span> <b style="font-weight:800">Arrivals</b></div>
     <div class="today-date">${L.length} upcoming ${L.length===1?'arrival':'arrivals'} · click a guest to open the stay · edits save automatically</div>
