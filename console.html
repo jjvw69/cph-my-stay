@@ -198,10 +198,6 @@
   .ab-greet{min-width:0;width:78px}
   table.ab .greet-sel{margin-left:0;width:auto;min-width:0;max-width:74px;font-size:11px;padding:3px 5px}
   table.ab tr.ab-year td{background:var(--hedge);color:#fff;font-weight:700;font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;padding:5px 10px;text-align:left;border-top:2px solid var(--yellow)}
-  .ab-legend{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 13px;margin:0 0 10px}
-  .ab-legend-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-right:2px}
-  .ab-leg-item{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink)}
-  .ab-leg-sw{width:16px;height:16px;border-radius:5px;border:1px solid rgba(0,0,0,.14);flex:0 0 auto}
   .today-clear{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:26px 14px;text-align:center;color:var(--soft);font-size:14.5px;margin-top:8px}
   /* ---- #6 quick wins ---- */
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
@@ -799,13 +795,8 @@ function colorSel(s){
   const order=['','green','yellow','orange','red','blue','purple','gray'];
   return `<select class="rowcol-sel${cur?' set':''}" style="background:${bg}" title="Row colour" onclick="event.stopPropagation()" onchange="setRowColor('${s.id}',this.value)">${order.map(k=>`<option value="${k}" ${cur===k?'selected':''}>${ROWDOT[k]}</option>`).join('')}</select>`;
 }
-// Row-colour key shown on the arrivals board. Labels are "Unassigned" placeholders until Jan
-// decides what each colour means (then swap ROWLABELS below).
-const ROWLABELS={green:'Unassigned',yellow:'Unassigned',orange:'Unassigned',red:'Unassigned',blue:'Unassigned',purple:'Unassigned',gray:'Unassigned'};
-function colorLegend(){
-  const order=['green','yellow','orange','red','blue','purple','gray'];
-  return `<div class="ab-legend"><span class="ab-legend-h">Row colour key</span>${order.map(k=>`<span class="ab-leg-item"><span class="ab-leg-sw" style="background:${ROWCOLORS[k]}"></span>${esc(ROWLABELS[k]||'Unassigned')}</span>`).join('')}</div>`;
-}
+// Row colours themselves stay (the per-row picker uses ROWCOLORS above) — only the legend/key strip
+// was removed from the arrivals board.
 window.setRowColor=async function(id,val){
   const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it.rowColor||'')===String(val||''))return;
   const r=await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify({rowColor:val})});
@@ -928,7 +919,6 @@ function renderArrivalsBoard(){
     </div>
     <div class="today-head"><span style="font-weight:400">Upcoming</span> <b style="font-weight:800">Arrivals</b></div>
     <div class="today-date">${L.length} upcoming ${L.length===1?'arrival':'arrivals'} · click a guest to open the stay · edits save automatically</div>
-    ${colorLegend()}
     <div class="ab-editnote" style="font-size:11px;color:var(--soft);margin:2px 0 10px;line-height:1.55;white-space:normal">Columns <b>Cart → Extras</b> are read-only mirrors of the booking file (hover a cell for its source) — edit on the guest's stay: <b>Cart</b> via the invoice · <b>Staff</b> &amp; <b>Extras</b> in Internal notes · <b>Access</b> in Stay details → Registration # · <b>Transfer</b> in the transfer request / Internal notes · <b>Super</b> (supermarket / grocery provisioning) in Grocery pre-stocking.</div>
     <div class="ab-scroll"><table class="ab"><thead><tr>
       <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa Name</th><th>Villa Number</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th>
