@@ -573,7 +573,7 @@ function firstMoney(s){ const m=String(s==null?'':s).match(/[0-9][0-9,]*(?:\.[0-
 let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = working copy
 // Default concierge welcome (shown to guests when a stay has no custom message). {villa name}/{concierge name} resolve live in the guest app.
 const DEFAULT_WELCOME="Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.";
-let _sndSvc='', _sndOptVal='', _sndRate=''; // "Send a service" form state — kept in module vars so it survives live-sync re-renders
+let _sndSvc='', _sndOptVal='', _sndRate='', _sndCustomName=''; // "Send a service" form state — kept in module vars so it survives live-sync re-renders (_sndCustomName = typed name when the service isn't in the catalog)
 let _sndExtra={}; // per-service booking details (dates/time/guests/qty/flight) — also survives re-renders
 
 /* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
@@ -1563,7 +1563,8 @@ function renderEditor(){
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
         <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
-          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
+          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="__custom__" ${_sndSvc==='__custom__'?'selected':''}>➕ Custom service — type the name…</option></select>
+          ${_sndSvc==='__custom__'?`<input id="sndCustomName" value="${esc(_sndCustomName)}" oninput="sndCustomName(this.value)" placeholder="Service name (e.g. Helicopter tour · Photographer)" autofocus style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">`:''}
           <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
@@ -1861,7 +1862,8 @@ window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').
 window.fmtDueBy=function(v){ v=String(v||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ const d=new Date(v+'T00:00:00'); if(!isNaN(d)) return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); } return v; };
 window.recalcBalance=function(){ if(!cur)return; const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const tv=(document.getElementById('payTotal')||{}).value||''; const pv=(document.getElementById('payPaid')||{}).value||''; const by=((document.getElementById('payBy')||{}).value||'').trim(); cur.totalCharge=tv; cur.amountPaid=pv; cur.balanceDueBy=by; const total=num(tv), paid=num(pv); let out='—'; if(tv.trim()||pv.trim()){ const bal=Math.max(0,total-paid); out='US$'+bal.toLocaleString('en-US')+(by?' by '+fmtDueBy(by):''); } cur.balanceDue=(out==='—')?'':out; const el=document.getElementById('payBal'); if(el)el.textContent=out; if(typeof markDirty==='function')markDirty(); };
 window.setSndRate=function(v){ _sndRate=v; };
-window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; _sndExtra={}; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; renderEditor(); };
+window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; _sndExtra={}; if(id!=='__custom__')_sndCustomName=''; const c=document.getElementById('sndOptCustom'); if(c)c.value=''; renderEditor(); const n=document.getElementById('sndCustomName'); if(n)n.focus(); };
+window.sndCustomName=function(v){ _sndCustomName=v; }; // typed name for a service that isn't in the catalog
 window.selSendOpt=function(v){ _sndOptVal=v; const p=String(v||'').split('||'); _sndRate=(v&&p[1]!=null)?p[1]:''; const r=document.getElementById('sndRate'); if(r)r.value=_sndRate; };
 window.sndSet=function(k,v){ _sndExtra[k]=v; };
 window.sndTripChange=function(){ const sel=document.getElementById('snd_trip'); const round=!!sel&&sel.value==='Round-trip'; _sndExtra.trip=sel?sel.value:''; const w=document.getElementById('sndReturnWrap'); if(w)w.style.display=round?'grid':'none'; };
@@ -1885,9 +1887,14 @@ function sndDetailFields(){
 }
 let _sndBusy=false;
 let _confirmBusy=false, _yachtBusy=false; // double-click guards: a second tap would re-fire the price / re-send the proposal
-window.sendServiceUI=async function(){ if(!cur||_sndBusy)return; _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500); const id=_sndSvc; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{}; const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(_sndOptVal.split('||')[0]||''); const rate=String(_sndRate||'').trim(); const E=_sndExtra||{}; const note=String(E.note||'').trim();
-  const body={serviceId:id,name:svc.name||'',option,rate,note,date:E.date||'',endDate:E.endDate||'',time:E.time||'',guests:E.guests||'',qty:E.qty||'',trip:E.trip||'',airline:E.airline||'',flightNo:E.flightNo||'',flightOrigin:E.flightOrigin||'',arrivalTime:E.arrivalTime||'',returnAirline:E.returnAirline||'',returnFlightNo:E.returnFlightNo||'',returnDest:E.returnDest||'',returnTime:E.returnTime||''};
-  const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify(body)}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); _sndSvc=''; _sndOptVal=''; _sndRate=''; _sndExtra={}; renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
+window.sendServiceUI=async function(){ if(!cur||_sndBusy)return; _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500); const id=_sndSvc; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{};
+  // Custom service: the name is typed, not picked from the catalog.
+  const isCustom=id==='__custom__'; const typedName=String(((document.getElementById('sndCustomName')||{}).value)||_sndCustomName||'').trim();
+  if(isCustom&&!typedName){ alert('Type the service name.'); _sndBusy=false; return; }
+  const svcId=isCustom?'custom':id; const svcName=isCustom?typedName:(svc.name||'');
+  const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(_sndOptVal.split('||')[0]||''); const rate=String(_sndRate||'').trim(); const E=_sndExtra||{}; const note=String(E.note||'').trim();
+  const body={serviceId:svcId,name:svcName,option,rate,note,date:E.date||'',endDate:E.endDate||'',time:E.time||'',guests:E.guests||'',qty:E.qty||'',trip:E.trip||'',airline:E.airline||'',flightNo:E.flightNo||'',flightOrigin:E.flightOrigin||'',arrivalTime:E.arrivalTime||'',returnAirline:E.returnAirline||'',returnFlightNo:E.returnFlightNo||'',returnDest:E.returnDest||'',returnTime:E.returnTime||''};
+  const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify(body)}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); _sndSvc=''; _sndOptVal=''; _sndRate=''; _sndCustomName=''; _sndExtra={}; renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
 window.modifySentUI=async function(sid){ if(!cur)return; const ss=(cur.sentServices||[]).find(x=>x.id===sid); if(!ss)return; const option=prompt('Option / how it’s provided:',ss.option||''); if(option===null)return; const rate=prompt('Rate shown to guest:',ss.rate||''); if(rate===null)return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'PUT',body:JSON.stringify({option,rate})}); if(!r.ok){ alert(r.body.error||'Could not update.'); return; } const i=cur.sentServices.findIndex(x=>x.id===sid); if(i>=0)cur.sentServices[i]=r.body.service; renderEditor(); renderPreview(); toast&&toast('Updated — guest will re-confirm.'); };
 window.cancelSentUI=async function(sid,name){ if(!cur)return; if(!confirm('Cancel “'+(name||'this service')+'”? It will be removed from the guest’s plan.')) return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not cancel.'); return; } cur.sentServices=(cur.sentServices||[]).filter(x=>x.id!==sid); renderEditor(); renderPreview(); };
 
@@ -1931,6 +1938,7 @@ function invPickOptions(sel){ let h='';
   // 'arrivalmeals' / 'grocery' aren't charged via the service invoice (meals aren't billed; groceries use the grocery invoice), so hide them here.
   const ad=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).filter(a=>a.id!=='arrivalmeals'&&a.id!=='grocery');
   if(ad.length){ h+='<optgroup label="Villa add-ons">'+ad.map(a=>`<option value="addon:${esc(a.id)}"${sel==='addon:'+a.id?' selected':''}>${esc(a.name)}${a.rates?' · '+esc(a.rates):''}</option>`).join('')+'</optgroup>'; }
+  h+=`<option value="custom"${sel==='custom'?' selected':''}>➕ Custom service — type the name below</option>`; // anything not in the catalog: free-text description + amount
   return h;
 }
 /* Second-level picker: services with preset options (SVC_OPTIONS — same table the
@@ -2031,6 +2039,8 @@ window.invDates=function(i,which,v){ if(!_invDraft||!_invDraft.items[i])return; 
 };
 window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return; const it=_invDraft.items[i]; let name='',rate='';
   it.svcSel=val; it.svcId=''; it.svcOpt='';
+  // Custom service — nothing to fill from the catalog: clear the line and let staff type the name + amount.
+  if(val==='custom'){ it.label=''; it.rate=''; it.days=''; it.amount=''; renderInvItems(); const box=document.getElementById('invItems'); const inp=box?box.querySelectorAll('input[placeholder^="Description"]')[i]:null; if(inp)inp.focus(); return; }
   if(val.indexOf('svc:')===0){ const s=(cur.sentServices||[])[Number(val.slice(4))]; if(s){ name=[s.name,s.option].filter(Boolean).join(' · '); rate=s.rate||''; } }
   else if(val.indexOf('addon:')===0){ const id=val.slice(6); const a=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).find(x=>x.id===id); if(a){ name=a.name; rate=a.rates||''; } if(invSvcOpts(id).length)it.svcId=id; }
   if(name){it.label=name; invSyncTitle();}
