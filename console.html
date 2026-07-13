@@ -945,7 +945,7 @@ function notReadyRow(s){
   const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
   return `<div class="nrx ${open?'open':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
-      <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${d===0?'arrives today':'in '+d+'d'}</span></span>
+      <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
       <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
     </button>
     <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
@@ -2303,7 +2303,9 @@ function renderPreview(){
   const host=document.getElementById('preview'); if(!host) return;
   if(!cur){ host.innerHTML='<div class="empty">No stay selected.</div>'; return; }
   const st=cur.status; const statusLine=st==='published'?['Published · link active','#5B9E6F']:st==='needs info'?['Needs info · not sent','#9E5B43']:['Draft · not yet visible','#9A7B36'];
-  const todayISO=new Date().toISOString().slice(0,10);
+  // todayStr() = LOCAL date. toISOString() is UTC — at UTC-4 it rolls over to tomorrow at 8pm local,
+  // so a stay would read "departed" a day early every evening.
+  const todayISO=todayStr();
   const d=daysUntil(cur.checkin);
   const departed=!!(cur.checkout&&cur.checkout<todayISO);
   const reqs=(cur.requests||[]);

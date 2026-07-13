@@ -209,7 +209,20 @@ if('serviceWorker' in navigator){ try{ navigator.serviceWorker.register('/sw.js'
 const state = { stay:null, token:null, tab:'home', stack:[], checklist:{}, checkin:{step:0, adults:2, children:0, airport:'LRM'}, messages:[] };
 const $app = document.getElementById('app');
 const fmtDate = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?'' : d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); };
+// NOTE: daysUntil CLAMPS to 0 — it can never return a negative number, so it cannot tell you anything
+// about the past. Never test `daysUntil(x) < 0` (always false). Use stayPhase() for past/present.
 const daysUntil = iso => { const d=new Date(iso+'T00:00:00'); return isNaN(d)?null:Math.max(0,Math.ceil((d-new Date(new Date().toDateString()))/86400000)); };
+// Local (not UTC) yyyy-mm-dd — toISOString() would roll over to tomorrow at 8pm Dominican time.
+const todayISOLocal = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+/* Where the stay sits relative to today. String compares on yyyy-mm-dd — no clamping, no timezone drift.
+   'upcoming' = arrives later · 'today' = arrives today · 'inhouse' = arrived, still here · 'over' = checked out */
+function stayPhase(b){
+  const t=todayISOLocal(), a=(b&&b.arrive)||'', dep=(b&&b.depart)||'';
+  if(dep && dep<t) return 'over';
+  if(a && a<t) return 'inhouse';
+  if(a && a===t) return 'today';
+  return 'upcoming';
+}
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* Display-normalise a stored price string so legacy "$300" shows as "US$300". Leaves US$/RD$ and non-$ text untouched. */
 const usdStr = v => String(v==null?'':v).replace(/(^|[^A-Za-z$])\$(?=\d)/g,(m,p1)=>p1+'US$');
@@ -413,8 +426,9 @@ function myPlanRow(){
 function preArrivalBanner(s){
   const R = s && s.readiness; if(!R) return '';
   const b = s.booking||{};
-  const dDepart = daysUntil(b.depart);
-  if(dDepart!=null && dDepart<0) return '';   // stay is over — nothing to nag
+  // Was `daysUntil(b.depart) < 0` — daysUntil clamps at 0, so that could never be true and the banner
+  // kept nagging guests long after they'd checked out. stayPhase() reads the real dates.
+  if(stayPhase(b)==='over') return '';        // stay is over — nothing to nag
   if(R.guestReady) return '';                 // guest has completed everything they can
   const miss = R.guestMissing||[];
   const done = 3 - miss.length;
@@ -443,6 +457,7 @@ function renderHome(){
   const s=state.stay, b=s.booking, v=s.villa;
   const d=daysUntil(b.arrive);
   const dDepart=daysUntil(b.depart);
+  const phase=stayPhase(b);   // upcoming | today | inhouse | over — see stayPhase(): daysUntil can't see the past
   const checkinDone = !!state.checkin.done;
   const guestInitials=(function(){ const g=s.guest||{}; const fn=(g.firstName||'').trim(), ln=(g.lastName||g.family||'').trim(); const i=((fn[0]||'')+(ln[0]||'')).toUpperCase(); return i || (g.family||'G').slice(0,2).toUpperCase(); })();
   $app.innerHTML = `
@@ -466,12 +481,16 @@ function renderHome(){
         </div>
       </div>
       <div class="card countdown">
-        <div><div class="label">ARRIVING IN</div>
-          <div style="margin-top:6px">${d===0?`<span class="big" style="font-size:34px">In-house</span>`:`<span class="big">${d==null?'–':d}</span><span class="days">days</span>`}</div>
-          <div class="sub">${b.arrive?fmtDate(b.arrive):''}${b.checkInTime?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
+        <div><div class="label">${phase==='over'?'YOUR STAY':'ARRIVING IN'}</div>
+          <div style="margin-top:6px">${
+            phase==='over'    ? `<span class="big" style="font-size:30px">Complete</span>`
+          : phase==='inhouse' ? `<span class="big" style="font-size:34px">In-house</span>`
+          : phase==='today'   ? `<span class="big" style="font-size:34px">Today</span>`
+          : `<span class="big">${d==null?'–':d}</span><span class="days">days</span>`}</div>
+          <div class="sub">${b.arrive?fmtDate(b.arrive):''}${(phase!=='over'&&b.checkInTime)?` · check-in ${esc(b.checkInTime)}`:''}</div></div>
         <div class="ring"><b>${b.nights==null?'–':b.nights}</b><span>nights<br>stay</span></div>
       </div>
-      ${d===0?`<div class="card countdown">
+      ${(phase==='inhouse'||phase==='today')?`<div class="card countdown">
         <div><div class="label">DEPARTING IN</div>
           <div style="margin-top:6px"><span class="big">${dDepart==null?'–':dDepart}</span><span class="days">days</span></div>
           <div class="sub">${b.depart?fmtDate(b.depart):''}${b.checkOutTime?` · check-out ${esc(b.checkOutTime)}`:''}</div></div>
