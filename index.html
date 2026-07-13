@@ -304,6 +304,19 @@ function bootIntoApp(){ state.tab='home'; state.stack=[]; hydrateCheckin(); load
 /* Restore the guest's submitted pre check-in (or sensibly prefill from the booking) so it survives
  * reload/logout — mirrors loadConversation for the chat. Fully rebuilds state.checkin per stay so a
  * previous guest's answers never leak into a new sign-in. */
+/* GOLDEN RULE (shared field): guestList is edited by BOTH sides — the guest (pre check-in step 2) and
+   staff (console "Guest registration list"). Seed the form's rows from the shared list, but NEVER
+   overwrite a row the guest has typed into: only fill rows that are still empty. That way a list the
+   concierge entered shows up in the guest's app, and a guest mid-typing is never clobbered. */
+function docsFromGuestList(list, docs){
+  const out=(docs||[]).map(d=>({name:(d&&d.name)||'',passport:(d&&d.passport)||''}));
+  (list||[]).forEach((g,i)=>{
+    const cur=out[i]||{name:'',passport:''};
+    const typed=String(cur.name||'').trim()||String(cur.passport||'').trim();
+    if(!typed) out[i]={name:(g&&g.name)||'',passport:(g&&g.passport)||''};
+  });
+  return out;
+}
 function hydrateCheckin(){
   const s=state.stay; if(!s) return;
   const gc=s.guestCheckin, b=s.booking||{};
@@ -316,12 +329,15 @@ function hydrateCheckin(){
       occasion: gc.occasion||null, dietary: gc.dietary||'',
       transportMode: gc.transportMode||null, transportCompany: gc.transportCompany||'', transportArrival: gc.transportArrival||'', transportDeparture: gc.transportDeparture||'',
       childAges:(gc.childAges||[]).slice(),
-      docs:(s.guestList||[]).map(g=>({name:g.name||'',passport:g.passport||''})),
+      docs:docsFromGuestList(s.guestList,[]),
       done:true };
   } else {
+    // No pre check-in yet — the list the CONCIERGE entered must still prefill the form (this was
+    // hard-coded to [] before, so a staff-entered guest list never reached the guest app).
     state.checkin={ step:0, adults:(b.adults||2), children:(b.children||0),
       airport: b.airport||'LRM', flight: b.flight||'',
-      transferType:null, occasion:null, dietary:'', transportMode:null, transportCompany:'', transportArrival:'', transportDeparture:'', childAges:[], docs:[], done:false };
+      transferType:null, occasion:null, dietary:'', transportMode:null, transportCompany:'', transportArrival:'', transportDeparture:'', childAges:[],
+      docs:docsFromGuestList(s.guestList,[]), done:false };
   }
 }
 /* Default concierge welcome (used when a stay has no custom message). {villa name} / {concierge name} resolve live. */
@@ -1892,6 +1908,9 @@ async function pollStay(){
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
   ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
   s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin; s.readiness=f.readiness;
+  // A guest list edited in the console must reach an ALREADY-OPEN guest app: refresh the pre check-in
+  // rows from the shared list. Empty rows only — never overwrite what the guest is typing.
+  if(state.checkin) state.checkin.docs=docsFromGuestList(s.guestList, state.checkin.docs);
   // live-sync concierge-pushed items so an already-open guest app shows them (golden rule: console ↔ guest always wired)
   if('invoices' in f) s.invoices=f.invoices;
   if('sentServices' in f) s.sentServices=f.sentServices;
@@ -1902,6 +1921,12 @@ async function pollStay(){
   // only repaint read-only views — never while the guest is mid-form
   if(!top && (state.tab==='home'||state.tab==='stay')) render();
   else if(top==='plan'||top==='arrival'||top==='guide') render();
+  // Pre check-in / guest-list screens: repaint so a concierge-entered list appears, but ONLY when the
+  // guest isn't focused in a field — repainting under their cursor would drop what they're typing.
+  else if(top==='checkin'||top==='guestlist'){
+    const ae=document.activeElement, tag=ae&&ae.tagName;
+    if(tag!=='INPUT'&&tag!=='TEXTAREA'&&tag!=='SELECT') render();
+  }
 }
 function stopPolling(){ if(_pollTimer){ clearInterval(_pollTimer); _pollTimer=null; } }
 async function pollMessages(){
@@ -2104,9 +2129,12 @@ function renderCheckin(){
     <div class="card"><b style="font-weight:500">Children</b><div style="font-size:12.5px;color:var(--soft);margin-top:3px">Under 18 years old</div><div class="stepper" style="margin-top:8px"><button onclick="cinAdj('children',-1)">−</button><span class="display" style="font-size:24px">${c.children}</span><button onclick="cinAdj('children',1)">+</button></div></div>
     ${c.children>0?`<div class="card"><b style="font-weight:500">Children's ages</b><div style="font-size:12.5px;color:var(--soft);margin:3px 0 4px">Enter each child's age (in years)</div>${Array.from({length:c.children}).map((_,i)=>`<div style="display:flex;align-items:center;gap:10px;margin-top:8px"><span style="font-size:13.5px;color:var(--soft);min-width:62px">Child ${i+1}</span><input type="number" min="0" max="17" inputmode="numeric" value="${esc(String(ages[i]!=null?ages[i]:''))}" oninput="cinAge(${i},this.value)" style="flex:1;border:1px solid var(--line);border-radius:10px;padding:11px;font-family:var(--ui)" placeholder="Age"></div>`).join('')}</div>`:''}`;
   } else if(step===1){ const docs=c.docs||(c.docs=[]);
+    // Row count = party size, but never fewer than the rows we already hold — a concierge-entered list
+    // can be longer than adults+children, and those extra guests must not be silently hidden.
+    const rows=Math.max(total, docs.length);
     inner=`<div class="label">STEP 2 OF 4 · TRAVEL DOCUMENTS</div>
     <div style="font-size:13px;color:var(--soft);margin:0 0 12px;line-height:1.5">List each guest's full name and passport number for resort registration.</div>
-    ${Array.from({length:total}).map((_,i)=>`<div class="card">
+    ${Array.from({length:rows}).map((_,i)=>`<div class="card">
       <b style="font-weight:500;font-size:12px;letter-spacing:.05em;color:var(--soft);text-transform:uppercase">Guest ${i+1}</b>
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Full name (as on passport)" value="${esc((docs[i]||{}).name||'')}" oninput="cinDoc(${i},'name',this.value)">
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Passport number" value="${esc((docs[i]||{}).passport||'')}" oninput="cinDoc(${i},'passport',this.value)">
