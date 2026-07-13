@@ -742,7 +742,7 @@ function renderList(){
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
     const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">US$${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
-    const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&daysUntil(s.checkin)>=0;
+    const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
@@ -981,10 +981,26 @@ const GREETERS=[{id:'maria',name:'Maria'},{id:'ivonna',name:'Ivonna'},{id:'jan',
 function greeterName(id){ const g=GREETERS.find(x=>x.id===id); return g?g.name:''; }
 function greetSel(s){ return `<select class="greet-sel ${s.assigneeId?'set g-'+s.assigneeId:''}" title="Who is meeting &amp; greeting (staff only)" onclick="event.stopPropagation()" onchange="setGreeter('${s.id}',this.value)"><option value="">None</option>${GREETERS.map(g=>`<option value="${g.id}" ${s.assigneeId===g.id?'selected':''}>${g.name}</option>`).join('')}</select>`; }
 window.setGreeter=async function(id,val){ const it=(LIST||[]).find(s=>s.id===id); if(it&&String(it.assigneeId||'')===String(val||''))return; const r=await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify({assigneeId:val})}); if(r&&r.ok){ if(it)it.assigneeId=val; if(cur&&cur.id===id)cur.assigneeId=val; renderArrivalsPanel(); toast&&toast(val?('Meet & greet: '+greeterName(val)):'Greeter cleared'); } else toast&&toast('Could not save'); };
+/* daysUntil() CLAMPS negatives to 0, so a departed stay looks like it arrives "in 0 days" — i.e. today.
+   Any "is this still upcoming?" test therefore needs an explicit checkout guard, not just d>=0. */
+function hasDeparted(s){ const t=todayStr(); return !!(s.checkout && s.checkout<t); }
+/* Arrivals pill. Same clamp: every stay that has already started (and every stay already over)
+   collapsed to d===0 and rendered "today". A guest who has arrived is IN HOUSE — distinguish it here
+   rather than trusting the clamped day count. */
+function arrPill(s){
+  const t=todayStr(), ci=s.checkin||'', co=s.checkout||'';
+  if(co && co<t) return {txt:'departed', cls:'grey'};   // stay is over
+  if(ci && ci<t) return {txt:'in house', cls:'amber'};  // arrived, still with us
+  const d=daysUntil(ci);
+  return {txt:(d===0?'today':'in '+d+'d'), cls:'green'};
+}
 function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
   const L=LIST||[];
-  const pub=L.filter(s=>s.status==='published'&&s.checkin&&daysUntil(s.checkin)!=null);
+  const _t=todayStr();
+  // Departed stays must drop off the upcoming-arrivals list entirely (they used to sit there as "today"
+  // forever, because the clamp hid their negative day count).
+  const pub=L.filter(s=>s.status==='published'&&s.checkin&&daysUntil(s.checkin)!=null&&!(s.checkout&&s.checkout<_t));
   const band=(a,b)=>pub.filter(s=>{const d=daysUntil(s.checkin);return d>=a&&d<=b;}).sort((x,y)=>(x.checkin||'').localeCompare(y.checkin||''));
   const cur=ARR_BANDS[arrWin]||ARR_BANDS[0];
   const list=band(cur[0],cur[1]);
@@ -992,7 +1008,7 @@ function renderArrivalsPanel(){
   host.innerHTML=`
     <div class="label">Upcoming arrivals</div>
     <div class="awin-row">${chip(0)}${chip(1)}${chip(2)}${chip(3)}${chip(4)}</div>
-    ${list.length?list.map(s=>{const d=daysUntil(s.checkin);return `<div class="today-row arr-row"><button class="arr-main" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-d">${esc(s.checkin||'')}</span><span class="tr-line"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')}</span></span></span><span class="tr-tag green">${d===0?'today':'in '+d+'d'}</span></button><div class="arr-greet"><span class="arr-greet-lbl">Meet &amp; greet</span>${greetSel(s)}</div></div>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
+    ${list.length?list.map(s=>{const p=arrPill(s);return `<div class="today-row arr-row"><button class="arr-main" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-d">${esc(s.checkin||'')}</span><span class="tr-line"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')}</span></span></span><span class="tr-tag ${p.cls}">${p.txt}</span></button><div class="arr-greet"><span class="arr-greet-lbl">Meet &amp; greet</span>${greetSel(s)}</div></div>`;}).join(''):`<div class="act-empty">No published arrivals ${cur[2]} days out.</div>`}`;
 }
 let todayGroups={};
 window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) return; if(arr.length===1){ selectStay(arr[0].id); return; } const sec=document.getElementById('tsec-'+key); if(sec){ try{sec.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){ sec.scrollIntoView(); } } };
@@ -1026,10 +1042,10 @@ function renderToday(){
   const xfToday=L.filter(s=>(s.transfers||[]).some(t=>t.date===today||t.endDate===today));
   // Every upcoming published arrival still missing pre check-in, guest passports, or the airport
   // transfer (arranged OR guest self-declared). Not day-gated — stays flagged until all three are in.
-  const upcomingPub=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&d>=0;});
+  const upcomingPub=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&!hasDeparted(s);});
   const notReady=upcomingPub.filter(s=>s.readiness?!s.readiness.ready:(!s.preCheckinDone||!s.transferArranged||!s.hasReg));
   // Upcoming arrivals (within a week) who have never opened the guest app.
-  const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d>=0&&d<=7;});
+  const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d<=7&&!hasDeparted(s);});
   todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
   const totMsgs=msgs.reduce((a,s)=>a+unreadMsgs(s),0);
