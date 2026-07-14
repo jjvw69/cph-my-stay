@@ -146,6 +146,14 @@
   .today-row .tr-tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600;border-radius:20px;padding:3px 11px;white-space:nowrap}
   .tr-tag.amber{background:#FBF1D8;color:#9A7B36}
   .tr-tag.red{background:#F3DADA;color:#9A2B2B}
+  /* Follow-ups due wear the same purple as the "N follow-ups due" badge in the top bar — one colour,
+     one meaning: a dated promise to a guest. */
+  .fudue-sec .today-row{background:var(--purple);border-color:var(--purple)}
+  .fudue-sec .today-row:hover{filter:brightness(1.08)}
+  .fudue-sec .today-row .tr-g{color:#fff}
+  .fudue-sec .today-row .tr-m,.fudue-sec .today-row .tr-sep{color:rgba(255,255,255,.78)}
+  .fudue-sec .today-row .tr-tag{background:rgba(255,255,255,.92);color:var(--purple)}
+  .fudue-sec .today-row .tr-tag.red{background:#F3DADA;color:#9A2B2B}
   .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
   .nrx{margin-bottom:8px}
   .nrx .nrx-head{margin-bottom:0}
@@ -214,6 +222,9 @@
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
   .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* "+ New" lives with the folders now (it's a list action, not a header action). */
+  .newchip{font-weight:800;color:var(--accent);border-color:var(--accent);background:#fff}
+  .newchip:hover{background:var(--accent);color:#fff}
   /* Year jump chips — sit on the SAME row as Current/Archive, after a hairline divider.
      They scroll the list to the first booking of that year (they never filter). */
   .yrnav{display:inline-flex;gap:6px;align-items:center}
@@ -555,10 +566,11 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="newStay">＋ New</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
+        <button class="lchip newchip" id="newStay" title="Create a new booking">＋ New</button>
         <button class="lchip on" data-f="current" onclick="setFilter('current')">Current</button>
         <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
         <span class="yrnav" id="yearNav"></span>
@@ -660,9 +672,14 @@ async function signin(){
 }
 /* Fill the shared "Booked via" datalist from store.js — never hard-code channels here. */
 function fillBookChan(){ const d=document.getElementById('bookchan'); if(!d)return; d.innerHTML=((BOOT&&BOOT.serviceBookedVia)||[]).map(v=>`<option value="${esc(v)}"></option>`).join(''); }
+/* Revenue is owner-level (Jan + Ivonna). The server decides — canRevenue comes back on /me and on
+   login, and /api/staff/metrics 403s for anyone else. This only hides the button. */
+let CAN_REV=false;
 async function enter(staff){
   document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='flex';
   document.getElementById('who').textContent=staff.name||staff.email;
+  CAN_REV=!!(staff&&staff.canRevenue);
+  const rb=document.getElementById('revBtn'); if(rb)rb.style.display=CAN_REV?'':'none';
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
   await loadList();
@@ -674,7 +691,8 @@ document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logo
 
 /* ---- list ---- */
 let METRICS=null;
-async function refreshMetrics(){ try{ const r=await api('/api/staff/metrics'); if(r.ok) METRICS=r.body.metrics; }catch(e){} }
+/* Only owners can even fetch this (server 403s everyone else) — don't ask if we know we can't. */
+async function refreshMetrics(){ if(!CAN_REV){ METRICS=null; return; } try{ const r=await api('/api/staff/metrics'); if(r.ok) METRICS=r.body.metrics; }catch(e){} }
 async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderHome(); }
 
 /* ============ live sync ============ */
@@ -879,9 +897,26 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const cols=document.querySelector('.cols'); if(cols)cols.classList.toggle('board-mode',board); if(centerView==='inbox') renderInbox(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board) renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const cols=document.querySelector('.cols'); if(cols)cols.classList.toggle('board-mode',board); if(centerView==='inbox') renderInbox(); else if(centerView==='revenue') renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
-function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); }
+function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } }
+/* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
+   every concierge saw them. They now live here, behind the server-side canRevenue gate. */
+window.showRevenue=function(){
+  if(!CAN_REV) return;
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); centerView='revenue'; setView(true); renderList(); renderHome();
+};
+async function renderRevenue(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!METRICS) await refreshMetrics();
+  const m=METRICS;
+  el.innerHTML=`
+    <button class="backlist" onclick="backToList()">← All stays</button>
+    <div class="today-head">Revenue &amp; upsell</div>
+    <div class="today-date">Every issued invoice, across all bookings · owner view</div>
+    ${m?upsellCard():`<div class="today-clear">No invoices yet.</div>`}`;
+}
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); centerView='today'; setView(true); renderList(); renderHome();
@@ -1207,7 +1242,7 @@ function renderToday(){
      (Exception: none. "Departing today 0" tells you nothing you need to act on.) */
   const stat=(num,lbl,key,hot)=>!num?'':`<div class="stat ${hot?'hot':''} ${key?'clk':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const statTxt=(txt,lbl,key,hot,wide)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden${wide?';grid-column:span 2':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:${wide?'28px':'22px'};white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
-  const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
+  const sec=(title,key,rows,cls)=>rows.length?`<div class="today-sec ${cls||''}" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
@@ -1215,7 +1250,7 @@ function renderToday(){
     <div class="today-date">${dstr}</div>
     ${/* Follow-ups due sits ABOVE the stat cards — it's a dated commitment to a guest, so it gets
           top billing over the passive counts (in-house / arriving today). */''}
-    ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
+    ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':''}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}),'fudue-sec')}
     ${/* Streamlined stat row: a card only appears when it has something in it. Zeros ("Departing
           today 0", "Transfers today 0") were pure noise. Follow-ups due lost its card — the list is
           already at the top. Unpaid invoices lost its two cards — the section right below carries
@@ -1230,7 +1265,8 @@ function renderToday(){
     </div>
     ${/* Money owed sits directly under the cards, above the upsell panel. */''}
     ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3>${unpaid.map(s=>unpaidRow(s)).join('')}</div>`:''}
-    ${upsellCard()}
+    ${/* Upsell/revenue MOVED OUT 2026-07-14 → the owner-only "Revenue" view (showRevenue). Concierges
+          shouldn't be looking at money; they should be looking at what needs doing. */''}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
     ${notReady.length?`<div class="today-sec" id="tsec-notReady"><h3>Arrivals not ready</h3>${nrYearCols(notReady)}</div>`:''}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}

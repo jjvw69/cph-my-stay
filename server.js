@@ -387,13 +387,27 @@ async function staffLogin(req,res){
   const st=store.getStaffByEmail(email);
   if(!st||!store.verifyPassword(password,st.pw)) return sendJSON(res,401,{ok:false,error:'Wrong email or password.'});
   setCookie(res,STAFF_COOKIE,sign({t:'s',sid:st.id,email:st.email,role:st.role},STAFF_HOURS),STAFF_HOURS); attempts.delete('s:'+ip(req));
-  return sendJSON(res,200,{ok:true,staff:store.staffPublic(st)});
+  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st)})});
 }
 /* Staff auth guard with a SLIDING session. The cookie used to be a hard 8h from login: after 8h
    the console kept rendering (it had already loaded) but every API call 401'd, so it looked frozen
    — nothing clickable worked and only a re-sign-in fixed it. Now every authenticated staff request
    re-issues the cookie, so a console in active use never expires; the 8h idle timeout only starts
    counting once you stop using it. The client also hard-fails to the sign-in gate on any 401. */
+/* REVENUE ACCESS — the upsell / revenue numbers are owner-level, not concierge-level. Only Jan and
+   Ivonna see them; María Fernanda (and any future concierge) does not. Gated on the SERVER, not just
+   hidden in the UI, so the numbers can't be fetched by anyone else either.
+   Override the list any time with the REVENUE_EMAILS env var (comma-separated). */
+const REVENUE_EMAILS = String(process.env.REVENUE_EMAILS || 'jan@caribbeanparadisehomes.com,ivonna@caribbeanparadisehomes.com')
+  .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+const REVENUE_ROLES = ['owner','admin','manager'];
+function canSeeRevenue(s){
+  if(!s) return false;
+  const email=String(s.email||'').toLowerCase();
+  if(REVENUE_EMAILS.includes(email)) return true;
+  if(REVENUE_ROLES.includes(String(s.role||'').toLowerCase())) return true;
+  return /^(jan|ivonna)@/.test(email); // fallback if the account was seeded on another domain
+}
 function requireStaff(req,res){
   const s=staffSession(req);
   if(!s){ sendJSON(res,401,{ok:false,error:'Session expired. Please sign in again.'}); return null; }
@@ -463,7 +477,7 @@ async function route(req,res){
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);
   if(m==='POST'&&url==='/api/staff/logout'){ clearCookie(res,STAFF_COOKIE); return sendJSON(res,200,{ok:true}); }
-  if(m==='GET' &&url==='/api/staff/me'){ const s=staffSession(req); return sendJSON(res,200,{ok:!!s,staff:s?{name:s.email,email:s.email,role:s.role}:null}); }
+  if(m==='GET' &&url==='/api/staff/me'){ const s=staffSession(req); return sendJSON(res,200,{ok:!!s,staff:s?{name:s.email,email:s.email,role:s.role,canRevenue:canSeeRevenue(s)}:null}); }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);
@@ -473,7 +487,7 @@ async function route(req,res){
     if(svU&&m==='PUT'){ const b=await readBody(req); const it=store.updateService(svU[1],b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Service not found'}); }
     if(svU&&m==='DELETE'){ const okd=store.deleteCustomService(svU[1]); if(okd) broadcastStaff({type:'services'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Only custom services can be deleted'}); }
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
-    if(m==='GET' &&url==='/api/staff/metrics') return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()});
+    if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
     if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);
