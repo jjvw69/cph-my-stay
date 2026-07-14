@@ -747,7 +747,7 @@ const SERVICE_ALIASES = {
   transfer:     ['airport transfer', 'transfer', 'lrm', 'puj', 'sdq'],
   carrental:    ['car rental', 'carrental'],
   yacht:        ['yacht', 'catamaran'],
-  grocery:      ['grocery', 'groceries', 'pre-stocking'],
+  grocery:      ['grocery', 'groceries', 'pre-stocking', 'pre stock', 'prestock', 'stocking', 'supermarket'],
   arrivalmeals: ['arrival meal', 'meal plan', 'chef'],
   privatetravel:['private jet', 'air ambulance', 'private travel'],
   yoga:         ['yoga'],

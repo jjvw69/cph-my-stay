@@ -1109,7 +1109,7 @@ function renderToday(){
   const totUnpaid=unpaid.reduce((a,s)=>a+(s.unpaid||0),0);
   const totCollect=unpaid.reduce((a,s)=>a+(s.unpaidTotal||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${num>0?'clk':''}" ${num>0?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${(key&&num>0)?'clk':''}" ${(key&&num>0)?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const statTxt=(txt,lbl,key,hot,wide)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden${wide?';grid-column:span 2':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:${wide?'28px':'22px'};white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
@@ -1118,8 +1118,9 @@ function renderToday(){
     <div class="today-head">Today’s overview</div>
     <div class="today-date">${dstr}</div>
     <div class="today-stats">
-      ${stat(inhouse.length,'In-house now','inhouse')}
-      ${stat(arrToday.length,'Arriving today','arrToday')}
+      ${/* No key → not clickable: their sections were removed (they live in the right column now). */''}
+      ${stat(inhouse.length,'In-house now','')}
+      ${stat(arrToday.length,'Arriving today','')}
       ${stat(depToday.length,'Departing today','depToday')}
       ${stat(xfToday.length,'Transfers today','xfToday',true)}
       ${stat(notReady.length,'Arrivals not ready','notReady',true)}
@@ -1130,12 +1131,13 @@ function renderToday(){
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
+    ${/* Arrivals not ready leads — it's the only list that says something needs doing.
+          "Arriving today" / "Arriving tomorrow" / "In-house now" were REMOVED 2026-07-14: the right
+          column already lists every upcoming arrival with its date, status and greeter, so they were
+          pure duplication. Their stat tiles remain at the top and still open the relevant list. */''}
     ${sec('Arrivals not ready','notReady', notReady.map(s=>notReadyRow(s)))}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
-    ${sec('Arriving today','arrToday', arrToday.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
-    ${sec('In-house now','inhouse', inhouse.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`, esc(s.villa||'—')+' · until '+esc(s.checkout||''))))}
-    ${sec('Arriving tomorrow','arrTom', arrTom.map(s=>todayRow(s,`<span class="tr-tag green">${s.guests} guests</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
     ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
