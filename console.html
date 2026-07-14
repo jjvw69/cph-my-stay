@@ -126,6 +126,8 @@
   .today-2col>div{min-width:0}
   @media(max-width:1180px){ .today-2col{grid-template-columns:1fr;gap:0} }
   .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:9px}
+  /* The number lives in the heading, so the section doesn't need its own stat card. */
+  .today-sec h3 .h3-amt{margin-left:8px;font-weight:700;letter-spacing:0;text-transform:none;color:#9A2B2B}
   /* Year band inside a Today list (Arrivals not ready is split 2026 / 2027). */
   .today-yr{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);margin:12px 0 7px;padding-bottom:4px;border-bottom:1px solid var(--line)}
   .today-yr:first-child{margin-top:0}
@@ -389,12 +391,21 @@
   .apv-head{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:14px}
   .apv-villa{font-family:var(--display);font-weight:700;font-size:19px;color:var(--ink);line-height:1.15}
   .apv-rev{font-size:12.5px;color:#3F6B4E;font-weight:600;margin-top:6px}
-  .ups-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 15px;margin-bottom:18px}
-  .ups-h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:10px}
-  .ups-row{display:flex;gap:18px;flex-wrap:wrap}
-  .ups-stat .ups-num{font-family:var(--display);font-size:24px;color:var(--accent);line-height:1}
-  .ups-stat .ups-lbl{font-size:11.5px;color:var(--soft);margin-top:3px}
-  .ups-svc{margin-top:13px;border-top:1px solid var(--line);padding-top:10px}
+  /* Upsell panel wears the same clothes as the Today dashboard: a grid of stat cards, colour-coded
+     — green = money in, amber/red = money still owed — then a white card for the service breakdown. */
+  .ups-card{background:transparent;border:0;padding:0;margin:4px 0 18px}
+  .ups-h{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:9px}
+  .ups-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:11px}
+  .ups-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+  .ups-stat .ups-num{font-family:var(--display);font-size:26px;line-height:1;color:var(--accent);white-space:nowrap;letter-spacing:-.5px}
+  .ups-stat .ups-lbl{font-size:12px;color:var(--soft);margin-top:5px}
+  .ups-stat.paid{background:#F2F8F4;border-color:#CBE3D5}
+  .ups-stat.paid .ups-num{color:#12794D}
+  .ups-stat.due{background:#FBF0EF;border-color:#E7C3C0}
+  .ups-stat.due .ups-num{color:#9A2B2B}
+  .ups-stat.warn{background:#FCF7EC;border-color:#E4C58C}
+  .ups-stat.warn .ups-num{color:#9E5B43}
+  .ups-svc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:11px}
   .ups-svc-h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:6px}
   .ups-svc-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
   .ups-svc-row.clk{cursor:pointer;border-radius:7px;padding:4px 6px;margin:0 -6px}
@@ -1148,11 +1159,11 @@ function upsellCard(){
     <div class="ups-h">Upsell performance</div>
     <div class="ups-row">
       <div class="ups-stat"><div class="ups-num">${money(m.totalRevenue)}</div><div class="ups-lbl">Invoiced add-ons</div></div>
-      <div class="ups-stat"><div class="ups-num" style="color:#12794D">${money(m.paidRevenue)}</div><div class="ups-lbl">Paid</div></div>
-      ${m.dueRevenue?`<div class="ups-stat"><div class="ups-num" style="color:#9A2B2B">${money(m.dueRevenue)}</div><div class="ups-lbl">Still to collect</div></div>`:''}
+      <div class="ups-stat paid"><div class="ups-num">${money(m.paidRevenue)}</div><div class="ups-lbl">Paid</div></div>
+      ${m.dueRevenue?`<div class="ups-stat due"><div class="ups-num">${money(m.dueRevenue)}</div><div class="ups-lbl">Still to collect</div></div>`:''}
       <div class="ups-stat"><div class="ups-num">${m.booked||0}</div><div class="ups-lbl">Booked</div></div>
       <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
-      ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Requests awaiting</div></div>`:''}
+      ${m.pending?`<div class="ups-stat warn"><div class="ups-num">${m.pending}</div><div class="ups-lbl">Requests awaiting</div></div>`:''}
     </div>
     ${top.length?`<div class="ups-svc"><div class="ups-svc-h">By service · tap to see the bookings</div>${top.map(e=>`
       <div class="ups-svc-row ${e.booked?'clk':''}" ${e.booked?`onclick="toggleUps('${e.id}')"`:''}>
@@ -1187,7 +1198,9 @@ function renderToday(){
   const totUnpaid=unpaid.reduce((a,s)=>a+(s.unpaid||0),0);
   const totCollect=unpaid.reduce((a,s)=>a+(s.unpaidTotal||0),0);
   const dstr=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  const stat=(num,lbl,key,hot)=>`<div class="stat ${hot&&num>0?'hot':''} ${(key&&num>0)?'clk':''}" ${(key&&num>0)?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  /* A card only earns its place if it has something in it — an empty count is not information.
+     (Exception: none. "Departing today 0" tells you nothing you need to act on.) */
+  const stat=(num,lbl,key,hot)=>!num?'':`<div class="stat ${hot?'hot':''} ${key?'clk':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const statTxt=(txt,lbl,key,hot,wide)=>`<div class="stat ${hot?'hot':''} ${key?'clk':''}" style="overflow:hidden${wide?';grid-column:span 2':''}" ${key?`onclick="goTile('${key}')" title="Open ${esc(lbl.toLowerCase())}"`:''}><div class="num" style="font-size:${wide?'28px':'22px'};white-space:nowrap;letter-spacing:-.5px">${txt}</div><div class="lbl">${lbl}</div></div>`;
   const sec=(title,key,rows)=>rows.length?`<div class="today-sec" id="tsec-${key}"><h3>${title}</h3>${rows.join('')}</div>`:'';
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
@@ -1198,28 +1211,23 @@ function renderToday(){
     ${/* Follow-ups due sits ABOVE the stat cards — it's a dated commitment to a guest, so it gets
           top billing over the passive counts (in-house / arriving today). */''}
     ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
+    ${/* Streamlined stat row: a card only appears when it has something in it. Zeros ("Departing
+          today 0", "Transfers today 0") were pure noise. Follow-ups due lost its card — the list is
+          already at the top. Unpaid invoices lost its two cards — the section right below carries
+          the count AND the amount in its heading. */''}
     <div class="today-stats">
-      ${/* No key → not clickable: their sections were removed (they live in the right column now). */''}
       ${stat(inhouse.length,'In-house now','')}
       ${stat(arrToday.length,'Arriving today','')}
       ${stat(depToday.length,'Departing today','depToday')}
       ${stat(xfToday.length,'Transfers today','xfToday',true)}
       ${stat(notReady.length,'Arrivals not ready','notReady',true)}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
-      ${stat(fudue.length,'Follow-ups due','fudue',true)}
-      ${stat(totUnpaid,'Unpaid invoices','unpaid',true)}
-      ${statTxt('US$'+totCollect.toLocaleString(),'To collect · unpaid','unpaid',totCollect>0,true)}
     </div>
+    ${/* Money owed sits directly under the cards, above the upsell panel. */''}
+    ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3>${unpaid.map(s=>unpaidRow(s)).join('')}</div>`:''}
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
-    ${/* Two-column action deck: the three lists that actually need doing sit side by side so they
-          can all be seen without scrolling — Arrivals not ready on the left (the priority, and the
-          longest), Unpaid invoices + Follow-ups due stacked on the right.
-          "Arriving today" / "Arriving tomorrow" / "In-house now" were REMOVED 2026-07-14: the right
-          column already lists every upcoming arrival with its date, status and greeter. Their stat
-          tiles remain at the top. */''}
     ${notReady.length?`<div class="today-sec" id="tsec-notReady"><h3>Arrivals not ready</h3>${nrYearCols(notReady)}</div>`:''}
-    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}`;
