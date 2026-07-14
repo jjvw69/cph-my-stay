@@ -1095,7 +1095,7 @@ const cfOpen=new Set();
 window.toggleCf=function(k){ cfOpen.has(k)?cfOpen.delete(k):cfOpen.add(k); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
 /* Both earnings lists start COLLAPSED — the headline numbers and the donut are the point; the
    booking-by-booking detail is there when you want it (tap "show"). */
-const earnOpen={cart:false,xfer:false};
+const earnOpen={cart:false,xfer:false,yacht:false};
 window.toggleEarn=function(k){ earnOpen[k]=!earnOpen[k]; const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
 function earnList(key,summaryHtml,rowsHtml){
   const open=!!earnOpen[key];
@@ -1209,6 +1209,25 @@ async function renderRevenue(){
         `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
     })();
 
+    const secYacht = (function(){
+      const ye=m.yachtEarnings; if(!ye||!ye.all.charged) return '';
+      const up=(ye.rows||[]).filter(r=>r.upcoming);
+      return sec('Yacht charter earnings',`
+        <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat"><div class="num money">${money0(ye.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ye.all.cost)}</div><div class="lbl">Boat's price</div></div>
+          <div class="stat paid"><div class="num money">${money0(ye.all.margin)}</div><div class="lbl">CPH earnings</div></div>
+          <div class="stat"><div class="num">${ye.all.count}</div><div class="lbl">Charters</div></div>
+        </div>
+        ${earnBySource(ye.bySource,{key:'count',label:'charters'})}
+        ${up.length?earnList('yacht',`Upcoming — projected: <b style="color:#12794D">${money0(ye.upcoming.margin)}</b> on ${ye.upcoming.count} charter${ye.upcoming.count===1?'':'s'}`,
+          up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
+            <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
+            <span class="rev-od-m">${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
+          </div>`).join('')):''}`,
+        `${ye.pct}% markup added on top of the boat's price`);
+    })();
+
     /* LEFT column = KPI cards + cash flow beneath them. Insert now that secCash is built. */
     { document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove();
       const sl=document.getElementById('stayList');
@@ -1221,7 +1240,8 @@ async function renderRevenue(){
     ${secRevMonth}
     ${secCph}
     ${secCart}
-    ${secXfer}`;
+    ${secXfer}
+    ${secYacht}`;
 
   /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
   const rail=document.getElementById('preview'); if(!rail) return;
@@ -1277,10 +1297,10 @@ function boardRows(){ const today=todayStr(); return (LIST||[]).filter(s=>s.chec
 // Download the arrivals board as an Excel file (HTML-table .xls — keeps the row colours).
 window.exportBoardExcel=function(){
   const L=boardRows(); const e=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const cols=['Arrive','Depart','Guest','Villa Name','Villa Number','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Deposit','Extras'];
+  const cols=['Arrive','Depart','Guest','Villa Name','Villa Number','PPL','Provider','Greeter','Cart','Staff','Access','Transfer','Super','Deposit','Extras','Due to Collect'];
   let rows='';
   for(const s of L){ const bg=ROWCOLORS[s.rowColor]||''; const st=bg?` style="background:${bg}"`:'';
-    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,s.villaInternal,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,boardDepositText(s),s.extras];
+    const vals=[fmtDay(s.checkin)||s.checkin,fmtDay(s.checkout)||s.checkout,(s.guest||'').replace(/\s*\(ta\)\s*/i,'').trim(),s.villa,s.villaInternal,(s.ppl||s.guests||''),boardProviderCode(s),greeterName(s.assigneeId),String(s.golfCart||'').replace(/\n/g,' · '),s.staffCount,(s.registrationNumber||s.accessCodes),s.transferNote,s.provisioning,boardDepositText(s),s.extras,(Math.round(parseFloat(s.unpaidTotal)||0)?('US$ '+Math.round(parseFloat(s.unpaidTotal)||0).toLocaleString()):'')];
     rows+='<tr>'+vals.map((v,i)=>`<td${i<7?st:''}>${e(v)}</td>`).join('')+'</tr>';
   }
   const html=`<html><head><meta charset="utf-8"></head><body><table border="1" cellspacing="0"><tr>${cols.map(c=>`<th style="background:#12794D;color:#fff">${c}</th>`).join('')}</tr>${rows}</table></body></html>`;
@@ -1342,6 +1362,7 @@ window.setStayField=async function(id,field,val){
 };
 function boardDepositText(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return ''; return 'US$ '+a+(s.groceryDepositPaid?' paid':' pending'); }
 function boardDepositCell(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return '—'; const paid=!!s.groceryDepositPaid; const c=paid?'#12794D':'#B8860B'; return `<span style="white-space:nowrap;font-weight:700;color:${c}">US$ ${a}<br><span style="font-weight:600;font-size:10px">${paid?'✓ paid':'⚠ pending'}</span></span>`; }
+function boardCollectCell(s){ const a=Math.round(parseFloat(s.unpaidTotal)||0); if(!a)return '<span style="color:var(--soft)">—</span>'; return `<span style="white-space:nowrap;font-weight:800;color:#9A2B2B">US$ ${a.toLocaleString()}</span>`; }
 function renderArrivalsBoard(){
   const el=document.getElementById('editor'); if(!el)return;
   // Don't repaint while the user is mid-edit in a board cell (poll refresh would blow away focus).
@@ -1354,7 +1375,7 @@ function renderArrivalsBoard(){
   const rows=L.map(s=>{const g=(s.ppl||s.guests||'');const tint=ROWCOLORS[s.rowColor]||'';const ts=tint?` style="background:${tint}"`:'';
     const yr=String(s.checkin||'').slice(0,4);
     let divider='';
-    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="16">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
+    if(yr && yr!==prevYear){ if(prevYear!==null){ divider=`<tr class="ab-year"><td colspan="17">${esc(yr)} arrivals</td></tr>`; } prevYear=yr; }
     return divider+`<tr>
       <td class="ab-color"${ts}>${colorSel(s)}</td>
       <td class="ab-dt"${ts}>${esc(fmtDay(s.checkin)||s.checkin||'')}</td>
@@ -1372,6 +1393,7 @@ function renderArrivalsBoard(){
       <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
       <td class="ab-super" title="Grocery deposit — edit in the Grocery pre-stocking section">${boardDepositCell(s)}</td>
       <td class="ab-super" title="From the booking file — edit in Internal notes (staff only)">${esc(s.extras||'—')}</td>
+      <td class="ab-super" title="Total still to collect — sum of unpaid (sent) invoices for this booking. Issue/mark invoices paid on the guest's stay.">${boardCollectCell(s)}</td>
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
     <div class="ab-btns">
@@ -1382,10 +1404,10 @@ function renderArrivalsBoard(){
     </div>
     <div class="today-head"><span style="font-weight:400">Upcoming</span> <b style="font-weight:800">Arrivals</b></div>
     <div class="today-date">${L.length} upcoming ${L.length===1?'arrival':'arrivals'} · click a guest to open the stay · edits save automatically</div>
-    <div class="ab-editnote" style="font-size:11px;color:var(--soft);margin:2px 0 10px;line-height:1.55;white-space:normal">Columns <b>Cart → Extras</b> are read-only mirrors of the booking file (hover a cell for its source) — edit on the guest's stay: <b>Cart</b> via the invoice · <b>Staff</b> &amp; <b>Extras</b> in Internal notes · <b>Access</b> in Stay details → Registration # · <b>Transfer</b> in the transfer request / Internal notes · <b>Super</b> (supermarket / grocery provisioning) in Grocery pre-stocking.</div>
+    <div class="ab-editnote" style="font-size:11px;color:var(--soft);margin:2px 0 10px;line-height:1.55;white-space:normal">Columns <b>Cart → Due</b> are read-only mirrors of the booking file (hover a cell for its source) — edit on the guest's stay: <b>Cart</b> via the invoice · <b>Staff</b> &amp; <b>Extras</b> in Internal notes · <b>Access</b> in Stay details → Registration # · <b>Transfer</b> in the transfer request / Internal notes · <b>Super</b> (supermarket / grocery provisioning) in Grocery pre-stocking · <b>Due</b> is the total of unpaid invoices (issue &amp; mark paid on the stay).</div>
     <div class="ab-scroll"><table class="ab"><thead><tr>
-      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa Name</th><th>Villa Number</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th>
-    </tr></thead><tbody>${rows||`<tr><td colspan="16" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
+      <th title="Row colour"></th><th>Arrive</th><th>Depart</th><th>Guest</th><th>Villa Name</th><th>Villa Number</th><th>PPL</th><th>Provider</th><th>Greeter</th><th>Cart</th><th>Staff</th><th>Access</th><th>Transfer</th><th>Super</th><th>Deposit</th><th>Extras</th><th title="Total still to collect — sum of unpaid invoices">Due</th>
+    </tr></thead><tbody>${rows||`<tr><td colspan="17" class="ab-empty">No upcoming arrivals.</td></tr>`}</tbody></table></div>
   </div>`;
 }
 function renderInbox(){

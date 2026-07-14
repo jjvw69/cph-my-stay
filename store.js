@@ -954,17 +954,69 @@ function upsellMetrics() {
     bySource: xferSources,
   };
 
+  // ---- YACHT CHARTER EARNINGS ----------------------------------------------------------------
+  // CPH adds an 18% MARKUP on the boat's price before invoicing the guest. So the guest pays
+  // cost × 1.18, and CPH's profit is that 18% (= 18/118 of what the guest is charged).
+  const YACHT_MARKUP = 0.18;
+  const RE_YACHT_LINE = /yacht|catamaran|charter|boat/i;
+  const yachtRows = [];
+  stays.forEach(s => {
+    let charged = 0, count = 0, sup = '', via = '', paidAmt = 0, dueAmt = 0;
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      const yachtInv = inv.kind === 'yacht' || RE_YACHT_LINE.test(String(inv.title || ''));
+      (inv.items || []).forEach(it => {
+        if (!yachtInv && !RE_YACHT_LINE.test(String(it.label || ''))) return;
+        const amt = Number(it.amount) || 0;
+        if (!amt) return;
+        charged += amt; count++;
+        if (!sup && it.supplier) sup = String(it.supplier).trim();
+        if (!via && it.bookedVia) via = String(it.bookedVia).trim();
+        if (inv.status === 'paid') paidAmt += amt; else dueAmt += amt;
+      });
+    });
+    if (charged) {
+      const cost = Math.round((charged / (1 + YACHT_MARKUP)) * 100) / 100;   // boat's price before markup
+      const margin = Math.round((charged - cost) * 100) / 100;               // the 18% we added
+      yachtRows.push({
+        stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        checkin: s.checkin || '', count, supplier: sup,
+        source: via || (s.source || 'Unknown').trim(),
+        charged, cost, margin,
+        paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
+        upcoming: !!(s.checkout && s.checkout >= today),
+      });
+    }
+  });
+  yachtRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const yachtSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
+  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+  const yachtBySrc = {};
+  yachtRows.forEach(r => {
+    const e = yachtBySrc[r.source] || (yachtBySrc[r.source] = { key: r.source, bookings: 0, count: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.count += r.count; e.charged += r.charged; e.cost += r.cost; e.margin += r.margin;
+  });
+  const yachtEarnings = {
+    pct: Math.round(YACHT_MARKUP * 100),
+    all: yachtSum(yachtRows),
+    upcoming: yachtSum(yachtRows.filter(r => r.upcoming)),
+    rows: yachtRows,
+    bySource: Object.values(yachtBySrc).sort((a, b) => b.margin - a.margin),
+  };
+
   // ---- TOTAL CPH EARNINGS --------------------------------------------------------------------
   // What WE actually made, across the services where we take a margin — NOT what was invoiced.
   // (Groceries deliberately excluded: they're a pass-through, not a CPH margin line.)
   const earnParts = [
     { key: 'Golf carts', margin: cartEarnings.all.margin, charged: cartEarnings.all.charged },
     { key: 'Airport transfers', margin: transferEarnings.all.margin, charged: transferEarnings.all.charged },
+    { key: 'Yacht charters', margin: yachtEarnings.all.margin, charged: yachtEarnings.all.charged },
   ].filter(p => p.margin > 0).sort((a, b) => b.margin - a.margin);
   const totalEarnings = {
     margin: earnParts.reduce((a, p) => a + p.margin, 0),
     charged: earnParts.reduce((a, p) => a + p.charged, 0),
-    upcomingMargin: cartEarnings.upcoming.margin + transferEarnings.upcoming.margin,
+    upcomingMargin: cartEarnings.upcoming.margin + transferEarnings.upcoming.margin + yachtEarnings.upcoming.margin,
     parts: earnParts,
   };
 
@@ -1001,7 +1053,7 @@ function upsellMetrics() {
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
     byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
-    cartEarnings, transferEarnings, totalEarnings, cashFlow,
+    cartEarnings, transferEarnings, yachtEarnings, totalEarnings, cashFlow,
   };
 }
 
