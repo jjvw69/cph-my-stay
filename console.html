@@ -203,6 +203,11 @@
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
   .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  /* Year jump chips — scroll the list to the first booking of that year (no filtering). */
+  .yrnav{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 11px}
+  .yrchip{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#F6F5F1;border-radius:20px;padding:4px 10px;color:var(--soft);cursor:pointer}
+  .yrchip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .yrsep{position:sticky;top:0;z-index:2;background:var(--bg,#fff);font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);padding:7px 2px 5px;border-bottom:1px solid var(--line);margin:6px 0 8px}
   .topPending{display:none;background:var(--purple);color:#fff;border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer}
   .topPending.show{display:inline-block}
   .tmpl{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
@@ -518,6 +523,7 @@
         <button class="lchip on" data-f="current" onclick="setFilter('current')">Current</button>
         <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
       </div>
+      <div class="yrnav" id="yearNav"></div>
       <div id="stayList"></div>
     </div>
     <div class="col center" id="editor"><div class="empty">Select a stay on the left, or create a new one.</div></div>
@@ -719,6 +725,13 @@ document.getElementById('search').addEventListener('input',renderList);
 document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ await loadList(r.body.stay.id); } };
 let listFilter='current';
 window.setFilter=function(f){ listFilter=f; document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f)); renderList(); };
+/* Year chips are derived from whatever is in the list right now (Current or Archive) — a 2028
+   booking makes a 2028 chip appear on its own. Only shown when the list spans 2+ years. */
+function renderYearNav(years){
+  const n=document.getElementById('yearNav'); if(!n)return;
+  n.innerHTML=(years.length>1)?years.map(y=>`<button class="yrchip" onclick="jumpYear('${y}')">${y}</button>`).join(''):'';
+}
+window.jumpYear=function(y){ const t=document.getElementById('yr-'+y); if(t)t.scrollIntoView({behavior:'smooth',block:'start'}); };
 function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
   // Two folders only: Current = every ACTIVE booking (upcoming + in-house, whatever its status —
@@ -734,8 +747,16 @@ function renderList(){
   const today=todayStr();
   // Follow-ups-due strip removed from the left bar (still surfaced in Today’s overview).
   const strip='';
-  if(!items.length){ el.innerHTML=strip+'<div class="empty" style="padding:20px 4px">No stays yet. Tap ＋ New.</div>'; return; }
+  if(!items.length){ el.innerHTML=strip+'<div class="empty" style="padding:20px 4px">No stays yet. Tap ＋ New.</div>'; renderYearNav([]); return; }
+  // Year jump: the list is already sorted by check-in, so drop a sticky divider whenever the
+  // arrival year changes, and offer a chip per year that scrolls straight to it. No filtering —
+  // you can keep scrolling from one year into the next.
+  let _lastYr='';
+  const _years=[];
   el.innerHTML=strip+items.map(s=>{
+    const yr=String(s.checkin||'').slice(0,4);
+    let sep='';
+    if(yr&&yr!==_lastYr){ _lastYr=yr; _years.push(yr); sep=`<div class="yrsep" id="yr-${yr}">${yr}</div>`; }
     const dates=(s.checkin||'?')+' – '+(s.checkout||'?');
     const pill=(s.status||'draft').replace(/\s/g,'').toLowerCase();
     const reqB=s.requests?`<span class="reqbadge">${s.requests} request${s.requests==1?'':'s'}</span>`:'';
@@ -747,11 +768,12 @@ function renderList(){
     const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
-    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
+    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
       <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
   }).join('');
+  renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
 window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols)_cols.classList.remove('board-mode'); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
