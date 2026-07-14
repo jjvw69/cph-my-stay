@@ -558,34 +558,92 @@ function stayReadiness(s) {
 /** Normalized golf-cart display for the arrivals board — DERIVED from the booking file:
  *  billable carts come from the golf-cart invoice (source of truth, edited there), villa &
  *  pending come from the cart status. Format: "2× 6-seater", "1× 4-seater villa", "Pending". */
-function golfCartDisplay(s) {
-  const parts = [];
-  const inv = (s.invoices || []).find(i => /golf cart/i.test(i.title || ''));
-  if (inv) {
+/** Read one piece of cart text — an invoice line label, a request cartType, or a staff Cart-cell
+ *  segment — into {qty, seats, villa}. Understands every shape we actually use:
+ *    "1× 6-seater" · "2x 6 seater" · "Villa Golf cart 6p" · "2 de 6p" · "Golf cart — 4-seater" */
+function parseCartText(t) {
+  const s = String(t || '').trim();
+  if (!s || /^none$/i.test(s)) return null;
+  const seatM = s.match(/(\d)\s*-?\s*seater/i) || s.match(/(\d)\s*p\b/i);
+  if (!seatM) return null;
+  const qtyM = s.match(/(\d+)\s*(?:[×x*]|de)\s*\d/i);
+  return { qty: qtyM ? Number(qtyM[1]) : 1, seats: Number(seatM[1]), villa: /villa|owner/i.test(s) };
+}
+const RE_CART_ANY = /golf\s*cart|golfcart|seater|\d\s*p\b/i;
+/** SINGLE SOURCE OF TRUTH for a stay's golf-cart status. Priority:
+ *    1. golf-cart INVOICE lines (incl. a US$0 villa/owner cart — that still counts as settled)
+ *    2. a CONFIRMED golf-cart request
+ *    3. the staff Cart cell (cartConfig) — now only a manual override / fallback
+ *  Returns { lines, note }. `note` is the beige console banner; it is empty once the cart is
+ *  resolved by ANY of the three. Issuing the invoice is what clears it — no double entry.
+ *  (Before 2026-07-14 the banner + board read cartConfig ONLY, so an invoiced cart still said
+ *   "pending" until someone retyped it into the Cart cell by hand.) */
+function cartInfo(s) {
+  const lines = [];
+  let anyBillable = false, anyVilla = false;
+  const push = (p, tag) => {
+    if (!p) return;
+    lines.push(p.qty + '× ' + p.seats + '-seater' + (p.villa ? ' villa' : '') + (tag || ''));
+    if (p.villa) anyVilla = true; else anyBillable = true;
+  };
+
+  // 1 — invoice lines
+  (s.invoices || []).forEach(inv => {
+    if (!RE_CART_ANY.test(String(inv.title || ''))) return;
     (inv.items || []).forEach(it => {
-      const sup = String(it.supplier || '').trim();       // per-line supplier so each cart carries its own on the board
-      const via = String(it.bookedVia || '').trim();      // per-line booking channel — "who booked this cart"
+      const sup = String(it.supplier || '').trim();     // per-line supplier
+      const via = String(it.bookedVia || '').trim();    // per-line booking channel
       const tag = (sup ? (' · ' + sup) : '') + (via ? (' · via ' + via) : '');
-      const m = String(it.label || '').match(/(\d+)\s*[×x]\s*(\d)\s*-?\s*seater/i);
-      if (m) { parts.push(m[1] + '× ' + m[2] + '-seater' + tag); return; }
+      const amt = Number(it.amount) || 0;
+      const p = parseCartText(it.label);
+      // A US$0 line on a golf-cart invoice = the villa/owner is providing it, not billed.
+      if (p) { if (!amt) p.villa = true; return push(p, tag); }
+      // Fallback for old lines with no seat count in the label: infer from rate × days.
       const rate = parseFloat(String(it.rate || '').replace(/[^0-9.]/g, '')) || 0;
       const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || 0;
-      const amt = Number(it.amount) || 0;
-      const seat = (rate === 105 || rate === 150) ? 6 : (rate === 80 || rate === 120) ? 4 : 0;
+      const seats = (rate === 105 || rate === 150) ? 6 : (rate === 80 || rate === 120) ? 4 : 0;
       const qty = (rate && days) ? Math.round(amt / (rate * days)) : 0;
-      if (seat && qty) parts.push(qty + '× ' + seat + '-seater' + tag);
+      if (seats && qty) push({ qty, seats, villa: false }, tag);
+    });
+  });
+
+  // 2 — confirmed golf-cart request (only if no invoice line spoke first)
+  if (!lines.length) {
+    (s.requests || []).forEach(r => {
+      if (r.status !== 'confirmed') return;
+      if (!RE_CART_ANY.test(String(r.refId || '') + ' ' + String(r.title || ''))) return;
+      const sup = String(r.supplier || '').trim();
+      const via = String(r.bookedVia || '').trim();
+      const tag = (sup ? (' · ' + sup) : '') + (via ? (' · via ' + via) : '');
+      push(parseCartText(r.cartType || r.title), tag);
     });
   }
+
+  // 3 — staff Cart cell. Villa carts typed there are always shown (they're never invoiced);
+  //     billable ones only when nothing above resolved the cart.
   const raw = String(s.cartConfig || '').trim();
-  if (!parts.length && /^none$/i.test(raw)) return 'Pending';
-  raw.split(/\n|&|\+|\s+y\s+/i).map(x => x.trim()).filter(Boolean).forEach(seg => {
-    if (!/villa/i.test(seg)) return;
-    const c = seg.match(/(\d+)\s*(?:de|x|\*)?\s*(\d)\s*p/i);
-    if (c) { parts.push(c[1] + '× ' + c[2] + '-seater villa'); return; }
-    const c2 = seg.match(/(\d)\s*p/i);
-    parts.push(c2 ? '1× ' + c2[1] + '-seater villa' : 'villa');
+  const segs = raw.split(/\n|&|\+|\s+y\s+/i).map(x => x.trim()).filter(Boolean);
+  segs.forEach(seg => {
+    if (/^none$/i.test(seg)) return;
+    const isVilla = /villa|owner/i.test(seg);
+    if (!isVilla && lines.length) return;          // already resolved by invoice/request
+    if (isVilla && anyVilla) return;               // don't double-list the same villa cart
+    const p = parseCartText(seg);
+    if (p) push(p, '');
+    else if (isVilla) { lines.push('villa'); anyVilla = true; }
   });
-  return parts.join('\n'); // one cart type per line on the arrivals board (see .ab-cart white-space:pre-line)
+
+  const resolved = lines.length > 0;
+  let note = '';
+  if (!resolved && /^none$/i.test(raw)) note = 'Golf cart — pending (to confirm).';
+  else if (resolved && anyVilla && !anyBillable) note = 'Golf cart — provided by villa/owner, not billed.';
+  return { lines, note, resolved };
+}
+/** Board Cart cell: one cart per line ("2× 6-seater · Julio · via Top Villas"), or "Pending". */
+function golfCartDisplay(s) {
+  const info = cartInfo(s);
+  if (!info.lines.length) return /^none$/i.test(String(s.cartConfig || '').trim()) ? 'Pending' : '';
+  return info.lines.join('\n'); // .ab-cart is white-space:pre-line
 }
 /** First non-empty supplier found on an invoice line whose label matches `re`.
  *  Staff-only — surfaced onto the arrivals board (Transfer / Cart columns) + Excel export. */
@@ -1412,6 +1470,7 @@ module.exports = {
   setYachtProposal, cancelYachtProposal, chooseYacht,
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
+  cartInfo,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,

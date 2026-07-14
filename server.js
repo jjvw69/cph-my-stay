@@ -509,7 +509,10 @@ async function route(req,res){
     const mm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)(\/publish)?$/);
     if(mm){
       const id=mm[1];
-      if(m==='GET'){ store.markStaffRead(id); const st=store.getStay(id); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+      // The console gets the stay PLUS derived read-only fields (cartNote) so the editor banner and
+      // the arrivals board can never disagree — both come from store.cartInfo(). cartNote is not in
+      // the saveStay whitelist, so it is never persisted back.
+      if(m==='GET'){ store.markStaffRead(id); const st=store.getStay(id); return st?sendJSON(res,200,{ok:true,stay:Object.assign({},st,{cartNote:store.cartInfo(st).note})}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='POST'&&mm[2]==='/publish'){ const wasPublished=(store.getStay(id)||{}).status==='published'; const st=store.publishStay(id); if(st&&!wasPublished){ notifyGuest(st,'Your My Stay is ready',['Your villa concierge has prepared your personalised My Stay.','',`Booking ${st.reference} — open it any time at:`,`${APP_URL}/my-stay?b=${st.reference}`,'','Sign in with your booking reference and lead-guest last name.'].join('\n')); } return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='PUT'){ const patch=await readBody(req); const st=store.saveStay(id,patch); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='DELETE'){ return store.deleteStay(id)?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
