@@ -1025,6 +1025,24 @@ async function renderRevenue(){
         `US$${ce.perNight} per cart per night · rate tier changes with the season, the spread doesn't`);
     })()}
 
+    ${(function(){
+      const te=m.transferEarnings; if(!te||!te.all.charged) return '';
+      const up=(te.rows||[]).filter(r=>r.upcoming);
+      return sec('Airport transfer earnings',`
+        <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat"><div class="num money">${money0(te.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat"><div class="num money" style="color:#9E5B43">${money0(te.all.cost)}</div><div class="lbl">Paid to supplier</div></div>
+          <div class="stat paid"><div class="num money">${money0(te.all.margin)}</div><div class="lbl">CPH earnings</div></div>
+          <div class="stat"><div class="num">${te.all.trips}</div><div class="lbl">Transfers</div></div>
+        </div>
+        ${up.length?`<div class="rev-od" style="margin-top:4px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(te.upcoming.margin)}</b> on ${te.upcoming.trips} transfer${te.upcoming.trips===1?'':'s'}</div>
+        ${up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
+          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))}${r.supplier?' · '+esc(r.supplier):''}</span></span>
+          <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} <span class="rev-cm">+${money0(r.margin)}</span></span>
+        </div>`).join('')}</div>`:''}`,
+        `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
+    })()}
+
     ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
     ${sec('By service', upsellServices(), 'tap a row for the bookings behind it')}
     ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}

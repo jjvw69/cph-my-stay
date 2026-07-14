@@ -891,6 +891,45 @@ function upsellMetrics() {
     rows: cartRows,
   };
 
+  // ---- AIRPORT TRANSFER EARNINGS -------------------------------------------------------------
+  // Unlike the golf carts (a flat US$20/cart/night spread), transfers earn CPH a straight
+  // PERCENTAGE of what the guest is charged: 13%. The supplier keeps the other 87%.
+  const TRANSFER_MARGIN_PCT = 0.13;
+  const xferRows = [];
+  stays.forEach(s => {
+    let charged = 0, trips = 0, sup = '';
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      (inv.items || []).forEach(it => {
+        const label = String(it.label || '');
+        if (!RE_TRANSFER_LINE.test(label) && !RE_TRANSFER_LINE.test(String(inv.title || ''))) return;
+        const amt = Number(it.amount) || 0;
+        if (!amt) return;
+        charged += amt; trips++;
+        if (!sup && it.supplier) sup = String(it.supplier).trim();
+      });
+    });
+    if (charged) {
+      const margin = Math.round(charged * TRANSFER_MARGIN_PCT * 100) / 100;
+      xferRows.push({
+        stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        checkin: s.checkin || '', trips, supplier: sup,
+        charged, cost: Math.round((charged - margin) * 100) / 100, margin,
+        upcoming: !!(s.checkout && s.checkout >= today),
+      });
+    }
+  });
+  xferRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const xferSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, trips: a.trips + r.trips,
+  }), { charged: 0, cost: 0, margin: 0, trips: 0 });
+  const transferEarnings = {
+    pct: Math.round(TRANSFER_MARGIN_PCT * 100),
+    all: xferSum(xferRows),
+    upcoming: xferSum(xferRows.filter(r => r.upcoming)),
+    rows: xferRows,
+  };
+
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
   const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
   overdue.sort((a, b) => (b.daysOverdue - a.daysOverdue) || (b.total - a.total));
@@ -903,7 +942,7 @@ function upsellMetrics() {
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
     byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
-    cartEarnings,
+    cartEarnings, transferEarnings,
   };
 }
 
