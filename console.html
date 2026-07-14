@@ -121,6 +121,10 @@
   .stat.hot .num{color:#9E5B43}
   .stat .lbl{font-size:12px;color:var(--soft);margin-top:5px}
   .today-sec{margin-top:22px}
+  /* Action deck — the three lists that need doing, side by side (collapses to one column narrow). */
+  .today-2col{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;align-items:start}
+  .today-2col>div{min-width:0}
+  @media(max-width:1180px){ .today-2col{grid-template-columns:1fr;gap:0} }
   .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:9px}
   .today-row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;text-align:left;width:100%}
   .today-row:hover{border-color:var(--accent)}
@@ -1187,16 +1191,22 @@ function renderToday(){
     </div>
     ${upsellCard()}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
-    ${/* Arrivals not ready leads — it's the only list that says something needs doing.
+    ${/* Two-column action deck: the three lists that actually need doing sit side by side so they
+          can all be seen without scrolling — Arrivals not ready on the left (the priority, and the
+          longest), Unpaid invoices + Follow-ups due stacked on the right.
           "Arriving today" / "Arriving tomorrow" / "In-house now" were REMOVED 2026-07-14: the right
-          column already lists every upcoming arrival with its date, status and greeter, so they were
-          pure duplication. Their stat tiles remain at the top and still open the relevant list. */''}
-    ${sec('Arrivals not ready','notReady', notReady.map(s=>notReadyRow(s)))}
+          column already lists every upcoming arrival with its date, status and greeter. Their stat
+          tiles remain at the top. */''}
+    <div class="today-2col">
+      <div>${sec('Arrivals not ready','notReady', notReady.map(s=>notReadyRow(s)))}</div>
+      <div>
+        ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
+        ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
+      </div>
+    </div>
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
-    ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
-    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
-    ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}`;
+    ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}`;
   refreshTodayBtn();
 }
 
