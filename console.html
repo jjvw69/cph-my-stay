@@ -1212,15 +1212,15 @@ async function renderRevenue(){
           <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ce.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ce.all.cost)}</div><div class="lbl">Paid to Julio</div></div>
-          <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-nights</div></div>
+          <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-days</div></div>
         </div>
-        ${earnBySource(ce.bySource,{key:'cartNights',label:'cart-nights'})}
-        ${up.length?earnList('cart',`Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-nights`,
+        ${earnBySource(ce.bySource,{key:'cartNights',label:'cart-days'})}
+        ${up.length?earnList('cart',`Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-days`,
           up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
             <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        `US$ ${ce.perNight} per cart per night · rate tier changes with the season, the spread doesn't`);
+        `US$ ${ce.perNight} per cart per day · rate tier changes with the season, the spread doesn't`);
     })();
 
     const secXfer = (function(){
