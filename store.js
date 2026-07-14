@@ -782,12 +782,18 @@ function upsellMetrics() {
     const key = id || 'other';
     return svc[key] || (svc[key] = { id: key, title: (id && serviceNameFor(id)) || title || 'Other', booked: 0, revenue: 0, paid: 0, due: 0, requested: 0, awaiting: 0, items: [] });
   };
+  /* Groceries are a pass-through, not a CPH add-on — the guest's supermarket bill flows straight to
+     the store, we don't earn on the face value. So they're excluded from the whole Revenue view
+     (Invoiced add-ons / Paid / Still to collect / by-service / by-month / cash flow). Unpaid grocery
+     invoices still show for chasing in the concierge Today view, which reads a different source. */
+  const isGroceryInv = inv => inv.kind === 'grocery' || /grocer|pre[\s-]?stock|provision|supermarket|stocking/i.test(inv.title || '');
   stays.forEach(s => {
     if (s.status === 'published') published++;
     let stayBooked = 0;
     // MONEY — every issued (non-draft) invoice
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
+      if (isGroceryInv(inv)) return;               // groceries are a pass-through, not an add-on
       const amt = invoiceTotal(inv);
       const isPaid = inv.status === 'paid';
       const id = serviceKeyFor(inv.title) || serviceKeyFor(((inv.items || [])[0] || {}).label);
@@ -830,6 +836,7 @@ function upsellMetrics() {
   stays.forEach(s => {
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
+      if (isGroceryInv(inv)) return;               // groceries excluded from every owner cut too
       const amt = invoiceTotal(inv);
       const isPaid = inv.status === 'paid';
       // Revenue is attributed to the ARRIVAL month — that's the month the money is earned.
@@ -1005,18 +1012,144 @@ function upsellMetrics() {
     bySource: Object.values(yachtBySrc).sort((a, b) => b.margin - a.margin),
   };
 
+  // ---- CAR RENTAL EARNINGS -------------------------------------------------------------------
+  // Like airport transfers, car rentals earn CPH a straight PERCENTAGE of what the guest is
+  // charged: 13%. The rental supplier keeps the other 87%. (Golf carts are a separate line — this
+  // matches "car rental", never "golf cart".)
+  const CARRENTAL_MARGIN_PCT = 0.13;
+  const RE_CARRENTAL_LINE = /car\s*rental|rental\s*car|car\s*hire|hertz|avis|europcar|budget\s*rent/i;
+  const carRows = [];
+  stays.forEach(s => {
+    let charged = 0, count = 0, sup = '', via = '', paidAmt = 0, dueAmt = 0;
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      (inv.items || []).forEach(it => {
+        const label = String(it.label || '');
+        if (!RE_CARRENTAL_LINE.test(label) && !RE_CARRENTAL_LINE.test(String(inv.title || ''))) return;
+        const amt = Number(it.amount) || 0;
+        if (!amt) return;
+        charged += amt; count++;
+        if (!sup && it.supplier) sup = String(it.supplier).trim();
+        if (!via && it.bookedVia) via = String(it.bookedVia).trim();
+        if (inv.status === 'paid') paidAmt += amt; else dueAmt += amt;
+      });
+    });
+    if (charged) {
+      const margin = Math.round(charged * CARRENTAL_MARGIN_PCT * 100) / 100;
+      carRows.push({
+        stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        checkin: s.checkin || '', count, supplier: sup,
+        source: via || (s.source || 'Unknown').trim(),
+        charged, cost: Math.round((charged - margin) * 100) / 100, margin,
+        paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
+        upcoming: !!(s.checkout && s.checkout >= today),
+      });
+    }
+  });
+  const carBySrc = {};
+  carRows.forEach(r => {
+    const e = carBySrc[r.source] || (carBySrc[r.source] = { key: r.source, bookings: 0, count: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.count += r.count; e.charged += r.charged; e.cost += r.cost; e.margin += r.margin;
+  });
+  carRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const carSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
+  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+  const carEarnings = {
+    pct: Math.round(CARRENTAL_MARGIN_PCT * 100),
+    all: carSum(carRows),
+    upcoming: carSum(carRows.filter(r => r.upcoming)),
+    rows: carRows,
+    bySource: Object.values(carBySrc).sort((a, b) => b.margin - a.margin),
+  };
+
+  // ---- IN-VILLA SERVICES EARNINGS (chef · massage · nannies · staff · entertainment) ----------
+  // Grouped "people we send to the villa" services. CPH's margin here is TBD — set
+  // INVILLA_MARGIN_PCT (e.g. 0.15) once Jan confirms the number. Until then the section reports what
+  // was charged and marks profit as PENDING; nothing flows into the CPH-earnings roll-up while null.
+  const INVILLA_MARGIN_PCT = null; // ← awaiting Jan's number; e.g. 0.15 for 15%
+  const RE_INVILLA_LINE = /chef|arrival meal|meal plan|massage|\bspa\b|nann|babysit|butler|waiter|housekeep|additional staff|entertainment|musician|\bdj\b/i;
+  const invillaRows = [];
+  stays.forEach(s => {
+    let charged = 0, count = 0, sup = '', via = '', paidAmt = 0, dueAmt = 0;
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      (inv.items || []).forEach(it => {
+        const label = String(it.label || '');
+        if (!RE_INVILLA_LINE.test(label) && !RE_INVILLA_LINE.test(String(inv.title || ''))) return;
+        const amt = Number(it.amount) || 0;
+        if (!amt) return;
+        charged += amt; count++;
+        if (!sup && it.supplier) sup = String(it.supplier).trim();
+        if (!via && it.bookedVia) via = String(it.bookedVia).trim();
+        if (inv.status === 'paid') paidAmt += amt; else dueAmt += amt;
+      });
+    });
+    if (charged) {
+      const margin = INVILLA_MARGIN_PCT == null ? null : Math.round(charged * INVILLA_MARGIN_PCT * 100) / 100;
+      invillaRows.push({
+        stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        checkin: s.checkin || '', count, supplier: sup,
+        source: via || (s.source || 'Unknown').trim(),
+        charged, cost: margin == null ? null : Math.round((charged - margin) * 100) / 100, margin,
+        paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
+        upcoming: !!(s.checkout && s.checkout >= today),
+      });
+    }
+  });
+  const invillaBySrc = {};
+  invillaRows.forEach(r => {
+    const e = invillaBySrc[r.source] || (invillaBySrc[r.source] = { key: r.source, bookings: 0, count: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.count += r.count; e.charged += r.charged; e.cost += (r.cost || 0); e.margin += (r.margin || 0);
+  });
+  invillaRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const invillaSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + (r.cost || 0), margin: a.margin + (r.margin || 0), count: a.count + r.count,
+  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+  const invillaEarnings = {
+    pct: INVILLA_MARGIN_PCT == null ? null : Math.round(INVILLA_MARGIN_PCT * 100),
+    pending: INVILLA_MARGIN_PCT == null,
+    all: invillaSum(invillaRows),
+    upcoming: invillaSum(invillaRows.filter(r => r.upcoming)),
+    rows: invillaRows,
+    bySource: Object.values(invillaBySrc).sort((a, b) => b.margin - a.margin),
+  };
+
+  // ---- GROCERIES — movements only (NOT revenue) ----------------------------------------------
+  // Groceries are a pass-through; excluded from every revenue number above. This block just
+  // surfaces the money MOVING through — charged, collected, still owed — so the volume is visible
+  // in the left column without ever being counted as CPH revenue.
+  const grocRows = []; let grocCharged = 0, grocPaid = 0, grocDue = 0, grocCount = 0;
+  stays.forEach(s => {
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      if (!isGroceryInv(inv)) return;
+      const amt = invoiceTotal(inv);
+      if (!amt) return;
+      const isPaid = inv.status === 'paid';
+      grocCharged += amt; grocCount++;
+      if (isPaid) grocPaid += amt; else grocDue += amt;
+      grocRows.push({ stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        no: inv.no || '', total: amt, paid: isPaid, dueBy: inv.dueBy || '', checkin: s.checkin || '' });
+    });
+  });
+  grocRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const groceryMovements = { charged: grocCharged, paid: grocPaid, due: grocDue, count: grocCount, rows: grocRows };
+
   // ---- TOTAL CPH EARNINGS --------------------------------------------------------------------
   // What WE actually made, across the services where we take a margin — NOT what was invoiced.
   // (Groceries deliberately excluded: they're a pass-through, not a CPH margin line.)
   const earnParts = [
     { key: 'Golf carts', margin: cartEarnings.all.margin, charged: cartEarnings.all.charged },
+    { key: 'Car rentals', margin: carEarnings.all.margin, charged: carEarnings.all.charged },
     { key: 'Airport transfers', margin: transferEarnings.all.margin, charged: transferEarnings.all.charged },
     { key: 'Yacht charters', margin: yachtEarnings.all.margin, charged: yachtEarnings.all.charged },
+    { key: 'In-villa services', margin: invillaEarnings.all.margin, charged: invillaEarnings.all.charged },
   ].filter(p => p.margin > 0).sort((a, b) => b.margin - a.margin);
   const totalEarnings = {
     margin: earnParts.reduce((a, p) => a + p.margin, 0),
     charged: earnParts.reduce((a, p) => a + p.charged, 0),
-    upcomingMargin: cartEarnings.upcoming.margin + transferEarnings.upcoming.margin + yachtEarnings.upcoming.margin,
+    upcomingMargin: cartEarnings.upcoming.margin + carEarnings.upcoming.margin + transferEarnings.upcoming.margin + yachtEarnings.upcoming.margin + invillaEarnings.upcoming.margin,
     parts: earnParts,
   };
 
@@ -1053,7 +1186,8 @@ function upsellMetrics() {
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
     byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
-    cartEarnings, transferEarnings, yachtEarnings, totalEarnings, cashFlow,
+    cartEarnings, carEarnings, transferEarnings, yachtEarnings, invillaEarnings, totalEarnings, cashFlow,
+    groceryMovements,
   };
 }
 
