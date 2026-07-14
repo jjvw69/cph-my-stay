@@ -1058,9 +1058,13 @@ function earnBySource(rows,unitLbl){
       stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${esc(r.key)} — ${money0(r.margin)} (${Math.round(frac*100)}%)</title></circle>`;
     off+=len; return seg;
   }).join('');
+  // Shrink the centre amount so it always fits inside the donut hole (big totals like US$ 39,390
+   // used to overflow the ring). Font scales down with the length of the formatted amount.
+  const amtLabel=money0(total);
+  const amtFs=Math.max(9,Math.min(15,Math.round(119/amtLabel.length)));
   return `<div class="rev-donut">
     <svg viewBox="0 0 140 140" width="140" height="140" role="img">${arcs}
-      <text x="70" y="66" text-anchor="middle" font-size="15" font-weight="800" fill="#12794D">${money0(total)}</text>
+      <text x="70" y="${amtFs>=13?66:67}" text-anchor="middle" font-size="${amtFs}" font-weight="800" fill="#12794D">${amtLabel}</text>
       <text x="70" y="82" text-anchor="middle" font-size="8.5" fill="#7B857E">CPH earnings</text>
     </svg>
     <div class="rev-legend">
