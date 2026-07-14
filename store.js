@@ -954,6 +954,31 @@ function upsellMetrics() {
     bySource: xferSources,
   };
 
+  // ---- TOTAL CPH EARNINGS --------------------------------------------------------------------
+  // What WE actually made, across the services where we take a margin — NOT what was invoiced.
+  // (Groceries deliberately excluded: they're a pass-through, not a CPH margin line.)
+  const earnParts = [
+    { key: 'Golf carts', margin: cartEarnings.all.margin, charged: cartEarnings.all.charged },
+    { key: 'Airport transfers', margin: transferEarnings.all.margin, charged: transferEarnings.all.charged },
+  ].filter(p => p.margin > 0).sort((a, b) => b.margin - a.margin);
+  const totalEarnings = {
+    margin: earnParts.reduce((a, p) => a + p.margin, 0),
+    charged: earnParts.reduce((a, p) => a + p.charged, 0),
+    upcomingMargin: cartEarnings.upcoming.margin + transferEarnings.upcoming.margin,
+    parts: earnParts,
+  };
+
+  // ---- CASH FLOW — when the outstanding money is due -------------------------------------------
+  const cashByMonth = {};
+  overdue.forEach(o => {
+    const key = o.dueBy ? String(o.dueBy).slice(0, 7) : 'nodate';
+    const e = cashByMonth[key] || (cashByMonth[key] = { key, total: 0, count: 0, overdue: 0 });
+    e.total += o.total; e.count++;
+    if (o.daysOverdue > 0) e.overdue += o.total;
+  });
+  const cashFlow = Object.values(cashByMonth)
+    .sort((a, b) => (a.key === 'nodate' ? 1 : b.key === 'nodate' ? -1 : a.key.localeCompare(b.key)));
+
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
   const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
   // Unpaid invoices are ordered BY DUE DATE — soonest first, so anything already past its date sits
@@ -974,7 +999,7 @@ function upsellMetrics() {
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
     byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
-    cartEarnings, transferEarnings,
+    cartEarnings, transferEarnings, totalEarnings, cashFlow,
   };
 }
 

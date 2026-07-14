@@ -150,6 +150,12 @@
   .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 13px;min-width:0}
   /* Money never wraps and never touches the edge — it shrinks to fit the card instead. */
   .stat .num.money{font-size:clamp(16px,1.55vw,22px);letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* The Revenue view's headline row is the whole point of the page — give it presence. */
+  .rev-kpi{gap:12px;margin-bottom:14px}
+  .rev-kpi .stat{padding:17px 18px;border-width:1.5px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
+  .rev-kpi .stat .num{font-size:34px}
+  .rev-kpi .stat .num.money{font-size:clamp(20px,2.05vw,30px);letter-spacing:-1px}
+  .rev-kpi .stat .lbl{font-size:12.5px;font-weight:600;margin-top:7px}
   .stat.paid{background:#F2F8F4;border-color:#CBE3D5}
   .stat.paid .num{color:#12794D}
   .stat.owed{background:#FBF0EF;border-color:#E7C3C0}
@@ -974,7 +980,26 @@ window.showRevenue=function(){
 const money0=v=>'US$'+Math.round(v||0).toLocaleString();
 const monthLbl=ym=>{ const [y,mo]=String(ym||'').split('-'); const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(Number(mo)||1)-1]; return n+' '+String(y||'').slice(2); };
 /* Grouped monthly bars: paid (solid green) stacked under still-due (red) = invoiced total. */
+/* Always a continuous 12-month run — empty months are drawn as gaps, not skipped, otherwise the
+   chart lies about the shape of the year (Aug/Sep/Oct simply vanished). Starts at the current month
+   (or earlier if there's older money) and always shows at least 12 bars. */
+function fill12(rows){
+  const now=new Date(); const cur=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const keys=rows.map(r=>r.key).filter(Boolean).sort();
+  const start=(keys[0]&&keys[0]<cur)?keys[0]:cur;
+  const last=keys[keys.length-1]||cur;
+  const out=[]; const by={}; rows.forEach(r=>by[r.key]=r);
+  let [y,mo]=start.split('-').map(Number);
+  for(let i=0;i<120;i++){
+    const k=y+'-'+String(mo).padStart(2,'0');
+    out.push(by[k]||{key:k,revenue:0,paid:0,due:0,booked:0});
+    if(i>=11 && k>=last) break;                 // at least 12 months, and never stop before the last one
+    mo++; if(mo>12){mo=1;y++;}
+  }
+  return out;
+}
 function revMonthChart(rows){
+  rows=fill12(rows||[]);
   if(!rows.length) return '<div class="rev-empty">No invoices yet.</div>';
   const W=Math.max(560,rows.length*64), H=190, PAD=26, BW=Math.min(38,(W-PAD*2)/rows.length-14);
   const max=Math.max(...rows.map(r=>r.revenue),1);
@@ -982,11 +1007,13 @@ function revMonthChart(rows){
   const bars=rows.map((r,i)=>{
     const x=PAD+i*((W-PAD*2)/rows.length)+((W-PAD*2)/rows.length-BW)/2;
     const yPaid=y(r.paid), yTot=y(r.revenue);
-    return `<g><title>${monthLbl(r.key)} — ${money0(r.revenue)} invoiced · ${money0(r.paid)} paid${r.due?' · '+money0(r.due)+' due':''}</title>`
-      +`<rect x="${x}" y="${yTot}" width="${BW}" height="${Math.max(0,H-PAD-yTot)}" rx="4" fill="#E7C3C0"></rect>`
-      +`<rect x="${x}" y="${yPaid}" width="${BW}" height="${Math.max(0,H-PAD-yPaid)}" rx="4" fill="#12794D"></rect>`
-      +`<text x="${x+BW/2}" y="${H-PAD+14}" text-anchor="middle" font-size="10" fill="#7B857E">${monthLbl(r.key)}</text>`
-      +`<text x="${x+BW/2}" y="${yTot-5}" text-anchor="middle" font-size="9.5" fill="#4A554E">${Math.round(r.revenue/1000)}k</text></g>`;
+    const empty=!r.revenue;
+    return `<g><title>${monthLbl(r.key)} — ${empty?'nothing invoiced':`${money0(r.revenue)} invoiced · ${money0(r.paid)} paid${r.due?' · '+money0(r.due)+' due':''}`}</title>`
+      +(empty?`<rect x="${x}" y="${H-PAD-2}" width="${BW}" height="2" rx="1" fill="#E3E7E4"></rect>`
+             :`<rect x="${x}" y="${yTot}" width="${BW}" height="${Math.max(0,H-PAD-yTot)}" rx="4" fill="#E7C3C0"></rect>`
+              +`<rect x="${x}" y="${yPaid}" width="${BW}" height="${Math.max(0,H-PAD-yPaid)}" rx="4" fill="#12794D"></rect>`
+              +`<text x="${x+BW/2}" y="${yTot-5}" text-anchor="middle" font-size="9.5" fill="#4A554E">${r.revenue>=1000?Math.round(r.revenue/1000)+'k':Math.round(r.revenue)}</text>`)
+      +`<text x="${x+BW/2}" y="${H-PAD+14}" text-anchor="middle" font-size="10" fill="${empty?'#B7BEB9':'#7B857E'}">${monthLbl(r.key)}</text></g>`;
   }).join('');
   return `<div class="rev-scroll"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">
     <line x1="${PAD-6}" y1="${H-PAD}" x2="${W-PAD+6}" y2="${H-PAD}" stroke="#E3E7E4"></line>${bars}</svg></div>
@@ -1062,16 +1089,55 @@ async function renderRevenue(){
     <div class="today-head">Revenue &amp; upsell</div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
 
-    <div class="today-stats">
+    <div class="today-stats rev-kpi">
       <div class="stat"><div class="num money">${money0(m.totalRevenue)}</div><div class="lbl">Invoiced add-ons</div></div>
       <div class="stat paid"><div class="num money">${money0(m.paidRevenue)}</div><div class="lbl">Paid</div></div>
-      <div class="stat owed"><div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect</div></div>
+      <div class="stat owed" title="${(m.overdue||[]).filter(o=>o.daysOverdue>0).length} invoice(s) past their due date">${''}<div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect${m.overdueTotal?` · ${money0(m.overdueTotal)} overdue`:''}</div></div>
       <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
       <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
     </div>
 
+    ${/* WHAT WE ACTUALLY MADE — the invoiced total above is what the GUEST pays; most of it is
+          passed straight to Julio / the transfer company / the supermarket. This is CPH's cut. */''}
+    ${(function(){
+      const t=m.totalEarnings; if(!t||!t.margin) return '';
+      const D=(t.parts||[]).map(p=>({key:p.key,margin:p.margin,charged:p.charged,bookings:0}));
+      const max=Math.max(...D.map(p=>p.margin),1), tot=t.margin;
+      const C=['#12794D','#5A3A88','#C8A038','#9E5B43'];
+      return sec('CPH earnings · all services',`
+        <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(t.margin)}</div><div class="lbl">What CPH earns</div></div>
+          <div class="stat"><div class="num money">${money0(t.charged)}</div><div class="lbl">Charged to guests</div></div>
+          <div class="stat"><div class="num money" style="color:#9E5B43">${money0(t.charged-t.margin)}</div><div class="lbl">Paid to suppliers</div></div>
+          <div class="stat"><div class="num">${Math.round(t.margin/(t.charged||1)*100)}%</div><div class="lbl">Margin</div></div>
+        </div>
+        ${D.map((p,i)=>`<div class="rev-bar">
+          <div class="rev-bar-top"><span>${esc(p.key)}</span><span class="rev-bar-v" style="color:${C[i%C.length]}">${money0(p.margin)} <b style="color:var(--soft);font-size:11px">${Math.round(p.margin/tot*100)}%</b></span></div>
+          <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(p.margin/max)*100)}%;background:${C[i%C.length]}"></div></div>
+          <div class="rev-bar-sub">${money0(p.charged)} charged to guests</div>
+        </div>`).join('')}
+        ${t.upcomingMargin?`<div class="rev-sub" style="margin-top:8px">Still to come from upcoming stays: <b style="color:#12794D">${money0(t.upcomingMargin)}</b></div>`:''}`,
+        'the margin — not the invoice total');
+    })()}
+
     ${/* The trend sits straight under the headline numbers — it's the shape of the same money. */''}
     ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
+
+    ${/* WHEN the outstanding money actually lands, from the due dates on the unpaid invoices. */''}
+    ${(function(){
+      const cf=m.cashFlow||[]; if(!cf.length) return '';
+      const max=Math.max(...cf.map(c=>c.total),1);
+      return sec('Cash flow · what’s still to collect',`
+        ${cf.map(c=>{
+          const lbl=c.key==='nodate'?'No due date':monthLbl(c.key);
+          const late=c.overdue>0;
+          return `<div class="rev-bar">
+            <div class="rev-bar-top"><span>${lbl}${late?' <span class="rev-od-d">overdue</span>':''}</span><span class="rev-bar-v" style="color:${late?'#9A2B2B':'var(--ink)'}">${money0(c.total)}</span></div>
+            <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(c.total/max)*100)}%;background:${late?'#9A2B2B':'#C8A038'}"></div></div>
+            <div class="rev-bar-sub">${c.count} invoice${c.count===1?'':'s'}</div>
+          </div>`;}).join('')}`,
+        'by the due date on each unpaid invoice');
+    })()}
 
     ${(function(){
       const ce=m.cartEarnings; if(!ce||!ce.all.cartNights) return '';
@@ -1113,22 +1179,21 @@ async function renderRevenue(){
 
     ${/* "By service" removed 2026-07-14 — the earnings tables above already say what each service
           actually makes; a second revenue-by-service list was just restating it. */''}
-    ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}
-    ${sec('By booking channel', revBars(m.byChannel||[],m.totalRevenue), 'who booked the SERVICE itself (Booked via)')}`;
+    ${/* "By booking source" / "By booking channel" removed 2026-07-14 — the earnings donuts already
+          answer "who brings the money in", per service, with the margin rather than the gross. */''}`;
 
   /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
   const rail=document.getElementById('preview'); if(!rail) return;
   const owing=(m.overdue||[]).slice(0,12); // every unpaid invoice, worst first
   rail.innerHTML=`<div class="rev-rail">
-    ${sec('To collect', `<div class="rev-payee" style="display:block">
-        <div style="background:#FBF0EF;border-color:#E7C3C0"><span>Outstanding</span><b style="color:#9A2B2B">${money0(m.dueRevenue)}</b></div>
-      </div>`, od.length?money0(m.overdueTotal)+' overdue':'none overdue')}
+    ${/* The "To collect" card was removed — the "Still to collect" KPI card at the top of the page
+          already says it, and saying it twice made neither one land. */''}
     ${owing.length?sec('Unpaid invoices',`<div class="rev-od">${owing.map(o=>`
       <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
         <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDay(o.dueBy))}</span>`:'')}</span>
       </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
-    ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'account on the invoice')}
+    ${/* "Collected by" removed — the Jan/Ivonna split isn't something you act on from this page. */''}
     ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue), 'invoiced add-ons per villa')}
   </div>`;
 }
