@@ -983,13 +983,18 @@ function upsellMetrics() {
       });
     });
     if (charged) {
-      const cost = Math.round((charged / (1 + YACHT_MARKUP)) * 100) / 100;   // boat's price before markup
-      const margin = Math.round((charged - cost) * 100) / 100;               // the 18% we added
+      // The yacht LINE amount is the BOAT'S PRICE (cost). CPH adds YACHT_MARKUP on top, and that
+      // grossed-up figure is what the guest is invoiced. (The old code treated the line as the guest
+      // charge and divided it back down — under-counting the margin. Correct: guest charge = boat
+      // price × (1 + markup); e.g. a 2,975 boat line invoices the guest 3,808 at 28%, margin 833.)
+      const boatCost = charged;
+      const margin = Math.round(boatCost * YACHT_MARKUP * 100) / 100;         // the 28% CPH adds
+      const guestCharged = Math.round((boatCost + margin) * 100) / 100;       // what the guest pays
       yachtRows.push({
         stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
         checkin: s.checkin || '', count, supplier: sup,
         source: via || (s.source || 'Unknown').trim(),
-        charged, cost, margin,
+        charged: guestCharged, cost: boatCost, margin,
         paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
         upcoming: !!(s.checkout && s.checkout >= today),
       });
