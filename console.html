@@ -515,9 +515,7 @@
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
-        <button class="lchip on" data-f="all" onclick="setFilter('all')">All</button>
-        <button class="lchip" data-f="published" onclick="setFilter('published')">Published</button>
-        <button class="lchip" data-f="needs info" onclick="setFilter('needs info')">Needs info</button>
+        <button class="lchip on" data-f="current" onclick="setFilter('current')">Current</button>
         <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
       </div>
       <div id="stayList"></div>
@@ -719,18 +717,18 @@ window.addEventListener('focus',()=>{ syncNow(); });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncNow(); });
 document.getElementById('search').addEventListener('input',renderList);
 document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ await loadList(r.body.stay.id); } };
-let listFilter='all';
+let listFilter='current';
 window.setFilter=function(f){ listFilter=f; document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f)); renderList(); };
 function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
-  // A booking auto-archives once its stay is over (checkout date has passed). Archived stays
-  // live ONLY under the Archive filter and drop out of All / Published / Needs info.
+  // Two folders only: Current = every ACTIVE booking (upcoming + in-house, whatever its status —
+  // draft, needs info or published). A booking stays Current through its whole departure day and
+  // auto-moves to Archive the day AFTER checkout. Nothing is ever deleted; Archive holds the rest.
   const _tOver=todayStr();
   const isOver=s=>!!(s.checkout&&s.checkout<_tOver);
   const items=LIST.filter(s=>!q||(s.guest+' '+s.villa).toLowerCase().includes(q)).filter(s=>{
     if(listFilter==='archive') return isOver(s);
-    if(isOver(s)) return false;
-    return listFilter==='all'||(s.status||'draft')===listFilter;
+    return !isOver(s);
   });
   const el=document.getElementById('stayList');
   const today=todayStr();
