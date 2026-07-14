@@ -1371,7 +1371,30 @@ window.setStayField=async function(id,field,val){
 };
 function boardDepositText(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return ''; return 'US$ '+a+(s.groceryDepositPaid?' paid':' pending'); }
 function boardDepositCell(s){ const a=parseFloat(s.groceryDeposit)||0; if(!a)return '—'; const paid=!!s.groceryDepositPaid; const c=paid?'#12794D':'#B8860B'; return `<span style="white-space:nowrap;font-weight:700;color:${c}">US$ ${a}<br><span style="font-weight:600;font-size:10px">${paid?'✓ paid':'⚠ pending'}</span></span>`; }
-function boardCollectCell(s){ const a=Math.round(parseFloat(s.unpaidTotal)||0); if(!a)return '<span style="color:var(--soft)">—</span>'; return `<span style="white-space:nowrap;font-weight:800;color:#9A2B2B">US$ ${a.toLocaleString()}</span>`; }
+function boardCollectCell(s){ const a=Math.round(parseFloat(s.unpaidTotal)||0); if(!a)return '<span style="color:var(--soft)">—</span>'; return `<button type="button" onclick="event.stopPropagation();showDueDetail('${s.id}')" title="Click to see the unpaid invoices" style="white-space:nowrap;font-weight:800;color:#9A2B2B;background:none;border:0;padding:0;cursor:pointer;font:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px">US$ ${a.toLocaleString()}</button>`; }
+window.showDueDetail=function(id){
+  const s=(LIST||[]).find(x=>x.id===id); if(!s)return;
+  const inv=(s.unpaidInvoices||[]); const tot=Math.round(parseFloat(s.unpaidTotal)||0);
+  let ov=document.getElementById('dueOv');
+  if(!ov){ ov=document.createElement('div'); ov.id='dueOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)closeDueDetail(); }; document.body.appendChild(ov); }
+  const lines=inv.length?inv.map(i=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)">
+      <div style="min-width:0"><div style="font-size:13.5px;font-weight:600">${esc(i.title||'Invoice')}${i.no?' <span style="color:var(--soft);font-weight:500">#'+esc(String(i.no))+'</span>':''}${i.kind==='grocery'?' <span style="color:var(--soft);font-weight:500">· grocery</span>':''}</div>${i.dueBy?`<div style="font-size:11.5px;color:var(--soft)">Due ${esc(fmtLongDate(i.dueBy))}</div>`:''}</div>
+      <div style="white-space:nowrap;font-weight:700;color:#9A2B2B">US$ ${(i.total||0).toLocaleString()}</div>
+    </div>`).join(''):'<div style="font-size:13px;color:var(--soft);padding:10px 0">No itemised invoices found for this booking.</div>';
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:22px 24px;box-shadow:0 18px 50px rgba(20,35,26,.28)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+      <div style="font-size:17px;font-weight:800">Due to collect</div>
+      <button class="ab-actbtn" onclick="closeDueDetail()">✕</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--soft);margin-bottom:12px">${esc(s.guest||'')}${s.villa?' · '+esc(s.villa):''} — ${inv.length} unpaid invoice${inv.length==1?'':'s'}</div>
+    ${lines}
+    <div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0 2px;font-size:15px;font-weight:800">
+      <div>Total outstanding</div><div style="color:#9A2B2B">US$ ${tot.toLocaleString()}</div>
+    </div>
+    <button class="ab-actbtn" style="margin-top:14px;width:100%" onclick="closeDueDetail();selectStay('${s.id}')">Open booking → invoices</button>
+  </div>`;
+};
+window.closeDueDetail=function(){ const ov=document.getElementById('dueOv'); if(ov)ov.remove(); };
 function renderArrivalsBoard(){
   const el=document.getElementById('editor'); if(!el)return;
   // Don't repaint while the user is mid-edit in a board cell (poll refresh would blow away focus).
