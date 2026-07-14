@@ -857,7 +857,7 @@ function upsellMetrics() {
   const CART_MARGIN_PER_NIGHT = 20;
   const cartRows = [];
   stays.forEach(s => {
-    let charged = 0, margin = 0, cartNights = 0, carts = 0, nights = 0;
+    let charged = 0, margin = 0, cartNights = 0, carts = 0, nights = 0, via = '';
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
       if (!RE_CART_ANY.test(String(inv.title || ''))) return;
@@ -868,6 +868,7 @@ function upsellMetrics() {
         const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || nightsBetween(s.checkin, s.checkout) || 0;
         const amt = Number(it.amount) || 0;
         if (!days) return;
+        if (!via && it.bookedVia) via = String(it.bookedVia).trim();   // which channel booked THIS cart
         charged += amt; cartNights += qty * days; carts += qty; nights = Math.max(nights, days);
         margin += CART_MARGIN_PER_NIGHT * qty * days;
       });
@@ -875,10 +876,19 @@ function upsellMetrics() {
     if (cartNights) cartRows.push({
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
       checkin: s.checkin || '', nights, carts, cartNights,
+      // Source of the cart = the channel that booked it ("Booked via"), else the stay's own source.
+      source: via || (s.source || 'Unknown').trim(),
       charged, cost: charged - margin, margin,
       upcoming: !!(s.checkout && s.checkout >= today),
     });
   });
+  // Which source actually brings the cart money in.
+  const cartBySrc = {};
+  cartRows.forEach(r => {
+    const e = cartBySrc[r.source] || (cartBySrc[r.source] = { key: r.source, bookings: 0, cartNights: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.cartNights += r.cartNights; e.charged += r.charged; e.cost += r.cost; e.margin += r.margin;
+  });
+  const cartSources = Object.values(cartBySrc).sort((a, b) => b.margin - a.margin);
   cartRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const cartSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin,
@@ -889,6 +899,7 @@ function upsellMetrics() {
     all: cartSum(cartRows),
     upcoming: cartSum(cartRows.filter(r => r.upcoming)),
     rows: cartRows,
+    bySource: cartSources,
   };
 
   // ---- AIRPORT TRANSFER EARNINGS -------------------------------------------------------------
@@ -897,7 +908,7 @@ function upsellMetrics() {
   const TRANSFER_MARGIN_PCT = 0.13;
   const xferRows = [];
   stays.forEach(s => {
-    let charged = 0, trips = 0, sup = '';
+    let charged = 0, trips = 0, sup = '', via = '';
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
       (inv.items || []).forEach(it => {
@@ -907,6 +918,7 @@ function upsellMetrics() {
         if (!amt) return;
         charged += amt; trips++;
         if (!sup && it.supplier) sup = String(it.supplier).trim();
+        if (!via && it.bookedVia) via = String(it.bookedVia).trim();
       });
     });
     if (charged) {
@@ -914,11 +926,18 @@ function upsellMetrics() {
       xferRows.push({
         stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
         checkin: s.checkin || '', trips, supplier: sup,
+        source: via || (s.source || 'Unknown').trim(),
         charged, cost: Math.round((charged - margin) * 100) / 100, margin,
         upcoming: !!(s.checkout && s.checkout >= today),
       });
     }
   });
+  const xferBySrc = {};
+  xferRows.forEach(r => {
+    const e = xferBySrc[r.source] || (xferBySrc[r.source] = { key: r.source, bookings: 0, trips: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.trips += r.trips; e.charged += r.charged; e.cost += r.cost; e.margin += r.margin;
+  });
+  const xferSources = Object.values(xferBySrc).sort((a, b) => b.margin - a.margin);
   xferRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const xferSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, trips: a.trips + r.trips,
@@ -928,6 +947,7 @@ function upsellMetrics() {
     all: xferSum(xferRows),
     upcoming: xferSum(xferRows.filter(r => r.upcoming)),
     rows: xferRows,
+    bySource: xferSources,
   };
 
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);

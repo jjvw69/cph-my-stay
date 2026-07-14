@@ -976,6 +976,17 @@ function revMonthChart(rows){
     <div class="rev-key"><span><i style="background:#12794D"></i>Paid</span><span><i style="background:#E7C3C0"></i>Still to collect</span></div>`;
 }
 /* Horizontal ranked bars — used for booking source, channel and villa. */
+/* Who brings the earnings in — one row per booking source, ranked by CPH margin. */
+function earnBySource(rows,unitLbl){
+  if(!rows||!rows.length) return '';
+  const max=Math.max(...rows.map(r=>r.margin),1);
+  return `<div class="rev-src"><div class="rev-sub" style="margin-bottom:6px">Which source brings it in</div>
+    ${rows.map(r=>`<div class="rev-bar">
+      <div class="rev-bar-top"><span>${esc(r.key)}</span><span class="rev-bar-v" style="color:#12794D">${money0(r.margin)}</span></div>
+      <div class="rev-track"><div class="rev-fill paid" style="width:${Math.max(2,(r.margin/max)*100)}%"></div></div>
+      <div class="rev-bar-sub">${r.bookings} booking${r.bookings===1?'':'s'} · ${money0(r.charged)} charged${unitLbl?` · ${r[unitLbl.key]} ${unitLbl.label}`:''}</div>
+    </div>`).join('')}</div>`;
+}
 function revBars(rows,total){
   if(!rows.length) return '<div class="rev-empty">Nothing yet.</div>';
   const max=Math.max(...rows.map(r=>r.revenue),1);
@@ -1016,9 +1027,10 @@ async function renderRevenue(){
           <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-nights</div></div>
         </div>
-        ${up.length?`<div class="rev-od" style="margin-top:4px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-nights</div>
+        ${earnBySource(ce.bySource,{key:'cartNights',label:'cart-nights'})}
+        ${up.length?`<div class="rev-od" style="margin-top:10px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-nights</div>
         ${up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
-          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))}</span></span>
+          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
           <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} <span class="rev-cm">+${money0(r.margin)}</span></span>
         </div>`).join('')}</div>`:''}`,
         `US$${ce.perNight} per cart per night · rate tier changes with the season, the spread doesn't`);
@@ -1034,9 +1046,10 @@ async function renderRevenue(){
           <div class="stat paid"><div class="num money">${money0(te.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${te.all.trips}</div><div class="lbl">Transfers</div></div>
         </div>
-        ${up.length?`<div class="rev-od" style="margin-top:4px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(te.upcoming.margin)}</b> on ${te.upcoming.trips} transfer${te.upcoming.trips===1?'':'s'}</div>
+        ${earnBySource(te.bySource,{key:'trips',label:'legs'})}
+        ${up.length?`<div class="rev-od" style="margin-top:10px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(te.upcoming.margin)}</b> on ${te.upcoming.trips} transfer${te.upcoming.trips===1?'':'s'}</div>
         ${up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
-          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))}${r.supplier?' · '+esc(r.supplier):''}</span></span>
+          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
           <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} <span class="rev-cm">+${money0(r.margin)}</span></span>
         </div>`).join('')}</div>`:''}`,
         `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
