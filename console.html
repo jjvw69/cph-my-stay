@@ -100,9 +100,14 @@
   .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;margin-bottom:12px}
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
+  /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
+     Tinted green so staff can spot live stays at a glance in the left column. */
+  .staycard.inhouse{background:#E6F3EC;border-color:#B9DDC9}
+  .staycard.inhouse.unread{box-shadow:inset 3px 0 0 var(--purple)}
   .staycard .g{display:flex;align-items:center}
   .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
+  .staycard.inhouse.sel{border-color:var(--accent);background:#D8EBE1}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
   .pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin-top:7px}
@@ -880,7 +885,9 @@ function renderList(){
     const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
-    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''}" onclick="selectStay('${s.id}')">
+    // In-house = same rule as the Today overview's "In-house now" card: checkin <= today < checkout.
+    const inHouse=!!(s.checkin&&s.checkout&&s.checkin<=today&&today<s.checkout);
+    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${inHouse?'inhouse':''}" onclick="selectStay('${s.id}')" ${inHouse?'title="In-house now"':''}>
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(s.villa||'—')} · ${esc(dates)} · ${s.guests} guests</div>
       <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
