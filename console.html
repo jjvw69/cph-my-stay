@@ -1003,8 +1003,7 @@ async function renderRevenue(){
       <div class="stat paid"><div class="num money">${money0(m.paidRevenue)}</div><div class="lbl">Paid</div></div>
       <div class="stat owed"><div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect</div></div>
       <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
-      <div class="stat"><div class="num money">${money0(m.avgPerBooking)}</div><div class="lbl">Avg per invoice</div></div>
-      <div class="stat"><div class="num">${m.attachRate||0}%</div><div class="lbl">Attach rate</div></div>
+      <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
     </div>
 
     ${(function(){
@@ -1044,7 +1043,8 @@ async function renderRevenue(){
     })()}
 
     ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
-    ${sec('By service', upsellServices(), 'tap a row for the bookings behind it')}
+    ${/* "By service" removed 2026-07-14 — the earnings tables above already say what each service
+          actually makes; a second revenue-by-service list was just restating it. */''}
     ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}
     ${sec('By booking channel', revBars(m.byChannel||[],m.totalRevenue), 'who booked the SERVICE itself (Booked via)')}`;
 
