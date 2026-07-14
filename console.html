@@ -61,6 +61,10 @@
   .rev-kpi-left .stat .num{font-size:30px}
   .rev-kpi-left .stat .num.money{font-size:clamp(20px,2.4vw,28px);letter-spacing:-.9px;white-space:nowrap}
   .rev-kpi-left .stat .lbl{font-size:12.5px;font-weight:600;margin-top:6px}
+  /* Cash flow, in the left column under the cards. */
+  .rev-left-cash{margin-top:14px}
+  .rev-left-cash .rev-sec{margin-top:0;padding:12px 13px}
+  .rev-left-cash .rev-sec h3{flex-direction:column;align-items:flex-start;gap:2px}
   /* Revenue view keeps the right rail — but it carries MONEY, not arrivals: who to chase, who
      collected what, where the revenue comes from. */
   .rev-rail h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:0 0 8px}
@@ -940,7 +944,7 @@ function renderList(){
   renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols){_cols.classList.remove('board-mode'); _cols.classList.remove('rev-mode');} const _k=document.getElementById('revKpi'); if(_k)_k.remove(); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
+window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols){_cols.classList.remove('board-mode'); _cols.classList.remove('rev-mode');} document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); renderList(); renderEditor(); renderPreview(); setView(true); } };
@@ -976,7 +980,7 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); } if(!rev){ const k=document.getElementById('revKpi'); if(k)k.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev) renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
@@ -1113,16 +1117,13 @@ async function renderRevenue(){
       <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
       <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
     </div>`;
-  { const old=document.getElementById('revKpi'); if(old)old.remove();
-    const sl=document.getElementById('stayList'); if(sl)sl.insertAdjacentHTML('beforebegin',kpiHtml); }
 
-  el.innerHTML=`
-    <div class="today-head">Revenue &amp; upsell</div>
-    <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
+  /* Sections are built as named blocks, then placed in the order Jan wants:
+     Revenue by arrival month → CPH earnings → Golf carts → Airport transfers.
+     Cash flow lives in the LEFT column, under the KPI cards. */
+  const secRevMonth = sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned');
 
-    ${/* WHAT WE ACTUALLY MADE — the invoiced total above is what the GUEST pays; most of it is
-          passed straight to Julio / the transfer company / the supermarket. This is CPH's cut. */''}
-    ${(function(){
+  const secCph = (function(){
       const t=m.totalEarnings; if(!t||!t.margin) return '';
       const D=(t.parts||[]).map(p=>({key:p.key,margin:p.margin,charged:p.charged,bookings:0}));
       const max=Math.max(...D.map(p=>p.margin),1), tot=t.margin;
@@ -1141,13 +1142,10 @@ async function renderRevenue(){
         </div>`).join('')}
         ${t.upcomingMargin?`<div class="rev-sub" style="margin-top:8px">Still to come from upcoming stays: <b style="color:#12794D">${money0(t.upcomingMargin)}</b></div>`:''}`,
         'the margin — not the invoice total');
-    })()}
+    })();
 
-    ${/* The trend sits straight under the headline numbers — it's the shape of the same money. */''}
-    ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
-
-    ${/* WHEN the outstanding money actually lands, from the due dates on the unpaid invoices. */''}
-    ${(function(){
+    /* WHEN the outstanding money actually lands, from the due dates on the unpaid invoices. */
+    const secCash = (function(){
       const cf=m.cashFlow||[]; if(!cf.length) return '';
       const max=Math.max(...cf.map(c=>c.total),1);
       return sec('Cash flow · what’s still to collect',`
@@ -1165,9 +1163,9 @@ async function renderRevenue(){
               </div>`).join('')}</div>`:''}
           </div>`;}).join('')}`,
         'by the due date on each unpaid invoice · tap a month to see them');
-    })()}
+    })();
 
-    ${(function(){
+    const secCart = (function(){
       const ce=m.cartEarnings; if(!ce||!ce.all.cartNights) return '';
       const up=(ce.rows||[]).filter(r=>r.upcoming);
       return sec('Golf cart earnings · Julio',`
@@ -1184,9 +1182,9 @@ async function renderRevenue(){
             <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
         `US$ ${ce.perNight} per cart per night · rate tier changes with the season, the spread doesn't`);
-    })()}
+    })();
 
-    ${(function(){
+    const secXfer = (function(){
       const te=m.transferEarnings; if(!te||!te.all.charged) return '';
       const up=(te.rows||[]).filter(r=>r.upcoming);
       return sec('Airport transfer earnings',`
@@ -1203,12 +1201,21 @@ async function renderRevenue(){
             <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
         `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
-    })()}
+    })();
 
-    ${/* "By service" removed 2026-07-14 — the earnings tables above already say what each service
-          actually makes; a second revenue-by-service list was just restating it. */''}
-    ${/* "By booking source" / "By booking channel" removed 2026-07-14 — the earnings donuts already
-          answer "who brings the money in", per service, with the margin rather than the gross. */''}`;
+    /* LEFT column = KPI cards + cash flow beneath them. Insert now that secCash is built. */
+    { document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove();
+      const sl=document.getElementById('stayList');
+      if(sl)sl.insertAdjacentHTML('beforebegin', kpiHtml + (secCash?`<div id="revCash" class="rev-left-cash">${secCash}</div>`:'')); }
+
+    el.innerHTML=`
+    <div class="today-head">Revenue &amp; upsell</div>
+    <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
+    ${/* ORDER (Jan's): the trend first, then what we made, then per-service. Cash flow is in the left column. */''}
+    ${secRevMonth}
+    ${secCph}
+    ${secCart}
+    ${secXfer}`;
 
   /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
   const rail=document.getElementById('preview'); if(!rail) return;
