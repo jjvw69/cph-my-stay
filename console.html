@@ -1038,18 +1038,16 @@ window.toggleNR=function(id){ const open=!nrOpen.has(id); if(open)nrOpen.add(id)
 /* Arrivals not ready, split by arrival year (2026 · 2027 …) with a count per year. The year
    headings only appear when the list actually spans more than one year — a single-year list stays
    clean. Sorted by check-in so the soonest arrival is always at the top of its year. */
-function nrByYear(list){
+function nrYearCols(list){
   const sorted=list.slice().sort((a,b)=>String(a.checkin||'').localeCompare(String(b.checkin||'')));
-  const years=[...new Set(sorted.map(s=>String(s.checkin||'').slice(0,4)).filter(Boolean))];
-  if(years.length<2) return sorted.map(s=>notReadyRow(s));
-  const out=[]; let last='';
-  sorted.forEach(s=>{
-    const y=String(s.checkin||'').slice(0,4);
-    if(y&&y!==last){ last=y; const n=sorted.filter(x=>String(x.checkin||'').slice(0,4)===y).length;
-      out.push(`<div class="today-yr">${y}<span>${n}</span></div>`); }
-    out.push(notReadyRow(s));
-  });
-  return out;
+  const yr=s=>String(s.checkin||'').slice(0,4);
+  const years=[...new Set(sorted.map(yr).filter(Boolean))];
+  if(!sorted.length) return '';
+  if(years.length<2) return sorted.map(s=>notReadyRow(s)).join(''); // one year → one plain column
+  return `<div class="today-2col">${years.map(y=>{
+    const rows=sorted.filter(s=>yr(s)===y);
+    return `<div><div class="today-yr">${y}<span>${rows.length}</span></div>${rows.map(s=>notReadyRow(s)).join('')}</div>`;
+  }).join('')}</div>`;
 }
 function notReadyRow(s){
   const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
@@ -1220,10 +1218,8 @@ function renderToday(){
           "Arriving today" / "Arriving tomorrow" / "In-house now" were REMOVED 2026-07-14: the right
           column already lists every upcoming arrival with its date, status and greeter. Their stat
           tiles remain at the top. */''}
-    <div class="today-2col">
-      <div>${sec('Arrivals not ready','notReady', nrByYear(notReady))}</div>
-      <div>${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}</div>
-    </div>
+    ${notReady.length?`<div class="today-sec" id="tsec-notReady"><h3>Arrivals not ready</h3>${nrYearCols(notReady)}</div>`:''}
+    ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
     ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}`;
