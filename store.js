@@ -80,6 +80,22 @@ const PROVISIONING_OPTIONS = [
   'NARCISSA','YOLLMARY','IVO',
 ];
 
+// Single source of truth for booking channels. Used TWICE: the stay-level "Booking source"
+// select (where the villa booking came from) and the per-service "Booked via" field on invoice
+// lines + service requests (which channel booked THIS golf cart / transfer / etc.). Served to the
+// console via /api/staff/bootstrap. Add a partner agency here only — both pickers pick it up.
+// "Booked via" is STAFF-ONLY: it is never sent to the guest (toGuestStay whitelists fields).
+const BOOKING_SOURCE_PARTNERS = [
+  'AMA Selections','Bonvido','Dream Exotic Villas','Dream Exotics Rentals','Duffy Destinations',
+  'Exceptional Villas','Gathering Vacations','Haute Retreats','Heaven Villas',
+  'Home & Villas by Marriott Bonvoy','Hosted Villas','In Veritas','Jetset World Travel','LaCure',
+  'One Fine Stay','Personal Villas','Rental Escapes','Top Villas','TravelLustre','Villaway',
+];
+const BOOKING_SOURCES = ['Direct Booking'].concat(BOOKING_SOURCE_PARTNERS);
+// Extra channels that only make sense per-service (a cart can come from the villa owner or be
+// booked by the guest on the spot, even when the stay itself came through an agency).
+const SERVICE_BOOKED_VIA = ['Guest direct','Villa owner','CPH concierge'].concat(BOOKING_SOURCES);
+
 const CONCIERGES = [
   { id: 'maria-fernanda', name: 'María Fernanda', phone: '+1 (829) 763-8801', avatarInitials: 'MF' },
   { id: 'ivonna',         name: 'Ivonna',         phone: '+1 (829) 763-8801', avatarInitials: 'Iv' },
@@ -548,7 +564,8 @@ function golfCartDisplay(s) {
   if (inv) {
     (inv.items || []).forEach(it => {
       const sup = String(it.supplier || '').trim();       // per-line supplier so each cart carries its own on the board
-      const tag = sup ? (' · ' + sup) : '';
+      const via = String(it.bookedVia || '').trim();      // per-line booking channel — "who booked this cart"
+      const tag = (sup ? (' · ' + sup) : '') + (via ? (' · via ' + via) : '');
       const m = String(it.label || '').match(/(\d+)\s*[×x]\s*(\d)\s*-?\s*seater/i);
       if (m) { parts.push(m[1] + '× ' + m[2] + '-seater' + tag); return; }
       const rate = parseFloat(String(it.rate || '').replace(/[^0-9.]/g, '')) || 0;
@@ -595,12 +612,34 @@ function requestSupplier(s, re) {
 }
 /** Board supplier for a column: request supplier first, else invoice-line supplier. */
 function boardSupplier(s, re) { return requestSupplier(s, re) || invoiceItemSupplier(s, re); }
+/** Same two lookups for bookedVia — the booking channel that booked this service (staff-only).
+ *  Request first (primary booking record), then the invoice line. */
+function invoiceItemBookedVia(s, re) {
+  for (const inv of (s.invoices || [])) {
+    for (const it of (inv.items || [])) {
+      const via = String((it && it.bookedVia) || '').trim();
+      if (via && re.test(String((it && it.label) || ''))) return via;
+    }
+  }
+  return '';
+}
+function requestBookedVia(s, re) {
+  for (const r of (s.requests || [])) {
+    if (r.status === 'cancelled') continue;
+    const via = String((r && r.bookedVia) || '').trim();
+    if (via && (re.test(String((r && r.refId) || '')) || re.test(String((r && r.title) || '')))) return via;
+  }
+  return '';
+}
+function boardBookedVia(s, re) { return requestBookedVia(s, re) || invoiceItemBookedVia(s, re); }
 function summaryStay(s) {
   const v = getVilla(s.villaId); const fu = nextFollowUp(s);
   // Cart column: each golf cart on its own line. If the invoice lines already carry per-line
   // suppliers (contain " · "), use them as-is; otherwise append one shared supplier line.
   const gcDisp = golfCartDisplay(s);
-  const gcCart = (gcDisp.indexOf(' · ') >= 0) ? gcDisp : [gcDisp, boardSupplier(s, RE_CART_LINE)].map(x => String(x || '').trim()).filter(Boolean).join('\n');
+  const cartVia = boardBookedVia(s, RE_CART_LINE);
+  const gcCart = (gcDisp.indexOf(' · ') >= 0) ? gcDisp
+    : [gcDisp, [boardSupplier(s, RE_CART_LINE), cartVia ? 'via ' + cartVia : ''].filter(Boolean).join(' · ')].map(x => String(x || '').trim()).filter(Boolean).join('\n');
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
     villa: s.villaName || (v ? v.name : ''), villaInternal: s.villaInternal || (v ? v.internalName : '') || '', checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
     source: s.source || '', followUpDate: (fu&&fu.date)||'', followUpNote: (fu&&fu.note)||'', followUps: (s.followUps||[]).slice(), requests: (s.requests || []).length,
@@ -620,7 +659,7 @@ function summaryStay(s) {
     ppl: ((Number(s.adults) || 0) + (Number(s.children) || 0)) || '',
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
-    transferNote: [boardSupplier(s, RE_TRANSFER_LINE), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
+    transferNote: [boardSupplier(s, RE_TRANSFER_LINE), (function(){ const v = boardBookedVia(s, RE_TRANSFER_LINE); return v ? 'via ' + v : ''; })(), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
     bookingAgent: s.bookingAgent || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '',
     groceryDeposit: parseFloat(s.groceryDeposit) || 0, groceryDepositPaid: !!s.groceryDepositPaid };
 }
@@ -858,6 +897,7 @@ function staffUpdateRequest(stayId, requestId, body) {
   if (body.returnTime != null) r.returnTime = norm(body.returnTime).slice(0, 40);
   if (body.price != null) r.price = norm(body.price).slice(0, 24);
   if (body.supplier != null) r.supplier = norm(body.supplier).slice(0, 80); // internal supplier (staff-only; stripped from toGuestStay, exported to arrivals board)
+  if (body.bookedVia != null) r.bookedVia = norm(body.bookedVia).slice(0, 80); // booking channel for THIS service (staff-only; stripped from toGuestStay, exported to arrivals board)
   r.updatedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return r;
 }
 /** Guest submits/updates their grocery pre-stocking list. Persisted on the stay so it survives
@@ -1083,7 +1123,8 @@ function cleanItems(arr) {
     const rate = String((it && it.rate) || '').replace(/[^0-9.]/g, '');   // optional per-day rate (calculator aid, kept so edits reload)
     const days = String((it && it.days) || '').replace(/[^0-9.]/g, '');
     const supplier = norm(it && it.supplier).slice(0, 80);               // optional internal supplier (staff-only; stripped from toGuestStay)
-    if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier;
+    const bookedVia = norm(it && it.bookedVia).slice(0, 80);             // booking channel that booked THIS line (staff-only; see BOOKING_SOURCES)
+    if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier; if (bookedVia) o.bookedVia = bookedVia;
     return o;
   }).filter(it => it.label || it.amount);
 }
@@ -1364,6 +1405,7 @@ seedStaffFromEnv();
 
 module.exports = {
   DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
+  BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,
