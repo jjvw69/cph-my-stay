@@ -61,6 +61,10 @@
   .rev-kpi-left .stat .num{font-size:30px}
   .rev-kpi-left .stat .num.money{font-size:clamp(20px,2.4vw,28px);letter-spacing:-.9px;white-space:nowrap}
   .rev-kpi-left .stat .lbl{font-size:12.5px;font-weight:600;margin-top:6px}
+  /* Invoices + attach-rate share one row (they're the two non-money stats). */
+  .rev-kpi-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rev-kpi-pair .stat{min-width:0}
+  .rev-kpi-pair .stat .num{font-size:26px}
   /* Cash flow, in the left column under the cards. */
   .rev-left-cash{margin-top:14px}
   .rev-left-cash .rev-sec{margin-top:0;padding:12px 13px}
@@ -1069,10 +1073,10 @@ function earnBySource(rows,unitLbl){
     </div>
   </div>`;
 }
-function revBars(rows,total){
+function revBars(rows,total,limit){
   if(!rows.length) return '<div class="rev-empty">Nothing yet.</div>';
   const max=Math.max(...rows.map(r=>r.revenue),1);
-  return rows.slice(0,8).map(r=>`
+  return rows.slice(0,limit||8).map(r=>`
     <div class="rev-bar">
       <div class="rev-bar-top"><span>${esc(r.key)}</span><span class="rev-bar-v">${money0(r.revenue)}${r.due?` <span class="rev-due">· ${money0(r.due)} due</span>`:''}</span></div>
       <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(r.revenue/max)*100)}%"></div><div class="rev-fill paid" style="width:${Math.max(0,(r.paid/max)*100)}%"></div></div>
@@ -1114,8 +1118,10 @@ async function renderRevenue(){
       <div class="stat"><div class="num money">${money0(m.totalRevenue)}</div><div class="lbl">Invoiced add-ons</div></div>
       <div class="stat paid"><div class="num money">${money0(m.paidRevenue)}</div><div class="lbl">Paid</div></div>
       <div class="stat owed" title="${(m.overdue||[]).filter(o=>o.daysOverdue>0).length} invoice(s) past their due date"><div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect${m.overdueTotal?` · ${money0(m.overdueTotal)} overdue`:''}</div></div>
-      <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
-      <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
+      <div class="rev-kpi-pair">
+        <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
+        <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
+      </div>
     </div>`;
 
   /* Sections are built as named blocks, then placed in the order Jan wants:
@@ -1229,7 +1235,7 @@ async function renderRevenue(){
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDayY(o.dueBy))}</span>`:'')}</span>
       </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
     ${/* "Collected by" removed — the Jan/Ivonna split isn't something you act on from this page. */''}
-    ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue), 'invoiced add-ons per villa')}
+    ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa')}
   </div>`;
 }
 window.showToday=function(){
