@@ -1074,7 +1074,7 @@ async function renderRevenue(){
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDay(o.dueBy))}</span>`:'')}</span>
       </div>`).join('')}</div>`,'worst first · tap to open'):''}
     ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'account on the invoice')}
-    ${sec('Top villas', revBars(m.byVilla||[],m.totalRevenue))}
+    ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue), 'invoiced add-ons per villa')}
   </div>`;
 }
 window.showToday=function(){
