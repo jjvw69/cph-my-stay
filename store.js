@@ -1147,12 +1147,31 @@ function upsellMetrics() {
   // ---- TOTAL CPH EARNINGS --------------------------------------------------------------------
   // What WE actually made, across the services where we take a margin — NOT what was invoiced.
   // (Groceries deliberately excluded: they're a pass-through, not a CPH margin line.)
+  // ---- SERVICE FEES (kept by CPH in full) ----------------------------------------------------
+  // Most invoices add a service/legal fee % on top of the base service lines (e.g. golf-cart 10%,
+  // in-villa 18%). That fee is money the guest pays and CPH keeps entirely, so it's pure margin.
+  // Summed here as its own income line so the earnings roll-up reconciles with Invoiced add-ons.
+  // Excluded: yacht invoices (their markup is already inside the yacht section's charged) and flat
+  // extras like pick-up & delivery (a pass-through, not CPH income).
+  let serviceFeeIncome = 0;
+  stays.forEach(s => (s.invoices || []).forEach(inv => {
+    if (inv.status === 'draft' || isGroceryInv(inv)) return;
+    if (inv.kind === 'yacht' || /yacht|catamaran|charter|boat/i.test(inv.title || '')) return;
+    const total = invoiceTotal(inv);
+    const lines = (inv.items || []).reduce((a, it) => a + (Number(it.amount) || 0), 0);
+    const extras = (inv.extras || []).reduce((a, x) => a + (Number(x.amount) || 0), 0);
+    const fee = Math.round((total - lines - extras) * 100) / 100;
+    if (fee > 0.005) serviceFeeIncome += fee;
+  }));
+  serviceFeeIncome = Math.round(serviceFeeIncome * 100) / 100;
+
   const earnParts = [
     { key: 'Golf carts', margin: cartEarnings.all.margin, charged: cartEarnings.all.charged },
     { key: 'Car rentals', margin: carEarnings.all.margin, charged: carEarnings.all.charged },
     { key: 'Airport transfers', margin: transferEarnings.all.margin, charged: transferEarnings.all.charged },
     { key: 'Yacht charters', margin: yachtEarnings.all.margin, charged: yachtEarnings.all.charged },
     { key: 'In-villa services', margin: invillaEarnings.all.margin, charged: invillaEarnings.all.charged },
+    { key: 'Service fees', margin: serviceFeeIncome, charged: serviceFeeIncome },
   ].filter(p => p.margin > 0).sort((a, b) => b.margin - a.margin);
   const totalEarnings = {
     margin: earnParts.reduce((a, p) => a + p.margin, 0),

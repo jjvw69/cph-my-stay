@@ -1209,9 +1209,9 @@ async function renderRevenue(){
       const up=(ce.rows||[]).filter(r=>r.upcoming);
       return sec('Golf cart earnings · Julio',`
         <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ce.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ce.all.cost)}</div><div class="lbl">Paid to Julio</div></div>
-          <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-nights</div></div>
         </div>
         ${earnBySource(ce.bySource,{key:'cartNights',label:'cart-nights'})}
@@ -1228,9 +1228,9 @@ async function renderRevenue(){
       const up=(te.rows||[]).filter(r=>r.upcoming);
       return sec('Airport transfer earnings',`
         <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(te.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(te.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(te.all.cost)}</div><div class="lbl">Paid to supplier</div></div>
-          <div class="stat paid"><div class="num money">${money0(te.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${te.all.trips}</div><div class="lbl">Transfers</div></div>
         </div>
         ${earnBySource(te.bySource,{key:'trips',label:'legs'})}
@@ -1247,9 +1247,9 @@ async function renderRevenue(){
       const up=(ye.rows||[]).filter(r=>r.upcoming);
       return sec('Yacht charter earnings',`
         <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(ye.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ye.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ye.all.cost)}</div><div class="lbl">Boat's price</div></div>
-          <div class="stat paid"><div class="num money">${money0(ye.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${ye.all.count}</div><div class="lbl">Charters</div></div>
         </div>
         ${earnBySource(ye.bySource,{key:'count',label:'charters'})}
@@ -1267,9 +1267,9 @@ async function renderRevenue(){
       const up=(ce.rows||[]).filter(r=>r.upcoming);
       return sec('Car rental earnings',`
         <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ce.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ce.all.cost)}</div><div class="lbl">Paid to supplier</div></div>
-          <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${ce.all.count}</div><div class="lbl">Rentals</div></div>
         </div>
         ${has?earnBySource(ce.bySource,{key:'count',label:'rentals'}):'<div class="rev-empty">No car rentals invoiced yet — this section fills in automatically when one is added.</div>'}
@@ -1290,10 +1290,11 @@ async function renderRevenue(){
       const pend=ie.pending;
       return sec('In-villa services earnings',`
         <div class="today-stats" style="margin-bottom:12px">
-          <div class="stat"><div class="num money">${money0(ie.all.charged)}</div><div class="lbl">Charged to guest</div></div>
           ${pend
             ? `<div class="stat"><div class="num" style="color:#9E5B43;font-size:20px">TBD</div><div class="lbl">CPH profit — to be set</div></div>`
             : `<div class="stat paid"><div class="num money">${money0(ie.all.margin)}</div><div class="lbl">CPH earnings</div></div>`}
+          <div class="stat"><div class="num money">${money0(ie.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          ${pend?'':`<div class="stat"><div class="num money" style="color:#9E5B43">${money0(ie.all.cost)}</div><div class="lbl">Paid to supplier</div></div>`}
           <div class="stat"><div class="num">${ie.all.count}</div><div class="lbl">Bookings</div></div>
         </div>
         ${!has?'<div class="rev-empty">No chef / massage / nannies / staff / entertainment invoiced yet — fills in automatically when one is added.</div>':(pend?'':earnBySource(ie.bySource,{key:'count',label:'bookings'}))}
