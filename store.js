@@ -962,9 +962,9 @@ function upsellMetrics() {
   };
 
   // ---- YACHT CHARTER EARNINGS ----------------------------------------------------------------
-  // CPH adds an 18% MARKUP on the boat's price before invoicing the guest. So the guest pays
-  // cost × 1.18, and CPH's profit is that 18% (= 18/118 of what the guest is charged).
-  const YACHT_MARKUP = 0.18;
+  // CPH adds a 28% MARKUP on the boat's price before invoicing the guest. So the guest pays
+  // cost × 1.28, and CPH's profit is that 28% (= 28/128 of what the guest is charged).
+  const YACHT_MARKUP = 0.28;
   const RE_YACHT_LINE = /yacht|catamaran|charter|boat/i;
   const yachtRows = [];
   stays.forEach(s => {
