@@ -477,7 +477,14 @@ async function route(req,res){
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);
   if(m==='POST'&&url==='/api/staff/logout'){ clearCookie(res,STAFF_COOKIE); return sendJSON(res,200,{ok:true}); }
-  if(m==='GET' &&url==='/api/staff/me'){ const s=staffSession(req); return sendJSON(res,200,{ok:!!s,staff:s?{name:s.email,email:s.email,role:s.role,canRevenue:canSeeRevenue(s)}:null}); }
+  /* The session token only carries the email, so look the staffer up to get their NAME — the console
+     header greets people by name (Jan / Ivonna / María Fernanda), never by email address. */
+  if(m==='GET' &&url==='/api/staff/me'){
+    const s=staffSession(req); if(!s) return sendJSON(res,200,{ok:false,staff:null});
+    const rec=store.getStaffByEmail(s.email);
+    const fallback=String(s.email||'').split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s)}});
+  }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
     if(m==='GET'&&url==='/api/staff/events') return sseHandler(req,res);

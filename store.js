@@ -848,6 +848,49 @@ function upsellMetrics() {
       }
     });
   });
+  // ---- GOLF CART EARNINGS (Julio) ------------------------------------------------------------
+  // From Jan's "Arrivals Concierge.xlsx" → Golf Carts tab. The rate tier moves with the season
+  // (4p: 80/120 · 6p: 105/150/170) but the spread to Julio is ALWAYS the same:
+  //     charge − Julio's cost = US$20 per cart, per night.
+  // So CPH's cut = 20 × carts × nights, whatever the season. Cost = charge − margin.
+  // Only carts supplied by JULIO count — villa/owner carts are not ours to earn on.
+  const CART_MARGIN_PER_NIGHT = 20;
+  const cartRows = [];
+  stays.forEach(s => {
+    let charged = 0, margin = 0, cartNights = 0, carts = 0, nights = 0;
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      if (!RE_CART_ANY.test(String(inv.title || ''))) return;
+      (inv.items || []).forEach(it => {
+        if (!/julio/i.test(String(it.supplier || ''))) return;   // Julio only
+        const p = parseCartText(it.label);
+        const qty = (p && p.qty) || 1;
+        const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || nightsBetween(s.checkin, s.checkout) || 0;
+        const amt = Number(it.amount) || 0;
+        if (!days) return;
+        charged += amt; cartNights += qty * days; carts += qty; nights = Math.max(nights, days);
+        margin += CART_MARGIN_PER_NIGHT * qty * days;
+      });
+    });
+    if (cartNights) cartRows.push({
+      stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+      checkin: s.checkin || '', nights, carts, cartNights,
+      charged, cost: charged - margin, margin,
+      upcoming: !!(s.checkout && s.checkout >= today),
+    });
+  });
+  cartRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const cartSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin,
+    cartNights: a.cartNights + r.cartNights,
+  }), { charged: 0, cost: 0, margin: 0, cartNights: 0 });
+  const cartEarnings = {
+    perNight: CART_MARGIN_PER_NIGHT,
+    all: cartSum(cartRows),
+    upcoming: cartSum(cartRows.filter(r => r.upcoming)),
+    rows: cartRows,
+  };
+
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
   const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
   overdue.sort((a, b) => (b.daysOverdue - a.daysOverdue) || (b.total - a.total));
@@ -860,6 +903,7 @@ function upsellMetrics() {
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
     byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
+    cartEarnings,
   };
 }
 
