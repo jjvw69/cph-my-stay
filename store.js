@@ -540,9 +540,11 @@ function stayReadiness(s) {
   const transferReady = transferArranged || transferSelf;      // console / operational
   const transferGuestDone = transferArranged || transferAnswered; // guest side
   const missing = [];
-  if (!preCheckin) missing.push('pre check-in');
+  // Human labels for the console tooltip/pill. All three are STEPS OF THE PRE CHECK-IN — don't call
+  // any single one "pre check-in" again (that naming confused the console).
+  if (!preCheckin) missing.push('guest details');
   if (!passports) missing.push('passports');
-  if (!transferReady) missing.push('transfer');
+  if (!transferReady) missing.push('transportation');
   const guestMissing = [];
   if (!preCheckin) guestMissing.push('precheckin');
   if (!passports) guestMissing.push('passports');

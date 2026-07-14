@@ -153,6 +153,7 @@
   .nrx.open .nrx-chev{transform:rotate(90deg)}
   .nrx.open .nrx-head{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
   .nrx-body{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff;padding:6px 14px 11px}
+  .nrx-h{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin:0 0 6px}
   .nrx-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);padding:5px 0}
   .nrx-ic{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:0 0 auto}
   .nrx-ic.ok{background:#E2EFE0;color:#3F6B4E}
@@ -1069,9 +1070,13 @@ function notReadyRow(s){
       <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
     </button>
     <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
-      ${item(!!R.preCheckin,'Pre check-in')}
+      ${/* All three ARE the pre check-in — they're the steps of the same guest form. So the group is
+            called "Pre check-in" and the items are its steps; naming one of them "Pre check-in" too
+            was the confusing part. A step goes green the moment the guest fills it in. */''}
+      <div class="nrx-h">Pre check-in</div>
+      ${item(!!R.preCheckin,'Guest details &amp; party')}
       ${item(!!R.passports,'Passports')}
-      ${item(!!R.transferReady,'Airport transfer')}
+      ${item(!!R.transferReady,'Transportation')}
       <button class="nrx-open" onclick="event.stopPropagation();selectStay('${s.id}')">Open stay →</button>
     </div>
   </div>`;
