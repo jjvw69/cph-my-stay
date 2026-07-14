@@ -1238,7 +1238,8 @@ async function renderRevenue(){
     })();
 
     const secCar = (function(){
-      const ce=m.carEarnings; if(!ce||!ce.all.charged) return '';
+      const ce=m.carEarnings; if(!ce) return '';
+      const has=ce.all.charged>0;
       const up=(ce.rows||[]).filter(r=>r.upcoming);
       return sec('Car rental earnings',`
         <div class="today-stats" style="margin-bottom:12px">
@@ -1247,7 +1248,7 @@ async function renderRevenue(){
           <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num">${ce.all.count}</div><div class="lbl">Rentals</div></div>
         </div>
-        ${earnBySource(ce.bySource,{key:'count',label:'rentals'})}
+        ${has?earnBySource(ce.bySource,{key:'count',label:'rentals'}):'<div class="rev-empty">No car rentals invoiced yet — this section fills in automatically when one is added.</div>'}
         ${up.length?earnList('car',`Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.count} rental${ce.upcoming.count===1?'':'s'}`,
           up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
@@ -1259,7 +1260,8 @@ async function renderRevenue(){
     /* Chef · massage · nannies · staff · entertainment — grouped. Margin % is TBD, so while it's
        pending we show what's charged and mark the profit "to be set" instead of a fake US$0. */
     const secInvilla = (function(){
-      const ie=m.invillaEarnings; if(!ie||!ie.all.charged) return '';
+      const ie=m.invillaEarnings; if(!ie) return '';
+      const has=ie.all.charged>0;
       const up=(ie.rows||[]).filter(r=>r.upcoming);
       const pend=ie.pending;
       return sec('In-villa services earnings',`
@@ -1270,7 +1272,7 @@ async function renderRevenue(){
             : `<div class="stat paid"><div class="num money">${money0(ie.all.margin)}</div><div class="lbl">CPH earnings</div></div>`}
           <div class="stat"><div class="num">${ie.all.count}</div><div class="lbl">Bookings</div></div>
         </div>
-        ${pend?'':earnBySource(ie.bySource,{key:'count',label:'bookings'})}
+        ${!has?'<div class="rev-empty">No chef / massage / nannies / staff / entertainment invoiced yet — fills in automatically when one is added.</div>':(pend?'':earnBySource(ie.bySource,{key:'count',label:'bookings'}))}
         ${up.length?earnList('invilla',`Upcoming: ${money0(ie.upcoming.charged)} charged on ${ie.upcoming.count} booking${ie.upcoming.count===1?'':'s'}${pend?'':` · projected <b style="color:#12794D">${money0(ie.upcoming.margin)}</b>`}`,
           up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>

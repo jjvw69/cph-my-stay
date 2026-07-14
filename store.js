@@ -1014,9 +1014,9 @@ function upsellMetrics() {
 
   // ---- CAR RENTAL EARNINGS -------------------------------------------------------------------
   // Like airport transfers, car rentals earn CPH a straight PERCENTAGE of what the guest is
-  // charged: 13%. The rental supplier keeps the other 87%. (Golf carts are a separate line — this
+  // charged: 10%. The rental supplier keeps the other 90%. (Golf carts are a separate line — this
   // matches "car rental", never "golf cart".)
-  const CARRENTAL_MARGIN_PCT = 0.13;
+  const CARRENTAL_MARGIN_PCT = 0.10;
   const RE_CARRENTAL_LINE = /car\s*rental|rental\s*car|car\s*hire|hertz|avis|europcar|budget\s*rent/i;
   const carRows = [];
   stays.forEach(s => {
@@ -1064,10 +1064,10 @@ function upsellMetrics() {
   };
 
   // ---- IN-VILLA SERVICES EARNINGS (chef · massage · nannies · staff · entertainment) ----------
-  // Grouped "people we send to the villa" services. CPH's margin here is TBD — set
-  // INVILLA_MARGIN_PCT (e.g. 0.15) once Jan confirms the number. Until then the section reports what
-  // was charged and marks profit as PENDING; nothing flows into the CPH-earnings roll-up while null.
-  const INVILLA_MARGIN_PCT = null; // ← awaiting Jan's number; e.g. 0.15 for 15%
+  // Grouped "people we send to the villa" services. CPH earns 18% of what the guest is charged.
+  // (If the number is ever unset again — INVILLA_MARGIN_PCT=null — the section reports charged only
+  // and marks profit PENDING, and nothing flows into the CPH-earnings roll-up.)
+  const INVILLA_MARGIN_PCT = 0.18; // 18% of what the guest is charged
   const RE_INVILLA_LINE = /chef|arrival meal|meal plan|massage|\bspa\b|nann|babysit|butler|waiter|housekeep|additional staff|entertainment|musician|\bdj\b/i;
   const invillaRows = [];
   stays.forEach(s => {
