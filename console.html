@@ -487,6 +487,12 @@
   .ups-pill{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:3px;text-transform:uppercase;letter-spacing:.04em}
   .ups-pill.ok{background:#DCEDE2;color:#12794D}
   .ups-pill.due{background:#F3DADA;color:#9A2B2B}
+  .ups-pill.part{background:#FBF1D8;color:#9A7B36}
+  /* Fold header for the earnings detail lists. */
+  .rev-fold{display:flex;align-items:center;gap:7px;width:100%;background:none;border:0;padding:4px 0 7px;cursor:pointer;text-align:left}
+  .rev-fold:hover .rev-fold-x{color:var(--accent)}
+  .rev-fold .rev-sub{flex:1}
+  .rev-fold-x{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--soft)}
   .ups-svc-name{color:var(--ink)}
   .ups-svc-meta{color:var(--soft);white-space:nowrap}
   .apv-sub{font-size:12.5px;color:var(--soft);margin-top:3px}
@@ -1026,6 +1032,23 @@ function revBars(rows,total){
       <div class="rev-bar-sub">${r.booked} invoice${r.booked===1?'':'s'}${total?` · ${Math.round(r.revenue/total*100)}% of revenue`:''}</div>
     </div>`).join('');
 }
+/* Has the guest actually paid for this cart / transfer? Comes from the invoice's own status, so it
+   can never disagree with the Unpaid-invoices list. */
+function payPill(r){
+  if(r.paid) return '<span class="ups-pill ok">paid</span>';
+  if(r.partly) return `<span class="ups-pill part">part paid</span>`;
+  return '<span class="ups-pill due">unpaid</span>';
+}
+/* Both earnings lists collapse — open by default, tap the header to fold them away. */
+const earnOpen={cart:true,xfer:true};
+window.toggleEarn=function(k){ earnOpen[k]=!earnOpen[k]; const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
+function earnList(key,summaryHtml,rowsHtml){
+  const open=earnOpen[key]!==false;
+  return `<div class="rev-od" style="margin-top:10px">
+    <button class="rev-fold" onclick="toggleEarn('${key}')"><span class="ups-car ${open?'open':''}">›</span><span class="rev-sub">${summaryHtml}</span><span class="rev-fold-x">${open?'hide':'show'}</span></button>
+    <div style="display:${open?'block':'none'}">${rowsHtml}</div>
+  </div>`;
+}
 async function renderRevenue(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!METRICS) await refreshMetrics();
@@ -1060,11 +1083,11 @@ async function renderRevenue(){
           <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-nights</div></div>
         </div>
         ${earnBySource(ce.bySource,{key:'cartNights',label:'cart-nights'})}
-        ${up.length?`<div class="rev-od" style="margin-top:10px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-nights</div>
-        ${up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
-          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
-          <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} <span class="rev-cm">+${money0(r.margin)}</span></span>
-        </div>`).join('')}</div>`:''}`,
+        ${up.length?earnList('cart',`Upcoming — projected: <b style="color:#12794D">${money0(ce.upcoming.margin)}</b> on ${ce.upcoming.cartNights} cart-nights`,
+          up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
+            <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
+            <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
+          </div>`).join('')):''}`,
         `US$${ce.perNight} per cart per night · rate tier changes with the season, the spread doesn't`);
     })()}
 
@@ -1079,11 +1102,11 @@ async function renderRevenue(){
           <div class="stat"><div class="num">${te.all.trips}</div><div class="lbl">Transfers</div></div>
         </div>
         ${earnBySource(te.bySource,{key:'trips',label:'legs'})}
-        ${up.length?`<div class="rev-od" style="margin-top:10px"><div class="rev-sub" style="margin-bottom:6px">Upcoming — projected: <b style="color:#12794D">${money0(te.upcoming.margin)}</b> on ${te.upcoming.trips} transfer${te.upcoming.trips===1?'':'s'}</div>
-        ${up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
-          <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
-          <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} <span class="rev-cm">+${money0(r.margin)}</span></span>
-        </div>`).join('')}</div>`:''}`,
+        ${up.length?earnList('xfer',`Upcoming — projected: <b style="color:#12794D">${money0(te.upcoming.margin)}</b> on ${te.upcoming.trips} transfer${te.upcoming.trips===1?'':'s'}`,
+          up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
+            <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
+            <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
+          </div>`).join('')):''}`,
         `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
     })()}
 
@@ -1103,7 +1126,7 @@ async function renderRevenue(){
       <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
         <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDay(o.dueBy))}</span>`:'')}</span>
-      </div>`).join('')}</div>`,'worst first · tap to open'):''}
+      </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
     ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'account on the invoice')}
     ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue), 'invoiced add-ons per villa')}
   </div>`;
@@ -1401,7 +1424,10 @@ function renderToday(){
   const arrTom=L.filter(s=>s.checkin===tom);
   const depToday=L.filter(s=>s.checkout===today);
   const pending=L.filter(s=>(s.pending||0)>0);
-  const unpaid=L.filter(s=>(s.unpaid||0)>0);
+  /* Unpaid invoices, soonest due at the top (a stay is ranked by its earliest-due unpaid invoice).
+     No due date = nothing to chase it against, so it drops to the bottom. */
+  const _dueOf=s=>((s.unpaidInvoices||[]).map(i=>i.dueBy).filter(Boolean).sort()[0])||'9999-12-31';
+  const unpaid=L.filter(s=>(s.unpaid||0)>0).sort((a,b)=>_dueOf(a).localeCompare(_dueOf(b))||((b.unpaidTotal||0)-(a.unpaidTotal||0)));
   const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
   // Guests currently on property: checked in, not yet checked out.

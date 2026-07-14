@@ -857,7 +857,7 @@ function upsellMetrics() {
   const CART_MARGIN_PER_NIGHT = 20;
   const cartRows = [];
   stays.forEach(s => {
-    let charged = 0, margin = 0, cartNights = 0, carts = 0, nights = 0, via = '';
+    let charged = 0, margin = 0, cartNights = 0, carts = 0, nights = 0, via = '', paidAmt = 0, dueAmt = 0;
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
       if (!RE_CART_ANY.test(String(inv.title || ''))) return;
@@ -871,6 +871,7 @@ function upsellMetrics() {
         if (!via && it.bookedVia) via = String(it.bookedVia).trim();   // which channel booked THIS cart
         charged += amt; cartNights += qty * days; carts += qty; nights = Math.max(nights, days);
         margin += CART_MARGIN_PER_NIGHT * qty * days;
+        if (inv.status === 'paid') paidAmt += amt; else dueAmt += amt;  // has the guest actually paid?
       });
     });
     if (cartNights) cartRows.push({
@@ -879,6 +880,7 @@ function upsellMetrics() {
       // Source of the cart = the channel that booked it ("Booked via"), else the stay's own source.
       source: via || (s.source || 'Unknown').trim(),
       charged, cost: charged - margin, margin,
+      paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
       upcoming: !!(s.checkout && s.checkout >= today),
     });
   });
@@ -908,7 +910,7 @@ function upsellMetrics() {
   const TRANSFER_MARGIN_PCT = 0.13;
   const xferRows = [];
   stays.forEach(s => {
-    let charged = 0, trips = 0, sup = '', via = '';
+    let charged = 0, trips = 0, sup = '', via = '', paidAmt = 0, dueAmt = 0;
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
       (inv.items || []).forEach(it => {
@@ -919,6 +921,7 @@ function upsellMetrics() {
         charged += amt; trips++;
         if (!sup && it.supplier) sup = String(it.supplier).trim();
         if (!via && it.bookedVia) via = String(it.bookedVia).trim();
+        if (inv.status === 'paid') paidAmt += amt; else dueAmt += amt;
       });
     });
     if (charged) {
@@ -928,6 +931,7 @@ function upsellMetrics() {
         checkin: s.checkin || '', trips, supplier: sup,
         source: via || (s.source || 'Unknown').trim(),
         charged, cost: Math.round((charged - margin) * 100) / 100, margin,
+        paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
         upcoming: !!(s.checkout && s.checkout >= today),
       });
     }
@@ -952,7 +956,15 @@ function upsellMetrics() {
 
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
   const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
-  overdue.sort((a, b) => (b.daysOverdue - a.daysOverdue) || (b.total - a.total));
+  // Unpaid invoices are ordered BY DUE DATE — soonest first, so anything already past its date sits
+  // at the very top and the next thing to chase is right under it. Invoices with no due date at all
+  // fall to the bottom (nothing to chase them against), biggest first.
+  overdue.sort((a, b) => {
+    if (a.dueBy && b.dueBy) return a.dueBy.localeCompare(b.dueBy) || (b.total - a.total);
+    if (a.dueBy) return -1;
+    if (b.dueBy) return 1;
+    return b.total - a.total;
+  });
 
   return {
     totalRevenue, paidRevenue, dueRevenue: totalRevenue - paidRevenue, booked, pending, totalReq, published,
