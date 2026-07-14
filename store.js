@@ -816,11 +816,50 @@ function upsellMetrics() {
   });
   const byService = Object.values(svc).sort((a, b) => (b.revenue - a.revenue) || (b.booked - a.booked) || (b.requested - a.requested));
   byService.forEach(e => e.items.sort((a, b) => (a.paid === b.paid) ? (b.total - a.total) : (a.paid ? 1 : -1))); // unpaid first, then biggest
+
+  // ---- owner dashboard cuts (Revenue view — Jan & Ivonna only) -------------------------------
+  const _n = new Date();
+  const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
+  const M = {}, SRC = {}, VIL = {}, CH = {}, PAYEE = { jan: 0, ivonna: 0 };
+  const overdue = [];
+  const bump = (map, key, amt, paid) => {
+    if (!key) return;
+    const e = map[key] || (map[key] = { key, revenue: 0, paid: 0, due: 0, booked: 0 });
+    e.revenue += amt; e.booked++; if (paid) e.paid += amt; else e.due += amt;
+  };
+  stays.forEach(s => {
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      const amt = invoiceTotal(inv);
+      const isPaid = inv.status === 'paid';
+      // Revenue is attributed to the ARRIVAL month — that's the month the money is earned.
+      bump(M, String(s.checkin || '').slice(0, 7), amt, isPaid);
+      bump(SRC, (s.source || 'Unknown').trim(), amt, isPaid);
+      bump(VIL, (s.villaName || '—').trim(), amt, isPaid);
+      // Which channel booked the SERVICE (per-line bookedVia), falling back to the stay's source.
+      const via = ((inv.items || []).map(i => String(i.bookedVia || '').trim()).find(Boolean)) || (s.source || 'Unknown').trim();
+      bump(CH, via, amt, isPaid);
+      PAYEE[inv.payTo === 'ivonna' ? 'ivonna' : 'jan'] += amt;
+      if (!isPaid) {
+        const d = String(inv.dueBy || '').trim();
+        const days = (d && d < today) ? Math.round((new Date(today) - new Date(d)) / 864e5) : 0;
+        overdue.push({ stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+          no: inv.no || '', title: inv.title || '', total: amt, dueBy: d, daysOverdue: days, checkin: s.checkin || '' });
+      }
+    });
+  });
+  const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
+  const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
+  overdue.sort((a, b) => (b.daysOverdue - a.daysOverdue) || (b.total - a.total));
+
   return {
     totalRevenue, paidRevenue, dueRevenue: totalRevenue - paidRevenue, booked, pending, totalReq, published,
     staysWithBooking, staysWithConfirmed: staysWithBooking, // legacy key
     attachRate: published ? Math.round(staysWithBooking / published * 100) : 0,
-    byService,
+    avgPerBooking: booked ? totalRevenue / booked : 0,
+    avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
+    byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
+    byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
   };
 }
 

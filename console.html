@@ -53,6 +53,33 @@
   .cols{flex:1;display:grid;grid-template-columns:372px 1fr 372px;overflow:hidden}
   .cols.board-mode{grid-template-columns:1fr}
   .cols.board-mode .col.left,.cols.board-mode .col.right{display:none}
+  /* Revenue view: the Upcoming-arrivals rail is irrelevant to money — give the dashboard the width. */
+  .cols.rev-mode .col.right{display:none}
+  .rev-sec{margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .rev-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:0 0 10px;display:flex;align-items:baseline;gap:9px}
+  .rev-sub{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:#9AA49B}
+  .rev-empty{font-size:13px;color:var(--soft);padding:6px 0}
+  .rev-scroll{overflow-x:auto}
+  .rev-key{display:flex;gap:16px;font-size:11.5px;color:var(--soft);margin-top:6px}
+  .rev-key i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+  .rev-bar{margin-bottom:11px}
+  .rev-bar-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;color:var(--ink)}
+  .rev-bar-v{white-space:nowrap;font-weight:700}
+  .rev-due{color:#9A2B2B;font-weight:700}
+  .rev-track{position:relative;height:9px;background:#F0F3F1;border-radius:20px;margin:5px 0 3px;overflow:hidden}
+  .rev-fill{position:absolute;left:0;top:0;height:100%;background:#E7C3C0;border-radius:20px}
+  .rev-fill.paid{background:#12794D}
+  .rev-bar-sub{font-size:11px;color:var(--soft)}
+  .rev-od-row{display:flex;justify-content:space-between;gap:10px;padding:7px 8px;margin:0 -8px;border-radius:8px;cursor:pointer;font-size:13px}
+  .rev-od-row:hover{background:#FBF0EF}
+  .rev-od-g{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rev-od-v{color:var(--soft);font-weight:400}
+  .rev-od-m{white-space:nowrap;color:var(--soft)}
+  .rev-od-d{display:inline-block;font-size:10px;font-weight:800;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:1px 7px;margin-left:4px}
+  .rev-payee{display:flex;gap:22px}
+  .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
+  .rev-payee span{display:block;font-size:11.5px;color:var(--soft)}
+  .rev-payee b{font-family:var(--display);font-size:22px;color:var(--accent)}
   .ab-btns{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
   .ab-btns{gap:8px}
   .ab-btns .ab-today{flex:0 0 auto;width:auto;margin:0;padding:5px 12px;font-size:12px;font-weight:500;border-radius:9px}
@@ -897,7 +924,7 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const cols=document.querySelector('.cols'); if(cols)cols.classList.toggle('board-mode',board); if(centerView==='inbox') renderInbox(); else if(centerView==='revenue') renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board) renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
@@ -907,15 +934,73 @@ window.showRevenue=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); centerView='revenue'; setView(true); renderList(); renderHome();
 };
+/* ---- Revenue dashboard (owner view) ----
+   Everything below is drawn from the SAME invoice data as the rest of the console — no separate
+   bookkeeping. Charts are hand-rolled inline SVG on purpose: no CDN, no library, nothing to break. */
+const money0=v=>'US$'+Math.round(v||0).toLocaleString();
+const monthLbl=ym=>{ const [y,mo]=String(ym||'').split('-'); const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(Number(mo)||1)-1]; return n+' '+String(y||'').slice(2); };
+/* Grouped monthly bars: paid (solid green) stacked under still-due (red) = invoiced total. */
+function revMonthChart(rows){
+  if(!rows.length) return '<div class="rev-empty">No invoices yet.</div>';
+  const W=Math.max(560,rows.length*64), H=190, PAD=26, BW=Math.min(38,(W-PAD*2)/rows.length-14);
+  const max=Math.max(...rows.map(r=>r.revenue),1);
+  const y=v=>H-PAD-(v/max)*(H-PAD*2);
+  const bars=rows.map((r,i)=>{
+    const x=PAD+i*((W-PAD*2)/rows.length)+((W-PAD*2)/rows.length-BW)/2;
+    const yPaid=y(r.paid), yTot=y(r.revenue);
+    return `<g><title>${monthLbl(r.key)} — ${money0(r.revenue)} invoiced · ${money0(r.paid)} paid${r.due?' · '+money0(r.due)+' due':''}</title>`
+      +`<rect x="${x}" y="${yTot}" width="${BW}" height="${Math.max(0,H-PAD-yTot)}" rx="4" fill="#E7C3C0"></rect>`
+      +`<rect x="${x}" y="${yPaid}" width="${BW}" height="${Math.max(0,H-PAD-yPaid)}" rx="4" fill="#12794D"></rect>`
+      +`<text x="${x+BW/2}" y="${H-PAD+14}" text-anchor="middle" font-size="10" fill="#7B857E">${monthLbl(r.key)}</text>`
+      +`<text x="${x+BW/2}" y="${yTot-5}" text-anchor="middle" font-size="9.5" fill="#4A554E">${Math.round(r.revenue/1000)}k</text></g>`;
+  }).join('');
+  return `<div class="rev-scroll"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">
+    <line x1="${PAD-6}" y1="${H-PAD}" x2="${W-PAD+6}" y2="${H-PAD}" stroke="#E3E7E4"></line>${bars}</svg></div>
+    <div class="rev-key"><span><i style="background:#12794D"></i>Paid</span><span><i style="background:#E7C3C0"></i>Still to collect</span></div>`;
+}
+/* Horizontal ranked bars — used for booking source, channel and villa. */
+function revBars(rows,total){
+  if(!rows.length) return '<div class="rev-empty">Nothing yet.</div>';
+  const max=Math.max(...rows.map(r=>r.revenue),1);
+  return rows.slice(0,8).map(r=>`
+    <div class="rev-bar">
+      <div class="rev-bar-top"><span>${esc(r.key)}</span><span class="rev-bar-v">${money0(r.revenue)}${r.due?` <span class="rev-due">· ${money0(r.due)} due</span>`:''}</span></div>
+      <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(r.revenue/max)*100)}%"></div><div class="rev-fill paid" style="width:${Math.max(0,(r.paid/max)*100)}%"></div></div>
+      <div class="rev-bar-sub">${r.booked} invoice${r.booked===1?'':'s'}${total?` · ${Math.round(r.revenue/total*100)}% of revenue`:''}</div>
+    </div>`).join('');
+}
 async function renderRevenue(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!METRICS) await refreshMetrics();
   const m=METRICS;
+  if(!m){ el.innerHTML='<div class="today-clear">Revenue is restricted to Jan and Ivonna.</div>'; return; }
+  const od=(m.overdue||[]).filter(o=>o.daysOverdue>0);
+  const sec=(t,body,sub)=>`<div class="rev-sec"><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="today-head">Revenue &amp; upsell</div>
-    <div class="today-date">Every issued invoice, across all bookings · owner view</div>
-    ${m?upsellCard():`<div class="today-clear">No invoices yet.</div>`}`;
+    <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
+
+    <div class="today-stats">
+      <div class="stat"><div class="num" style="font-size:24px;white-space:nowrap">${money0(m.totalRevenue)}</div><div class="lbl">Invoiced add-ons</div></div>
+      <div class="stat" style="background:#F2F8F4;border-color:#CBE3D5"><div class="num" style="font-size:24px;white-space:nowrap;color:#12794D">${money0(m.paidRevenue)}</div><div class="lbl">Paid</div></div>
+      <div class="stat" style="background:#FBF0EF;border-color:#E7C3C0"><div class="num" style="font-size:24px;white-space:nowrap;color:#9A2B2B">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect</div></div>
+      <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
+      <div class="stat"><div class="num" style="font-size:24px;white-space:nowrap">${money0(m.avgPerBooking)}</div><div class="lbl">Avg per invoice</div></div>
+      <div class="stat"><div class="num">${m.attachRate||0}%</div><div class="lbl">Attach rate</div></div>
+    </div>
+
+    ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
+    ${od.length?sec('Overdue — chase these',`<div class="rev-od">${od.slice(0,10).map(o=>`
+      <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
+        <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
+        <span class="rev-od-m">${o.no?'#'+esc(o.no)+' · ':''}${money0(o.total)} <span class="rev-od-d">${o.daysOverdue}d overdue</span></span>
+      </div>`).join('')}</div>`, money0(m.overdueTotal)+' past its due date'):''}
+    ${sec('By service', upsellServices(), 'tap a row for the bookings behind it')}
+    ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}
+    ${sec('By booking channel', revBars(m.byChannel||[],m.totalRevenue), 'who booked the SERVICE itself (Booked via)')}
+    ${sec('Top villas', revBars(m.byVilla||[],m.totalRevenue))}
+    ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'the Zelle / bank account on the invoice')}`;
 }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
@@ -1181,9 +1266,11 @@ window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) ret
    individual invoices (guest · villa · #no · amount · paid/due). */
 const upsOpen=new Set();
 window.toggleUps=function(id){ upsOpen.has(id)?upsOpen.delete(id):upsOpen.add(id); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; };
-function upsellCard(){
-  const m=METRICS; if(!m || (!m.booked && !m.pending)) return '';
-  const top=(m.byService||[]).filter(e=>e.booked||e.awaiting).slice(0,8);
+/* Service breakdown — the rows only; the Revenue view supplies the headline stats and the section
+   frame, so this no longer draws its own card. */
+function upsellServices(){
+  const m=METRICS; if(!m || (!m.booked && !m.pending)) return '<div class="rev-empty">No invoices yet.</div>';
+  const top=(m.byService||[]).filter(e=>e.booked||e.awaiting).slice(0,12);
   const money=v=>'US$'+Math.round(v||0).toLocaleString();
   const detail=e=>{
     if(!upsOpen.has(e.id)||!(e.items||[]).length) return '';
@@ -1195,22 +1282,11 @@ function upsellCard(){
       </div>`).join('')}
     </div>`;
   };
-  return `<div class="ups-card">
-    <div class="ups-h">Upsell performance</div>
-    <div class="ups-row">
-      <div class="ups-stat"><div class="ups-num">${money(m.totalRevenue)}</div><div class="ups-lbl">Invoiced add-ons</div></div>
-      <div class="ups-stat paid"><div class="ups-num">${money(m.paidRevenue)}</div><div class="ups-lbl">Paid</div></div>
-      ${m.dueRevenue?`<div class="ups-stat due"><div class="ups-num">${money(m.dueRevenue)}</div><div class="ups-lbl">Still to collect</div></div>`:''}
-      <div class="ups-stat"><div class="ups-num">${m.booked||0}</div><div class="ups-lbl">Booked</div></div>
-      <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
-      ${m.pending?`<div class="ups-stat warn"><div class="ups-num">${m.pending}</div><div class="ups-lbl">Requests awaiting</div></div>`:''}
-    </div>
-    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">By service · tap to see the bookings</div>${top.map(e=>`
+  return `${top.length?`<div class="ups-svc">${top.map(e=>`
       <div class="ups-svc-row ${e.booked?'clk':''}" ${e.booked?`onclick="toggleUps('${e.id}')"`:''}>
         <span class="ups-svc-name">${e.booked?`<span class="ups-car ${upsOpen.has(e.id)?'open':''}">›</span>`:''}${esc(e.title)}</span>
         <span class="ups-svc-meta">${e.booked?`${e.booked} booked · ${money(e.revenue)}${e.due?` <span style="color:#9A2B2B">· ${money(e.due)} due</span>`:''}`:'—'}${e.awaiting?`<span style="color:#9E5B43"> · ${e.awaiting} asked</span>`:''}</span>
-      </div>${detail(e)}`).join('')}</div>`:''}
-  </div>`;
+      </div>${detail(e)}`).join('')}</div>`:'<div class="rev-empty">No invoices yet.</div>'}`;
 }
 function renderToday(){
   const el=document.getElementById('editor'); if(!el) return;
