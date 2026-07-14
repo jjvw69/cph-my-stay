@@ -224,8 +224,8 @@ function stayPhase(b){
   return 'upcoming';
 }
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-/* Display-normalise a stored price string so legacy "$300" shows as "US$300". Leaves US$/RD$ and non-$ text untouched. */
-const usdStr = v => String(v==null?'':v).replace(/(^|[^A-Za-z$])\$(?=\d)/g,(m,p1)=>p1+'US$');
+/* Display-normalise a stored price string so legacy "$300" shows as "US$ 300". Leaves US$/RD$ and non-$ text untouched. */
+const usdStr = v => String(v==null?'':v).replace(/(^|[^A-Za-z$])\$(?=\d)/g,(m,p1)=>p1+'US$ ');
 const jsq = s => String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
 window.copyTxt=function(t,label){ const done=()=>toast((label||'Copied')+' copied'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); };
 function fallbackCopy(t,done){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done&&done(); }catch(e){ toast('Could not copy — please copy it manually'); } }
@@ -558,7 +558,7 @@ function renderStay(){
         <div class="tile"><b>Wi-Fi</b><span>${s.wifiName?esc(s.wifiName):'Provided at arrival'}</span></div>
         <div class="tile"><b>Villa staff</b><span>${esc((v.staffIncluded||['Included']).join(' · '))}</span></div>
         <div class="tile"><b>Staff hours</b><span>${esc(s.staffHours||'8:00 AM – 5:00 PM')} · after-hours by request</span></div>
-        <div class="tile"><b>Tipping</b><span>US$35–45 / day per staff, in cash to the staff</span></div>
+        <div class="tile"><b>Tipping</b><span>US$ 35–45 / day per staff, in cash to the staff</span></div>
         <div class="tile tap" onclick="goTab('concierge')"><b>Concierge</b><span>${esc((s.concierge&&s.concierge.name)||'Your concierge')}</span></div>
         <div class="tile"><b>Emergency</b><span>911</span></div>
         <div class="tile"><b>Resort Registration</b><span>${s.registrationNumber?'Your code - '+esc(s.registrationNumber):'Provided on arrival'}</span></div>
@@ -717,12 +717,12 @@ const GUIDE_CONTENT = {
     eyebrow:'GOLF · TEETH OF THE DOG',
     title:'Teeth of the Dog',
     hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic45.webp',
-    intro:'Some golf courses are played and forgotten; others are played once and measured against for the rest of a golfer’s life. Pete Dye’s oceanfront masterpiece belongs firmly in the second category — ranked the number one course in the Caribbean and among the top 50 in the world since it opened in 1971, and freshly reborn in 2026 after a US$15 million restoration. The name comes from the jagged coral formations, “dientes del perro”, that border the holes along the sea.',
+    intro:'Some golf courses are played and forgotten; others are played once and measured against for the rest of a golfer’s life. Pete Dye’s oceanfront masterpiece belongs firmly in the second category — ranked the number one course in the Caribbean and among the top 50 in the world since it opened in 1971, and freshly reborn in 2026 after a US$ 15 million restoration. The name comes from the jagged coral formations, “dientes del perro”, that border the holes along the sea.',
     sections:[
       {h:'Seven holes on the sea', p:'Seven of the eighteen holes run directly along the Caribbean — built into the coastline rather than beside it — where coral juts from the surf a few feet from the greens and the trade winds can render a seven iron useless without warning. Dye said it best: “I created eleven holes and God made seven.” The famous par-3 5th and 7th, played over open water, and the seven-bunkered 16th are among the most photographed holes in world golf.'},
-      {h:'Reborn in 2026', p:'An 11-month, US$15 million restoration by Jerry Pate Design re-grassed the course in salt-tolerant Dynasty Paspalum, rebuilt every green and bunker to Dye’s original contours, and renewed drainage, irrigation and cart paths. It reopened for play on December 7, 2025, with a grand ceremony attended by President Luis Abinader in March 2026 — the best condition of its 54-year life. The routing and character are unchanged; only the surfaces are better.'},
-      {h:'Playing it &amp; the caddies', p:'Par 72, around 7,040 yards from the tips with tees down to 5,000 yards. A caddie is mandatory and genuinely valuable — the trade winds shift through the round and the green contours are invisible until you stand on them. Caddie fees run US$50 for one or two golfers, US$80 for three or four, with a minimum US$25 cash gratuity per player. Morning tee times before 9am are calmest and most photogenic.'},
-      {h:'Booking &amp; fees', p:'Green fees for the 2025–26 season run roughly US$400 to US$550 per person including cart and range, with villa guests receiving preferential rates below rack. Tee times can be booked up to 90 days ahead, and peak-season mornings (December–April) fill fast, so reserve early through the pro shop or online. The dress code — collared shirt, no jeans, soft-spike shoes — is enforced.'},
+      {h:'Reborn in 2026', p:'An 11-month, US$ 15 million restoration by Jerry Pate Design re-grassed the course in salt-tolerant Dynasty Paspalum, rebuilt every green and bunker to Dye’s original contours, and renewed drainage, irrigation and cart paths. It reopened for play on December 7, 2025, with a grand ceremony attended by President Luis Abinader in March 2026 — the best condition of its 54-year life. The routing and character are unchanged; only the surfaces are better.'},
+      {h:'Playing it &amp; the caddies', p:'Par 72, around 7,040 yards from the tips with tees down to 5,000 yards. A caddie is mandatory and genuinely valuable — the trade winds shift through the round and the green contours are invisible until you stand on them. Caddie fees run US$ 50 for one or two golfers, US$ 80 for three or four, with a minimum US$ 25 cash gratuity per player. Morning tee times before 9am are calmest and most photogenic.'},
+      {h:'Booking &amp; fees', p:'Green fees for the 2025–26 season run roughly US$ 400 to US$ 550 per person including cart and range, with villa guests receiving preferential rates below rack. Tee times can be booked up to 90 days ahead, and peak-season mornings (December–April) fill fast, so reserve early through the pro shop or online. The dress code — collared shirt, no jeans, soft-spike shoes — is enforced.'},
     ],
     link:'https://caribbeanparadisehomes.com/teeth-of-the-dog-golf-course-the-complete-visitor-guide/'
   },
@@ -923,9 +923,9 @@ const GUIDE_CONTENT = {
   'spa': {
     eyebrow:'WELLNESS · THE SPA', title:'The Spa',
     hero:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Reception.webp',
-    intro:'A US$25 million rebuild is a statement, not an amenity. When Casa de Campo rebuilt its wellness centre from the ground up, it created the only Forbes Four-Star spa in the Dominican Republic — more than 2,000 square metres of treatment rooms and a hydrothermal circuit in the resort’s Rejuvenate precinct, a short golf-cart ride from most villas. It reopened in early 2023, built to international destination-spa standards rather than as a hotel massage room with scented candles.',
+    intro:'A US$ 25 million rebuild is a statement, not an amenity. When Casa de Campo rebuilt its wellness centre from the ground up, it created the only Forbes Four-Star spa in the Dominican Republic — more than 2,000 square metres of treatment rooms and a hydrothermal circuit in the resort’s Rejuvenate precinct, a short golf-cart ride from most villas. It reopened in early 2023, built to international destination-spa standards rather than as a hotel massage room with scented candles.',
     sections:[
-      {h:'Treatments', p:'Twelve treatment rooms offer three collections: longer Wellness Journeys (the Casa de Campo Detox &amp; Restore and the Organic Garden-to-Table Glow run around 1 hour 50 minutes at about US$365), brand-led facials by EviDenS de Beauté, Ayuna and Moringaïa, and the massages that draw the strongest praise of all. The philosophy pairs German wellness technology with luxury skincare houses and local Dominican ingredients — moringa oil, honey, cane sugar and hibiscus.'},
+      {h:'Treatments', p:'Twelve treatment rooms offer three collections: longer Wellness Journeys (the Casa de Campo Detox &amp; Restore and the Organic Garden-to-Table Glow run around 1 hour 50 minutes at about US$ 365), brand-led facials by EviDenS de Beauté, Ayuna and Moringaïa, and the massages that draw the strongest praise of all. The philosophy pairs German wellness technology with luxury skincare houses and local Dominican ingredients — moringa oil, honey, cane sugar and hibiscus.'},
       {h:'The hydrothermal circuit', p:'Your treatment is only half of what you’re paying for — the hydrothermal circuit is the other half. It runs through a sauna, steam bath, vitality and cold-plunge pools, heated thermal loungers, a Kneipp walk and an outdoor recovery pool. Arrive 90 minutes before your treatment to use it properly, and pack a swimsuit. Most first-timers turn up fifteen minutes early, miss the circuit, and pay full price for half the experience.'},
       {h:'In-villa treatments', p:'You don’t have to go to the spa at all — a therapist can come to you. A couples’ massage on your own terrace at sunset, no golf-cart ride and no locker room, is one of the quiet luxuries of renting at Casa de Campo, and the concierge arranges it as readily as a private chef. The full hydrothermal circuit, however, can only be experienced at the spa itself.'},
       {h:'Good to know', p:'The spa opens 9am to 7pm (thermal experience from 8am), and advance booking is strongly recommended, especially in high season and over the holidays. Every price carries 18% tax plus a 10% service charge — roughly 28% on top — so budget accordingly. The hydrothermal circuit and treatment areas are strictly 18-plus. Your concierge can lock in your treatments before you arrive.'},
@@ -938,9 +938,9 @@ const GUIDE_CONTENT = {
     intro:'The Racquet Center is the largest racquet facility in the Caribbean and often called one of the most beautiful in the world — a three-sport campus for tennis, padel and pickleball, terraced around a pro shop, bar and pool that overlook the play. Renovated and rebranded from the old La Terraza Tennis Center, it now sits on the eastern side of the resort, a short hop from the Marina and the main villa neighbourhoods, with courts scattered through landscaped gardens of flowering shrubs and mature trees.',
     sections:[
       {h:'On court', p:'Eleven fast-dry Har-Tru clay courts form the heart of the place, plus a single hard court for a quicker surface, with two fenced show courts used when tournaments bring touring professionals to La Romana. Add four padel courts and dedicated pickleball courts, all floodlit, with play running 7am to 9pm daily. More than 25 tennis professionals and junior pros are on staff for lessons, clinics and hitting partners.'},
-      {h:'Three sports for everyone', p:'Padel is the easiest to pick up cold — glass walls keep the ball alive, the court is smaller, and a mixed-ability foursome stays competitive within minutes. Pickleball is gentler still, with a smaller court and underhand serves, which makes it the sport multi-generation families book together. A daytime tennis court is around US$39 per hour (about US$49 evenings), padel and pickleball courts around US$45.'},
-      {h:'Lessons &amp; coaching', p:'The pro bench runs deep, led by a Tennis Director who came up through the French Tennis Federation and the ITF circuit. Private tennis lessons run from US$75 with a pro to US$159 with the Director; a hitting partner is US$65, group clinics from US$45 per person. The Junior Tennis Academy trains children from age five, and groups of eight or more can have a private tournament bracket set up.'},
-      {h:'Good to know', p:'Reserve up to a month ahead in high season, when the show courts and prime morning slots fill first; night play needs at least four hours’ notice, and every player checks in at the pro shop first. Racquet rental (US$19 tennis, US$10 padel and pickleball) and on-site stringing mean there is no need to fly heavy gear. Your concierge can book courts, lessons and a hitting partner before you arrive.'},
+      {h:'Three sports for everyone', p:'Padel is the easiest to pick up cold — glass walls keep the ball alive, the court is smaller, and a mixed-ability foursome stays competitive within minutes. Pickleball is gentler still, with a smaller court and underhand serves, which makes it the sport multi-generation families book together. A daytime tennis court is around US$ 39 per hour (about US$ 49 evenings), padel and pickleball courts around US$ 45.'},
+      {h:'Lessons &amp; coaching', p:'The pro bench runs deep, led by a Tennis Director who came up through the French Tennis Federation and the ITF circuit. Private tennis lessons run from US$ 75 with a pro to US$ 159 with the Director; a hitting partner is US$ 65, group clinics from US$ 45 per person. The Junior Tennis Academy trains children from age five, and groups of eight or more can have a private tournament bracket set up.'},
+      {h:'Good to know', p:'Reserve up to a month ahead in high season, when the show courts and prime morning slots fill first; night play needs at least four hours’ notice, and every player checks in at the pro shop first. Racquet rental (US$ 19 tennis, US$ 10 padel and pickleball) and on-site stringing mean there is no need to fly heavy gear. Your concierge can book courts, lessons and a hitting partner before you arrive.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-tennis/'
   },
@@ -949,9 +949,9 @@ const GUIDE_CONTENT = {
     hero:'https://www.casadecampo.com.do/wp-content/uploads/2025/09/Equestrian.jpg',
     intro:'Golf made Casa de Campo famous, but the horses were there almost from the start. In 1974, the resort’s founding year, Indian polo legend Maharajah Jabar Singh was invited to La Romana to establish the sport on what was then a Gulf+Western sugar estate. Fifty-two years later the Equestrian Center and Polo Club remain the centre of gravity for the sport in the Dominican Republic — three tournament fields, a working riding school, and genuine countryside riding across a former sugar plantation.',
     sections:[
-      {h:'Ride out', p:'Guided trail rides cross open countryside, working cattle ranches, cane fields and lagoons with resident waterfowl and water buffalo — not a pony circuit around a paddock. Rates run US$40 for 30 minutes, US$65 for an hour and US$99 for two hours, with a private guide at US$50 per hour. English and Western lessons (US$100 for 30 minutes, US$150 an hour) welcome all levels, and children ride independently from age six.'},
-      {h:'Polo country', p:'With some justification, the resort calls itself the house of polo in the Caribbean. Matches run year-round, three days a week, with the Polo Challenge — the region’s most important event — taking over the three 300-yard fields from January to April. Spectating is free and gloriously informal: guests park golf carts along the boards, and El Polo villas watch chukkas from their gardens. Beginners can take a class from US$150; experienced players can join chukkers.'},
-      {h:'Donkey polo &amp; families', p:'Donkey polo replaces thoroughbred ponies with Dominican burros, levelling skill with luck — everyone falls about laughing, and the resort supplies donkeys, staff, sound system and announcer (US$65 per person, minimum eight). For younger children, pony rides cost US$50 for 30 minutes with hard hats provided, and the calm, supervised paddock introductions make this one of the easiest family wins at the resort.'},
+      {h:'Ride out', p:'Guided trail rides cross open countryside, working cattle ranches, cane fields and lagoons with resident waterfowl and water buffalo — not a pony circuit around a paddock. Rates run US$ 40 for 30 minutes, US$ 65 for an hour and US$ 99 for two hours, with a private guide at US$ 50 per hour. English and Western lessons (US$ 100 for 30 minutes, US$ 150 an hour) welcome all levels, and children ride independently from age six.'},
+      {h:'Polo country', p:'With some justification, the resort calls itself the house of polo in the Caribbean. Matches run year-round, three days a week, with the Polo Challenge — the region’s most important event — taking over the three 300-yard fields from January to April. Spectating is free and gloriously informal: guests park golf carts along the boards, and El Polo villas watch chukkas from their gardens. Beginners can take a class from US$ 150; experienced players can join chukkers.'},
+      {h:'Donkey polo &amp; families', p:'Donkey polo replaces thoroughbred ponies with Dominican burros, levelling skill with luck — everyone falls about laughing, and the resort supplies donkeys, staff, sound system and announcer (US$ 65 per person, minimum eight). For younger children, pony rides cost US$ 50 for 30 minutes with hard hats provided, and the calm, supervised paddock introductions make this one of the easiest family wins at the resort.'},
       {h:'Good to know', p:'Open daily 8:30–11:30 and 2:00–6:00, with two-hour rides at fixed morning and afternoon departures. Wear long trousers and closed shoes; helmets are provided. Book 24–48 hours ahead through your concierge (donkey polo needs two days and prepayment), who can also arrange the standout Rancho Peligro ranch tour. Villa owners receive a courtesy-card discount on that tour.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-equestrian-center-polo-guide/'
@@ -963,7 +963,7 @@ const GUIDE_CONTENT = {
     sections:[
       {h:'On the range', p:'More than 200 stations cover trap, skeet, sporting clays, Five Stand and pigeon rings, with driven pheasant, partridge and duck at the Rancho Peligro reserve for experienced guns. Sporting clays — “golf with a shotgun” — moves you from station to station, each simulating live game, and staff change the flight patterns daily, so even frequent shooters never face the same course twice. Trap and skeet are the best place for a newcomer to start.'},
       {h:'For everyone', p:'A deep bench of professional instructors can take a nervous first-timer to a broken clay inside one lesson — every lesson opens with gun-handling and safety before a single clay flies. Lessons begin from age 12 under close supervision. For younger children, or anyone who prefers no recoil, the 10-station archery course offers the same outdoor setting and sense of progress, which keeps the whole mixed-age group together.'},
-      {h:'What it costs', p:'Guns and ear protection are included in every clay round. A trap or skeet round of 25 cartridges is US$55; a 50-cartridge sporting clays round is US$115, before tax. A skeet lesson is US$25 and a sporting clays lesson US$50 — the US$25 skeet lesson is the best money you’ll spend here. Group “flush” packages start at US$125 for two shooters, and villa owners receive a courtesy-card discount.'},
+      {h:'What it costs', p:'Guns and ear protection are included in every clay round. A trap or skeet round of 25 cartridges is US$ 55; a 50-cartridge sporting clays round is US$ 115, before tax. A skeet lesson is US$ 25 and a sporting clays lesson US$ 50 — the US$ 25 skeet lesson is the best money you’ll spend here. Group “flush” packages start at US$ 125 for two shooters, and villa owners receive a courtesy-card discount.'},
       {h:'Good to know', p:'Book through your concierge, who arranges the session, transport across the resort and instruction — you simply turn up and shoot. Wear closed-toe shoes and clothes you don’t mind getting dusty, and bring a cap, sunglasses, water and sunscreen, as the range is exposed. To bring your own gun, complete a Permit of Entry form at least three weeks before arrival; flag it to your host the moment you book.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-shooting-center/'
@@ -976,7 +976,7 @@ const GUIDE_CONTENT = {
       {h:'The ride', p:'This is a real trail across a working ranch, not a pony circuit — open countryside, cane fields, pastures and lagoons with resident waterfowl, led by experienced guides. It suits multi-generational groups particularly well, with grandparents riding at the same unhurried pace as teenagers, and the two hours pass through landscape most resort guests never see.'},
       {h:'Why it stands out', p:'Casa de Campo covers 7,000 acres, including two working cattle ranches and the resort’s own horse-breeding operation, and Rancho Peligro takes you out into the heart of it. The standard of horsemanship is high — the same stables care for the privately owned horses of resort villa owners — which is part of why this ride feels a cut above a typical resort outing.'},
       {h:'Pairing the day', p:'Because the tour finishes by 11:30, it leaves the whole afternoon free for Minitas Beach, a round of golf, or the pool back at the villa. An evening polo match in season pairs naturally afterwards, and La Romana sunsets land conveniently between the final chukka and an 8pm dinner reservation at the Marina.'},
-      {h:'Good to know', p:'The Rancho Peligro tour runs Thursday, Friday and Saturday mornings, 8:30 to 11:30, with a four-rider minimum, at US$300 per person (villa owners receive a courtesy-card discount). Wear long trousers and closed shoes; helmets are provided. Book 24 to 48 hours ahead through your concierge, who confirms the session and time slot before you arrive, which matters in high season.'},
+      {h:'Good to know', p:'The Rancho Peligro tour runs Thursday, Friday and Saturday mornings, 8:30 to 11:30, with a four-rider minimum, at US$ 300 per person (villa owners receive a courtesy-card discount). Wear long trousers and closed shoes; helmets are provided. Book 24 to 48 hours ahead through your concierge, who confirms the session and time slot before you arrive, which matters in high season.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-equestrian-center-polo-guide/'
   },
@@ -1042,8 +1042,8 @@ const GUIDE_CONTENT = {
     hero:'https://www.casadecampo.com.do/wp-content/uploads/2019/08/catalina-island-excusion-2.jpg',
     intro:'Catalina is the easy half-day island trip — six square miles of white sand and shallow turquoise water just 25 to 45 minutes offshore, run by the resort as a scheduled catamaran outing from Minitas Beach. It is the trip you can book at the activities desk and be back from in time for a late lunch at the villa: calm, family-friendly and low-commitment, the right call when you want a gorgeous beach without surrendering the whole day.',
     sections:[
-      {h:'The day', p:'The official Catalina Island Beach Day departs daily at 10:00 and returns at 13:45, with a beach area of loungers, shade and a drinks bar on the island (drinks and snacks bought on the day). Pricing is US$48 per adult and US$30 per child twelve and under, taxes included, with a four-person minimum. The island stays calm and uncrowded, especially before 11am.'},
-      {h:'Snorkelling The Wall', p:'The reef known as “The Wall” drops off the island’s southern edge and is one of the better snorkelling sites in the region, thick with sea fans and tropical fish. Snorkel gear rents for about US$12 per person, and it is well worth taking — Catalina is the stronger of the two island day trips for reef snorkelling, more so than Saona.'},
+      {h:'The day', p:'The official Catalina Island Beach Day departs daily at 10:00 and returns at 13:45, with a beach area of loungers, shade and a drinks bar on the island (drinks and snacks bought on the day). Pricing is US$ 48 per adult and US$ 30 per child twelve and under, taxes included, with a four-person minimum. The island stays calm and uncrowded, especially before 11am.'},
+      {h:'Snorkelling The Wall', p:'The reef known as “The Wall” drops off the island’s southern edge and is one of the better snorkelling sites in the region, thick with sea fans and tropical fish. Snorkel gear rents for about US$ 12 per person, and it is well worth taking — Catalina is the stronger of the two island day trips for reef snorkelling, more so than Saona.'},
       {h:'Who it suits', p:'Calm water and a half-day format make Catalina ideal for young children, snorkellers, or anyone wanting a beach day that does not consume the whole day. For a couple or small family the scheduled boat is the sensible choice; for larger villa groups, a private catamaran from the Marina sets its own schedule and skips the crowds, often working out similar per head.'},
       {h:'Good to know', p:'Both the scheduled trip and a private charter book through your concierge, who can match the right boat to your group size, time it around your other plans, and pack a cooler from your villa kitchen so you are not paying bar prices all day. Villa owners with a courtesy card receive a discount on the resort’s own excursions — just mention it when booking.'},
     ],
@@ -1173,7 +1173,7 @@ const GUIDE_CONTENT = {
     intro:'Private yachts, catamarans and sailing boats with crew, departing straight from Casa de Campo Marina — for half-days, sunset cruises or island escapes that skip the group-boat crowds. The Marina is the operational base for nearly all of the resort’s water-based activity, and a private charter is the most comfortable, flexible way to see Casa de Campo from the sea on your own schedule.',
     sections:[
       {h:'The fleet', p:'The range runs from sleek motor yachts to sailing catamarans, crewed and provisioned to your plans, holding anything from a couple to a large villa group. For groups of eight or more, a private charter often works out similar per head to the scheduled boats while buying you a flexible schedule and your own space — and turns the transit itself into part of the day.'},
-      {h:'Where to go', p:'Options include two-hour sunset cruises along the coast (departing around 5pm), snorkelling stops at Catalina, and full days to Saona — the protected nature reserve with its famous waist-deep natural pool offshore. A private Saona catamaran runs roughly US$600 for up to six guests, rising with group size, typically with lunch and an open bar included.'},
+      {h:'Where to go', p:'Options include two-hour sunset cruises along the coast (departing around 5pm), snorkelling stops at Catalina, and full days to Saona — the protected nature reserve with its famous waist-deep natural pool offshore. A private Saona catamaran runs roughly US$ 600 for up to six guests, rising with group size, typically with lunch and an open bar included.'},
       {h:'Deep-sea fishing', p:'The waters off La Romana are among the most productive sport-fishing grounds in the Caribbean. Charters run year-round for blue and white marlin, with wahoo, dorado and snapper commonly encountered; full days depart around 7am and return by 3pm, with half-days available. Marlin is catch-and-release, but snapper and dorado can be kept for your villa chef to prepare.'},
       {h:'Good to know', p:'Charters book up in high season, particularly weekends, so reserve a few days ahead. Your concierge can match a boat to your group size and dates, time it around your other plans, and stock a cooler from your villa kitchen so you’re not paying bar prices all day. Transfers run from your villa door rather than a hotel lobby, and villa owners receive a courtesy-card discount on resort excursions.'},
     ],
@@ -1247,7 +1247,7 @@ const GUIDE_CONTENT = {
       {h:'Why you need one', p:'The resort is far too large to walk end to end, and these carts — for the internal resort roads, not the golf courses themselves — are the natural way to move around. From the Minitas-area villas the beach club is a two-to-five-minute ride; the Marina and Altos de Chavón are only a few minutes more. The cart turns the whole resort into an easy, on-demand neighbourhood.'},
       {h:'How many you need', p:'A couple manages easily with one cart; a family or a multi-bedroom villa group often wants a second, or a six-seater, so nobody is stranded while others are out. Tell your concierge your group size and they will make sure the right number of seats is waiting at the villa when you arrive.'},
       {h:'Driving on the resort', p:'A valid driver’s licence is required and resort speed limits apply, with the usual care after dark and around the beach and Marina. Children may not drive. The roads are well signed, and the CPH resort map and your concierge make first-day navigation simple while you find your bearings.'},
-      {h:'Good to know', p:'Separately rented carts run roughly US$75–US$125 per day depending on size; your concierge confirms current rates and availability, which is worth doing ahead in peak weeks. Keep it charged overnight, and note that the resort carts are entirely separate from the golf buggies included with your green fees on Teeth of the Dog and Dye Fore.'},
+      {h:'Good to know', p:'Separately rented carts run roughly US$ 75–US$ 125 per day depending on size; your concierge confirms current rates and availability, which is worth doing ahead in peak weeks. Keep it charged overnight, and note that the resort carts are entirely separate from the golf buggies included with your green fees on Teeth of the Dog and Dye Fore.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-villa-rental-whats-actually-included/'
   },
@@ -1281,7 +1281,7 @@ const GUIDE_CONTENT = {
     intro:'Private yachts, catamarans and sailing boats with crew, departing straight from Casa de Campo Marina — for half-days, sunset cruises or island escapes that skip the group-boat crowds. The Marina is the operational base for nearly all of the resort’s water-based activity, and a private charter is the most comfortable, flexible way to see Casa de Campo from the sea on your own schedule.',
     sections:[
       {h:'The fleet', p:'The range runs from sleek motor yachts to sailing catamarans, crewed and provisioned to your plans, holding anything from a couple to a large villa group. For groups of eight or more, a private charter often works out similar per head to the scheduled boats while buying you a flexible schedule and your own space — and turns the transit itself into part of the day.'},
-      {h:'Where to go', p:'Options include two-hour sunset cruises along the coast (departing around 5pm), snorkelling stops at Catalina, and full days to Saona — the protected nature reserve with its famous waist-deep natural pool offshore. A private Saona catamaran runs roughly US$600 for up to six guests, rising with group size, typically with lunch and an open bar included.'},
+      {h:'Where to go', p:'Options include two-hour sunset cruises along the coast (departing around 5pm), snorkelling stops at Catalina, and full days to Saona — the protected nature reserve with its famous waist-deep natural pool offshore. A private Saona catamaran runs roughly US$ 600 for up to six guests, rising with group size, typically with lunch and an open bar included.'},
       {h:'Deep-sea fishing', p:'The waters off La Romana are among the most productive sport-fishing grounds in the Caribbean. Charters run year-round for blue and white marlin, with wahoo, dorado and snapper commonly encountered; full days depart around 7am and return by 3pm, with half-days available. Marlin is catch-and-release, but snapper and dorado can be kept for your villa chef to prepare.'},
       {h:'Good to know', p:'Charters book up in high season, particularly weekends, so reserve a few days ahead. Your concierge can match a boat to your group size and dates, time it around your other plans, and stock a cooler from your villa kitchen so you’re not paying bar prices all day. Transfers run from your villa door, and villa owners receive a courtesy-card discount on resort excursions.'},
     ],
@@ -1293,7 +1293,7 @@ const GUIDE_CONTENT = {
     intro:'Professionally trained nannies for daytime support or evening babysitting at the villa — so a special dinner at La Caña, or a couple’s morning on the golf course, is possible even with young children in tow. It is the service that makes the rest of a family trip work, giving parents genuine time of their own while children stay in trusted, capable hands at the villa.',
     sections:[
       {h:'The service', p:'Nannies are bilingual in Spanish and English and professionally trained in First Aid, CPR and childcare. They can provide daytime support while parents are present and nearby, or fully supervised evening care at the villa so adults can dine out. The villa setting means children stay in their own familiar space rather than an unfamiliar club room, with their own beds, toys and bedtime routine kept exactly as at home.'},
-      {h:'Rates', p:'As a guide, daytime care runs around US$26 per hour and evening babysitting around US$20 per hour (4pm–midnight, three-hour minimum) for up to two children, with about US$10 added for a third child and a US$20 taxi allowance after 11:30pm. Payment is typically cash, and your concierge confirms current rates and minimums when booking.'},
+      {h:'Rates', p:'As a guide, daytime care runs around US$ 26 per hour and evening babysitting around US$ 20 per hour (4pm–midnight, three-hour minimum) for up to two children, with about US$ 10 added for a third child and a US$ 20 taxi allowance after 11:30pm. Payment is typically cash, and your concierge confirms current rates and minimums when booking.'},
       {h:'When families use it', p:'The classic use is an adults’ evening at La Caña, best enjoyed without very young children at the table. It is equally useful for a morning round of golf, a spa visit, or simply a quiet adult breakfast on the terrace while the children sleep in. It complements the daytime kids’ programmes rather than duplicating them.'},
       {h:'Good to know', p:'Book ahead through your concierge — 24 hours’ notice is the usual minimum, and over Christmas and New Year demand significantly exceeds supply if left until arrival. Tell your concierge your children’s ages and the evenings you’d like covered, and they will arrange the right nanny in advance.'},
     ],
@@ -1306,7 +1306,7 @@ const GUIDE_CONTENT = {
     sections:[
       {h:'What’s already included', p:'Most villas include daily housekeeping and a houseman as standard, and many include a cook who prepares breakfast and other meals using groceries you select. Knowing what your specific villa already provides is the starting point — your concierge confirms the standing team so you only add what you actually need on top.'},
       {h:'What you can add', p:'A private chef to plan and cook full menus, waiters and bartenders for a dinner party or celebration, a driver for the duration of your stay, an extra butler or housekeeper for a large group, or a nanny for the children. Each is matched to your villa and dates, and briefed on your preferences ahead of arrival.'},
-      {h:'Private chef', p:'The most popular addition is a dedicated chef, who plans quantities and ingredients around your group and dietary needs and cooks in the villa. A US$500 deposit applies, settled by Zelle, wire or cash on arrival, with an itemised bill presented at your meet &amp; greet. It is the easiest way to eat exceptionally well without leaving the villa.'},
+      {h:'Private chef', p:'The most popular addition is a dedicated chef, who plans quantities and ingredients around your group and dietary needs and cooks in the villa. A US$ 500 deposit applies, settled by Zelle, wire or cash on arrival, with an itemised bill presented at your meet &amp; greet. It is the easiest way to eat exceptionally well without leaving the villa.'},
       {h:'Good to know', p:'Tell your concierge the occasion, your group size and any dietary needs, and they will build the right team — a quiet week with a chef, or a full complement for a milestone celebration. Extra staff is best confirmed ahead of time, particularly over Christmas and New Year when the best people are booked early.'},
     ],
     link:'https://caribbeanparadisehomes.com/casa-de-campo-villa-rental-whats-actually-included/'
@@ -1406,13 +1406,13 @@ window.invoicePrint=function(id){ const s=state.stay; const iv=((s&&s.invoices)|
       .pdisc{margin-top:8px!important;padding-top:7px!important;font-size:7.6px!important;line-height:1.32!important;page-break-inside:avoid}
     }
   </style>`;
-  const money=n=>'US$'+(Number(n)||0).toLocaleString('en-US'); const ref=(s.booking&&s.booking.reference)||''; const villa=(s.villa&&s.villa.name)||''; const guest=(s.guest&&(s.guest.family||s.guest.lastName||s.guest.firstName))||'Guest'; const dt=new Date(iv.sentAt||Date.now()).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  if(iv.kind==='grocery'){ const m2=n=>{const x=Number(n)||0; return (x<0?'-$':'$')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}; const agent=(s.concierge&&s.concierge.name)||''; const bk=s.booking||{}; const td='border:1px solid #d9d9d9;padding:7px 12px'; const gr=(iv.items||[]).map(it=>`<tr><td style="${td};text-align:right">${esc(it.label||'')}</td><td style="${td};text-align:right;white-space:nowrap">${m2(it.amountRD)}</td></tr>`).join('');
+  const money=n=>'US$ '+(Number(n)||0).toLocaleString('en-US'); const ref=(s.booking&&s.booking.reference)||''; const villa=(s.villa&&s.villa.name)||''; const guest=(s.guest&&(s.guest.family||s.guest.lastName||s.guest.firstName))||'Guest'; const dt=new Date(iv.sentAt||Date.now()).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  if(iv.kind==='grocery'){ const m2=n=>{const x=Number(n)||0; return (x<0?'-$ ':'$ ')+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}; const agent=(s.concierge&&s.concierge.name)||''; const bk=s.booking||{}; const td='border:1px solid #d9d9d9;padding:7px 12px'; const gr=(iv.items||[]).map(it=>`<tr><td style="${td};text-align:right">${esc(it.label||'')}</td><td style="${td};text-align:right;white-space:nowrap">${m2(it.amountRD)}</td></tr>`).join('');
     const gh=`<!doctype html><html><head><meta charset="utf-8"><title>Grocery Invoice #${iv.no} — ${esc(guest)}</title><meta name="viewport" content="width=device-width,initial-scale=1">${GUEST_PRINT_CSS}</head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1F2A24;max-width:720px;margin:14px auto;padding:0 22px">
     ${guestInvHead('GROCERY INVOICE',iv,dt)}
     ${guestInfoBlock(s,dt)}
     <table style="width:100%;border-collapse:collapse;font-size:13.5px"><thead><tr><th style="background:#404040;color:#fff;padding:9px 12px;text-align:center">Description</th><th style="background:#404040;color:#fff;padding:9px 12px;text-align:center;width:160px">Amount</th></tr></thead><tbody>${gr}<tr><td style="${td};text-align:right">Total in <b>Dominican Pesos</b> (RD)</td><td style="${td};text-align:right">${m2(iv.totalRD)}</td></tr><tr><td style="${td};text-align:right;font-weight:700">Sub-Total in US$</td><td style="${td};text-align:right;font-weight:700">${m2(iv.subUSD)}</td></tr><tr><td style="${td};text-align:right">Service Fee in US$</td><td style="${td};text-align:right">${m2(iv.serviceFeeUSD)}</td></tr>${iv.pickupUSD?`<tr><td style="${td};text-align:right">Pick-up in US$</td><td style="${td};text-align:right">${m2(iv.pickupUSD)}</td></tr>`:''}<tr><td style="${td};text-align:right;font-weight:700">Total Invoice in US$</td><td style="${td};text-align:right;font-weight:700">${m2(iv.invoiceUSD!=null?iv.invoiceUSD:iv.total)}</td></tr>${iv.depositUSD?`<tr><td style="${td};text-align:right">Funds USD$ <span style="color:#6B756C">(deposit received)</span></td><td style="${td};text-align:right">${m2(iv.depositUSD)}</td></tr><tr><td style="${td};text-align:right;font-weight:700;background:#F2F5F2">FINAL TOTAL USD$</td><td style="${td};text-align:right;font-weight:700;background:#F2F5F2${(Number(iv.finalUSD)||0)<0?';color:#9E5B43':''}">${m2(iv.finalUSD)}</td></tr>`:''}</tbody></table>
-    ${iv.refundUSD?`<div style="margin-top:10px;font-size:12.5px;color:#9E5B43;font-weight:600">Nothing to pay — US$${(Number(iv.refundUSD)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} will be refunded to you from your deposit.</div>`:''}
+    ${iv.refundUSD?`<div style="margin-top:10px;font-size:12.5px;color:#9E5B43;font-weight:600">Nothing to pay — US$ ${(Number(iv.refundUSD)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} will be refunded to you from your deposit.</div>`:''}
     ${iv.note?`<div style="margin-top:14px;font-size:12.5px;color:#54605A;line-height:1.5">${esc(iv.note)}</div>`:''}
     ${(iv.status==='paid'||!(Number(iv.total)>0))?'':guestPayBlock(iv,22)}
     <div class="pthanks" style="margin-top:16px;text-align:center;line-height:1.45"><div style="font-style:italic;font-size:14px">Thank you for choosing</div><div style="font-size:15px;color:#2340a0;font-weight:600;margin-top:2px">www.CaribbeanParadiseHomes.com</div><div style="font-style:italic;font-size:12px;margin-top:3px">Visit our website for our Villa Rental and Real Estate options.</div></div>
@@ -1455,7 +1455,7 @@ const SERVICE_INFO = {
     noGuests:true,
     selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Daytime nanny</option><option>Evening babysitting</option></select>`,
     notePlaceholder:'Children and ages, dates and times, anything we should know…',
-    rates:`<b>NANNY &amp; BABYSITTING</b><div class="rtnote"><b>Daytime nanny</b> — US$26 / hour.<br><b>Evening babysitting</b> (4 p.m.–12 a.m., 3-hour minimum) — US$20 / hour for up to two children, US$10 / hour for a third. After 11:30 p.m. an extra US$20 taxi fee is paid directly to the nanny.<br>Cash only, paid to the nanny; prices include tax &amp; service. Nannies are First Aid &amp; CPR trained and speak English &amp; Spanish. 24 hours' notice to book or cancel.</div>`
+    rates:`<b>NANNY &amp; BABYSITTING</b><div class="rtnote"><b>Daytime nanny</b> — US$ 26 / hour.<br><b>Evening babysitting</b> (4 p.m.–12 a.m., 3-hour minimum) — US$ 20 / hour for up to two children, US$ 10 / hour for a third. After 11:30 p.m. an extra US$ 20 taxi fee is paid directly to the nanny.<br>Cash only, paid to the nanny; prices include tax &amp; service. Nannies are First Aid &amp; CPR trained and speak English &amp; Spanish. 24 hours' notice to book or cancel.</div>`
   },
   transfer: {
     tripDates:true, toLabel:'Departure date', noTime:true,
@@ -1463,17 +1463,17 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">Trip</label><select id="rqTrip" onchange="rqTripChange()"><option>One-way</option><option>Round-trip</option></select><label class="reqlbl">Route</label><select id="rqRoute" onchange="rqRouteChange()"><optgroup label="Airport → Casa de Campo (arrival)"><option>LRM (La Romana) → Casa de Campo</option><option>PUJ (Punta Cana) → Casa de Campo</option><option>SDQ (Santo Domingo) → Casa de Campo</option></optgroup><optgroup label="Casa de Campo → Airport (departure)"><option>Casa de Campo → LRM (La Romana)</option><option>Casa de Campo → PUJ (Punta Cana)</option><option>Casa de Campo → SDQ (Santo Domingo)</option></optgroup></select><label class="reqlbl">Service level</label><select id="rqService"><option>Standard</option><option>Comfort</option><option>VIP Black Luxury</option></select><label class="reqlbl">Airline</label><input id="rqAirline" placeholder="e.g. JetBlue"><label class="reqlbl">Flight number</label><input id="rqFlightNo" placeholder="e.g. B6 1069"><label class="reqlbl" id="rqOriginLbl">Flight origin (where you're flying from)</label><input id="rqOrigin" placeholder="e.g. New York (JFK)"><label class="reqlbl" id="rqArrivalLbl">Arrival time</label><input id="rqArrival" placeholder="e.g. 2:45 PM"><div id="rqReturnWrap" style="display:none"><div class="reqlbl" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-weight:600;color:var(--ink)">Return flight (Casa de Campo → airport)</div><label class="reqlbl">Return airline</label><input id="rqReturnAirline" placeholder="e.g. JetBlue"><label class="reqlbl">Return flight number</label><input id="rqReturnFlightNo" placeholder="e.g. B6 1070"><label class="reqlbl">Flight destination (where you're flying to)</label><input id="rqReturnDest" placeholder="e.g. New York (JFK)"><label class="reqlbl">Departure time</label><input id="rqReturnTime" placeholder="e.g. 6:00 PM"></div><label class="reqlbl">Head of family / group <span style="font-weight:400;color:var(--soft)">(if you're booking more than one transfer)</span></label><input id="rqFamily" placeholder="e.g. Matz family">`,
     rates:`<b>RATES · 1–4 PASSENGERS (one-way / round trip)</b>
       <div class="rth">LRM → Casa de Campo</div>
-      <div class="rt"><span>Standard</span><span>US$50 / US$90</span></div>
-      <div class="rt"><span>Comfort</span><span>US$80 / US$150</span></div>
-      <div class="rt"><span>VIP Black Luxury</span><span>US$150 / US$280</span></div>
+      <div class="rt"><span>Standard</span><span>US$ 50 / US$ 90</span></div>
+      <div class="rt"><span>Comfort</span><span>US$ 80 / US$ 150</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>US$ 150 / US$ 280</span></div>
       <div class="rth">PUJ → Casa de Campo</div>
-      <div class="rt"><span>Standard</span><span>US$125 / US$240</span></div>
-      <div class="rt"><span>Comfort</span><span>US$160 / US$300</span></div>
-      <div class="rt"><span>VIP Black Luxury</span><span>US$290 / US$560</span></div>
+      <div class="rt"><span>Standard</span><span>US$ 125 / US$ 240</span></div>
+      <div class="rt"><span>Comfort</span><span>US$ 160 / US$ 300</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>US$ 290 / US$ 560</span></div>
       <div class="rth">SDQ → Casa de Campo</div>
-      <div class="rt"><span>Standard</span><span>US$140 / US$270</span></div>
-      <div class="rt"><span>Comfort</span><span>US$190 / US$360</span></div>
-      <div class="rt"><span>VIP Black Luxury</span><span>US$320 / US$620</span></div>
+      <div class="rt"><span>Standard</span><span>US$ 140 / US$ 270</span></div>
+      <div class="rt"><span>Comfort</span><span>US$ 190 / US$ 360</span></div>
+      <div class="rt"><span>VIP Black Luxury</span><span>US$ 320 / US$ 620</span></div>
       <div class="rth">Casa de Campo → airport (departure)</div>
       <div class="rt"><span>LRM / PUJ / SDQ</span><span>same rate as the matching arrival above</span></div>
       <div class="rtnote">LRM (La Romana International Airport), PUJ (Punta Cana International Airport), SDQ (Santo Domingo International Airport)</div>`
@@ -1482,10 +1482,10 @@ const SERVICE_INFO = {
     range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
     selects:`<label class="reqlbl">Cart type</label><select id="rqCart"><option value="4-seater">4-seater</option><option value="6-seater">6-seater</option></select><label class="reqlbl">How many carts</label><select id="rqQty"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>`,
     rates:`<b>RATES (per day)</b>
-      <div class="rt"><span>4-seater · year-round</span><span>US$80</span></div>
-      <div class="rt"><span>4-seater · Easter &amp; holidays</span><span>US$120</span></div>
-      <div class="rt"><span>6-seater · year-round</span><span>US$105</span></div>
-      <div class="rt"><span>6-seater · Easter &amp; holidays</span><span>US$150</span></div>
+      <div class="rt"><span>4-seater · year-round</span><span>US$ 80</span></div>
+      <div class="rt"><span>4-seater · Easter &amp; holidays</span><span>US$ 120</span></div>
+      <div class="rt"><span>6-seater · year-round</span><span>US$ 105</span></div>
+      <div class="rt"><span>6-seater · Easter &amp; holidays</span><span>US$ 150</span></div>
       <div class="rtnote">Full payment confirms the reservation. Fuel is at the guest's expense.</div>`
   },
   carrental: {
@@ -1493,33 +1493,33 @@ const SERVICE_INFO = {
     notePlaceholder:'Driver needed? Child seat? Wi-Fi? Anything else…',
     selects:`<label class="reqlbl">Vehicle</label><select id="rqService"><option>Small SUV (up to 5)</option><option>Mid-size SUV (up to 5)</option><option>Luxury SUV (up to 5)</option><option>Minivan (up to 9)</option><option>Minivan Full (up to 9)</option><option>Minibus (up to 15)</option><option>Chevrolet Tahoe</option><option>Chevrolet Suburban (up to 7)</option></select>`,
     rates:`<b>RATES (per day + 18% tax)</b>
-      <div class="rt"><span>Small SUV</span><span>US$85</span></div>
-      <div class="rt"><span>Luxury SUV (mid, full comfort)</span><span>US$120</span></div>
-      <div class="rt"><span>Mid-size SUV (3 rows)</span><span>US$140</span></div>
-      <div class="rt"><span>Minivan (Hyundai H-1)</span><span>US$125</span></div>
-      <div class="rt"><span>Minivan Full</span><span>US$160</span></div>
-      <div class="rt"><span>Minibus (up to 15)</span><span>US$160</span></div>
-      <div class="rt"><span>Chevrolet Tahoe</span><span>US$320</span></div>
-      <div class="rt"><span>Chevrolet Suburban</span><span>US$360</span></div>
-      <div class="rtnote">3-day minimum. Full insurance included. Wi-Fi US$5/day, child seat US$5/day; driver from US$20/hr (3 h min).</div>`
+      <div class="rt"><span>Small SUV</span><span>US$ 85</span></div>
+      <div class="rt"><span>Luxury SUV (mid, full comfort)</span><span>US$ 120</span></div>
+      <div class="rt"><span>Mid-size SUV (3 rows)</span><span>US$ 140</span></div>
+      <div class="rt"><span>Minivan (Hyundai H-1)</span><span>US$ 125</span></div>
+      <div class="rt"><span>Minivan Full</span><span>US$ 160</span></div>
+      <div class="rt"><span>Minibus (up to 15)</span><span>US$ 160</span></div>
+      <div class="rt"><span>Chevrolet Tahoe</span><span>US$ 320</span></div>
+      <div class="rt"><span>Chevrolet Suburban</span><span>US$ 360</span></div>
+      <div class="rtnote">3-day minimum. Full insurance included. Wi-Fi US$ 5/day, child seat US$ 5/day; driver from US$ 20/hr (3 h min).</div>`
   },
   grocery: {
     noTime:true, noGuests:true, noDate:true,
     notePlaceholder:'List the items you’d like stocked — brands, quantities, dietary needs…',
-    rates:`<b>PRE-STOCK &amp; MENU</b><div class="rtnote">A US$500 deposit secures your pre-stocking. We reimburse against the itemized invoice — settled by Zelle, wire transfer or cash on arrival, reviewed with you at your meet &amp; greet.</div>`
+    rates:`<b>PRE-STOCK &amp; MENU</b><div class="rtnote">A US$ 500 deposit secures your pre-stocking. We reimburse against the itemized invoice — settled by Zelle, wire transfer or cash on arrival, reviewed with you at your meet &amp; greet.</div>`
   },
   catering: {
     notePlaceholder:'Meals & menus you’d like, number of guests, dietary needs, dates…',
-    rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
+    rates:`<b>PRIVATE CHEF &amp; PROVISIONING</b><div class="rtnote">Your in-villa chef plans the quantities and ingredients for each meal. A US$ 500 deposit applies, settled by Zelle, wire transfer or cash on arrival with an itemized bill at your meet &amp; greet.</div>`
   },
   babygear: {
     noTime:true, noGuests:true, range:true, fromLabel:'Check-in date', toLabel:'Check-out date',
     notePlaceholder:'Quantity, ages, anything specific…',
     selects:`<label class="reqlbl">Item</label><select id="rqService"><option>Crib</option><option>High chair</option><option>Playpen / Pack&rsquo;n&rsquo;Play</option><option>Other</option></select>`,
     rates:`<b>BABY GEAR (per day)</b>
-      <div class="rt"><span>Crib</span><span>US$45</span></div>
-      <div class="rt"><span>High chair</span><span>US$20</span></div>
-      <div class="rt"><span>Playpen / Pack&rsquo;n&rsquo;Play</span><span>US$30</span></div>
+      <div class="rt"><span>Crib</span><span>US$ 45</span></div>
+      <div class="rt"><span>High chair</span><span>US$ 20</span></div>
+      <div class="rt"><span>Playpen / Pack&rsquo;n&rsquo;Play</span><span>US$ 30</span></div>
       <div class="rtnote">Delivered and set up before you arrive.</div>`
   },
   'staff': {
@@ -1532,129 +1532,129 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Tennis — court rental</option><option>Tennis — private lesson</option><option>Tennis — group clinic</option><option>Padel — court rental</option><option>Padel — lesson</option><option>Racquet / paddle rental</option><option>Other</option></select>`,
     rates:`<b>RATES (taxes not incl.)</b>
       <div class="rth">Tennis</div>
-      <div class="rt"><span>Court · day / night</span><span>US$35 / US$45</span></div>
-      <div class="rt"><span>Private lesson (Pro / Director)</span><span>US$65 / US$125 p/h</span></div>
-      <div class="rt"><span>Group clinic (adults / kids)</span><span>US$35 / US$25</span></div>
-      <div class="rt"><span>Ball machine · racquet rental</span><span>US$25 · US$15</span></div>
+      <div class="rt"><span>Court · day / night</span><span>US$ 35 / US$ 45</span></div>
+      <div class="rt"><span>Private lesson (Pro / Director)</span><span>US$ 65 / US$ 125 p/h</span></div>
+      <div class="rt"><span>Group clinic (adults / kids)</span><span>US$ 35 / US$ 25</span></div>
+      <div class="rt"><span>Ball machine · racquet rental</span><span>US$ 25 · US$ 15</span></div>
       <div class="rth">Padel</div>
-      <div class="rt"><span>Court · day / night</span><span>US$40 / US$45</span></div>
-      <div class="rt"><span>Private lesson · paddle rental</span><span>from US$60 · US$10</span></div>`
+      <div class="rt"><span>Court · day / night</span><span>US$ 40 / US$ 45</span></div>
+      <div class="rt"><span>Private lesson · paddle rental</span><span>from US$ 60 · US$ 10</span></div>`
   },
   equestrian: {
     menu:'https://www.casadecampo.com.do/experiences/equestrian/',
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Horseback ride</option><option>Pony ride (kids 4–6)</option><option>Riding / jumping lesson</option><option>Polo lesson</option><option>Donkey polo</option><option>Ranch horseback tour</option><option>Other</option></select>`,
     rates:`<b>RATES (taxes incl.)</b>
-      <div class="rt"><span>Horseback ride (½h / 1h / 2h)</span><span>US$45 / US$85 / US$125 p/p</span></div>
-      <div class="rt"><span>Pony ride (½h, ages 4–6)</span><span>US$40</span></div>
-      <div class="rt"><span>Riding / jumping lesson (½h / 1h)</span><span>US$80 / US$125 p/p</span></div>
-      <div class="rt"><span>Polo lesson (assistant / pro)</span><span>US$120 / US$200 p/p</span></div>
-      <div class="rt"><span>Donkey polo (1h, min 6)</span><span>US$70 p/p</span></div>
-      <div class="rt"><span>Ranch horseback tour (2h)</span><span>US$170–US$255 p/p</span></div>`
+      <div class="rt"><span>Horseback ride (½h / 1h / 2h)</span><span>US$ 45 / US$ 85 / US$ 125 p/p</span></div>
+      <div class="rt"><span>Pony ride (½h, ages 4–6)</span><span>US$ 40</span></div>
+      <div class="rt"><span>Riding / jumping lesson (½h / 1h)</span><span>US$ 80 / US$ 125 p/p</span></div>
+      <div class="rt"><span>Polo lesson (assistant / pro)</span><span>US$ 120 / US$ 200 p/p</span></div>
+      <div class="rt"><span>Donkey polo (1h, min 6)</span><span>US$ 70 p/p</span></div>
+      <div class="rt"><span>Ranch horseback tour (2h)</span><span>US$ 170–US$ 255 p/p</span></div>`
   },
   shooting: {
     menu:'https://www.casadecampo.com.do/experiences/shooting-center/',
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Skeet / Trap round</option><option>Five-stand round</option><option>Sporting clays round</option><option>Flush (group)</option><option>Lesson</option><option>Bird shooting</option><option>Other</option></select>`,
     rates:`<b>RATES (taxes not incl.)</b>
-      <div class="rt"><span>Skeet / Trap round (25)</span><span>US$45</span></div>
-      <div class="rt"><span>Five-stand round (25)</span><span>US$50</span></div>
-      <div class="rt"><span>Sporting clays (50 → 200)</span><span>US$105 – US$320</span></div>
-      <div class="rt"><span>Flush 2 / 3 / 4 / 5-man</span><span>US$105 / US$135 / US$190 / US$220</span></div>
-      <div class="rt"><span>Lessons (Skeet / Clays / Pro)</span><span>US$20 / US$45 / US$80</span></div>
-      <div class="rt"><span>Bird shooting</span><span>from US$40/bird</span></div>
+      <div class="rt"><span>Skeet / Trap round (25)</span><span>US$ 45</span></div>
+      <div class="rt"><span>Five-stand round (25)</span><span>US$ 50</span></div>
+      <div class="rt"><span>Sporting clays (50 → 200)</span><span>US$ 105 – US$ 320</span></div>
+      <div class="rt"><span>Flush 2 / 3 / 4 / 5-man</span><span>US$ 105 / US$ 135 / US$ 190 / US$ 220</span></div>
+      <div class="rt"><span>Lessons (Skeet / Clays / Pro)</span><span>US$ 20 / US$ 45 / US$ 80</span></div>
+      <div class="rt"><span>Bird shooting</span><span>from US$ 40/bird</span></div>
       <div class="rtnote">Under-12s must be evaluated at the Shooting Center. Bird shooting is booked directly with the centre.</div>`
   },
   spa: {
     menu:'https://www.casadecampo.com.do/experiences/spa/',
     selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Massage</option><option>Facial</option><option>Body treatment</option><option>Hydrothermal Experience</option><option>In-villa treatment</option><option>Other</option></select>`,
     rates:`<b>THE SPA AT CASA DE CAMPO</b>
-      <div class="rt"><span>In-villa add-ons</span><span>from US$95</span></div>
-      <div class="rt"><span>Massages &amp; facials (80–110 min)</span><span>US$285–US$385</span></div>
-      <div class="rt"><span>Signature facials</span><span>up to US$495</span></div>
-      <div class="rt"><span>Hydrothermal Experience (3 h)</span><span>US$140</span></div>
+      <div class="rt"><span>In-villa add-ons</span><span>from US$ 95</span></div>
+      <div class="rt"><span>Massages &amp; facials (80–110 min)</span><span>US$ 285–US$ 385</span></div>
+      <div class="rt"><span>Signature facials</span><span>up to US$ 495</span></div>
+      <div class="rt"><span>Hydrothermal Experience (3 h)</span><span>US$ 140</span></div>
       <div class="rtnote">Prices subject to 18% tax + 10% service. Full treatment menu via the link below.</div>`
   },
   'horseback-tour': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     selects:`<label class="reqlbl">Which ranch?</label><select id="rqService"><option>Rancho Peligro — 2h trail ride</option><option>Rancho Peligro — 2h with picnic</option><option>Rancho Higüeral — 2h</option><option>Rancho Cacata — 2h</option></select>`,
     rates:`<b>RATES (taxes incl., Thu/Fri/Sat · min. 4)</b>
-      <div class="rt"><span>Rancho Peligro (2h)</span><span>US$250 p/p</span></div>
-      <div class="rt"><span>Rancho Peligro — with picnic</span><span>US$300 p/p</span></div>
-      <div class="rt"><span>Rancho Higüeral / Cacata (2h)</span><span>US$170 p/p</span></div>
+      <div class="rt"><span>Rancho Peligro (2h)</span><span>US$ 250 p/p</span></div>
+      <div class="rt"><span>Rancho Peligro — with picnic</span><span>US$ 300 p/p</span></div>
+      <div class="rt"><span>Rancho Higüeral / Cacata (2h)</span><span>US$ 170 p/p</span></div>
       <div class="rtnote">Long trousers and closed shoes. Helmets provided.</div>`
   },
   'pottery': {
     menu:'https://www.casadecampo.com.do/experiences/altos-de-chavon/',
     selects:`<label class="reqlbl">Who's joining?</label><select id="rqService"><option>Adult</option><option>Child</option><option>Mixed group</option></select>`,
     rates:`<b>RATES (taxes incl. · 1h, 5:00–6:00 pm)</b>
-      <div class="rt"><span>Adult</span><span>US$65 p/p</span></div>
-      <div class="rt"><span>Child</span><span>US$47 per child</span></div>
+      <div class="rt"><span>Adult</span><span>US$ 65 p/p</span></div>
+      <div class="rt"><span>Child</span><span>US$ 47 per child</span></div>
       <div class="rtnote">Limit 5 people per class.</div>`
   },
   'kayak': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     selects:`<label class="reqlbl">Kayak</label><select id="rqService"><option>Single kayak</option><option>Double kayak</option></select>`,
     rates:`<b>RATES (taxes incl. · min. 4)</b>
-      <div class="rt"><span>Single kayak</span><span>US$30 p/p</span></div>
-      <div class="rt"><span>Double kayak</span><span>US$45 p/p</span></div>`
+      <div class="rt"><span>Single kayak</span><span>US$ 30 p/p</span></div>
+      <div class="rt"><span>Double kayak</span><span>US$ 45 p/p</span></div>`
   },
   'watersports': {
     menu:'https://www.casadecampo.com.do/experiences/beaches/',
     selects:`<label class="reqlbl">What would you like?</label><select id="rqService"><option>Snorkelling gear</option><option>Kayak (single)</option><option>Kayak (double)</option><option>Banana boat ride</option><option>Hobie Wave</option><option>Sunfish sailboat</option><option>Sun floats</option><option>Other</option></select>`,
     rates:`<b>RATES (Minitas Beach)</b>
-      <div class="rt"><span>Snorkelling gear (full day)</span><span>US$19</span></div>
-      <div class="rt"><span>Kayak single / double (1h)</span><span>US$25 / US$35</span></div>
-      <div class="rt"><span>Banana boat (15 min)</span><span>US$20</span></div>
-      <div class="rt"><span>Hobie Wave (1h)</span><span>US$50</span></div>
-      <div class="rt"><span>Sunfish sailboat (1h)</span><span>US$40</span></div>
-      <div class="rt"><span>Sun floats (full day)</span><span>US$14</span></div>`
+      <div class="rt"><span>Snorkelling gear (full day)</span><span>US$ 19</span></div>
+      <div class="rt"><span>Kayak single / double (1h)</span><span>US$ 25 / US$ 35</span></div>
+      <div class="rt"><span>Banana boat (15 min)</span><span>US$ 20</span></div>
+      <div class="rt"><span>Hobie Wave (1h)</span><span>US$ 50</span></div>
+      <div class="rt"><span>Sunfish sailboat (1h)</span><span>US$ 40</span></div>
+      <div class="rt"><span>Sun floats (full day)</span><span>US$ 14</span></div>`
   },
   'zipline': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (min. 4 participants)</b>
-      <div class="rt"><span>Adult</span><span>US$87 p/p</span></div>
-      <div class="rt"><span>Child</span><span>US$59 per child</span></div>
+      <div class="rt"><span>Adult</span><span>US$ 87 p/p</span></div>
+      <div class="rt"><span>Child</span><span>US$ 59 per child</span></div>
       <div class="rtnote">Sport clothing. Minimum age applies — ask your concierge.</div>`
   },
   'buggies': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     selects:`<label class="reqlbl">Buggy</label><select id="rqService"><option>Single-motor buggy</option><option>Double-motor buggy</option><option>Child</option></select>`,
     rates:`<b>RATES (taxes incl. · min. 4 · ages 5+)</b>
-      <div class="rt"><span>Single motor</span><span>US$130 p/p</span></div>
-      <div class="rt"><span>Double motor</span><span>US$105 p/p</span></div>
-      <div class="rt"><span>Child (5+)</span><span>US$90 per child</span></div>
+      <div class="rt"><span>Single motor</span><span>US$ 130 p/p</span></div>
+      <div class="rt"><span>Double motor</span><span>US$ 105 p/p</span></div>
+      <div class="rt"><span>Child (5+)</span><span>US$ 90 per child</span></div>
       <div class="rtnote">Includes water, goggles and bandana. Sport clothing.</div>`
   },
   'catalina': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (taxes incl. · min. 4)</b>
-      <div class="rt"><span>Adult</span><span>US$48 p/p</span></div>
-      <div class="rt"><span>Child (up to 12)</span><span>US$30 per child</span></div>
+      <div class="rt"><span>Adult</span><span>US$ 48 p/p</span></div>
+      <div class="rt"><span>Child (up to 12)</span><span>US$ 30 per child</span></div>
       <div class="rtnote">Departs 10:00 am, returns 1:45 pm. Be there 15 min early.</div>`
   },
   'cave': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (taxes incl. · min. 6)</b>
-      <div class="rt"><span>Per person</span><span>US$34 p/p</span></div>
+      <div class="rt"><span>Per person</span><span>US$ 34 p/p</span></div>
       <div class="rtnote">Thu & Sun, 8:45 am–12:00 pm. Includes transport & water. Comfortable shoes.</div>`
   },
   'santo-domingo': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (taxes incl. · min. 6)</b>
-      <div class="rt"><span>Per person</span><span>US$50 p/p</span></div>
+      <div class="rt"><span>Per person</span><span>US$ 50 p/p</span></div>
       <div class="rtnote">Wed & Fri, 8:15 am–4:00 pm. Includes transport & site admissions. Long trousers/sleeves.</div>`
   },
   'cigar': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     selects:`<label class="reqlbl">Which tour?</label><select id="rqService"><option>Tabacalera de García factory tour</option><option>Cigar Country store tour</option></select>`,
     rates:`<b>RATES (min. 3 · 18+)</b>
-      <div class="rt"><span>Factory day tour (per vehicle, 1–5)</span><span>US$150</span></div>
-      <div class="rt"><span>Cigar Country store tour</span><span>US$20 p/p</span></div>
+      <div class="rt"><span>Factory day tour (per vehicle, 1–5)</span><span>US$ 150</span></div>
+      <div class="rt"><span>Cigar Country store tour</span><span>US$ 20 p/p</span></div>
       <div class="rtnote">Tue & Thu. Factory tour: book 48h ahead.</div>`
   },
   'rum': {
     menu:'https://www.casadecampo.com.do/experiences/excursions/',
     rates:`<b>RATES (taxes incl. · min. 6 · adults only)</b>
-      <div class="rt"><span>Per person</span><span>US$57 p/p</span></div>`
+      <div class="rt"><span>Per person</span><span>US$ 57 p/p</span></div>`
   },
   'family-programs': {
     menu:'https://www.casadecampo.com.do/experiences/for-families/',
@@ -1663,8 +1663,8 @@ const SERVICE_INFO = {
     rates:`<b>SUPERVISED FAMILY PROGRAMS (taxes incl.)</b>
       <div class="rt"><span>Half day (snack incl.)</span><span>8:30 am–12 pm / 1:30–4 pm</span></div>
       <div class="rt"><span>Full day (lunch incl.)</span><span>8:30 am–4 pm</span></div>
-      <div class="rt"><span>Optional: horseback / kayak / banana boat</span><span>US$20</span></div>
-      <div class="rt"><span>Optional: tennis lesson</span><span>US$25</span></div>
+      <div class="rt"><span>Optional: horseback / kayak / banana boat</span><span>US$ 20</span></div>
+      <div class="rt"><span>Optional: tennis lesson</span><span>US$ 25</span></div>
       <div class="rtnote">Toddlers (1–3), Kidz (4–6) &amp; Tweens (7–12): half or full day. Bonche 4 Teens (13–17): supervised teens zone, daily 8 am–6 pm, parental approval. Ask your concierge for current program pricing.</div>`
   },
   'family-nannies': {
@@ -1673,9 +1673,9 @@ const SERVICE_INFO = {
     notePlaceholder:'Number & ages of children, dates, hours needed…',
     selects:`<label class="reqlbl">Service</label><select id="rqService"><option>Nanny — full day (9 am–4 pm)</option><option>Nanny — half day</option><option>Babysitting — by night (from 4 pm)</option></select>`,
     rates:`<b>NANNY & BABYSITTING (taxes incl.)</b>
-      <div class="rt"><span>Full day · up to 2 children</span><span>US$120 (+US$29 3rd)</span></div>
-      <div class="rt"><span>Half day · up to 2 children</span><span>US$85 (+US$29 3rd)</span></div>
-      <div class="rt"><span>By night · per hour (2 children)</span><span>US$20 (+US$10 3rd)</span></div>
+      <div class="rt"><span>Full day · up to 2 children</span><span>US$ 120 (+US$ 29 3rd)</span></div>
+      <div class="rt"><span>Half day · up to 2 children</span><span>US$ 85 (+US$ 29 3rd)</span></div>
+      <div class="rt"><span>By night · per hour (2 children)</span><span>US$ 20 (+US$ 10 3rd)</span></div>
       <div class="rtnote">Max 3 children per nanny. Book 24h ahead. Night service paid in cash to the nanny.</div>`
   },
   'entertainment': {
@@ -1692,19 +1692,19 @@ const SERVICE_INFO = {
     selects:`<label class="reqlbl">Session length</label><select id="rqSess"><option>60 minutes</option></select><label class="reqlbl">Number of people</label><select id="rqService"><option>1 person</option><option>2 people</option><option>3–6 people</option><option>7–10 people</option></select>`,
     notePlaceholder:'Preferred date & time, location (terrace/beach), anything else…',
     rates:`<b>PRIVATE YOGA · PER HOUR</b>
-      <div class="rt"><span>1 person</span><span>US$120 / hour</span></div>
-      <div class="rt"><span>2 people</span><span>US$95 / hour per person</span></div>
-      <div class="rt"><span>3–6 people</span><span>US$240 / hour</span></div>
-      <div class="rt"><span>7–10 people</span><span>US$60 / hour per person</span></div>
+      <div class="rt"><span>1 person</span><span>US$ 120 / hour</span></div>
+      <div class="rt"><span>2 people</span><span>US$ 95 / hour per person</span></div>
+      <div class="rt"><span>3–6 people</span><span>US$ 240 / hour</span></div>
+      <div class="rt"><span>7–10 people</span><span>US$ 60 / hour per person</span></div>
       <div class="rtnote">A certified instructor comes to your villa or the beach. Couples, group and sunrise-on-the-beach sessions on request — your concierge will confirm availability and final pricing.</div>`
   },
   'massage': {
     selects:`<label class="reqlbl">Session length</label><select id="rqService"><option>60 minutes</option><option>90 minutes</option><option>120 minutes</option></select>`,
     notePlaceholder:'Number of guests, type of massage, preferred date & time, location (terrace/room)…',
     rates:`<b>IN-VILLA MASSAGE</b>
-      <div class="rt"><span>60 minutes</span><span>US$120</span></div>
-      <div class="rt"><span>90 minutes</span><span>US$140</span></div>
-      <div class="rt"><span>120 minutes</span><span>US$160</span></div>
+      <div class="rt"><span>60 minutes</span><span>US$ 120</span></div>
+      <div class="rt"><span>90 minutes</span><span>US$ 140</span></div>
+      <div class="rt"><span>120 minutes</span><span>US$ 160</span></div>
       <div class="rtnote">A certified therapist comes to your villa or terrace. Couples and group sessions on request — your concierge will confirm availability and final pricing.</div>`
   },
   'yacht-charter': {
@@ -1793,10 +1793,10 @@ window.closeReq=function(){ const o=document.querySelector('.reqov'); if(o)o.rem
 /* Suggested starting price for a request, from the resort's published rates and the guest's
    selection. Carried to the console so confirming is one tap — the concierge can still edit it. */
 function suggestedPriceFor(refId,o){ o=o||{};
-  if(refId==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black Luxury':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black Luxury':[320,620]}}; const rt=o.route||''; const code=/PUJ/.test(rt)?'PUJ':/SDQ/.test(rt)?'SDQ':'LRM'; const p=(TT[code]||TT.LRM)[o.svc]; return p?('US$'+(o.trip==='Round-trip'?p[1]:p[0])):''; }
-  if(refId==='golfcart'){ const per=(o.cartTypeRaw==='6-seater')?105:80; const q=Math.max(1,Number(o.cartQty)||1); return 'US$'+(per*q)+'/day'; }
-  if(refId==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; return C[o.svc]?('US$'+C[o.svc]+'/day'):''; }
-  if(refId==='catalina') return 'US$48/adult';
+  if(refId==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black Luxury':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black Luxury':[320,620]}}; const rt=o.route||''; const code=/PUJ/.test(rt)?'PUJ':/SDQ/.test(rt)?'SDQ':'LRM'; const p=(TT[code]||TT.LRM)[o.svc]; return p?('US$ '+(o.trip==='Round-trip'?p[1]:p[0])):''; }
+  if(refId==='golfcart'){ const per=(o.cartTypeRaw==='6-seater')?105:80; const q=Math.max(1,Number(o.cartQty)||1); return 'US$ '+(per*q)+'/day'; }
+  if(refId==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; return C[o.svc]?('US$ '+C[o.svc]+'/day'):''; }
+  if(refId==='catalina') return 'US$ 48/adult';
   return (SERVICE_INFO[refId]&&SERVICE_INFO[refId].defaultPrice)||'';
 }
 window.submitReq=async function(type,refId){
@@ -2250,7 +2250,7 @@ function renderArrival(){
     {t:'Pre-arrival registration',d:`Send us each guest’s full name and passport number — just a typed list, no photos — so we can pre-register your group at Casa de Campo. You’ll receive a Registration Number to present at check-in together with everyone’s passports.${s.registrationNumber?'<br><br>Your Registration Number: <b>'+esc(s.registrationNumber)+'</b>':''}<br><button onclick="openGuestList()" style="margin-top:11px;background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px;border:0;cursor:pointer">${(s.guestList&&s.guestList.length)?'Edit guest list ('+s.guestList.length+')':'Add your guest list →'}</button>`},
     {t:'Land at '+(b.airport||'LRM'),d:'The driver will be waiting just outside customs with a sign showing the client’s name. Our operations department monitors your flight’s arrival and landing time, and the driver will wait for up to 1 hour after you land. After that time, an additional charge applies.'},
     {t:'Resort main gate',d:'Stop at the main gate to complete your registration before entering the resort. Have each guest’s passport and a credit card ready — the resort fee is settled here, and you’ll receive a resort ID to use throughout your stay.'},
-    {t:'Resort fee',d:'Please take into account that a resort fee applies:<br>• US$30 per adult, per day (12 years of age and older)<br>• US$15 per child, per day (between 4–12 years old)<br>• Children 3 years of age and under are granted free access.'},
+    {t:'Resort fee',d:'Please take into account that a resort fee applies:<br>• US$ 30 per adult, per day (12 years of age and older)<br>• US$ 15 per child, per day (between 4–12 years old)<br>• Children 3 years of age and under are granted free access.'},
     {t:'Arrive at '+esc(v.name),d:'Your concierge welcomes you at the villa and hands over the keys and Wi-Fi in person. Check-in is from '+(b.checkInTime||'3:00 PM')+'.'},
   ];
   const mapQuery=encodeURIComponent((v.internalName?v.internalName+', ':'')+'Casa de Campo, La Romana, Dominican Republic');
@@ -2270,7 +2270,7 @@ function renderArrival(){
 
 function renderCheckout(){
   const s=state.stay,b=s.booking;
-  const list=['Settle any pending bills with our concierge or your resort account','Remember to tip the staff directly — US$35–45 per day, each, in cash','Leave golf cart, car and villa keys at the villa','Remember to pack your chargers, safe contents and documents'];
+  const list=['Settle any pending bills with our concierge or your resort account','Remember to tip the staff directly — US$ 35–45 per day, each, in cash','Leave golf cart, car and villa keys at the villa','Remember to pack your chargers, safe contents and documents'];
   const inner=`<div class="card" style="background:linear-gradient(rgba(20,33,28,.5),rgba(20,33,28,.8)),url('https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2026/06/Casa_de_Campo_Dominica_Republic34.webp') center/cover;color:#fff;border:0">
       <div class="label" style="color:rgba(255,255,255,.75)">CHECK-OUT</div>
       <div class="display" style="font-size:26px;margin:4px 0">By ${esc(b.checkOutTime||'11:00 AM')}</div>
@@ -2297,7 +2297,7 @@ function renderGuide(){
     </div>
     ${card('Emergency numbers','General emergencies — <a href="tel:911" style="color:var(--accent)">911</a><br>Fire department — <b>5555</b><br>Resort security — <b>5193 / 5194</b>')}
     ${card('Wi-Fi',(state.stay.wifiName||state.stay.wifiPassword)?`Network: <b>${esc(state.stay.wifiName||'—')}</b><br>Password: <b>${esc(state.stay.wifiPassword||'—')}</b>`:esc(state.stay.wifiHandover||'Complimentary Wi-Fi is in your villa — the network name and password are provided on arrival.'))}
-    ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
+    ${card('Villa staff &amp; hours','Your villa staff assist you daily from <b>8:00&nbsp;AM–5:00&nbsp;PM</b> unless otherwise arranged on arrival. Assistance beyond these hours is <b>US$ 60 per staff member</b> (transport &amp; overtime), paid in cash to the staff.')}
     ${card('Getting around','Google Maps and Waze both work inside Casa de Campo — we recommend pinning your villa for easy reference.')}
     ${card('Groceries &amp; shopping','The Marina has wine &amp; spirits shops, a fresh bakery and the El Nacional supermarket. Larger supermarkets are in La Romana, just outside the resort.')}
     ${card('Dinner &amp; activity reservations','To add or change dinner or activity reservations, contact the Owner’s Club at <a href="tel:+18095233165" style="color:var(--accent)">+1 809-523-3165</a> (villa phone ext. 3165 or 3166), or just message your concierge.')}
@@ -2305,7 +2305,7 @@ function renderGuide(){
     <button onclick="push('golfcartinfo')" style="width:100%;text-align:left;border:1px solid var(--line);background:var(--card);border-radius:14px;padding:13px 15px;margin-top:11px;display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:500">More info — golf cart rules &amp; rapid assistance<span style="flex:0 0 auto">→</span></button>
     ${card('Essential amenities &amp; maintenance',`If an essential amenity — such as <b>A/C, water heater, internet, or kitchen electric appliances</b> — fails, please notify <b>Caribbean Paradise Homes (not the villa staff)</b> in writing, by email or WhatsApp, to start a <b>24-hour repair window</b>. If it is not resolved within 24 hours, you may request a rate adjustment, subject to evaluation. Any approved adjustment is limited to a pro-rata credit for the time the issue persists after the initial 24 hours.<br><br><b>Water &amp; electricity</b> are provided by Costasur / Casa de Campo. If these services are interrupted or water pressure is low, this is outside CPH&rsquo;s and the Villa Owner&rsquo;s control, and no compensation applies.<br><br><b>No compensation is granted for:</b> island-wide outages or utility failures; force majeure or external factors (including lack of parts or technicians); non-essential amenities; or disturbances outside the property.`)}
     ${card('House rules and Obligations',`If you'd like to host a special event with more attendees than listed in your agreement, prior authorisation from CPH is required and additional charges may apply. During your stay, you and your party agree to the following:<br><br><b>a) Smoking</b> — strictly prohibited inside the villa, including bedrooms, bathrooms, living rooms and dining rooms. Permitted only in designated outdoor areas.<br><br><b>b) Occupancy &amp; subletting</b> — you may not assign, sublet or permit any person not included in the reservation to stay at the property without prior written approval from CPH. An additional surcharge may apply.<br><br><b>c) Prohibited activities</b> — house parties, bachelor parties, or any activities deemed illegal, immoral or disruptive to the property or neighbourhood are strictly prohibited. CPH reserves the right to limit, refuse or evict any guest for violation of this rule, with or without cause.<br><br><b>d) Telephone use</b> — you and your party are responsible for all long-distance telephone charges incurred during the stay.<br><br><b>e) Property care</b> — you and your party are liable for any damage to the property, including appliances, furniture, tableware, linens and any other villa contents, caused during the stay.<br><br><b>f) Air conditioning</b> — A/C units must be turned off when not in use, including in bedrooms and living areas.`)}
-    ${card('Tipping','We recommend a minimum tip of <b>US$35–45 per day, per staff member</b> in cash at the end of your stay. Dominican Pesos are also welcome. ATMs are at the Casa de Campo Hotel, Minitas Beach and the Marina.')}
+    ${card('Tipping','We recommend a minimum tip of <b>US$ 35–45 per day, per staff member</b> in cash at the end of your stay. Dominican Pesos are also welcome. ATMs are at the Casa de Campo Hotel, Minitas Beach and the Marina.')}
     ${card('Check-out','Check-out is at <b>11:00&nbsp;AM</b>. For a late check-out, please let us know in advance.')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Your concierge</b>
@@ -2461,13 +2461,13 @@ function renderPlan(){
       return `<div class="sec-title">${esc(yp.title||'Yacht charter')}</div>${locked?`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">Your charter has been invoiced — message your concierge if you need to change boats.</div>`:yp.intro?`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">${esc(yp.intro)}</div>`:`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">${isChosen?'Thanks — your concierge will arrange your choice and send an invoice.':'Pick the option you’d like — your concierge will then arrange it and send an invoice.'}</div>`}<div style="display:flex;flex-direction:column;gap:10px">${(yp.options||[]).map(opt).join('')}</div>`;
     })()}
     ${(function(){ const invs=(s.invoices||[]); if(!invs.length) return '';
-      const fmt=n=>'US$'+(Number(n)||0).toLocaleString('en-US'); const ref=(b&&b.reference)||'';
+      const fmt=n=>'US$ '+(Number(n)||0).toLocaleString('en-US'); const ref=(b&&b.reference)||'';
       const box=(iv)=>{ const paid=iv.status==='paid';
         const lines=(iv.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft)"><span>${esc(it.label||'')}</span><span style="white-space:nowrap">${iv.kind==='grocery'?fmt(it.amountRD):fmt(it.amount)}</span></div>`).join('');
         const memo=[ref,iv.title].filter(Boolean).join(' · ');
         return `<div class="card" style="padding:14px 15px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:14.5px">${esc(iv.title)} · #${iv.no}</b>${paid?'<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600">✓ Paid</span>':(iv.dueBy?`<span style="font-size:12px;color:var(--soft)">Due ${esc(iv.dueBy)}</span>`:'')}</div>
-          <div style="margin-top:8px">${lines}${iv.kind==='grocery'?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft);border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>Total in Dominican Pesos (RD)</span><span>${fmt(iv.totalRD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Sub-Total in US$</span><span>${fmt(iv.subUSD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Service Fee in US$</span><span>${fmt(iv.serviceFeeUSD)}</span></div>${iv.pickupUSD?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Pick-up in US$</span><span>${fmt(iv.pickupUSD)}</span></div>`:''}${iv.depositUSD?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Total Invoice in US$</span><span>${fmt(iv.invoiceUSD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Funds received (deposit)</span><span>− ${fmt(iv.depositUSD)}</span></div>`:''}`:`${(iv.legalFee||iv.serviceFee||iv.extrasTotal)?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft);border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>Subtotal</span><span>${fmt(iv.subtotal)}</span></div>${iv.legalFee?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${iv.legalPct}% legal fee</span><span>${fmt(iv.legalFee)}</span></div>`:''}${iv.serviceFee?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${iv.servicePct}% service fee</span><span>${fmt(iv.serviceFee)}</span></div>`:''}${(iv.extras||[]).map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${esc(x.label||'Extra charge')}</span><span>${fmt(x.amount)}</span></div>`).join('')}`:''}`}<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;border-top:1px solid var(--line);padding-top:7px;margin-top:5px"><span>${iv.kind==='grocery'?(iv.depositUSD?'FINAL TOTAL in US$':'Total Invoice in US$'):'Total'}</span><span${(Number(iv.finalUSD)||0)<0?' style="color:#9E5B43"':''}>${iv.depositUSD?((Number(iv.finalUSD)||0)<0?'− ':'')+fmt(Math.abs(Number(iv.finalUSD)||0)):fmt(iv.total)}</span></div></div>
-          ${iv.refundUSD?`<div style="font-size:12.5px;color:#9E5B43;font-weight:600;margin-top:8px;line-height:1.5">Nothing to pay — US$${(Number(iv.refundUSD)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} will be refunded to you from your deposit.</div>`:''}
+          <div style="margin-top:8px">${lines}${iv.kind==='grocery'?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft);border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>Total in Dominican Pesos (RD)</span><span>${fmt(iv.totalRD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Sub-Total in US$</span><span>${fmt(iv.subUSD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Service Fee in US$</span><span>${fmt(iv.serviceFeeUSD)}</span></div>${iv.pickupUSD?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Pick-up in US$</span><span>${fmt(iv.pickupUSD)}</span></div>`:''}${iv.depositUSD?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Total Invoice in US$</span><span>${fmt(iv.invoiceUSD)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>Funds received (deposit)</span><span>− ${fmt(iv.depositUSD)}</span></div>`:''}`:`${(iv.legalFee||iv.serviceFee||iv.extrasTotal)?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft);border-top:1px solid var(--line);margin-top:4px;padding-top:6px"><span>Subtotal</span><span>${fmt(iv.subtotal)}</span></div>${iv.legalFee?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${iv.legalPct}% legal fee</span><span>${fmt(iv.legalFee)}</span></div>`:''}${iv.serviceFee?`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${iv.servicePct}% service fee</span><span>${fmt(iv.serviceFee)}</span></div>`:''}${(iv.extras||[]).map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:2px 0;color:var(--soft)"><span>${esc(x.label||'Extra charge')}</span><span>${fmt(x.amount)}</span></div>`).join('')}`:''}`}<div style="display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;border-top:1px solid var(--line);padding-top:7px;margin-top:5px"><span>${iv.kind==='grocery'?(iv.depositUSD?'FINAL TOTAL in US$ ':'Total Invoice in US$ '):'Total'}</span><span${(Number(iv.finalUSD)||0)<0?' style="color:#9E5B43"':''}>${iv.depositUSD?((Number(iv.finalUSD)||0)<0?'− ':'')+fmt(Math.abs(Number(iv.finalUSD)||0)):fmt(iv.total)}</span></div></div>
+          ${iv.refundUSD?`<div style="font-size:12.5px;color:#9E5B43;font-weight:600;margin-top:8px;line-height:1.5">Nothing to pay — US$ ${(Number(iv.refundUSD)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} will be refunded to you from your deposit.</div>`:''}
           ${iv.note?`<div style="font-size:12.5px;color:var(--soft);margin-top:8px;line-height:1.5">${esc(iv.note)}</div>`:''}
           ${(paid||!(Number(iv.total)>0))?'':`<div style="margin-top:10px;border:1px solid #E2DAF0;background:#F7F4FC;border-radius:12px;padding:12px 13px"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6D1ED4;text-transform:uppercase;margin-bottom:6px">Pay by Zelle</div>${zelleRow('Send to',guestPayee(iv).zelle,guestPayee(iv).zelle,'Email')}${zelleRow('Amount',fmt(iv.total),String(iv.total||''),'Amount')}${memo?zelleRow('Memo',memo,memo,'Memo'):''}<div style="font-size:11.5px;color:#8A8597;margin-top:8px;line-height:1.5">Open your bank's app, choose Zelle, send to the email above and add the memo. Your concierge marks it paid once received.</div></div>`}
           <button onclick="invoicePrint('${esc(iv.id)}')" style="margin-top:10px;width:100%;border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:10px;font-size:13px;cursor:pointer">Print / Save PDF</button></div>`; };
@@ -2541,7 +2541,7 @@ window.printItinerary=function(){
       <li style="margin-bottom:7px"><b>Pre‑arrival registration —</b> Send each guest’s full name &amp; passport number so we can pre‑register your group; you’ll receive a Registration Number for check‑in.${s.registrationNumber?' Your Registration #: <b>'+esc(s.registrationNumber)+'</b>.':''}</li>
       <li style="margin-bottom:7px"><b>Airport Pick-up —</b> Your driver waits just outside customs with a sign showing your name. We monitor your flight; the driver waits up to 1 hour after you land.</li>
       <li style="margin-bottom:7px"><b>Resort main gate —</b> Stop to complete registration; have each guest’s passport and a credit card ready. The resort fee is settled here.</li>
-      <li style="margin-bottom:7px"><b>Resort fee —</b> US$30 per adult/day (12+), US$15 per child/day (4–12), free for children 3 and under.</li>
+      <li style="margin-bottom:7px"><b>Resort fee —</b> US$ 30 per adult/day (12+), US$ 15 per child/day (4–12), free for children 3 and under.</li>
       <li><b>Arrive at ${esc(v.name||'your villa')} —</b> Your concierge welcomes you and hands over the keys &amp; Wi‑Fi in person. Check‑in from ${esc(b.checkInTime||'3:00 PM')}.</li>
     </ol>
 
@@ -2566,8 +2566,8 @@ window.printItinerary=function(){
 
     <h2 class="hd" style="font-size:18px;margin:26px 0 6px;font-weight:600;border-bottom:1px solid #D9DDD5;padding-bottom:6px;page-break-after:avoid">Good to know</h2>
     <table style="font-size:13px;border-collapse:collapse;width:100%">
-      ${gk('Villa staff','Daily 8 AM–5 PM unless arranged. Beyond hours: US$60 per staff member (cash).')}
-      ${gk('Tipping','Suggested US$35–45 per day, per staff member, in cash. ATMs at the Hotel, Minitas Beach and the Marina.')}
+      ${gk('Villa staff','Daily 8 AM–5 PM unless arranged. Beyond hours: US$ 60 per staff member (cash).')}
+      ${gk('Tipping','Suggested US$ 35–45 per day, per staff member, in cash. ATMs at the Hotel, Minitas Beach and the Marina.')}
       ${(s.wifiName||s.wifiPassword)?gk('Wi‑Fi','Network <b>'+esc(s.wifiName||'—')+'</b> · Password <b>'+esc(s.wifiPassword||'—')+'</b>'):gk('Wi‑Fi',esc(s.wifiHandover||'Provided in your villa on arrival.'))}
       ${gk('Getting around','Google Maps &amp; Waze work inside the resort — pin your villa. Photograph your golf cart to find it easily.')}
       ${gk('Groceries','Marina: wine &amp; spirits, bakery, El Nacional supermarket. Larger supermarkets in La Romana.')}
@@ -2813,7 +2813,7 @@ function renderGolfGuide(){
     </div>
 
     <div class="sec-title">The three courses</div>
-    ${courseCard('Teeth of the Dog','Bucket-list',[['Setting','7 oceanfront holes'],['Difficulty','Very challenging'],['Green fee 2026','US$750 / person'],['Book','2&ndash;4 weeks ahead']],`Widely ranked the <b>greatest course in the Caribbean</b> and a perennial world Top 100. Seven holes play right along the Caribbean Sea over jagged coral &mdash; hole 7, over the ocean, is one of the most photographed par 3s in golf. Reopened Dec 2025 after a US$15M restoration, playing better than ever. Caddie mandatory.`)}
+    ${courseCard('Teeth of the Dog','Bucket-list',[['Setting','7 oceanfront holes'],['Difficulty','Very challenging'],['Green fee 2026','US$ 750 / person'],['Book','2&ndash;4 weeks ahead']],`Widely ranked the <b>greatest course in the Caribbean</b> and a perennial world Top 100. Seven holes play right along the Caribbean Sea over jagged coral &mdash; hole 7, over the ocean, is one of the most photographed par 3s in golf. Reopened Dec 2025 after a US$ 15M restoration, playing better than ever. Caddie mandatory.`)}
     ${courseCard('Dye Fore','Views &amp; drama',[['Setting','Cliff-top · 27 holes'],['Difficulty','Challenging'],['Views','Chav&oacute;n River valley'],['Book','5&ndash;7 days ahead']],`Carved into the cliffs above the Chav&oacute;n River, 90m below &mdash; among the most spectacular settings in the hemisphere. A 27-hole layout (Chav&oacute;n, Marina, Lakes) played as different combinations. Easy to pair with lunch up at Altos de Chav&oacute;n.`)}
     ${courseCard('The Links','Strategy &amp; rhythm',[['Setting','Rolling inland'],['Difficulty','Most accessible'],['Best for','Repeat &amp; group play'],['Book','Often same week']],`Inspired by British &amp; Scottish links &mdash; no ocean or cliff drama, but a clever strategic course that rewards repeat play. The most forgiving of the three, the best round for mixed-ability groups, and ideal for warming up.`)}
 
@@ -2857,7 +2857,7 @@ function renderExperiencesGuide(){
     <div style="font-size:14px;color:var(--soft);line-height:1.6;margin-top:14px">Casa de Campo is a 7,000-acre resort, and the experiences spread right across it — from the Caribbean Sea at Minitas to the Chavón River, the Equestrian Center’s cane fields and the Forbes Four-Star spa. The best weeks mix a few different worlds; here is how the experiences group together, and the ones worth reserving before you arrive.</div>
     ${card('On the water','Minitas Beach is the hub for water sports — paddleboards, kayaks, Hobie Cats and snorkelling off the resort’s own sheltered beach. From the Marina, a private yacht or catamaran charter is the signature day out, and the boat trip to Catalina Island — a protected reef and white-sand cay — is the one most guests remember. Quieter and greener, kayaking the Chavón River runs you past the jungle that doubled for film sets below Altos de Chavón.')}
     ${card('On land','Riding is in Casa de Campo’s DNA: the Equestrian Center has been the centre of Dominican polo since 1974, with lessons, ring time and trail rides out across former sugar plantation. The guided Horseback Riding Tour heads to a working ranch through cane fields and lagoons. For racquet players, the Racquet Center has 13 clay courts, and the Shooting Center offers sporting clays, trap and skeet across a 245-acre course.')}
-    ${card('Wellness &amp; creativity','The reborn Forbes Four-Star Spa — a US$25M rebuild — is the resort’s calm centre, with a hydrothermal circuit and in-villa treatments your concierge can arrange. For something hands-on, a pottery session in Altos de Chavón’s artisan tradition is a lovely afternoon, especially with children.')}
+    ${card('Wellness &amp; creativity','The reborn Forbes Four-Star Spa — a US$ 25M rebuild — is the resort’s calm centre, with a hydrothermal circuit and in-villa treatments your concierge can arrange. For something hands-on, a pottery session in Altos de Chavón’s artisan tradition is a lovely afternoon, especially with children.')}
     ${card('For families','Casa de Campo’s award-winning Family Programs run supervised, age-grouped activities — from kids’ clubs to teen adventures — so parents get a round of golf or a spa morning while children are well looked after. Most water sports, the Catalina trip and gentle trail rides work beautifully for families too.')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">We arrange it all</b>
@@ -2942,22 +2942,22 @@ function renderRealEstate(){
       <div style="font-size:13px;color:rgba(255,255,255,.85)">Fallen for the resort? Villas In Casa is our independent voice on Casa de Campo&reg; real estate, operated by Caribbean Paradise Homes. We help you find, tour and buy your home here &mdash; and, through our villa rental agency, place it in the rental market whenever you&rsquo;re ready.</div>
     </div>
     ${card('On the ground since 2003', `<b>Caribbean Paradise Homes</b> has worked inside Casa de Campo&reg; since 2003 &mdash; walking the neighborhoods every week and managing 80+ villas as a luxury rental operator, so we know how each enclave actually lives. We work for the buyer: independent, two-sided and local. Expect honest, informed counsel on neighborhoods, pricing, ownership costs and the buying process, a curated shortlist of four to eight properties (listed and off-market), and answers usually within 24 hours.`)}
-    ${card('What it costs to buy', `Entry villas and condos start under <b>US$1.5M</b>; golf- and ocean-view homes typically run <b>US$2M&ndash;US$4M</b>; oceanfront and trophy estates reach <b>US$8M and beyond</b>, with the most coveted parcels trading privately. Foreigners hold the same ownership rights as Dominican citizens &mdash; full freehold title, no special permit or residency required &mdash; and most purchases close in <b>60&ndash;90 days</b>. Budget roughly <b>4&ndash;5%</b> in closing costs, plus annual resort and association fees, property tax (IPI), insurance and maintenance.`)}
+    ${card('What it costs to buy', `Entry villas and condos start under <b>US$ 1.5M</b>; golf- and ocean-view homes typically run <b>US$ 2M&ndash;US$ 4M</b>; oceanfront and trophy estates reach <b>US$ 8M and beyond</b>, with the most coveted parcels trading privately. Foreigners hold the same ownership rights as Dominican citizens &mdash; full freehold title, no special permit or residency required &mdash; and most purchases close in <b>60&ndash;90 days</b>. Budget roughly <b>4&ndash;5%</b> in closing costs, plus annual resort and association fees, property tax (IPI), insurance and maintenance.`)}
     ${card('From the first call to the keys', `Our process runs from a discovery conversation to a shortlist, on-site tours, offer and due diligence, closing and resort handover &mdash; then introductions to designers, contractors and our rental program if you want the villa to work between visits. The fastest way to narrow your search is a two- to three-day visit: we drive every relevant neighborhood, tour four to six shortlisted homes, and finish with a clear shortlist by the end of the trip. Whichever enclave fits your brief, we represent you from the first viewing to the final signature &mdash; and stay on call long after the keys change hands, right here on the resort.`)}
     <div class="sec-title">Your advisors</div>
     ${advisor('Jan van Welie','Real Estate Consultant','https://cph-my-stay.onrender.com/jan.jpg','jan@caribbeanparadisehomes.com','18096974404','+1 809 697 4404')}
     ${advisor('Ivonna Sosa','Real Estate Consultant','https://cph-my-stay.onrender.com/ivonna.jpg','ivonna@caribbeanparadisehomes.com','18093900072','+1 809 390 0072')}
     <div class="sec-title">Neighborhoods to explore</div>
-    ${neigh('Barranca','https://villasincasa.com/barranca-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Barranca_19_Casa_de_Campo_Caribbean_Paradise_Homes22.jpg','US$3.4M&ndash;US$6M','Classic interior &mdash; mature gardens, larger lots and established family villas near the resort core.')}
-    ${neigh('Cacique','https://villasincasa.com/cacique-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/06/Cacique24-3.jpeg','From ~US$6M','Beachside between Teeth of the Dog and Minitas Beach &mdash; a walk or short cart to the sand.')}
+    ${neigh('Barranca','https://villasincasa.com/barranca-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Barranca_19_Casa_de_Campo_Caribbean_Paradise_Homes22.jpg','US$ 3.4M&ndash;US$ 6M','Classic interior &mdash; mature gardens, larger lots and established family villas near the resort core.')}
+    ${neigh('Cacique','https://villasincasa.com/cacique-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/06/Cacique24-3.jpeg','From ~US$ 6M','Beachside between Teeth of the Dog and Minitas Beach &mdash; a walk or short cart to the sand.')}
     ${neigh('Caleton','https://villasincasa.com/caleton-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Caleton_4_Casa_de_Campo_Caribbean_Paradise_Homes_4.jpg','On request','A small, off-market coastal enclave on the resort&rsquo;s western edge &mdash; sales move privately.')}
-    ${neigh('Costamar','https://villasincasa.com/costamar-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Costamar_10_Casa_de_Campo_Caribbean_Paradise_Homes_38.jpg','US$14M&ndash;US$20M','South-coast trophy estates adjacent to Teeth of the Dog &mdash; mostly traded off-market.')}
-    ${neigh('Dye Fore','https://villasincasa.com/dye-fore-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Dye_Fore_Estate_4_Casa_de_Campo_Caribbean_Paradise_Homes_7.jpg','US$3M&ndash;US$10M+','Cliffside new construction above the Chav&oacute;n River &mdash; modern villas and buildable lots.')}
-    ${neigh('Dye Fore Estates','https://villasincasa.com/dye-fore-estates-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Dye_Fore_Estates_Casa_de_Campo_Caribbean_Paradise_Homes_6.jpg','US$2.5M&ndash;US$7.2M','Premium cliffside parcels on the Chav&oacute;n canyon rim, walking distance to Altos de Chav&oacute;n.')}
-    ${neigh('Los Lagos','https://villasincasa.com/los-lagos-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/lagos-16.jpeg','From ~US$3.9M','Quiet south-central interior by The Links &mdash; a short cart ride to Minitas Beach.')}
-    ${neigh('Punta Aguila','https://villasincasa.com/punta-aguila-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Punta_Aguila_10_Casa_de_Campo_Caribbean_Paradise_Homes_21.jpg','US$4M&ndash;US$35M+','The most exclusive oceanfront peninsula &mdash; private beach, large lots, newer estates.')}
-    ${neigh('Punta Minitas','https://villasincasa.com/punta-minitas-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/DJI_20251205212427_0133_D.jpeg','US$5M&ndash;US$15M+','Casa de Campo&rsquo;s classic oceanfront peninsula &mdash; the largest beachfront lots, tight inventory.')}
-    ${neigh('Rio Arriba','https://villasincasa.com/rio-arriba-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Rioarriba6-3.jpg','US$8.2M&ndash;US$19.5M','Inland luxury near Altos de Chav&oacute;n &mdash; golf frontage and Chav&oacute;n River valley views.')}
+    ${neigh('Costamar','https://villasincasa.com/costamar-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Costamar_10_Casa_de_Campo_Caribbean_Paradise_Homes_38.jpg','US$ 14M&ndash;US$ 20M','South-coast trophy estates adjacent to Teeth of the Dog &mdash; mostly traded off-market.')}
+    ${neigh('Dye Fore','https://villasincasa.com/dye-fore-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Dye_Fore_Estate_4_Casa_de_Campo_Caribbean_Paradise_Homes_7.jpg','US$ 3M&ndash;US$ 10M+','Cliffside new construction above the Chav&oacute;n River &mdash; modern villas and buildable lots.')}
+    ${neigh('Dye Fore Estates','https://villasincasa.com/dye-fore-estates-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Dye_Fore_Estates_Casa_de_Campo_Caribbean_Paradise_Homes_6.jpg','US$ 2.5M&ndash;US$ 7.2M','Premium cliffside parcels on the Chav&oacute;n canyon rim, walking distance to Altos de Chav&oacute;n.')}
+    ${neigh('Los Lagos','https://villasincasa.com/los-lagos-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/lagos-16.jpeg','From ~US$ 3.9M','Quiet south-central interior by The Links &mdash; a short cart ride to Minitas Beach.')}
+    ${neigh('Punta Aguila','https://villasincasa.com/punta-aguila-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Punta_Aguila_10_Casa_de_Campo_Caribbean_Paradise_Homes_21.jpg','US$ 4M&ndash;US$ 35M+','The most exclusive oceanfront peninsula &mdash; private beach, large lots, newer estates.')}
+    ${neigh('Punta Minitas','https://villasincasa.com/punta-minitas-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/DJI_20251205212427_0133_D.jpeg','US$ 5M&ndash;US$ 15M+','Casa de Campo&rsquo;s classic oceanfront peninsula &mdash; the largest beachfront lots, tight inventory.')}
+    ${neigh('Rio Arriba','https://villasincasa.com/rio-arriba-casa-de-campo/','https://villasincasa.com/wp-content/uploads/2026/05/Rioarriba6-3.jpg','US$ 8.2M&ndash;US$ 19.5M','Inland luxury near Altos de Chav&oacute;n &mdash; golf frontage and Chav&oacute;n River valley views.')}
     <div style="background:#F1F4EF;border:1px solid #cfe0c8;border-radius:14px;padding:14px 15px;margin-top:11px">
       <b style="font-size:14.5px">Arrange a viewing</b>
       <div style="font-size:13.5px;color:var(--ink);line-height:1.55;margin-top:5px">Reach out to Jan or Ivonna directly to tour a villa or explore buying &mdash; or browse every Casa de Campo&reg; neighborhood at villasincasa.com.</div>
@@ -3019,7 +3019,7 @@ function renderDiscover(){
     <div class="sec-title">Good to know in the DR</div>
     <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:2px 15px 12px;margin-top:2px">
       ${place('Electricity','110 volts &mdash; the same as the US &amp; Canada. Visitors from elsewhere should bring adapters.')}
-      ${place('Money','The currency is the peso (RD$); US dollars and euros are easily exchanged at banks. Cash over US$10,000 must be declared at customs.')}
+      ${place('Money','The currency is the peso (RD$); US dollars and euros are easily exchanged at banks. Cash over US$ 10,000 must be declared at customs.')}
       ${place('Tipping','Restaurant bills already include a 10% service charge; an extra ~10% for good service is customary.')}
       ${place('Sun &amp; health','The Caribbean sun is strong &mdash; wear sunblock even on cloudy days, and keep hydrated with water.')}
       ${place('Climate','Warm year-round (high-80s&deg;F by day). Warmest June&ndash;September, with brief afternoon showers.')}

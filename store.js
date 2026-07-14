@@ -972,10 +972,12 @@ function upsellMetrics() {
   const cashByMonth = {};
   overdue.forEach(o => {
     const key = o.dueBy ? String(o.dueBy).slice(0, 7) : 'nodate';
-    const e = cashByMonth[key] || (cashByMonth[key] = { key, total: 0, count: 0, overdue: 0 });
+    const e = cashByMonth[key] || (cashByMonth[key] = { key, total: 0, count: 0, overdue: 0, items: [] });
     e.total += o.total; e.count++;
+    e.items.push(o);                       // the actual invoices behind the bar — the console expands these
     if (o.daysOverdue > 0) e.overdue += o.total;
   });
+  Object.values(cashByMonth).forEach(e => e.items.sort((a, b) => String(a.dueBy).localeCompare(String(b.dueBy)) || (b.total - a.total)));
   const cashFlow = Object.values(cashByMonth)
     .sort((a, b) => (a.key === 'nodate' ? 1 : b.key === 'nodate' ? -1 : a.key.localeCompare(b.key)));
 
