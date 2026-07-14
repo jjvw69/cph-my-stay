@@ -1093,6 +1093,15 @@ function payPill(r){
 /* Cash-flow months expand to the invoices behind them. */
 const cfOpen=new Set();
 window.toggleCf=function(k){ cfOpen.has(k)?cfOpen.delete(k):cfOpen.add(k); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
+/* Tapping the "Still to collect" card opens the full unpaid-invoice list — expand every cash-flow
+   month and scroll the left column down to it. */
+window.revShowDue=function(){
+  (METRICS&&METRICS.cashFlow||[]).forEach(c=>cfOpen.add(c.key));
+  renderRevenue().then(()=>{
+    const box=document.querySelector('.col.left'), t=document.getElementById('revCash');
+    if(box&&t) box.scrollTop = box.scrollTop + t.getBoundingClientRect().top - box.getBoundingClientRect().top - 6;
+  });
+};
 /* Both earnings lists start COLLAPSED — the headline numbers and the donut are the point; the
    booking-by-booking detail is there when you want it (tap "show"). */
 const earnOpen={cart:false,xfer:false,yacht:false};
@@ -1117,7 +1126,7 @@ async function renderRevenue(){
   const kpiHtml=`<div class="rev-kpi-left" id="revKpi">
       <div class="stat"><div class="num money">${money0(m.totalRevenue)}</div><div class="lbl">Invoiced add-ons</div></div>
       <div class="stat paid"><div class="num money">${money0(m.paidRevenue)}</div><div class="lbl">Paid</div></div>
-      <div class="stat owed" title="${(m.overdue||[]).filter(o=>o.daysOverdue>0).length} invoice(s) past their due date"><div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect${m.overdueTotal?` · ${money0(m.overdueTotal)} overdue`:''}</div></div>
+      <div class="stat owed clk" onclick="revShowDue()" title="Tap to see every unpaid invoice · ${(m.overdue||[]).filter(o=>o.daysOverdue>0).length} past their due date"><div class="num money">${money0(m.dueRevenue)}</div><div class="lbl">Still to collect${m.overdueTotal?` · ${money0(m.overdueTotal)} overdue`:''} <span style="opacity:.6">›</span></div></div>
       <div class="rev-kpi-pair">
         <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
         <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
