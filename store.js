@@ -739,25 +739,78 @@ function exportAll() { return stays; }
 function parsePrice(p) { const n = Number(String(p == null ? '' : p).replace(/[^0-9.]/g, '')); return isFinite(n) ? n : 0; }
 function stayRevenue(s) { return (s.requests || []).filter(r => r.status === 'confirmed').reduce((a, r) => a + parsePrice(r.price), 0); }
 /** Aggregate add-on/experience conversion + revenue across all stays, for the console Upsell panel. */
+/** Match a piece of invoice text to a catalog service. Titles in the wild are messy
+ *  ("golf cart", "Golf cart rental", "Golf cart — 6-seater · year-round"), so match on the
+ *  service's distinctive phrase rather than its exact name. */
+const SERVICE_ALIASES = {
+  golfcart:     ['golf cart', 'golfcart', 'seater'],
+  transfer:     ['airport transfer', 'transfer', 'lrm', 'puj', 'sdq'],
+  carrental:    ['car rental', 'carrental'],
+  yacht:        ['yacht', 'catamaran'],
+  grocery:      ['grocery', 'groceries', 'pre-stocking'],
+  arrivalmeals: ['arrival meal', 'meal plan', 'chef'],
+  privatetravel:['private jet', 'air ambulance', 'private travel'],
+  yoga:         ['yoga'],
+  massage:      ['massage'],
+  babygear:     ['baby gear', 'crib', 'high chair'],
+  nannies:      ['nanny', 'nannies', 'babysit'],
+  staff:        ['additional staff', 'butler', 'waiter', 'housekeeper'],
+  entertainment:['entertainment', 'musician', 'dj '],
+  rumcigar:     ['rum', 'cigar'],
+};
+function serviceKeyFor(text) {
+  const t = String(text || '').toLowerCase();
+  if (!t) return '';
+  for (const id of Object.keys(SERVICE_ALIASES)) {
+    if (SERVICE_ALIASES[id].some(a => t.indexOf(a) >= 0)) return id;
+  }
+  return '';
+}
+function serviceNameFor(id) { const a = allAddOns().find(x => x.id === id); return a ? a.name : ''; }
+/** Upsell panel. Rebuilt 2026-07-14 to measure MONEY, not clicks.
+ *  It used to count only guest requests that staff had explicitly hit "Confirm" on, and summed the
+ *  request's free-text price field — so it read US$0 for golf carts while thousands of dollars of
+ *  golf-cart invoices existed. Now: revenue = ISSUED INVOICES (the same source as Total Stay
+ *  Charge), and a service counts as booked when it's invoiced. Requests are still reported, but
+ *  only as demand (asked / still awaiting) — never as revenue. */
 function upsellMetrics() {
-  let totalRevenue = 0, confirmed = 0, pending = 0, totalReq = 0, staysWithConfirmed = 0, published = 0;
+  let totalRevenue = 0, paidRevenue = 0, booked = 0, pending = 0, totalReq = 0, staysWithBooking = 0, published = 0;
   const svc = {};
+  const bucket = (id, title) => {
+    const key = id || 'other';
+    return svc[key] || (svc[key] = { id: key, title: (id && serviceNameFor(id)) || title || 'Other', booked: 0, revenue: 0, requested: 0, awaiting: 0 });
+  };
   stays.forEach(s => {
     if (s.status === 'published') published++;
-    let stayConfirmed = 0;
+    let stayBooked = 0;
+    // MONEY — every issued (non-draft) invoice
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      const amt = invoiceTotal(inv);
+      const id = serviceKeyFor(inv.title) || serviceKeyFor(((inv.items || [])[0] || {}).label);
+      const e = bucket(id, inv.title);
+      e.booked++; e.revenue += amt;
+      booked++; stayBooked++; totalRevenue += amt;
+      if (inv.status === 'paid') paidRevenue += amt;
+    });
+    // DEMAND — guest requests. Counted, never turned into revenue.
     (s.requests || []).forEach(r => {
       if (r.status === 'cancelled') return;
       totalReq++;
-      const key = (r.title || 'Other').trim();
-      const e = svc[key] || (svc[key] = { title: key, requested: 0, confirmed: 0, revenue: 0 });
+      const id = serviceKeyFor((r.refId || '') + ' ' + (r.title || ''));
+      const e = bucket(id, r.title);
       e.requested++;
-      if (r.status === 'confirmed') { confirmed++; stayConfirmed++; const v = parsePrice(r.price); totalRevenue += v; e.confirmed++; e.revenue += v; }
-      else if (r.status === 'pending') pending++;
+      if (r.status !== 'confirmed' && r.status !== 'done') { e.awaiting++; pending++; }
     });
-    if (stayConfirmed > 0) staysWithConfirmed++;
+    if (stayBooked > 0) staysWithBooking++;
   });
-  const byService = Object.values(svc).sort((a, b) => (b.revenue - a.revenue) || (b.confirmed - a.confirmed) || (b.requested - a.requested));
-  return { totalRevenue, confirmed, pending, totalReq, staysWithConfirmed, published, attachRate: published ? Math.round(staysWithConfirmed / published * 100) : 0, byService };
+  const byService = Object.values(svc).sort((a, b) => (b.revenue - a.revenue) || (b.booked - a.booked) || (b.requested - a.requested));
+  return {
+    totalRevenue, paidRevenue, booked, pending, totalReq, published,
+    staysWithBooking, staysWithConfirmed: staysWithBooking, // legacy key
+    attachRate: published ? Math.round(staysWithBooking / published * 100) : 0,
+    byService,
+  };
 }
 
 // ---------------------------------------------- scheduled guest message automations

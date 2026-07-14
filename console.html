@@ -1065,18 +1065,22 @@ function renderArrivalsPanel(){
 }
 let todayGroups={};
 window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) return; if(arr.length===1){ selectStay(arr[0].id); return; } const sec=document.getElementById('tsec-'+key); if(sec){ try{sec.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){ sec.scrollIntoView(); } } };
+/* Upsell panel — reads store.upsellMetrics(), which is now INVOICE-based (real money), not
+   "requests someone remembered to click Confirm on". Revenue = issued invoices; a service is
+   "booked" when it's invoiced. Requests only ever show as demand ("· N asked"). */
 function upsellCard(){
-  const m=METRICS; if(!m || (!m.confirmed && !m.pending)) return '';
-  const top=(m.byService||[]).slice(0,4);
+  const m=METRICS; if(!m || (!m.booked && !m.pending)) return '';
+  const top=(m.byService||[]).filter(e=>e.booked||e.awaiting).slice(0,5);
+  const money=v=>'US$'+Math.round(v||0).toLocaleString();
   return `<div class="ups-card">
     <div class="ups-h">Upsell performance</div>
     <div class="ups-row">
-      <div class="ups-stat"><div class="ups-num">US$${(m.totalRevenue||0).toLocaleString()}</div><div class="ups-lbl">Add-on revenue</div></div>
-      <div class="ups-stat"><div class="ups-num">${m.confirmed||0}</div><div class="ups-lbl">Confirmed</div></div>
+      <div class="ups-stat"><div class="ups-num">${money(m.totalRevenue)}</div><div class="ups-lbl">Invoiced add-ons</div></div>
+      <div class="ups-stat"><div class="ups-num">${m.booked||0}</div><div class="ups-lbl">Booked</div></div>
       <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
-      ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Pending</div></div>`:''}
+      ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Requests awaiting</div></div>`:''}
     </div>
-    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">Top converting</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.confirmed}/${e.requested} booked · US$${(e.revenue||0).toLocaleString()}</span></div>`).join('')}</div>`:''}
+    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">By service</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.booked?`${e.booked} booked · ${money(e.revenue)}`:'—'}${e.awaiting?`<span style="color:#9E5B43"> · ${e.awaiting} asked</span>`:''}</span></div>`).join('')}</div>`:''}
   </div>`;
 }
 function renderToday(){
