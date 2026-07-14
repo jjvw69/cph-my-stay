@@ -126,6 +126,10 @@
   .today-2col>div{min-width:0}
   @media(max-width:1180px){ .today-2col{grid-template-columns:1fr;gap:0} }
   .today-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin-bottom:9px}
+  /* Year band inside a Today list (Arrivals not ready is split 2026 / 2027). */
+  .today-yr{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);margin:12px 0 7px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+  .today-yr:first-child{margin-top:0}
+  .today-yr span{font-size:10px;font-weight:700;background:#EDF1EE;color:var(--soft);border-radius:20px;padding:1px 7px;letter-spacing:0}
   .today-row{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;text-align:left;width:100%}
   .today-row:hover{border-color:var(--accent)}
   .tr-main{flex:1;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap}
@@ -1031,6 +1035,22 @@ function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.c
 // Tap-to-expand "not ready" row — shows the 3 pre-arrival items with done/pending state at a glance.
 let nrOpen=new Set();
 window.toggleNR=function(id){ const open=!nrOpen.has(id); if(open)nrOpen.add(id);else nrOpen.delete(id); const w=document.getElementById('nrx-'+id); const b=document.getElementById('nrb-'+id); if(w)w.classList.toggle('open',open); if(b)b.style.display=open?'block':'none'; };
+/* Arrivals not ready, split by arrival year (2026 · 2027 …) with a count per year. The year
+   headings only appear when the list actually spans more than one year — a single-year list stays
+   clean. Sorted by check-in so the soonest arrival is always at the top of its year. */
+function nrByYear(list){
+  const sorted=list.slice().sort((a,b)=>String(a.checkin||'').localeCompare(String(b.checkin||'')));
+  const years=[...new Set(sorted.map(s=>String(s.checkin||'').slice(0,4)).filter(Boolean))];
+  if(years.length<2) return sorted.map(s=>notReadyRow(s));
+  const out=[]; let last='';
+  sorted.forEach(s=>{
+    const y=String(s.checkin||'').slice(0,4);
+    if(y&&y!==last){ last=y; const n=sorted.filter(x=>String(x.checkin||'').slice(0,4)===y).length;
+      out.push(`<div class="today-yr">${y}<span>${n}</span></div>`); }
+    out.push(notReadyRow(s));
+  });
+  return out;
+}
 function notReadyRow(s){
   const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
   const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
@@ -1198,7 +1218,7 @@ function renderToday(){
           column already lists every upcoming arrival with its date, status and greeter. Their stat
           tiles remain at the top. */''}
     <div class="today-2col">
-      <div>${sec('Arrivals not ready','notReady', notReady.map(s=>notReadyRow(s)))}</div>
+      <div>${sec('Arrivals not ready','notReady', nrByYear(notReady))}</div>
       <div>
         ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
         ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
