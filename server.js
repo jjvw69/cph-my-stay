@@ -17,7 +17,7 @@ const v365 = require('./villas365'); // PMS adapter — used ONLY by /healthz + 
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const GUEST_HOURS = Number(process.env.SESSION_HOURS || 168);
-const STAFF_HOURS = Number(process.env.STAFF_SESSION_HOURS || 8);
+const STAFF_HOURS = Number(process.env.STAFF_SESSION_HOURS || 12); // idle timeout — sliding, so it only counts once the console stops being used
 const STAFF_COOKIE = 'cph_staff';
 const SECURE = process.env.NODE_ENV !== 'development';
 const LOGIN_MAX = Number(process.env.LOGIN_MAX_ATTEMPTS || 10);
