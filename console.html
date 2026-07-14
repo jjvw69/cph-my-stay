@@ -1083,6 +1083,26 @@ function revBars(rows,total,limit){
       <div class="rev-bar-sub">${r.booked} invoice${r.booked===1?'':'s'}${total?` · ${Math.round(r.revenue/total*100)}% of revenue`:''}</div>
     </div>`).join('');
 }
+/* Top-villas bars expand to the invoices behind each villa, exactly like the cash-flow months. */
+const vfOpen=new Set();
+window.toggleVf=function(k){ k=decodeURIComponent(k); vfOpen.has(k)?vfOpen.delete(k):vfOpen.add(k); const box=document.getElementById('preview'); const sc=box?box.scrollTop:0; renderRevenue().then(()=>{ const b2=document.getElementById('preview'); if(b2)b2.scrollTop=sc; }); };
+function revVillaBars(rows,total,limit){
+  if(!rows||!rows.length) return '<div class="rev-empty">Nothing yet.</div>';
+  const max=Math.max(...rows.map(r=>r.revenue),1);
+  return rows.slice(0,limit||10).map(r=>{
+    const open=vfOpen.has(r.key), has=(r.items||[]).length;
+    return `<div class="rev-bar cf-bar ${open?'open':''}" ${has?`onclick="toggleVf('${encodeURIComponent(r.key)}')" title="Tap to see the invoices"`:''}>
+      <div class="rev-bar-top"><span>${has?`<span class="ups-car ${open?'open':''}">›</span>`:''}${esc(r.key)}</span><span class="rev-bar-v">${money0(r.revenue)}${r.due?` <span class="rev-due">· ${money0(r.due)} due</span>`:''}</span></div>
+      <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(r.revenue/max)*100)}%"></div><div class="rev-fill paid" style="width:${Math.max(0,(r.paid/max)*100)}%"></div></div>
+      <div class="rev-bar-sub">${r.booked} invoice${r.booked===1?'':'s'}${total?` · ${Math.round(r.revenue/total*100)}% of revenue`:''}</div>
+      ${open&&has?`<div class="rev-od" style="margin-top:6px">${(r.items||[]).map(o=>`
+        <div class="rev-od-row" onclick="event.stopPropagation();selectStay('${o.stayId}')">
+          <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v">${o.no?' · #'+esc(o.no):''}${o.title?' · '+esc(o.title):''}</span></span>
+          <span class="rev-od-m">${money0(o.total)} <span class="ups-pill ${o.paid?'ok':'due'}">${o.paid?'paid':'due'}</span></span>
+        </div>`).join('')}</div>`:''}
+    </div>`;
+  }).join('');
+}
 /* Has the guest actually paid for this cart / transfer? Comes from the invoice's own status, so it
    can never disagree with the Unpaid-invoices list. */
 function payPill(r){
@@ -1330,7 +1350,7 @@ async function renderRevenue(){
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDayY(o.dueBy))}</span>`:'')}</span>
       </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
     ${/* "Collected by" removed — the Jan/Ivonna split isn't something you act on from this page. */''}
-    ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa')}
+    ${sec('Top villas earnings', revVillaBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa · tap a villa to see its invoices')}
   </div>`;
 }
 window.showToday=function(){

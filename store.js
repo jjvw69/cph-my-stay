@@ -826,7 +826,7 @@ function upsellMetrics() {
   // ---- owner dashboard cuts (Revenue view — Jan & Ivonna only) -------------------------------
   const _n = new Date();
   const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
-  const M = {}, SRC = {}, VIL = {}, CH = {}, PAYEE = { jan: 0, ivonna: 0 };
+  const M = {}, SRC = {}, VIL = {}, CH = {}, PAYEE = { jan: 0, ivonna: 0 }, VILITEMS = {};
   const overdue = [];
   const bump = (map, key, amt, paid) => {
     if (!key) return;
@@ -843,6 +843,9 @@ function upsellMetrics() {
       bump(M, String(s.checkin || '').slice(0, 7), amt, isPaid);
       bump(SRC, (s.source || 'Unknown').trim(), amt, isPaid);
       bump(VIL, (s.villaName || '—').trim(), amt, isPaid);
+      // Keep the invoices behind each villa so the console's Top-villas bars can expand to show them.
+      { const vk = (s.villaName || '—').trim();
+        (VILITEMS[vk] || (VILITEMS[vk] = [])).push({ stayId: s.id, guest: s.leadName || s.lastName || '(no name)', no: inv.no || '', title: inv.title || '', total: amt, paid: isPaid, dueBy: inv.dueBy || '', checkin: s.checkin || '' }); }
       // Which channel booked the SERVICE (per-line bookedVia), falling back to the stay's source.
       const via = ((inv.items || []).map(i => String(i.bookedVia || '').trim()).find(Boolean)) || (s.source || 'Unknown').trim();
       bump(CH, via, amt, isPaid);
@@ -1189,7 +1192,9 @@ function upsellMetrics() {
     attachRate: published ? Math.round(staysWithBooking / published * 100) : 0,
     avgPerBooking: booked ? totalRevenue / booked : 0,
     avgPerStay: staysWithBooking ? totalRevenue / staysWithBooking : 0,
-    byService, byMonth, bySource: sortRev(SRC), byVilla: sortRev(VIL).slice(0, 10), byChannel: sortRev(CH),
+    byService, byMonth, bySource: sortRev(SRC),
+    byVilla: sortRev(VIL).slice(0, 10).map(v => ({ ...v, items: (VILITEMS[v.key] || []).sort((a, b) => (a.paid === b.paid) ? (b.total - a.total) : (a.paid ? 1 : -1)) })),
+    byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
     cartEarnings, carEarnings, transferEarnings, yachtEarnings, invillaEarnings, totalEarnings, cashFlow,
     groceryMovements,
