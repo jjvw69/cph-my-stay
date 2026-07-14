@@ -203,8 +203,10 @@
   .lfilter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
   .lchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 11px;color:var(--soft);cursor:pointer}
   .lchip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  /* Year jump chips — scroll the list to the first booking of that year (no filtering). */
-  .yrnav{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 11px}
+  /* Year jump chips — sit on the SAME row as Current/Archive, after a hairline divider.
+     They scroll the list to the first booking of that year (they never filter). */
+  .yrnav{display:inline-flex;gap:6px;align-items:center}
+  .yrnav:not(:empty){margin-left:3px;padding-left:9px;border-left:1px solid var(--line)}
   .yrchip{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#F6F5F1;border-radius:20px;padding:4px 10px;color:var(--soft);cursor:pointer}
   .yrchip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
   .yrsep{position:sticky;top:0;z-index:2;background:var(--bg,#fff);font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);padding:7px 2px 5px;border-bottom:1px solid var(--line);margin:6px 0 8px}
@@ -522,8 +524,8 @@
       <div class="lfilter">
         <button class="lchip on" data-f="current" onclick="setFilter('current')">Current</button>
         <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
+        <span class="yrnav" id="yearNav"></span>
       </div>
-      <div class="yrnav" id="yearNav"></div>
       <div id="stayList"></div>
     </div>
     <div class="col center" id="editor"><div class="empty">Select a stay on the left, or create a new one.</div></div>
