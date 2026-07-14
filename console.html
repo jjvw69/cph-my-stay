@@ -53,8 +53,10 @@
   .cols{flex:1;display:grid;grid-template-columns:372px 1fr 372px;overflow:hidden}
   .cols.board-mode{grid-template-columns:1fr}
   .cols.board-mode .col.left,.cols.board-mode .col.right{display:none}
-  /* Revenue view: the Upcoming-arrivals rail is irrelevant to money — give the dashboard the width. */
-  .cols.rev-mode .col.right{display:none}
+  /* Revenue view keeps the right rail — but it carries MONEY, not arrivals: who to chase, who
+     collected what, where the revenue comes from. */
+  .rev-rail h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:0 0 8px}
+  .rev-rail .rev-sec{margin-top:0;margin-bottom:14px}
   .rev-sec{margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px}
   .rev-sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:0 0 10px;display:flex;align-items:baseline;gap:9px}
   .rev-sub{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:#9AA49B}
@@ -76,6 +78,7 @@
   .rev-od-v{color:var(--soft);font-weight:400}
   .rev-od-m{white-space:nowrap;color:var(--soft)}
   .rev-od-d{display:inline-block;font-size:10px;font-weight:800;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:1px 7px;margin-left:4px}
+  .rev-od-due{display:inline-block;font-size:10px;font-weight:700;background:#F0F3F1;color:#7B857E;border-radius:20px;padding:1px 7px;margin-left:4px}
   .rev-payee{display:flex;gap:22px}
   .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
   .rev-payee span{display:block;font-size:11.5px;color:var(--soft)}
@@ -998,16 +1001,25 @@ async function renderRevenue(){
     </div>
 
     ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
-    ${od.length?sec('Overdue — chase these',`<div class="rev-od">${od.slice(0,10).map(o=>`
-      <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
-        <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
-        <span class="rev-od-m">${o.no?'#'+esc(o.no)+' · ':''}${money0(o.total)} <span class="rev-od-d">${o.daysOverdue}d overdue</span></span>
-      </div>`).join('')}</div>`, money0(m.overdueTotal)+' past its due date'):''}
     ${sec('By service', upsellServices(), 'tap a row for the bookings behind it')}
     ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}
-    ${sec('By booking channel', revBars(m.byChannel||[],m.totalRevenue), 'who booked the SERVICE itself (Booked via)')}
+    ${sec('By booking channel', revBars(m.byChannel||[],m.totalRevenue), 'who booked the SERVICE itself (Booked via)')}`;
+
+  /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
+  const rail=document.getElementById('preview'); if(!rail) return;
+  const owing=(m.overdue||[]).slice(0,12); // every unpaid invoice, worst first
+  rail.innerHTML=`<div class="rev-rail">
+    ${sec('To collect', `<div class="rev-payee" style="display:block">
+        <div style="background:#FBF0EF;border-color:#E7C3C0"><span>Outstanding</span><b style="color:#9A2B2B">${money0(m.dueRevenue)}</b></div>
+      </div>`, od.length?money0(m.overdueTotal)+' overdue':'none overdue')}
+    ${owing.length?sec('Unpaid invoices',`<div class="rev-od">${owing.map(o=>`
+      <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
+        <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
+        <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDay(o.dueBy))}</span>`:'')}</span>
+      </div>`).join('')}</div>`,'worst first · tap to open'):''}
+    ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'account on the invoice')}
     ${sec('Top villas', revBars(m.byVilla||[],m.totalRevenue))}
-    ${sec('Collected by', `<div class="rev-payee"><div><span>Jan</span><b>${money0((m.byPayee||{}).jan)}</b></div><div><span>Ivonna</span><b>${money0((m.byPayee||{}).ivonna)}</b></div></div>`, 'the Zelle / bank account on the invoice')}`;
+  </div>`;
 }
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
