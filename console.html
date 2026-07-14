@@ -1298,7 +1298,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
             <span class="rev-od-m">${money0(r.charged)} ${payPill(r)}${pend?'':` <span class="rev-cm">+${money0(r.margin)}</span>`}</span>
           </div>`).join('')):''}`,
-        pend?'chef · massage · nannies · staff · entertainment — profit margin to be determined':'chef · massage · nannies · staff · entertainment');
+        pend?'chef · massage · nannies · staff · cake · bike rentals · entertainment — profit margin to be determined':'chef · massage · nannies · staff · cake · bike rentals · entertainment');
     })();
 
     /* Groceries — a pass-through, NOT revenue. Shown in the left column below cash flow purely so the
