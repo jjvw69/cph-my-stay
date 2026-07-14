@@ -586,7 +586,27 @@ function isUnread(s){ const seen=getSeen()[s.id]; return (s.requests||0)>(seen?s
 function unreadMsgs(s){ return 0; }  /* in-app chat retired 2026-07 — messaging moved to WhatsApp */
 function tlMarkViewed(d){ if(!d||!d.open||!cur)return; const m=getSeen(); m[cur.id]=Object.assign(m[cur.id]||{},{tl:tlEventCount(cur)}); setSeen(m); const b=d.querySelector('.reqcount'); if(b)b.style.display='none'; }
 function tlEventCount(s){ let n=0; (s.requests||[]).forEach(r=>{ if(r.createdAt)n++; if(r.status==='confirmed')n++; if(r.status==='done')n++; if(r.status==='cancelled')n++; }); n+=(s.messages||[]).length; return n; }
-async function api(path,opts={}){ const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts)); let j={}; try{j=await r.json();}catch(e){} return {status:r.status,ok:r.ok&&j.ok!==false,body:j}; }
+/* Every staff call goes through api(). A 401 means the session died — the server now slides the
+   cookie on every request, so this should be rare, but if it ever happens we must NOT fail silently:
+   the console would keep rendering while every click quietly did nothing (looked "frozen"; only a
+   re-sign-in fixed it). So a 401 kicks straight back to the sign-in gate with an explanation. */
+let _sessionDead=false;
+function sessionExpired(){
+  if(_sessionDead)return; _sessionDead=true;
+  try{ if(_ES)_ES.close(); }catch(e){}
+  const g=document.getElementById('gate'), a=document.getElementById('app');
+  if(a)a.style.display='none';
+  if(g){ g.style.display='flex';
+    const err=document.getElementById('gErr');
+    if(err){ err.textContent='Your session expired. Please sign in again.'; err.style.display='block'; }
+  }
+}
+async function api(path,opts={}){
+  const r=await fetch(path,Object.assign({headers:{'Content-Type':'application/json'},credentials:'same-origin'},opts));
+  let j={}; try{j=await r.json();}catch(e){}
+  if(r.status===401&&path.indexOf('/api/staff/')===0&&path.indexOf('/login')<0&&path.indexOf('/me')<0) sessionExpired();
+  return {status:r.status,ok:r.ok&&j.ok!==false,body:j};
+}
 function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2400); }
 
 /* ---- auth ---- */
@@ -597,7 +617,7 @@ async function signin(){
   const email=document.getElementById('gEmail').value.trim(), password=document.getElementById('gPass').value;
   const err=document.getElementById('gErr'); err.style.display='none';
   const r=await api('/api/staff/login',{method:'POST',body:JSON.stringify({email,password})});
-  if(r.ok){ enter(r.body.staff); } else { err.textContent=r.body.error||'Sign-in failed.'; err.style.display='block'; }
+  if(r.ok){ _sessionDead=false; enter(r.body.staff); } else { err.textContent=r.body.error||'Sign-in failed.'; err.style.display='block'; }
 }
 /* Fill the shared "Booked via" datalist from store.js — never hard-code channels here. */
 function fillBookChan(){ const d=document.getElementById('bookchan'); if(!d)return; d.innerHTML=((BOOT&&BOOT.serviceBookedVia)||[]).map(v=>`<option value="${esc(v)}"></option>`).join(''); }

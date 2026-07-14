@@ -389,7 +389,17 @@ async function staffLogin(req,res){
   setCookie(res,STAFF_COOKIE,sign({t:'s',sid:st.id,email:st.email,role:st.role},STAFF_HOURS),STAFF_HOURS); attempts.delete('s:'+ip(req));
   return sendJSON(res,200,{ok:true,staff:store.staffPublic(st)});
 }
-function requireStaff(req,res){ const s=staffSession(req); if(!s){ sendJSON(res,401,{ok:false,error:'Not signed in.'}); return null; } return s; }
+/* Staff auth guard with a SLIDING session. The cookie used to be a hard 8h from login: after 8h
+   the console kept rendering (it had already loaded) but every API call 401'd, so it looked frozen
+   — nothing clickable worked and only a re-sign-in fixed it. Now every authenticated staff request
+   re-issues the cookie, so a console in active use never expires; the 8h idle timeout only starts
+   counting once you stop using it. The client also hard-fails to the sign-in gate on any 401. */
+function requireStaff(req,res){
+  const s=staffSession(req);
+  if(!s){ sendJSON(res,401,{ok:false,error:'Session expired. Please sign in again.'}); return null; }
+  setCookie(res,STAFF_COOKIE,sign({t:'s',sid:s.sid,email:s.email,role:s.role},STAFF_HOURS),STAFF_HOURS);
+  return s;
+}
 
 // Run scheduled guest-message automations, throttled to once every 15 min (covers Render spin-downs:
 // fires whenever any request comes in). Also posts the message in-app and emails/WhatsApps the guest if configured.
