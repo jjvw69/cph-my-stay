@@ -751,7 +751,14 @@ function renderYearNav(years){
   const n=document.getElementById('yearNav'); if(!n)return;
   n.innerHTML=(years.length>1)?years.map(y=>`<button class="yrchip" onclick="jumpYear('${y}')">${y}</button>`).join(''):'';
 }
-window.jumpYear=function(y){ const t=document.getElementById('yr-'+y); if(t)t.scrollIntoView({behavior:'smooth',block:'start'}); };
+/* The stay list lives in a nested scroller (.col.left) — scrollIntoView() does NOT reliably move
+   it, so scroll the container itself by the divider's offset. Instant, not smooth: a smooth
+   animation can be wiped by the 18s list re-render mid-scroll. */
+window.jumpYear=function(y){
+  const box=document.querySelector('.col.left'), t=document.getElementById('yr-'+y);
+  if(!box||!t)return;
+  box.scrollTop = box.scrollTop + t.getBoundingClientRect().top - box.getBoundingClientRect().top - 6;
+};
 function renderList(){
   const q=document.getElementById('search').value.toLowerCase();
   // Two folders only: Current = every ACTIVE booking (upcoming + in-house, whatever its status —
