@@ -53,6 +53,9 @@
   .cols{flex:1;display:grid;grid-template-columns:372px 1fr 372px;overflow:hidden}
   .cols.board-mode{grid-template-columns:1fr}
   .cols.board-mode .col.left,.cols.board-mode .col.right{display:none}
+  /* Revenue is a full-width money view: the booking list on the left is irrelevant here (nav lives
+     in the buttons at the top of the page), but the right rail stays — it carries the money. */
+  .cols.rev-mode .col.left{display:none}
   /* Revenue view keeps the right rail — but it carries MONEY, not arrivals: who to chase, who
      collected what, where the revenue comes from. */
   .rev-rail h3{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:0 0 8px}
@@ -65,6 +68,9 @@
   .rev-key{display:flex;gap:16px;font-size:11.5px;color:var(--soft);margin-top:6px}
   .rev-key i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
   .rev-bar{margin-bottom:11px}
+  .cf-bar{cursor:pointer;border-radius:9px;padding:6px 8px;margin:0 -8px 6px}
+  .cf-bar:hover{background:#FBF8F1}
+  .cf-bar.open{background:#FBF8F1}
   .rev-bar-top{display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;color:var(--ink)}
   .rev-bar-v{white-space:nowrap;font-weight:700}
   .rev-due{color:#9A2B2B;font-weight:700}
@@ -151,10 +157,11 @@
   /* Money never wraps and never touches the edge — it shrinks to fit the card instead. */
   .stat .num.money{font-size:clamp(16px,1.55vw,22px);letter-spacing:-.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* The Revenue view's headline row is the whole point of the page — give it presence. */
-  .rev-kpi{gap:12px;margin-bottom:14px}
-  .rev-kpi .stat{padding:17px 18px;border-width:1.5px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
-  .rev-kpi .stat .num{font-size:34px}
-  .rev-kpi .stat .num.money{font-size:clamp(20px,2.05vw,30px);letter-spacing:-1px}
+  /* Wider tracks so the big numbers actually fit — they were being clipped to "US$58,0…". */
+  .rev-kpi{grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:14px}
+  .rev-kpi .stat{padding:16px 16px;border-width:1.5px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
+  .rev-kpi .stat .num{font-size:32px}
+  .rev-kpi .stat .num.money{font-size:clamp(19px,1.75vw,27px);letter-spacing:-.9px;overflow:visible}
   .rev-kpi .stat .lbl{font-size:12.5px;font-weight:600;margin-top:7px}
   .stat.paid{background:#F2F8F4;border-color:#CBE3D5}
   .stat.paid .num{color:#12794D}
@@ -928,7 +935,7 @@ function renderList(){
   renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols)_cols.classList.remove('board-mode'); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
+window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols){_cols.classList.remove('board-mode'); _cols.classList.remove('rev-mode');} setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); refreshHomeBtns(); botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); renderList(); renderEditor(); renderPreview(); setView(true); } };
@@ -979,6 +986,10 @@ window.showRevenue=function(){
    bookkeeping. Charts are hand-rolled inline SVG on purpose: no CDN, no library, nothing to break. */
 const money0=v=>'US$'+Math.round(v||0).toLocaleString();
 const monthLbl=ym=>{ const [y,mo]=String(ym||'').split('-'); const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(Number(mo)||1)-1]; return n+' '+String(y||'').slice(2); };
+/* Full year — "Jul 2026", not "Jul 26" (which reads like a day). Used wherever a date is a
+   commitment: due dates, cash-flow months. */
+const monthLblY=ym=>{ const [y,mo]=String(ym||'').split('-'); const n=['January','February','March','April','May','June','July','August','September','October','November','December'][(Number(mo)||1)-1]; return n+' '+(y||''); };
+const fmtDayY=d=>{ const s=String(d||''); if(!s) return ''; const [y,m,dd]=s.split('-'); const n=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][(Number(m)||1)-1]; return `${n} ${Number(dd)||''}, ${y}`; };
 /* Grouped monthly bars: paid (solid green) stacked under still-due (red) = invoiced total. */
 /* Always a continuous 12-month run — empty months are drawn as gaps, not skipped, otherwise the
    chart lies about the shape of the year (Aug/Sep/Oct simply vanished). Starts at the current month
@@ -1066,6 +1077,9 @@ function payPill(r){
   if(r.partly) return `<span class="ups-pill part">part paid</span>`;
   return '<span class="ups-pill due">unpaid</span>';
 }
+/* Cash-flow months expand to the invoices behind them. */
+const cfOpen=new Set();
+window.toggleCf=function(k){ cfOpen.has(k)?cfOpen.delete(k):cfOpen.add(k); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
 /* Both earnings lists start COLLAPSED — the headline numbers and the donut are the point; the
    booking-by-booking detail is there when you want it (tap "show"). */
 const earnOpen={cart:false,xfer:false};
@@ -1085,7 +1099,13 @@ async function renderRevenue(){
   const od=(m.overdue||[]).filter(o=>o.daysOverdue>0);
   const sec=(t,body,sub)=>`<div class="rev-sec"><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   el.innerHTML=`
-    <button class="backlist" onclick="backToList()">← All stays</button>
+    ${/* Same nav pattern as the Arrivals board: the left booking list is hidden in this view, so the
+          way back to Today / Arrivals / the stay list lives in buttons at the top. */''}
+    <div class="ab-btns">
+      <button class="todaybtn ab-today" onclick="showToday()">▦ Today</button>
+      <button class="ab-actbtn ab-today" onclick="showArrivals()">▤ Arrivals</button>
+      <button class="ab-actbtn ab-today" onclick="backToList()">☰ All stays</button>
+    </div>
     <div class="today-head">Revenue &amp; upsell</div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
 
@@ -1129,14 +1149,19 @@ async function renderRevenue(){
       const max=Math.max(...cf.map(c=>c.total),1);
       return sec('Cash flow · what’s still to collect',`
         ${cf.map(c=>{
-          const lbl=c.key==='nodate'?'No due date':monthLbl(c.key);
-          const late=c.overdue>0;
-          return `<div class="rev-bar">
-            <div class="rev-bar-top"><span>${lbl}${late?' <span class="rev-od-d">overdue</span>':''}</span><span class="rev-bar-v" style="color:${late?'#9A2B2B':'var(--ink)'}">${money0(c.total)}</span></div>
+          const lbl=c.key==='nodate'?'No due date':monthLblY(c.key);
+          const late=c.overdue>0, open=cfOpen.has(c.key);
+          return `<div class="rev-bar cf-bar ${open?'open':''}" onclick="toggleCf('${c.key}')" title="Tap to see the invoices">
+            <div class="rev-bar-top"><span><span class="ups-car ${open?'open':''}">›</span>${lbl}${late?' <span class="rev-od-d">overdue</span>':''}</span><span class="rev-bar-v" style="color:${late?'#9A2B2B':'var(--ink)'}">${money0(c.total)}</span></div>
             <div class="rev-track"><div class="rev-fill" style="width:${Math.max(2,(c.total/max)*100)}%;background:${late?'#9A2B2B':'#C8A038'}"></div></div>
             <div class="rev-bar-sub">${c.count} invoice${c.count===1?'':'s'}</div>
+            ${open?`<div class="rev-od" style="margin-top:6px">${(c.items||[]).map(o=>`
+              <div class="rev-od-row" onclick="event.stopPropagation();selectStay('${o.stayId}')">
+                <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}${o.no?' · #'+esc(o.no):''}${o.title?' · '+esc(o.title):''}</span></span>
+                <span class="rev-od-m">${money0(o.total)} ${o.daysOverdue>0?`<span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?`<span class="rev-od-due">due ${esc(fmtDayY(o.dueBy))}</span>`:'')}</span>
+              </div>`).join('')}</div>`:''}
           </div>`;}).join('')}`,
-        'by the due date on each unpaid invoice');
+        'by the due date on each unpaid invoice · tap a month to see them');
     })()}
 
     ${(function(){
@@ -1191,7 +1216,7 @@ async function renderRevenue(){
     ${owing.length?sec('Unpaid invoices',`<div class="rev-od">${owing.map(o=>`
       <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
         <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
-        <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDay(o.dueBy))}</span>`:'')}</span>
+        <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDayY(o.dueBy))}</span>`:'')}</span>
       </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
     ${/* "Collected by" removed — the Jan/Ivonna split isn't something you act on from this page. */''}
     ${sec('Top villas earnings', revBars(m.byVilla||[],m.totalRevenue), 'invoiced add-ons per villa')}
