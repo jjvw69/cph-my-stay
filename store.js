@@ -1076,7 +1076,7 @@ function upsellMetrics() {
   // (If the number is ever unset again — INVILLA_MARGIN_PCT=null — the section reports charged only
   // and marks profit PENDING, and nothing flows into the CPH-earnings roll-up.)
   const INVILLA_MARGIN_PCT = 0.18; // 18% of what the guest is charged
-  const RE_INVILLA_LINE = /chef|arrival meal|meal plan|\bcake\b|massage|\bspa\b|nann|babysit|butler|waiter|housekeep|additional staff|entertainment|musician|\bdj\b/i;
+  const RE_INVILLA_LINE = /chef|arrival meal|meal plan|\bcake\b|\bbike\b|bicycle|massage|\bspa\b|nann|babysit|butler|waiter|housekeep|additional staff|entertainment|musician|\bdj\b/i;
   const invillaRows = [];
   stays.forEach(s => {
     let charged = 0, count = 0, sup = '', via = '', paidAmt = 0, dueAmt = 0;
