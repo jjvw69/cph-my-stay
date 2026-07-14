@@ -155,6 +155,17 @@
   .stat.owed{background:#FBF0EF;border-color:#E7C3C0}
   .stat.owed .num{color:#9A2B2B}
   .rev-cm{display:inline-block;font-size:10.5px;font-weight:800;background:#DCEDE2;color:#12794D;border-radius:20px;padding:1px 7px;margin-left:4px}
+  /* Earnings-by-source donut + legend. */
+  .rev-donut{display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .rev-donut svg{flex:0 0 auto}
+  .rev-legend{flex:1;min-width:220px}
+  .rev-leg-row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:5px 0;border-bottom:1px solid #F0F3F1}
+  .rev-leg-row:last-child{border-bottom:0}
+  .rev-leg-n{font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:7px;min-width:0}
+  .rev-leg-n i{flex:0 0 auto;width:10px;height:10px;border-radius:3px}
+  .rev-leg-v{font-size:13px;font-weight:700;color:#12794D;white-space:nowrap}
+  .rev-leg-v b{font-weight:800;color:var(--soft);font-size:11px;margin-left:3px}
+  .rev-leg-s{grid-column:1/-1;font-size:11px;color:var(--soft);padding-left:17px}
   .stat.clk{cursor:pointer;transition:border-color .12s,transform .08s}
   .stat.clk:hover{border-color:var(--accent)}
   .stat.clk:active{transform:scale(.985)}
@@ -976,16 +987,34 @@ function revMonthChart(rows){
     <div class="rev-key"><span><i style="background:#12794D"></i>Paid</span><span><i style="background:#E7C3C0"></i>Still to collect</span></div>`;
 }
 /* Horizontal ranked bars — used for booking source, channel and villa. */
-/* Who brings the earnings in — one row per booking source, ranked by CPH margin. */
+/* Who brings the earnings in — a donut of CPH margin by booking source, with a legend beside it.
+   A ranked bar list buried the point; a donut shows share at a glance. Inline SVG, no library. */
+const SRC_COLORS=['#12794D','#5A3A88','#C8A038','#9E5B43','#4A90A4','#7FA650','#A34D7C','#7B857E'];
 function earnBySource(rows,unitLbl){
   if(!rows||!rows.length) return '';
-  const max=Math.max(...rows.map(r=>r.margin),1);
-  return `<div class="rev-src"><div class="rev-sub" style="margin-bottom:6px">Which source brings it in</div>
-    ${rows.map(r=>`<div class="rev-bar">
-      <div class="rev-bar-top"><span>${esc(r.key)}</span><span class="rev-bar-v" style="color:#12794D">${money0(r.margin)}</span></div>
-      <div class="rev-track"><div class="rev-fill paid" style="width:${Math.max(2,(r.margin/max)*100)}%"></div></div>
-      <div class="rev-bar-sub">${r.bookings} booking${r.bookings===1?'':'s'} · ${money0(r.charged)} charged${unitLbl?` · ${r[unitLbl.key]} ${unitLbl.label}`:''}</div>
-    </div>`).join('')}</div>`;
+  const total=rows.reduce((a,r)=>a+r.margin,0)||1;
+  const R=54, SW=26, C=2*Math.PI*R;
+  let off=0;
+  const arcs=rows.map((r,i)=>{
+    const frac=r.margin/total, len=C*frac;
+    const seg=`<circle r="${R}" cx="70" cy="70" fill="transparent" stroke="${SRC_COLORS[i%SRC_COLORS.length]}" stroke-width="${SW}"
+      stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"><title>${esc(r.key)} — ${money0(r.margin)} (${Math.round(frac*100)}%)</title></circle>`;
+    off+=len; return seg;
+  }).join('');
+  return `<div class="rev-donut">
+    <svg viewBox="0 0 140 140" width="140" height="140" role="img">${arcs}
+      <text x="70" y="66" text-anchor="middle" font-size="15" font-weight="800" fill="#12794D">${money0(total)}</text>
+      <text x="70" y="82" text-anchor="middle" font-size="8.5" fill="#7B857E">CPH earnings</text>
+    </svg>
+    <div class="rev-legend">
+      <div class="rev-sub" style="margin-bottom:7px">Which source brings it in</div>
+      ${rows.map((r,i)=>`<div class="rev-leg-row">
+        <span class="rev-leg-n"><i style="background:${SRC_COLORS[i%SRC_COLORS.length]}"></i>${esc(r.key)}</span>
+        <span class="rev-leg-v">${money0(r.margin)} <b>${Math.round(r.margin/total*100)}%</b></span>
+        <span class="rev-leg-s">${r.bookings} booking${r.bookings===1?'':'s'} · ${money0(r.charged)} charged${unitLbl?` · ${r[unitLbl.key]} ${unitLbl.label}`:''}</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
 }
 function revBars(rows,total){
   if(!rows.length) return '<div class="rev-empty">Nothing yet.</div>';
@@ -1016,6 +1045,9 @@ async function renderRevenue(){
       <div class="stat"><div class="num">${m.booked||0}</div><div class="lbl">Invoices</div></div>
       <div class="stat" title="Share of published bookings that bought at least one add-on — ${m.staysWithBooking||0} of ${m.published||0} stays"><div class="num">${m.attachRate||0}%</div><div class="lbl">Bookings with add-ons</div></div>
     </div>
+
+    ${/* The trend sits straight under the headline numbers — it's the shape of the same money. */''}
+    ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
 
     ${(function(){
       const ce=m.cartEarnings; if(!ce||!ce.all.cartNights) return '';
@@ -1055,7 +1087,6 @@ async function renderRevenue(){
         `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
     })()}
 
-    ${sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned')}
     ${/* "By service" removed 2026-07-14 — the earnings tables above already say what each service
           actually makes; a second revenue-by-service list was just restating it. */''}
     ${sec('By booking source', revBars(m.bySource||[],m.totalRevenue), 'which agency the STAY came from')}
