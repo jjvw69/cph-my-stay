@@ -1039,11 +1039,12 @@ function payPill(r){
   if(r.partly) return `<span class="ups-pill part">part paid</span>`;
   return '<span class="ups-pill due">unpaid</span>';
 }
-/* Both earnings lists collapse — open by default, tap the header to fold them away. */
-const earnOpen={cart:true,xfer:true};
+/* Both earnings lists start COLLAPSED — the headline numbers and the donut are the point; the
+   booking-by-booking detail is there when you want it (tap "show"). */
+const earnOpen={cart:false,xfer:false};
 window.toggleEarn=function(k){ earnOpen[k]=!earnOpen[k]; const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
 function earnList(key,summaryHtml,rowsHtml){
-  const open=earnOpen[key]!==false;
+  const open=!!earnOpen[key];
   return `<div class="rev-od" style="margin-top:10px">
     <button class="rev-fold" onclick="toggleEarn('${key}')"><span class="ups-car ${open?'open':''}">›</span><span class="rev-sub">${summaryHtml}</span><span class="rev-fold-x">${open?'hide':'show'}</span></button>
     <div style="display:${open?'block':'none'}">${rowsHtml}</div>
