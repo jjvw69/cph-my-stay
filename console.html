@@ -1197,6 +1197,9 @@ function renderToday(){
     <button class="backlist" onclick="backToList()">← All stays</button>
     <div class="today-head">Today’s overview</div>
     <div class="today-date">${dstr}</div>
+    ${/* Follow-ups due sits ABOVE the stat cards — it's a dated commitment to a guest, so it gets
+          top billing over the passive counts (in-house / arriving today). */''}
+    ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
     <div class="today-stats">
       ${/* No key → not clickable: their sections were removed (they live in the right column now). */''}
       ${stat(inhouse.length,'In-house now','')}
@@ -1219,10 +1222,7 @@ function renderToday(){
           tiles remain at the top. */''}
     <div class="today-2col">
       <div>${sec('Arrivals not ready','notReady', nrByYear(notReady))}</div>
-      <div>
-        ${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}
-        ${sec('Follow-ups due','fudue', fudue.map(s=>{const over=s.followUpDate<today;return todayRow(s,`<span class="tr-tag ${over?'red':'amber'}">${over?'overdue':'today'}</span>`,esc(s.followUpNote||'Follow up')+' · '+fmtDay(s.followUpDate));}))}
-      </div>
+      <div>${sec('Unpaid invoices','unpaid', unpaid.map(s=>unpaidRow(s)))}</div>
     </div>
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
