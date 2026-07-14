@@ -778,7 +778,7 @@ function upsellMetrics() {
   const svc = {};
   const bucket = (id, title) => {
     const key = id || 'other';
-    return svc[key] || (svc[key] = { id: key, title: (id && serviceNameFor(id)) || title || 'Other', booked: 0, revenue: 0, requested: 0, awaiting: 0 });
+    return svc[key] || (svc[key] = { id: key, title: (id && serviceNameFor(id)) || title || 'Other', booked: 0, revenue: 0, paid: 0, due: 0, requested: 0, awaiting: 0, items: [] });
   };
   stays.forEach(s => {
     if (s.status === 'published') published++;
@@ -787,11 +787,19 @@ function upsellMetrics() {
     (s.invoices || []).forEach(inv => {
       if (inv.status === 'draft') return;
       const amt = invoiceTotal(inv);
+      const isPaid = inv.status === 'paid';
       const id = serviceKeyFor(inv.title) || serviceKeyFor(((inv.items || [])[0] || {}).label);
       const e = bucket(id, inv.title);
       e.booked++; e.revenue += amt;
+      if (isPaid) e.paid += amt; else e.due += amt;
+      // Per-invoice detail for the collapsible breakdown in the console panel.
+      e.items.push({
+        stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+        no: inv.no || '', title: inv.title || '', total: amt, paid: isPaid,
+        checkin: s.checkin || '', dueBy: inv.dueBy || '',
+      });
       booked++; stayBooked++; totalRevenue += amt;
-      if (inv.status === 'paid') paidRevenue += amt;
+      if (isPaid) paidRevenue += amt;
     });
     // DEMAND — guest requests. Counted, never turned into revenue.
     (s.requests || []).forEach(r => {
@@ -805,8 +813,9 @@ function upsellMetrics() {
     if (stayBooked > 0) staysWithBooking++;
   });
   const byService = Object.values(svc).sort((a, b) => (b.revenue - a.revenue) || (b.booked - a.booked) || (b.requested - a.requested));
+  byService.forEach(e => e.items.sort((a, b) => (a.paid === b.paid) ? (b.total - a.total) : (a.paid ? 1 : -1))); // unpaid first, then biggest
   return {
-    totalRevenue, paidRevenue, booked, pending, totalReq, published,
+    totalRevenue, paidRevenue, dueRevenue: totalRevenue - paidRevenue, booked, pending, totalReq, published,
     staysWithBooking, staysWithConfirmed: staysWithBooking, // legacy key
     attachRate: published ? Math.round(staysWithBooking / published * 100) : 0,
     byService,

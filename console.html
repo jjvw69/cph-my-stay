@@ -389,6 +389,20 @@
   .ups-svc{margin-top:13px;border-top:1px solid var(--line);padding-top:10px}
   .ups-svc-h{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin-bottom:6px}
   .ups-svc-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+  .ups-svc-row.clk{cursor:pointer;border-radius:7px;padding:4px 6px;margin:0 -6px}
+  .ups-svc-row.clk:hover{background:#F3F6F3}
+  .ups-car{display:inline-block;width:12px;color:var(--soft);transition:transform .12s;transform:rotate(0)}
+  .ups-car.open{transform:rotate(90deg)}
+  /* Collapsible per-service breakdown — the individual invoices behind the number. */
+  .ups-det{margin:2px 0 8px 18px;border-left:2px solid var(--line);padding-left:10px}
+  .ups-det-sum{font-size:11.5px;font-weight:700;color:#12794D;padding:3px 0 5px}
+  .ups-det-row{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:3px 0;cursor:pointer;border-radius:6px}
+  .ups-det-row:hover{background:#F3F6F3}
+  .ups-det-g{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ups-det-m{white-space:nowrap;color:var(--soft)}
+  .ups-pill{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:3px;text-transform:uppercase;letter-spacing:.04em}
+  .ups-pill.ok{background:#DCEDE2;color:#12794D}
+  .ups-pill.due{background:#F3DADA;color:#9A2B2B}
   .ups-svc-name{color:var(--ink)}
   .ups-svc-meta{color:var(--soft);white-space:nowrap}
   .apv-sub{font-size:12.5px;color:var(--soft);margin-top:3px}
@@ -816,12 +830,32 @@ window.selectStay=async function(id){
 
 /* ---- Today overview (cross-stay operations view) ---- */
 function addDays(iso,n){ const d=new Date(iso+'T00:00:00'); if(isNaN(d))return ''; d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function todayAlertCount(){ const today=todayStr(); return (LIST||[]).reduce((a,s)=>a+(s.pending||0)+unreadMsgs(s)+((s.followUpDate&&s.followUpDate<=today)?1:0),0); }
+/* What "needs action" actually is: guest requests awaiting confirmation + follow-ups due today or
+   overdue. The top badge used to just say "2 need action" with no clue what the 2 were — it now
+   names them and clicking it jumps straight to that list. */
+function todayAlertBreakdown(){
+  const today=todayStr(); const L=LIST||[];
+  const req=L.reduce((a,s)=>a+(s.pending||0),0);
+  const fu=L.filter(s=>s.followUpDate&&s.followUpDate<=today).length;
+  return { req, fu, total:req+fu };
+}
+function todayAlertCount(){ return todayAlertBreakdown().total; }
 function refreshTodayBtn(){
-  const n=todayAlertCount(); const unread=(LIST||[]).reduce((a,s)=>a+unreadMsgs(s),0);
+  const br=todayAlertBreakdown(); const n=br.total;
+  const unread=(LIST||[]).reduce((a,s)=>a+unreadMsgs(s),0);
   const b=document.getElementById('todayBtn'); if(b){ b.classList.toggle('alert',n>0); b.innerHTML='▦ Today'+(n?` <span class="hb-badge">${n}</span>`:''); }
   const ib=document.getElementById('inboxBtn'); if(ib){ ib.innerHTML='✉ Inbox'+(unread?` <span class="hb-badge">${unread}</span>`:''); }
-  const tp=document.getElementById('topPending'); if(tp){ tp.classList.toggle('show',n>0); tp.textContent=n?(n+' need action'):''; }
+  const tp=document.getElementById('topPending');
+  if(tp){
+    const parts=[];
+    if(br.req) parts.push(br.req+' request'+(br.req===1?'':'s')+' to confirm');
+    if(br.fu)  parts.push(br.fu+' follow-up'+(br.fu===1?'':'s')+' due');
+    tp.classList.toggle('show',n>0);
+    tp.textContent=parts.join(' · ');
+    tp.title=n?'Open the list':'';
+    tp.style.cursor=n?'pointer':'';
+    tp.onclick=n?(()=>{ showToday(); setTimeout(()=>goTile(br.req?'pending':'fudue'),60); }):null;
+  }
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
@@ -1068,19 +1102,41 @@ window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) ret
 /* Upsell panel — reads store.upsellMetrics(), which is now INVOICE-based (real money), not
    "requests someone remembered to click Confirm on". Revenue = issued invoices; a service is
    "booked" when it's invoiced. Requests only ever show as demand ("· N asked"). */
+/* Upsell panel — reads store.upsellMetrics(), which is INVOICE-based (real money), not "requests
+   someone remembered to click Confirm on". Revenue = issued invoices; a service is "booked" when
+   it's invoiced. Requests only show as demand ("· N asked"). Each service row taps open to list its
+   individual invoices (guest · villa · #no · amount · paid/due). */
+const upsOpen=new Set();
+window.toggleUps=function(id){ upsOpen.has(id)?upsOpen.delete(id):upsOpen.add(id); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; };
 function upsellCard(){
   const m=METRICS; if(!m || (!m.booked && !m.pending)) return '';
-  const top=(m.byService||[]).filter(e=>e.booked||e.awaiting).slice(0,5);
+  const top=(m.byService||[]).filter(e=>e.booked||e.awaiting).slice(0,8);
   const money=v=>'US$'+Math.round(v||0).toLocaleString();
+  const detail=e=>{
+    if(!upsOpen.has(e.id)||!(e.items||[]).length) return '';
+    return `<div class="ups-det">
+      <div class="ups-det-sum">${money(e.paid)} paid${e.due?` · <span style="color:#9A2B2B;font-weight:700">${money(e.due)} still due</span>`:''}</div>
+      ${e.items.map(it=>`<div class="ups-det-row" onclick="event.stopPropagation();selectStay('${it.stayId}')" title="Open this booking">
+        <span class="ups-det-g">${esc(it.guest)}${it.villa?` <span style="color:var(--soft)">· ${esc(it.villa)}</span>`:''}</span>
+        <span class="ups-det-m">${it.no?`#${esc(it.no)} · `:''}${money(it.total)} <span class="ups-pill ${it.paid?'ok':'due'}">${it.paid?'paid':'due'}</span></span>
+      </div>`).join('')}
+    </div>`;
+  };
   return `<div class="ups-card">
     <div class="ups-h">Upsell performance</div>
     <div class="ups-row">
       <div class="ups-stat"><div class="ups-num">${money(m.totalRevenue)}</div><div class="ups-lbl">Invoiced add-ons</div></div>
+      <div class="ups-stat"><div class="ups-num" style="color:#12794D">${money(m.paidRevenue)}</div><div class="ups-lbl">Paid</div></div>
+      ${m.dueRevenue?`<div class="ups-stat"><div class="ups-num" style="color:#9A2B2B">${money(m.dueRevenue)}</div><div class="ups-lbl">Still to collect</div></div>`:''}
       <div class="ups-stat"><div class="ups-num">${m.booked||0}</div><div class="ups-lbl">Booked</div></div>
       <div class="ups-stat"><div class="ups-num">${m.attachRate||0}%</div><div class="ups-lbl">Attach rate</div></div>
       ${m.pending?`<div class="ups-stat"><div class="ups-num" style="color:#9E5B43">${m.pending}</div><div class="ups-lbl">Requests awaiting</div></div>`:''}
     </div>
-    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">By service</div>${top.map(e=>`<div class="ups-svc-row"><span class="ups-svc-name">${esc(e.title)}</span><span class="ups-svc-meta">${e.booked?`${e.booked} booked · ${money(e.revenue)}`:'—'}${e.awaiting?`<span style="color:#9E5B43"> · ${e.awaiting} asked</span>`:''}</span></div>`).join('')}</div>`:''}
+    ${top.length?`<div class="ups-svc"><div class="ups-svc-h">By service · tap to see the bookings</div>${top.map(e=>`
+      <div class="ups-svc-row ${e.booked?'clk':''}" ${e.booked?`onclick="toggleUps('${e.id}')"`:''}>
+        <span class="ups-svc-name">${e.booked?`<span class="ups-car ${upsOpen.has(e.id)?'open':''}">›</span>`:''}${esc(e.title)}</span>
+        <span class="ups-svc-meta">${e.booked?`${e.booked} booked · ${money(e.revenue)}${e.due?` <span style="color:#9A2B2B">· ${money(e.due)} due</span>`:''}`:'—'}${e.awaiting?`<span style="color:#9E5B43"> · ${e.awaiting} asked</span>`:''}</span>
+      </div>${detail(e)}`).join('')}</div>`:''}
   </div>`;
 }
 function renderToday(){
