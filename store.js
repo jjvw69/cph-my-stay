@@ -633,11 +633,22 @@ function cartInfo(s) {
     else if (isVilla) { lines.push('villa'); anyVilla = true; }
   });
 
-  const resolved = lines.length > 0;
+  // Two identical invoice lines = two identical carts. Show them as one row ("2× 4-seater"),
+  // the way the arrivals sheet has always been written — not as a repeated line.
+  const merged = [];
+  lines.forEach(l => {
+    const m = l.match(/^(\d+)× (.+)$/);
+    if (!m) { merged.push(l); return; }
+    const same = merged.find(x => x.rest === m[2]);
+    if (same) same.qty += Number(m[1]); else merged.push({ qty: Number(m[1]), rest: m[2] });
+  });
+  const outLines = merged.map(x => (typeof x === 'string') ? x : (x.qty + '× ' + x.rest));
+
+  const resolved = outLines.length > 0;
   let note = '';
   if (!resolved && /^none$/i.test(raw)) note = 'Golf cart — pending (to confirm).';
   else if (resolved && anyVilla && !anyBillable) note = 'Golf cart — provided by villa/owner, not billed.';
-  return { lines, note, resolved };
+  return { lines: outLines, note, resolved };
 }
 /** Board Cart cell: one cart per line ("2× 6-seater · Julio · via Top Villas"), or "Pending". */
 function golfCartDisplay(s) {
