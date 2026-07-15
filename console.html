@@ -98,54 +98,56 @@
   .rev-od-m{white-space:nowrap;color:var(--soft)}
   .rev-od-d{display:inline-block;font-size:10px;font-weight:800;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:1px 7px;margin-left:4px}
   .rev-od-due{display:inline-block;font-size:10px;font-weight:700;background:#F0F3F1;color:#7B857E;border-radius:20px;padding:1px 7px;margin-left:4px}
-  /* Jan view — supplier payables. Card per supplier, coloured table inside. Colour legend:
-     amber = pay the supplier · green = CPH profit / settled · purple = booking agent · grey = awaiting guest. */
-  .pay-sup{border-left:4px solid #C7CDC9}
-  .pay-sup.cat-cart{border-left-color:#12794D}
-  .pay-sup.cat-xfer{border-left-color:#5A3A88}
-  .pay-sup.cat-mixed{border-left-color:#A37E2C}
-  .pay-sup-title{display:flex;align-items:center;gap:10px;margin:0 0 10px}
-  .pay-sup-name{font-family:var(--display);font-size:19px;font-weight:700;color:var(--ink);letter-spacing:.01em;text-transform:none}
-  .pay-sup-cat{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#6B746F;background:#F0F3F1;border-radius:20px;padding:2px 9px}
-  .pay-sup-head{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-  .pill{display:flex;flex-direction:column;justify-content:center;background:#F7F9F8;border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-family:var(--display);font-size:16px;font-weight:700;line-height:1.1}
-  .pill em{font-family:var(--ui);font-style:normal;font-size:10px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--soft);margin-top:2px}
-  .pill-owe{color:#9E5B43;background:#FBF3EE;border-color:#EAD6C9}
-  .pill-wait{color:#6B746F;background:#F4F6F5}
-  .pill-set{color:#12794D;background:#EEF6F1;border-color:#CBE6D6}
-  .pill-prof{color:#12794D;background:#EAF4EE;border-color:#C4E2D2}
-  .pay-cnt{margin-left:auto;align-self:center;font-size:11.5px;color:var(--soft)}
-  .pay-tbl-wrap{overflow-x:auto}
-  .pay-tbl{width:100%;border-collapse:collapse;font-size:13px}
-  .pay-tbl thead th{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9AA49B;text-align:left;padding:0 10px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
-  .pay-tbl thead th.num{text-align:right}
-  .pay-tbl td{padding:9px 10px;border-bottom:1px solid #EEF1EF;vertical-align:middle}
-  .pay-tbl tr:last-child td{border-bottom:0}
-  .pay-td-g{cursor:pointer;border-left:3px solid transparent}
-  .pay-g-name{display:block;font-weight:700;color:var(--ink)}
-  .pay-g-sub{display:block;font-size:11.5px;color:var(--soft);margin-top:1px}
-  .pay-agent{color:#5A3A88;font-weight:700}
-  .pay-td-num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}
-  .pay-inv{color:var(--ink)}
-  .pay-sup2{color:#9E5B43;font-weight:800}
-  .pay-prof2{color:#12794D;font-weight:800}
-  .pay-td-st{white-space:nowrap;text-align:right}
-  .pay-status{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;padding:2px 9px;margin-right:6px;vertical-align:middle}
+  /* Jan view — supplier payables LEDGER. One sortable table, all bookings. Colour legend:
+     amber = pay the supplier · green = CPH profit · purple = CPH agent · grey = awaiting guest. */
+  .pay-filter{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 12px}
+  .pay-fchip{font-size:12px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:4px 12px;cursor:pointer}
+  .pay-fchip:hover{border-color:#5A3A88;color:#5A3A88}
+  .pay-fchip.on{background:#5A3A88;border-color:#5A3A88;color:#fff}
+  .pay-fchip .fc-n{opacity:.7;font-weight:500;margin-left:4px}
+  .pay-ledger-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+  .pay-ledger{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px}
+  .pay-ledger thead th{position:sticky;top:0;background:#F4F6F5;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#6B746F;text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+  .pay-ledger thead th.num{text-align:right}
+  .pay-ledger thead th:hover{color:#5A3A88}
+  .pay-ledger thead th.srt{color:#5A3A88}
+  .pay-ledger tbody td{padding:8px 11px;border-bottom:1px solid #EEF1EF;vertical-align:middle;white-space:nowrap}
+  .pay-ledger tbody tr:hover{background:#FBFBFA}
+  .pd-date{color:var(--soft);font-variant-numeric:tabular-nums}
+  .pd-g{cursor:pointer;border-left:3px solid transparent}
+  .pd-g b{display:block;color:var(--ink);font-weight:700}
+  .pd-g span{display:block;font-size:11px;color:var(--soft)}
+  .pd-tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:1px 6px;margin-right:5px;color:#fff}
+  .pd-tag.cat-cart{background:#12794D}
+  .pd-tag.cat-xfer{background:#5A3A88}
+  .pd-tag.cat-mixed{background:#A37E2C}
+  .pd-no{color:#9AA49B;margin-left:5px}
+  .pd-sup{font-weight:600;color:var(--ink)}
+  .pd-agent{color:#5A3A88;font-weight:700}
+  .pd-dim{color:#B8BEB9}
+  .pd-src b2{font-weight:600}
+  .pd-via{display:block;font-size:10.5px;color:#9AA49B}
+  .pd-num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .pd-inv{color:var(--ink)}
+  .pd-pay{color:#9E5B43;font-weight:800}
+  .pd-prof{color:#12794D;font-weight:800}
+  .pay-status{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;padding:2px 8px;margin-right:5px;vertical-align:middle}
   .pay-status.ok{background:#E7F1EC;color:#12794D}
   .pay-status.due{background:#FBEEE7;color:#9E5B43}
-  .pay-btn{font-family:var(--ui);font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:3px 11px;cursor:pointer;vertical-align:middle}
+  .pay-btn{font-family:var(--ui);font-size:10.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:2px 9px;cursor:pointer;vertical-align:middle}
   .pay-btn:hover{border-color:#9E5B43;color:#9E5B43}
   .pay-btn.on{background:#E7F1EC;border-color:#BFE0CE;color:#12794D}
-  .pay-await{font-size:11px;color:#9AA49B;font-style:italic}
-  /* row states */
-  .pay-r.st-topay .pay-td-g{border-left-color:#D9A788;background:#FFFDFB}
-  .pay-r.st-settled{opacity:.72}
-  .pay-r.st-settled .pay-td-g{border-left-color:#9FD3B4;background:#F5FAF7}
-  .pay-r.st-settled .pay-sup2{text-decoration:line-through;color:#9AA49B;font-weight:600}
-  .pay-r.st-await .pay-td-g{border-left-color:#D3D8D5;background:#F8F9FA}
-  .pay-r.st-await .pay-sup2{color:#9AA49B;font-weight:600}
-  .pay-changed{display:block;font-size:11px;color:#9A2B2B;margin-top:3px}
-  .pay-pend{color:#9AA49B;font-weight:600}
+  .pay-await{font-size:10.5px;color:#9AA49B;font-style:italic}
+  /* row states — coloured left accent on the date cell */
+  .pay-r.st-topay .pd-date{border-left:3px solid #D9A788;padding-left:9px}
+  .pay-r.st-settled{opacity:.6}
+  .pay-r.st-settled .pd-date{border-left:3px solid #9FD3B4;padding-left:9px}
+  .pay-r.st-settled .pd-pay{text-decoration:line-through;color:#9AA49B}
+  .pay-r.st-await .pd-date{border-left:3px solid #D3D8D5;padding-left:9px}
+  .pay-r.st-await .pd-pay{color:#B79A8A}
+  .pay-tot td{padding:10px 11px;border-top:2px solid var(--line);font-weight:800;background:#F7F9F8}
+  .pay-tot .pd-lbl{font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:#6B746F}
+  .pay-changed{display:block;font-size:10.5px;color:#9A2B2B;margin-top:2px;white-space:normal}
   .pay-rail-profit{font-family:var(--display);font-size:22px;font-weight:700;color:#12794D}
   .pay-rail-profit span{display:block;font-family:var(--ui);font-size:11.5px;font-weight:500;color:var(--soft)}
   .rev-payee{display:flex;gap:22px}
@@ -1457,11 +1459,15 @@ function buildSecNavFor(groups){
 }
 function buildRevSecNav(){ buildSecNavFor(REVNAV_GROUPS); }
 
-/* ---- Jan view: supplier payables ("what CPH owes suppliers" + the profit to account) ----
-   Golf-cart table format: KPI cards on top, one block per supplier, one row per booking. Each row
-   shows what's charged, the supplier cost, CPH's profit, and a Paid/Unpaid pill; guest-paid rows
-   carry a Mark-paid toggle. Includes SENT (unpaid) and PAID invoices — unpaid ones are "awaiting the
-   guest", so not owed to the supplier yet. Same invoice data as the rest of the console. */
+/* ---- Jan view: supplier payables LEDGER ("what CPH owes suppliers" + the profit to account) ----
+   One sortable table, every booking. Columns: date · guest/villa · service · supplier · CPH agent ·
+   source(+via) · invoice · pay-supplier · profit · status. Click a header to sort; the top chips
+   filter by supplier. Includes SENT (unpaid) + PAID invoices — unpaid = "awaiting guest" (not owed
+   yet). Same invoice data as the rest of the console. */
+let PAY_SORT={col:'date',dir:1};   // dir 1 asc, -1 desc
+let PAY_FILTER='';                  // '' = all suppliers
+window.paySort=function(col){ if(PAY_SORT.col===col) PAY_SORT.dir*=-1; else { PAY_SORT.col=col; PAY_SORT.dir=(col==='invoice'||col==='pay'||col==='profit')?-1:1; } renderPayables(); };
+window.payFilter=function(sup){ PAY_FILTER=sup?decodeURIComponent(sup):''; renderPayables(); };
 async function renderPayables(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!PAYABLES) await refreshPayables();
@@ -1470,57 +1476,49 @@ async function renderPayables(){
   const sec=(t,body,sub,id)=>`<div class="rev-sec"${id?` id="${id}"`:''}><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':'Mixed';
   const catClass=c=>c==='cart'?'cat-cart':c==='transfer'?'cat-xfer':'cat-mixed';
-  // one table row per booking; state (to-pay / settled / awaiting) drives the colour accent
-  const payRow=r=>{
+  const catShort=c=>c==='cart'?'Cart':c==='transfer'?'Transfer':'Mixed';
+  const agentName=a=>{ const m={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'}; const k=String(a||'').toLowerCase(); return m[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); };
+  let rows=(p.rows||[]).slice();
+  if(PAY_FILTER) rows=rows.filter(r=>r.supplier===PAY_FILTER);
+  const rank=r=>r.settled?2:(r.guestPaid?0:1);
+  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),supplier:(r.supplier||'').toLowerCase(),agent:(r.cphAgent||'').toLowerCase(),source:(r.bookingSource||'').toLowerCase(),invoice:r.charged,pay:r.cost,profit:r.margin,status:rank(r)}[c]);
+  rows.sort((a,b)=>{ const x=sval(a,PAY_SORT.col),y=sval(b,PAY_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*PAY_SORT.dir; });
+  const tInv=rows.reduce((s,r)=>s+r.charged,0), tPay=rows.reduce((s,r)=>s+r.cost,0), tProf=rows.reduce((s,r)=>s+r.margin,0);
+  const th=(c,lbl,cls)=>`<th class="${cls||''}${PAY_SORT.col===c?' srt':''}" onclick="paySort('${c}')">${lbl}${PAY_SORT.col===c?(PAY_SORT.dir>0?' ▲':' ▼'):''}</th>`;
+  const row=r=>{
     const state=r.settled?'st-settled':(r.guestPaid?'st-topay':'st-await');
-    const agent=`<span class="pay-agent" title="CPH booking agent — how this reservation was booked">${esc(r.bookingAgent||r.source||'—')}</span>`;
-    const viaBit=(r.via&&r.via!==(r.bookingAgent||r.source))?' · via '+esc(r.via):'';
+    const via=(r.via&&r.via!==r.bookingSource)?`<span class="pd-via">via ${esc(r.via)}</span>`:'';
     const action=r.guestPaid
       ? `<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`
       : `<span class="pay-await" title="Not owed to the supplier until the guest pays">awaiting guest</span>`;
     return `<tr class="pay-r ${state}">
-      <td class="pay-td-g" onclick="selectStay('${r.stayId}')">
-        <span class="pay-g-name">${esc(r.guest)}</span>
-        <span class="pay-g-sub">${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${agent}${viaBit} · ${esc(r.detail)}${r.invoiceNo?' · #'+esc(r.invoiceNo):''}</span>
-      </td>
-      <td class="pay-td-num pay-inv" title="invoice total charged to the guest">${money0(r.charged)}</td>
-      <td class="pay-td-num pay-sup2" title="what to pay the supplier">${money0(r.cost)}</td>
-      <td class="pay-td-num pay-prof2" title="CPH profit on this booking">+${money0(r.margin)}</td>
-      <td class="pay-td-st">
-        <span class="pay-status ${r.guestPaid?'ok':'due'}">${r.guestPaid?'Paid':'Unpaid'}</span>${action}
-        ${r.changed?`<span class="pay-changed">Amount changed since settled (${money0(r.settledAmount)} → ${money0(r.cost)})</span>`:''}
-      </td>
+      <td class="pd-date">${esc(fmtDay(r.checkin))}</td>
+      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span></td>
+      <td><span class="pd-tag ${catClass(r.category)}">${catShort(r.category)}</span>${esc(r.detail)}${r.invoiceNo?`<span class="pd-no">#${esc(r.invoiceNo)}</span>`:''}</td>
+      <td class="pd-sup">${esc(r.supplier)}</td>
+      <td class="pd-agent">${r.cphAgent?esc(agentName(r.cphAgent)):'<span class="pd-dim">—</span>'}</td>
+      <td class="pd-src">${esc(r.bookingSource||'—')}${via}</td>
+      <td class="pd-num pd-inv" title="invoice total charged to the guest">${money0(r.charged)}</td>
+      <td class="pd-num pd-pay" title="what to pay the supplier">${money0(r.cost)}</td>
+      <td class="pd-num pd-prof" title="CPH profit on this booking">+${money0(r.margin)}</td>
+      <td class="pd-st"><span class="pay-status ${r.guestPaid?'ok':'due'}">${r.guestPaid?'Paid':'Unpaid'}</span>${action}${r.changed?`<span class="pay-changed">Amount changed since settled (${money0(r.settledAmount)} → ${money0(r.cost)})</span>`:''}</td>
     </tr>`;
   };
-  const groups=(p.bySupplier||[]).map((g,i)=>{
-    // within a supplier: pay-now first (action), then awaiting guest, then settled (done)
-    const rank=r=>r.settled?2:(r.guestPaid?0:1);
-    const rows=g.rows.slice().sort((a,b)=>rank(a)-rank(b)||String(a.checkin).localeCompare(String(b.checkin)));
-    return `<div class="rev-sec pay-sup ${catClass(g.category)}" id="psec-${i}">
-      <div class="pay-sup-title"><span class="pay-sup-name">${esc(g.supplier)}</span><span class="pay-sup-cat">${catLabel(g.category)}</span></div>
-      <div class="pay-sup-head">
-        <span class="pill pill-owe">${money0(g.outstanding)}<em>to pay now</em></span>
-        ${g.pending?`<span class="pill pill-wait">${money0(g.pending)}<em>awaiting guest</em></span>`:''}
-        ${g.settled?`<span class="pill pill-set">${money0(g.settled)}<em>settled</em></span>`:''}
-        <span class="pill pill-prof">+${money0(g.profit)}<em>CPH profit</em></span>
-        <span class="pay-cnt">${g.count} booking${g.count===1?'':'s'}</span>
-      </div>
-      <div class="pay-tbl-wrap"><table class="pay-tbl">
-        <thead><tr><th>Booking</th><th class="num">Invoice</th><th class="num">Pay supplier</th><th class="num">Profit</th><th>Status</th></tr></thead>
-        <tbody>${rows.map(payRow).join('')}</tbody>
-      </table></div>
-    </div>`;
-  });
+  const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
+    <thead><tr>${th('date','Date')}${th('guest','Guest / villa')}<th>Service</th>${th('supplier','Supplier')}${th('agent','CPH agent')}${th('source','Source')}${th('invoice','Invoice','num')}${th('pay','Pay supplier','num')}${th('profit','Profit','num')}<th>Status</th></tr></thead>
+    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="10" style="padding:16px;color:var(--soft)">No bookings for this supplier.</td></tr>'}</tbody>
+    <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${PAY_FILTER?esc(PAY_FILTER)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
+  </table></div>`;
   el.innerHTML=`
     <div class="today-head">Suppliers to pay &amp; profit</div>
-    <div class="today-date">Supplier costs and CPH profit on golf carts &amp; transfers · Jan only</div>
+    <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · Jan only</div>
     <div class="today-stats" style="margin:10px 0 14px">
       <div class="stat owed"><div class="num money" style="color:#9E5B43">${money0(p.toPay)}</div><div class="lbl">To pay suppliers now</div></div>
       <div class="stat paid"><div class="num money">${money0(p.profit)}</div><div class="lbl">Profit to account</div></div>
       <div class="stat"><div class="num money">${money0(p.pending)}</div><div class="lbl">Awaiting guest payment</div></div>
       <div class="stat"><div class="num money">${money0(p.totalCharged)}</div><div class="lbl">Invoiced (all)</div></div>
     </div>
-    ${p.count?groups.join(''):'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
+    ${p.count?ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
   buildPaySecNav(p);
   const rail=document.getElementById('preview'); if(!rail) return;
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
@@ -1544,10 +1542,13 @@ async function renderPayables(){
     ${sec('Profit to account',`<div class="pay-rail-profit">${money0(p.profit)}<span> realised${p.profitPending?` · ${money0(p.profitPending)} pending`:''}</span></div>`,'CPH margin on paid bookings')}
   </div>`;
 }
-/* Section-nav chips for the Jan view — one chip per supplier block (psec-0, psec-1, …). */
+/* Top bar for the Jan view = supplier FILTER chips (All + each supplier, with counts). Clicking a
+   chip filters the ledger to that supplier; the active chip is highlighted. Lives in the #secbar. */
 function buildPaySecNav(p){
-  const groups=[{g:'Suppliers', ids:(p.bySupplier||[]).map((g,i)=>['psec-'+i, g.supplier])}];
-  buildSecNavFor(groups);
+  const bar=document.getElementById('secbar'); if(!bar) return;
+  const chip=(sup,lbl,n)=>`<button class="pay-fchip${(PAY_FILTER===sup)?' on':''}" onclick="payFilter('${encodeURIComponent(sup)}')">${esc(lbl)}${n!=null?`<span class="fc-n">${n}</span>`:''}</button>`;
+  const sups=(p.bySupplier||[]);
+  bar.innerHTML=`<div class="secbar-row"><span class="secnav-gl">Supplier</span>${chip('','All',p.count)}${sups.map(g=>chip(g.supplier,g.supplier,g.count)).join('')}</div>`;
 }
 /* Tick a supplier payable as paid (or reopen it). Persists on the server, then repaints. */
 window.togglePayableSettled=async function(key,settled,amount){
