@@ -397,7 +397,7 @@ async function staffLogin(req,res){
   const st=store.getStaffByEmail(email);
   if(!st||!store.verifyPassword(password,st.pw)) return sendJSON(res,401,{ok:false,error:'Wrong email or password.'});
   setCookie(res,STAFF_COOKIE,sign({t:'s',sid:st.id,email:st.email,role:st.role},STAFF_HOURS),STAFF_HOURS); attempts.delete('s:'+ip(req));
-  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st)})});
+  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st),canPayables:canSeePayables(st)})});
 }
 /* Staff auth guard with a SLIDING session. The cookie used to be a hard 8h from login: after 8h
    the console kept rendering (it had already loaded) but every API call 401'd, so it looked frozen
@@ -417,6 +417,17 @@ function canSeeRevenue(s){
   if(REVENUE_EMAILS.includes(email)) return true;
   if(REVENUE_ROLES.includes(String(s.role||'').toLowerCase())) return true;
   return /^(jan|ivonna)@/.test(email); // fallback if the account was seeded on another domain
+}
+/* PAYABLES ACCESS — the "Jan" view (what CPH owes suppliers) is Jan-only, tighter than the
+   Revenue view: Ivonna and every concierge are excluded. Gated on the SERVER so the numbers
+   can't be fetched by anyone else. Override with the PAYABLES_EMAILS env var (comma-separated). */
+const PAYABLES_EMAILS = String(process.env.PAYABLES_EMAILS || 'jan@caribbeanparadisehomes.com')
+  .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+function canSeePayables(s){
+  if(!s) return false;
+  const email=String(s.email||'').toLowerCase();
+  if(PAYABLES_EMAILS.includes(email)) return true;
+  return /^jan@/.test(email); // fallback if the account was seeded on another domain
 }
 function requireStaff(req,res){
   const s=staffSession(req);
@@ -493,7 +504,7 @@ async function route(req,res){
     const s=staffSession(req); if(!s) return sendJSON(res,200,{ok:false,staff:null});
     const rec=store.getStaffByEmail(s.email);
     const fallback=String(s.email||'').split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s)}});
+    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s),canPayables:canSeePayables(s)}});
   }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
@@ -505,6 +516,8 @@ async function route(req,res){
     if(svU&&m==='DELETE'){ const okd=store.deleteCustomService(svU[1]); if(okd) broadcastStaff({type:'services'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Only custom services can be deleted'}); }
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
     if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
+    if(m==='GET' &&url==='/api/staff/payables'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
+    if(m==='POST'&&url==='/api/staff/payables/settle'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); const b=await readBody(req); const ok=store.setPayableSettled(String(b.key||''),!!b.settled,b.amount); if(!ok) return sendJSON(res,400,{ok:false,error:'A payable key is required.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);

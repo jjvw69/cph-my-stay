@@ -98,6 +98,21 @@
   .rev-od-m{white-space:nowrap;color:var(--soft)}
   .rev-od-d{display:inline-block;font-size:10px;font-weight:800;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:1px 7px;margin-left:4px}
   .rev-od-due{display:inline-block;font-size:10px;font-weight:700;background:#F0F3F1;color:#7B857E;border-radius:20px;padding:1px 7px;margin-left:4px}
+  /* Jan view — supplier payables. Row shows what to pay each supplier, with a settle toggle. */
+  .pay-sup-cat{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:none;color:#9AA49B;background:#F0F3F1;border-radius:20px;padding:1px 8px}
+  .pay-sup-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:0 0 8px;font-size:12px;color:var(--soft)}
+  .pay-owe{font-family:var(--display);font-size:20px;font-weight:700;color:#9E5B43}
+  .pay-owe .lbl{font-family:var(--ui);font-size:11px;font-weight:600;color:var(--soft);margin-left:3px}
+  .pay-set{color:#12794D;font-weight:600}
+  .pay-cnt{margin-left:auto}
+  .rev-od-row.pay-done{opacity:.6}
+  .rev-od-row.pay-done .pay-cost{text-decoration:line-through;color:var(--soft)}
+  .pay-charged{color:#9AA49B;margin-right:8px;font-size:12px}
+  .pay-cost{color:#9E5B43;font-weight:700;margin-right:8px}
+  .pay-btn{font-family:var(--ui);font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:3px 10px;cursor:pointer}
+  .pay-btn:hover{border-color:#9E5B43;color:#9E5B43}
+  .pay-btn.on{background:#E7F1EC;border-color:#BFE0CE;color:#12794D}
+  .pay-changed{flex-basis:100%;font-size:11px;color:#9A2B2B;margin-top:2px}
   .rev-payee{display:flex;gap:22px}
   .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
   .rev-payee span{display:block;font-size:11.5px;color:var(--soft)}
@@ -658,7 +673,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -767,11 +782,17 @@ function fillBookChan(){ const d=document.getElementById('bookchan'); if(!d)retu
 /* Revenue is owner-level (Jan + Ivonna). The server decides — canRevenue comes back on /me and on
    login, and /api/staff/metrics 403s for anyone else. This only hides the button. */
 let CAN_REV=false;
+/* The Jan view (supplier payables) is Jan-only — a tighter gate than Revenue. canPayables comes
+   back on /me and login; /api/staff/payables 403s anyone else. This only hides the button. */
+let CAN_PAY=false;
 async function enter(staff){
   document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='flex';
   document.getElementById('who').textContent=staff.name||staff.email;
   CAN_REV=!!(staff&&staff.canRevenue);
   const rb=document.getElementById('revBtn'); if(rb)rb.style.display=CAN_REV?'':'none';
+  CAN_PAY=!!(staff&&staff.canPayables);
+  const pb=document.getElementById('payBtn'); if(pb)pb.style.display=CAN_PAY?'':'none';
+  await refreshPayables();
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
   await loadList();
@@ -785,6 +806,9 @@ document.getElementById('signout').onclick=async()=>{ await api('/api/staff/logo
 let METRICS=null;
 /* Only owners can even fetch this (server 403s everyone else) — don't ask if we know we can't. */
 async function refreshMetrics(){ if(!CAN_REV){ METRICS=null; return; } try{ const r=await api('/api/staff/metrics'); if(r.ok) METRICS=r.body.metrics; }catch(e){} }
+/* Jan-only supplier payables. Server 403s everyone else — don't ask if we know we can't. */
+let PAYABLES=null;
+async function refreshPayables(){ if(!CAN_PAY){ PAYABLES=null; return; } try{ const r=await api('/api/staff/payables'); if(r.ok) PAYABLES=r.body.payables; }catch(e){} }
 async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderHome(); }
 
 /* ============ live sync ============ */
@@ -991,15 +1015,22 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev) renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev||pay); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
-function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } }
+function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
    every concierge saw them. They now live here, behind the server-side canRevenue gate. */
 window.showRevenue=function(){
   if(!CAN_REV) return;
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); centerView='revenue'; setView(true); renderList(); renderHome();
+};
+/* Jan-only supplier payables view — "what CPH still owes suppliers". Behind the server-side
+   canPayables gate. Golf-cart table format: KPI cards, per-supplier grouping, per-booking rows. */
+window.showJan=async function(){
+  if(!CAN_PAY) return;
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); clearRevLeft(); centerView='payables'; setView(true); await refreshPayables(); renderList(); renderHome();
 };
 /* ---- Revenue dashboard (owner view) ----
    Everything below is drawn from the SAME invoice data as the rest of the console — no separate
@@ -1370,6 +1401,67 @@ async function renderRevenue(){
     ${sec('Top villas earnings', revVillaBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa · tap a villa to see its invoices')}
   </div>`;
 }
+
+/* ---- Jan view: supplier payables ("what CPH still owes suppliers") ----
+   Golf-cart table format: KPI cards on top, one block per supplier, one row per paid booking with a
+   Mark-paid toggle. Numbers come from PAID invoices only (paid by the guest = now owed) and are
+   drawn from the same invoice data as the rest of the console. */
+async function renderPayables(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!PAYABLES) await refreshPayables();
+  const p=PAYABLES;
+  if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; return; }
+  const sec=(t,body,sub)=>`<div class="rev-sec"><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
+  const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':'Mixed';
+  const payRow=r=>`<div class="rev-od-row${r.settled?' pay-done':''}">
+      <span class="rev-od-g" onclick="selectStay('${r.stayId}')">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source||'—')} · ${esc(r.detail)}${r.invoiceNo?' · #'+esc(r.invoiceNo):''}</span></span>
+      <span class="rev-od-m">
+        <span class="pay-charged" title="charged to the guest">${money0(r.charged)}</span>
+        <b class="pay-cost" title="what to pay the supplier">${money0(r.cost)}</b>
+        <button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>
+      </span>
+      ${r.changed?`<span class="pay-changed">Amount changed since you settled it (${money0(r.settledAmount)} → ${money0(r.cost)}) — please re-check.</span>`:''}
+    </div>`;
+  const groups=(p.bySupplier||[]).map(g=>sec(
+    `${esc(g.supplier)} <span class="pay-sup-cat">${catLabel(g.category)}</span>`,
+    `<div class="pay-sup-head">
+        <span class="pay-owe">${money0(g.outstanding)}<span class="lbl">to pay</span></span>
+        ${g.settled?`<span class="pay-set">${money0(g.settled)} settled</span>`:''}
+        <span class="pay-cnt">${g.count} booking${g.count===1?'':'s'}</span>
+      </div>
+      <div class="rev-od">${g.rows.map(payRow).join('')}</div>`,''));
+  el.innerHTML=`
+    <div class="today-head">Suppliers to pay</div>
+    <div class="today-date">What CPH owes suppliers on paid bookings · golf carts &amp; transfers · Jan only</div>
+    <div class="today-stats" style="margin:10px 0 14px">
+      <div class="stat owed"><div class="num money" style="color:#9E5B43">${money0(p.outstanding)}</div><div class="lbl">Still to pay</div></div>
+      <div class="stat paid"><div class="num money">${money0(p.settled)}</div><div class="lbl">Settled</div></div>
+      <div class="stat"><div class="num money">${money0(p.total)}</div><div class="lbl">Total · paid bookings</div></div>
+      <div class="stat"><div class="num">${p.count}</div><div class="lbl">Payables</div></div>
+    </div>
+    ${p.count?groups.join(''):'<div class="today-clear">No supplier payables yet — this fills in automatically as guests pay their golf-cart and transfer invoices.</div>'}`;
+  const rail=document.getElementById('preview'); if(!rail) return;
+  const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
+  rail.innerHTML=`<div class="rev-rail">
+    ${sec('Outstanding by supplier',
+      owing.length?`<div class="rev-od">${owing.map(g=>`
+        <div class="rev-od-row" style="cursor:default">
+          <span class="rev-od-g">${esc(g.supplier)}<span class="rev-od-v"> · ${catLabel(g.category)}</span></span>
+          <span class="rev-od-m"><b style="color:#9E5B43">${money0(g.outstanding)}</b></span>
+        </div>`).join('')}</div>`
+      :'<div class="rev-empty">Nothing outstanding — every supplier is settled.</div>',
+      'what to pay each vendor right now')}
+  </div>`;
+}
+/* Tick a supplier payable as paid (or reopen it). Persists on the server, then repaints. */
+window.togglePayableSettled=async function(key,settled,amount){
+  try{
+    const r=await api('/api/staff/payables/settle',{method:'POST',body:JSON.stringify({key,settled:!!settled,amount})});
+    if(!r.ok){ alert((r.body&&r.body.error)||'Could not update.'); return; }
+    PAYABLES=r.body.payables; renderPayables();
+    if(typeof toast==='function') toast(settled?'Marked paid to supplier.':'Reopened — back on the to-pay list.');
+  }catch(e){ alert('Could not update.'); }
+};
 /* Revenue view injects KPI/cash/groceries panels into the left column; strip them (and rev-mode)
    when switching to any other view so they never linger on Today/Inbox/Arrivals. */
 function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c)c.classList.remove('rev-mode'); }

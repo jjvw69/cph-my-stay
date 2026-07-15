@@ -339,6 +339,15 @@ if (!services.suppliers) services.suppliers = {};
 if (!services.rates) services.rates = {};
 function persistServices() { writeJSON(SERVICES_FILE, services); }
 
+// ----- supplier payables settlement (Jan only, persisted) -----
+// payablesSettled = { [key]: { settled:true, amount, at } } where key = `${invoiceId}:${category}`.
+// A payable is "settled" once Jan has actually paid that supplier; we keep the amount at the
+// moment of settling so we can flag a mismatch if the invoice is edited afterwards.
+const PAYABLES_FILE = path.join(DATA_DIR, 'payables.json');
+let payablesSettled = readJSON(PAYABLES_FILE, {});
+if (!payablesSettled || typeof payablesSettled !== 'object') payablesSettled = {};
+function persistPayables() { writeJSON(PAYABLES_FILE, payablesSettled); }
+
 // ----- global invoice numbering ------------------------------------------------
 // ONE running sequence across ALL bookings — every invoice gets its own unique
 // number, starting at 001. Never per-stay (two bookings must never share a no).
@@ -1270,6 +1279,105 @@ function upsellMetrics() {
   };
 }
 
+// ---------------------------------------------- supplier payables (Jan only)
+// "What CPH still owes suppliers." Only PAID invoices count — you owe the supplier once the
+// guest's money is actually in. Covers golf carts (Julio: cost = charge − US$20/cart/night) and
+// airport transfers (the supplier keeps 87%, CPH keeps 13%). Each payable can be ticked off as
+// settled once Jan has paid that supplier; the settled state persists in payables.json.
+const PAY_CART_MARGIN_PER_NIGHT = 20;
+const PAY_TRANSFER_MARGIN_PCT = 0.13;
+function payables() {
+  const _n = new Date();
+  const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
+  const round = v => Math.round((Number(v) || 0) * 100) / 100;
+  const rows = [];
+  const attach = base => {
+    const st = payablesSettled[base.key] || null;
+    base.settled = !!(st && st.settled);
+    base.settledAmount = st ? Number(st.amount) || 0 : 0;
+    base.settledAt = st ? st.at || 0 : 0;
+    // invoice edited after Jan settled it → the amount owed no longer matches what he paid
+    base.changed = base.settled && Math.round(base.settledAmount) !== Math.round(base.cost);
+    return base;
+  };
+  stays.forEach(s => {
+    const meta = {
+      stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+      checkin: s.checkin || '', upcoming: !!(s.checkout && s.checkout >= today),
+    };
+    (s.invoices || []).forEach(inv => {
+      if (inv.status !== 'paid') return;                 // paid by guest = now owed to the supplier
+      const invNo = inv.no || '', paidAt = inv.paidAt || 0;
+      // --- golf carts (Julio only) ---
+      let cAmt = 0, cCost = 0, carts = 0, cartNights = 0, nights = 0, cSup = '', cVia = '';
+      (inv.items || []).forEach(it => {
+        if (!/julio/i.test(String(it.supplier || ''))) return;
+        if (!RE_CART_ANY.test(String(it.label || '')) && !RE_CART_ANY.test(String(inv.title || ''))) return;
+        const p = parseCartText(it.label); const qty = (p && p.qty) || 1;
+        const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || nightsBetween(s.checkin, s.checkout) || 0;
+        const amt = Number(it.amount) || 0; if (!days || !amt) return;
+        cAmt += amt; carts += qty; cartNights += qty * days; nights = Math.max(nights, days);
+        cCost += amt - (PAY_CART_MARGIN_PER_NIGHT * qty * days);
+        if (!cSup) cSup = String(it.supplier).trim(); if (!cVia && it.bookedVia) cVia = String(it.bookedVia).trim();
+      });
+      if (cartNights) rows.push(attach(Object.assign({}, meta, {
+        key: inv.id + ':cart', invoiceId: inv.id, invoiceNo: invNo, paidAt,
+        category: 'cart', supplier: cSup || 'Julio', via: cVia,
+        // booking agent: the channel that booked THIS cart, else the stay's own source
+        source: cVia || (s.source || 'Unknown').trim(),
+        detail: carts + '× cart · ' + nights + 'n',
+        charged: round(cAmt), cost: round(cCost),
+      })));
+      // --- airport transfers ---
+      let tAmt = 0, tCost = 0, trips = 0, tSup = '', tVia = '';
+      (inv.items || []).forEach(it => {
+        const label = String(it.label || '');
+        if (!RE_TRANSFER_LINE.test(label) && !RE_TRANSFER_LINE.test(String(inv.title || ''))) return;
+        const amt = Number(it.amount) || 0; if (!amt) return;
+        tAmt += amt; trips++; tCost += amt * (1 - PAY_TRANSFER_MARGIN_PCT);
+        if (!tSup && it.supplier) tSup = String(it.supplier).trim(); if (!tVia && it.bookedVia) tVia = String(it.bookedVia).trim();
+      });
+      if (tAmt) rows.push(attach(Object.assign({}, meta, {
+        key: inv.id + ':transfer', invoiceId: inv.id, invoiceNo: invNo, paidAt,
+        category: 'transfer', supplier: tSup || '(supplier not set)', via: tVia,
+        // booking agent: the channel that booked THIS transfer, else the stay's own source
+        source: tVia || (s.source || 'Unknown').trim(),
+        detail: trips + ' leg' + (trips === 1 ? '' : 's'),
+        charged: round(tAmt), cost: round(tCost),
+      })));
+    });
+  });
+  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  // group by supplier — the actionable unit is "pay this vendor US$X"
+  const bySupMap = {};
+  rows.forEach(r => {
+    const e = bySupMap[r.supplier] || (bySupMap[r.supplier] = { supplier: r.supplier, category: r.category, count: 0, cost: 0, outstanding: 0, settled: 0, rows: [] });
+    e.count++; e.cost += r.cost; if (r.settled) e.settled += r.cost; else e.outstanding += r.cost;
+    if (e.category !== r.category) e.category = 'mixed';
+    e.rows.push(r);
+  });
+  const bySupplier = Object.values(bySupMap)
+    .map(e => Object.assign(e, { cost: round(e.cost), outstanding: round(e.outstanding), settled: round(e.settled) }))
+    .sort((a, b) => b.outstanding - a.outstanding || b.cost - a.cost);
+  const sumCost = list => round(list.reduce((a, r) => a + r.cost, 0));
+  const byCat = cat => { const rs = rows.filter(r => r.category === cat); return { count: rs.length, cost: sumCost(rs), outstanding: sumCost(rs.filter(r => !r.settled)) }; };
+  return {
+    total: sumCost(rows),
+    outstanding: sumCost(rows.filter(r => !r.settled)),
+    settled: sumCost(rows.filter(r => r.settled)),
+    count: rows.length,
+    cart: byCat('cart'), transfer: byCat('transfer'),
+    bySupplier, rows,
+  };
+}
+/** Mark a supplier payable settled (Jan paid the supplier) or clear it. amount = cost at settle time. */
+function setPayableSettled(key, settled, amount) {
+  key = String(key || ''); if (!key) return false;
+  if (settled) payablesSettled[key] = { settled: true, amount: Number(amount) || 0, at: Date.now() };
+  else delete payablesSettled[key];
+  persistPayables(); return true;
+}
+
 // ---------------------------------------------- scheduled guest message automations
 function daysFromToday(iso) { const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return null; const t = new Date(new Date().toDateString()); return Math.round((d - t) / 864e5); }
 function pushAutoMsg(s, text) { if (!Array.isArray(s.messages)) s.messages = []; s.messages.push({ id: genId(), from: 'concierge', text: norm(text).slice(0, 1000), at: Date.now(), auto: true }); s.updatedAt = Date.now(); }
@@ -1992,7 +2100,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, exportAll, runAutomations, upsellMetrics, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, runAutomations, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
