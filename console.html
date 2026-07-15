@@ -290,6 +290,10 @@
   .ab-guest,.ab-villa,.ab-cart,.ab-super{min-width:0;white-space:normal;overflow-wrap:break-word}
   .ab-dt,.ab-ppl,.ab-prov,.ab-staff{min-width:0;white-space:nowrap;overflow-wrap:normal}
   .ab-ppl{text-align:center}
+  /* Grocery "Super" is short (MF: NAME) — cap it so it stops hogging width. */
+  .ab-groc{min-width:0;max-width:130px;white-space:normal;overflow-wrap:break-word;color:var(--ink);font-size:11.5px}
+  /* Deposit + Due hold money — never wrap, keep enough room for the amount + its status line. */
+  .ab-money{min-width:84px;white-space:nowrap;color:var(--ink);font-size:11.5px}
   .ab-villa{max-width:150px}
   .ab-cart{max-width:170px;white-space:pre-line}
   .ab-super,.ab-staff{max-width:190px}
@@ -1519,9 +1523,9 @@ function renderArrivalsBoard(){
       <td class="ab-staff" title="From the booking file — edit in Internal notes (staff only)">${esc(s.staffCount||'—')}</td>
       <td class="ab-super" title="From the booking file — edit in Stay details → Registration #">${esc(s.registrationNumber||s.accessCodes||'—')}</td>
       <td class="ab-super" title="Supplier from the booked airport-transfer request (or invoice), then your Internal-notes Transfer text">${esc(s.transferNote||'—')}</td>
-      <td class="ab-super" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
-      <td class="ab-super" title="Grocery deposit — edit in the Grocery pre-stocking section">${boardDepositCell(s)}</td>
-      <td class="ab-super" title="Total still to collect — sum of unpaid (sent) invoices for this booking. Issue/mark invoices paid on the guest's stay.">${boardCollectCell(s)}</td>
+      <td class="ab-groc" title="From the booking file — edit in the Grocery pre-stocking section">${esc(s.grocerySuper||s.provisioning||'—')}</td>
+      <td class="ab-money" title="Grocery deposit — edit in the Grocery pre-stocking section">${boardDepositCell(s)}</td>
+      <td class="ab-money" title="Total still to collect — sum of unpaid (sent) invoices for this booking. Issue/mark invoices paid on the guest's stay.">${boardCollectCell(s)}</td>
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
     <div class="ab-btns">
