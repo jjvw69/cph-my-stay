@@ -114,9 +114,14 @@ function villaCode(internal, fallbackName){
 // uses for that greeter's chip), so Apple Calendar picks it up on subscribe with no manual step.
 const CAL_FEEDS = { maria:'Maria', ivonna:'Ivonna', jan:'Jan', none:'Unassigned' };
 // Must stay in lockstep with console.html .greet-sel.g-* rules (and CAL_FEED_COLORS there).
-const CAL_COLORS = { maria:'#12794D', ivonna:'#5A3A88', jan:'#D7E600', none:'#B4B2A9' };
+// Jan is a DEEP gold (not the console's bright ball-yellow): Apple picks event text colour by the
+// calendar's lightness, and ball-yellow is too light for white text. A darker gold forces white text.
+// All four are deliberately DARK so Apple renders white event text (it auto-picks black/white by the
+// calendar's lightness). Jan is a deep gold, Unassigned a graphite — the light ball-yellow / light-grey
+// versions forced black text, which is what we're avoiding.
+const CAL_COLORS = { maria:'#12794D', ivonna:'#5A3A88', jan:'#B8860B', none:'#5F5E5A' };
 // RFC 7986 COLOR takes a CSS3 name (used by Google/Outlook); Apple uses the hex above.
-const CAL_CSSCOLOR = { maria:'seagreen', ivonna:'darkslateblue', jan:'yellow', none:'darkgray' };
+const CAL_CSSCOLOR = { maria:'seagreen', ivonna:'darkslateblue', jan:'darkgoldenrod', none:'dimgray' };
 const AGENT_LETTER = { jan:'J', ivonna:'I', maria:'M' };
 
 /* Pull the guest's real flight times off the airport transfer. The transfer can live in either place:

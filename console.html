@@ -1414,8 +1414,8 @@ window.printBoard=function(){ window.print(); };
 // ---- Sync to Calendar: the four greeter iCal feeds (Apple Calendar / Google / Outlook) ----
 // Apple colours per CALENDAR, not per event — so each greeter gets their own subscription, and
 // the colour is set once in Calendar to match the console's greeter colours.
-const CAL_FEED_COLORS={maria:'#12794D',ivonna:'#5A3A88',jan:'#D7E600',none:'#B4B2A9'};
-const CAL_FEED_COLORNAME={maria:'Green',ivonna:'Purple',jan:'Yellow',none:'Graphite / grey'};
+const CAL_FEED_COLORS={maria:'#12794D',ivonna:'#5A3A88',jan:'#B8860B',none:'#5F5E5A'};
+const CAL_FEED_COLORNAME={maria:'Green',ivonna:'Purple',jan:'Deep gold',none:'Graphite'};
 window.showCalendarSync=function(){
   const feeds=(BOOT&&BOOT.calendarFeeds)||[];
   let ov=document.getElementById('calOv');
