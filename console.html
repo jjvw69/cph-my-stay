@@ -1558,12 +1558,6 @@ async function renderPayables(){
     ${nav}
     <div class="today-head">Jan - Suppliers to pay &amp; profit</div>
     <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · Jan only</div>
-    <div class="today-stats" style="margin:10px 0 14px">
-      <div class="stat owed"><div class="num money" style="color:#9E5B43">${money0(p.toPay)}</div><div class="lbl">To pay suppliers now</div></div>
-      <div class="stat paid"><div class="num money">${money0(p.profit)}</div><div class="lbl">Profit to account</div></div>
-      <div class="stat"><div class="num money">${money0(p.pending)}</div><div class="lbl">Awaiting guest payment</div></div>
-      <div class="stat"><div class="num money">${money0(p.totalCharged)}</div><div class="lbl">Invoiced (all)</div></div>
-    </div>
     ${p.count?summary+ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
   buildPaySecNav(p);
   // Ledger runs full-width (pay-mode hides the side rail); nothing to render in #preview.
