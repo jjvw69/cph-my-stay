@@ -1738,7 +1738,10 @@ function renderToday(){
 }
 
 /* ---- editor ---- */
-function villaOpts(sel){ return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.name)}${v.internalName?' — '+esc(v.internalName):' · '+esc(v.area)}</option>`).join(''); }
+// Quick-fill list: INTERNAL property name first, then the villa name, sorted alphabetically by the
+// internal name (numeric-aware, so "Los Lagos 4" sorts before "Los Lagos 31"). Villas with no internal
+// name fall back to "villa name · area" and sort by the villa name.
+function villaOpts(sel){ const key=v=>(v.internalName||v.name||''); return '<option value="">— quick-fill from a listing —</option>'+BOOT.villas.slice().sort((a,b)=>key(a).localeCompare(key(b),undefined,{numeric:true,sensitivity:'base'})).map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${v.internalName?esc(v.internalName)+' — '+esc(v.name):esc(v.name)+' · '+esc(v.area)}</option>`).join(''); }
 function concOpts(sel){ return BOOT.concierges.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
 function set(k,v){ cur[k]=v; renderPreview(); if(k==='villaId')renderEditor(); markDirty(); }
 /* Lead full name → auto-fill the login "last name" from the last word, unless the concierge has typed a different one. */
