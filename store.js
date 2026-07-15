@@ -1305,7 +1305,9 @@ function payables() {
   stays.forEach(s => {
     const meta = {
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
-      checkin: s.checkin || '', upcoming: !!(s.checkout && s.checkout >= today),
+      villaInternal: (s.villaInternal || '').trim(),   // internal property name (e.g. "Bahia Minitas 3")
+      checkin: s.checkin || '', checkout: s.checkout || '',   // arrival + departure
+      upcoming: !!(s.checkout && s.checkout >= today),
       // CPH booking agent = the internal owner of the reservation (ivonna | jan), staff-only field.
       cphAgent: (s.bookingAgent || '').trim(),
       // Booking source = the channel/OTA the villa was booked through (Direct, Rental Escapes, …).

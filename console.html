@@ -116,10 +116,12 @@
   .pay-ledger thead th.srt{color:#5A3A88}
   .pay-ledger tbody td{padding:8px 11px;border-bottom:1px solid #EEF1EF;vertical-align:middle;white-space:nowrap}
   .pay-ledger tbody tr:hover{background:#FBFBFA}
-  .pd-date{color:var(--soft);font-variant-numeric:tabular-nums}
+  .pd-date{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+  .pd-date .pd-dep{color:var(--soft);font-weight:500}
   .pd-g{cursor:pointer;border-left:3px solid transparent}
   .pd-g b{display:block;color:var(--ink);font-weight:700}
   .pd-g span{display:block;font-size:11px;color:var(--soft)}
+  .pd-g .pd-int{color:#5A3A88;font-weight:600}
   .pd-tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:1px 6px;margin-right:5px;color:#fff}
   .pd-tag.cat-cart{background:#12794D}
   .pd-tag.cat-xfer{background:#5A3A88}
@@ -1511,8 +1513,8 @@ async function renderPayables(){
       ? `<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`
       : `<span class="pay-await" title="Not owed to the supplier until the guest pays">awaiting guest</span>`;
     return `<tr class="pay-r ${state}">
-      <td class="pd-date">${esc(fmtDay(r.checkin))}</td>
-      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span></td>
+      <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}</td>
+      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span>${r.villaInternal?`<span class="pd-int">${esc(r.villaInternal)}</span>`:''}</td>
       <td><span class="pd-tag ${catClass(r.category)}">${catShort(r.category)}</span>${esc(r.detail)}${r.invoiceNo?`<span class="pd-no">#${esc(r.invoiceNo)}</span>`:''}</td>
       <td class="pd-sup">${esc(r.supplier)}</td>
       <td class="pd-agent">${r.cphAgent?esc(agentName(r.cphAgent)):'<span class="pd-dim">—</span>'}</td>
@@ -1524,7 +1526,7 @@ async function renderPayables(){
     </tr>`;
   };
   const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
-    <thead><tr>${th('date','Date')}${th('guest','Guest / villa')}<th>Service</th>${th('supplier','Supplier')}${th('agent','CPH agent')}${th('source','Source')}${th('invoice','Invoice','num')}${th('pay','Pay supplier','num')}${th('profit','Profit','num')}<th>Status</th></tr></thead>
+    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}<th>Service</th>${th('supplier','Supplier')}${th('agent','CPH agent')}${th('source','Source')}${th('invoice','Invoice','num')}${th('pay','Pay supplier','num')}${th('profit','Profit','num')}<th>Status</th></tr></thead>
     <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="10" style="padding:16px;color:var(--soft)">No bookings for this supplier.</td></tr>'}</tbody>
     <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${PAY_FILTER?esc(PAY_FILTER)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
   </table></div>`;
