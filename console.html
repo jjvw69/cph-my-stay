@@ -160,7 +160,7 @@
   .pay-topnav button.nav-owner{color:#5A3A88}
   .pay-topnav button.nav-owner:hover{border-color:#5A3A88}
   /* summary panels (the old right-rail content) now sit BELOW the ledger */
-  .pay-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}
+  .pay-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:2px 0 16px}
   .pay-sumcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
   .pay-sumcard h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);font-weight:800;margin:0 0 3px}
   .pay-sumcard .sub{font-size:11.5px;color:var(--soft);margin:0 0 9px}
@@ -1558,7 +1558,7 @@ async function renderPayables(){
       <div class="stat"><div class="num money">${money0(p.pending)}</div><div class="lbl">Awaiting guest payment</div></div>
       <div class="stat"><div class="num money">${money0(p.totalCharged)}</div><div class="lbl">Invoiced (all)</div></div>
     </div>
-    ${p.count?ledger+summary:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
+    ${p.count?summary+ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
   buildPaySecNav(p);
   // Ledger runs full-width (pay-mode hides the side rail); nothing to render in #preview.
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
