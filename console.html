@@ -171,6 +171,9 @@
   .pay-sumrow .s{color:var(--ink);font-weight:600}
   .pay-sumrow .v{font-weight:800;color:#9E5B43;white-space:nowrap}
   .pay-sumrow .v.wait{color:var(--soft)}
+  .pay-sumrow.pay-sumtotal{border-top:2px solid var(--line);border-bottom:0;margin-top:3px;padding-top:9px}
+  .pay-sumrow.pay-sumtotal .s{font-weight:800}
+  .pay-sumrow.pay-sumtotal .v{font-size:14px}
   .rev-payee{display:flex;gap:22px}
   .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
   .rev-payee span{display:block;font-size:11.5px;color:var(--soft)}
@@ -1548,7 +1551,7 @@ async function renderPayables(){
   const supRow=(g,cls)=>`<div class="pay-sumrow"><span class="s">${esc(g.supplier)} <span style="color:var(--soft);font-weight:500">· ${catLabel(g.category)}</span></span><span class="v${cls||''}">${money0(cls?g.pending:g.outstanding)}</span></div>`;
   const summary=`<div class="pay-summary">
     <div class="pay-sumcard"><h4>To pay each supplier now</h4><div class="sub">guest has paid · supplier not yet paid</div>
-      ${owing.length?owing.map(g=>supRow(g,'')).join(''):'<div class="sub">Nothing to pay right now — every guest-paid booking is settled.</div>'}</div>
+      ${owing.length?owing.map(g=>supRow(g,'')).join('')+`<div class="pay-sumrow pay-sumtotal"><span class="s">Total to pay now</span><span class="v">${money0(owing.reduce((a,g)=>a+g.outstanding,0))}</span></div>`:'<div class="sub">Nothing to pay right now — every guest-paid booking is settled.</div>'}</div>
     <div class="pay-sumcard"><h4>Awaiting guest payment</h4><div class="sub">becomes payable once the guest pays</div>
       ${waiting.length?waiting.map(g=>supRow(g,' wait')).join(''):'<div class="sub">Nothing awaiting guest payment.</div>'}</div>
     <div class="pay-sumcard"><h4>Profit to account</h4><div class="sub">CPH margin on paid bookings</div>
