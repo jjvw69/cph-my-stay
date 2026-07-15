@@ -1303,6 +1303,9 @@ function payables() {
     return base;
   };
   stays.forEach(s => {
+    // Jan payables view is JAN's book only: skip any stay not assigned to Jan as CPH agent
+    // (excludes Ivonna and Unassigned bookings).
+    if ((s.bookingAgent || '').trim().toLowerCase() !== 'jan') return;
     const meta = {
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
       villaInternal: (s.villaInternal || '').trim(),   // internal property name (e.g. "Bahia Minitas 3")
