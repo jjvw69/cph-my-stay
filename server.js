@@ -200,11 +200,14 @@ function calendarICS(who){
         if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
         L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
       // (J) ARR | BAH3 | Hartley   —  on the check-in day; time = arrival flight, else villa check-in
-      ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, s.checkin,
+      // UID carries an "-ad" (all-day) version tag: the events flipped timed↔all-day a few times and
+      // Apple cached stale TIMED ghosts under the old bare UID. A fresh UID makes Apple drop the ghost
+      // (its old UID is no longer in the feed) and re-add a clean all-day event — no resubscribe needed.
+      ev('arr-'+s.id+'-ad@cph-my-stay', prefix+'ARR | '+code+' | '+name, s.checkin,
         'Arrival '+(arrTime||'3:00 PM'),
         flightLine('Flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:''}));
       // (J) DEP | BAH3 | Hartley   —  on the check-out day; time = return flight, else villa check-out
-      ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, s.checkout,
+      ev('dep-'+s.id+'-ad@cph-my-stay', prefix+'DEP | '+code+' | '+name, s.checkout,
         'Departure '+(depTime||'11:00 AM'),
         flightLine('Flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:''}));
     });
