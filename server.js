@@ -194,27 +194,26 @@ function calendarICS(who){
       const baseNotes=['Booking '+(s.reference||''), villaFull?('Villa: '+villaFull+(s.villaName?(' · '+s.villaName):'')):'',
         guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):''].filter(Boolean);
       // Link is NOT repeated in the notes — the URL property below already gives Apple a tappable row.
-      const notesFor=(extra)=>[...(extra?[extra]:[]), ...baseNotes].filter(Boolean).join('\n');
-      // ALL-DAY events (VALUE=DATE) → Apple renders them as SOLID greeter-coloured blocks in month view
-      // (a timed event only draws a thin bar). All-day blocks don't show a clock time, so the flight /
-      // check-in / check-out time is carried in the FIRST notes line instead. DTEND is exclusive → +1 day.
-      const ev=(uid,summary,day,timeLabel,flight)=>{ const d1=icsDate(day); if(!d1) return;
-        const notes=notesFor([timeLabel,flight].filter(Boolean).join('  ·  '));
+      const notesFor=(flight)=>[...(flight?[flight]:[]), ...baseNotes].filter(Boolean).join('\n');
+      // TIMED events (1h) at the arrival / departure time — the arrival flight time when known, else the
+      // villa's 3:00 PM check-in; the return flight time, else 11:00 AM check-out. Apple draws a timed
+      // event as a colour bar + the time on the face (a filled block is only possible for all-day events).
+      const ev=(uid,summary,start,flight)=>{ if(!start) return;
         L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
-        'SUMMARY:'+icsEsc(summary),'DTSTART;VALUE=DATE:'+d1,'DTEND;VALUE=DATE:'+icsDatePlus(day,1));
+        'SUMMARY:'+icsEsc(summary),'DTSTART:'+start,'DTEND:'+icsPlusHour(start));
         if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
-        L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
-      // (J) ARR | BAH3 | Hartley   —  on the check-in day; time = arrival flight, else villa check-in
-      // UID carries an "-ad" (all-day) version tag: the events flipped timed↔all-day a few times and
-      // Apple cached stale TIMED ghosts under the old bare UID. A fresh UID makes Apple drop the ghost
-      // (its old UID is no longer in the feed) and re-add a clean all-day event — no resubscribe needed.
-      ev('arr-'+s.id+'-ad@cph-my-stay', prefix+'ARR | '+code+' | '+name, s.checkin,
-        'Arrival '+(arrTime||'3:00 PM'),
-        flightLine('Flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:''}));
-      // (J) DEP | BAH3 | Hartley   —  on the check-out day; time = return flight, else villa check-out
-      ev('dep-'+s.id+'-ad@cph-my-stay', prefix+'DEP | '+code+' | '+name, s.checkout,
-        'Departure '+(depTime||'11:00 AM'),
-        flightLine('Flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:''}));
+        L.push('DESCRIPTION:'+icsEsc(notesFor(flight)),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
+      // (J) ARR | BAH3 | Hartley   —  at the arrival flight time, else the villa's 3:00 PM check-in.
+      // UID carries a "-t" (timed) version tag: the events flipped all-day↔timed a few times and Apple
+      // cached stale ghosts under the old UIDs. A fresh UID makes Apple drop the ghost (its old UID is no
+      // longer in the feed) and re-add a clean timed event — no resubscribe needed.
+      ev('arr-'+s.id+'-t@cph-my-stay', prefix+'ARR | '+code+' | '+name,
+        icsStampLocal(s.checkin,arrTime,15),
+        flightLine('Flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:tf.arrTime}));
+      // (J) DEP | BAH3 | Hartley   —  at the return flight time, else the villa's 11:00 AM check-out.
+      ev('dep-'+s.id+'-t@cph-my-stay', prefix+'DEP | '+code+' | '+name,
+        icsStampLocal(s.checkout,depTime,11),
+        flightLine('Flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:tf.depTime}));
     });
   L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n')+'\r\n';
