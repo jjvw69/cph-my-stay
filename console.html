@@ -153,6 +153,22 @@
   .pay-changed{display:block;font-size:10.5px;color:#9A2B2B;margin-top:2px;white-space:normal}
   .pay-rail-profit{font-family:var(--display);font-size:22px;font-weight:700;color:#12794D}
   .pay-rail-profit span{display:block;font-family:var(--ui);font-size:11.5px;font-weight:500;color:var(--soft)}
+  /* nav row (back to the main console views) sits above the section title */
+  .pay-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .pay-topnav button{font-family:var(--ui);font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer}
+  .pay-topnav button:hover{border-color:#12794D;color:#12794D}
+  .pay-topnav button.nav-owner{color:#5A3A88}
+  .pay-topnav button.nav-owner:hover{border-color:#5A3A88}
+  /* summary panels (the old right-rail content) now sit BELOW the ledger */
+  .pay-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}
+  .pay-sumcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .pay-sumcard h4{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);font-weight:800;margin:0 0 3px}
+  .pay-sumcard .sub{font-size:11.5px;color:var(--soft);margin:0 0 9px}
+  .pay-sumrow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #F0F3F1;font-size:13px}
+  .pay-sumrow:last-child{border-bottom:0}
+  .pay-sumrow .s{color:var(--ink);font-weight:600}
+  .pay-sumrow .v{font-weight:800;color:#9E5B43;white-space:nowrap}
+  .pay-sumrow .v.wait{color:var(--soft)}
   .rev-payee{display:flex;gap:22px}
   .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
   .rev-payee span{display:block;font-size:11.5px;color:var(--soft)}
@@ -1512,7 +1528,28 @@ async function renderPayables(){
     <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="10" style="padding:16px;color:var(--soft)">No bookings for this supplier.</td></tr>'}</tbody>
     <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${PAY_FILTER?esc(PAY_FILTER)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
   </table></div>`;
+  // Nav back to the main console views (the left column is hidden in full-width pay-mode).
+  const nav=`<div class="pay-topnav">
+    <button onclick="backToList()" title="Back to the stay list">← All stays</button>
+    <button onclick="showToday()">▦ Today</button>
+    <button onclick="showArrivals()">▤ Arrivals</button>
+    <button onclick="showInbox()">✉ Messages</button>
+    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◷ Upsell</button>`:''}
+  </div>`;
+  // Summary panels (the old right-rail content) — now placed BELOW the ledger.
+  const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
+  const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
+  const supRow=(g,cls)=>`<div class="pay-sumrow"><span class="s">${esc(g.supplier)} <span style="color:var(--soft);font-weight:500">· ${catLabel(g.category)}</span></span><span class="v${cls||''}">${money0(cls?g.pending:g.outstanding)}</span></div>`;
+  const summary=`<div class="pay-summary">
+    <div class="pay-sumcard"><h4>To pay each supplier now</h4><div class="sub">guest has paid · supplier not yet paid</div>
+      ${owing.length?owing.map(g=>supRow(g,'')).join(''):'<div class="sub">Nothing to pay right now — every guest-paid booking is settled.</div>'}</div>
+    <div class="pay-sumcard"><h4>Awaiting guest payment</h4><div class="sub">becomes payable once the guest pays</div>
+      ${waiting.length?waiting.map(g=>supRow(g,' wait')).join(''):'<div class="sub">Nothing awaiting guest payment.</div>'}</div>
+    <div class="pay-sumcard"><h4>Profit to account</h4><div class="sub">CPH margin on paid bookings</div>
+      <div class="pay-rail-profit">${money0(p.profit)}<span>realised${p.profitPending?` · ${money0(p.profitPending)} pending`:''}</span></div></div>
+  </div>`;
   el.innerHTML=`
+    ${nav}
     <div class="today-head">Suppliers to pay &amp; profit</div>
     <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · Jan only</div>
     <div class="today-stats" style="margin:10px 0 14px">
@@ -1521,7 +1558,7 @@ async function renderPayables(){
       <div class="stat"><div class="num money">${money0(p.pending)}</div><div class="lbl">Awaiting guest payment</div></div>
       <div class="stat"><div class="num money">${money0(p.totalCharged)}</div><div class="lbl">Invoiced (all)</div></div>
     </div>
-    ${p.count?ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
+    ${p.count?ledger+summary:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
   buildPaySecNav(p);
   // Ledger runs full-width (pay-mode hides the side rail); nothing to render in #preview.
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
