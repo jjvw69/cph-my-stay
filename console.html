@@ -1135,7 +1135,7 @@ window.revShowDue=function(){
 };
 /* Both earnings lists start COLLAPSED — the headline numbers and the donut are the point; the
    booking-by-booking detail is there when you want it (tap "show"). */
-const earnOpen={cart:false,car:false,xfer:false,yacht:false,invilla:false,groc:false};
+const earnOpen={cart:false,car:false,xfer:false,yacht:false,invilla:false,groc:false,grocearn:false};
 window.toggleEarn=function(k){ earnOpen[k]=!earnOpen[k]; const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderRevenue().then(()=>{ if(e)e.scrollTop=sc; }); };
 function earnList(key,summaryHtml,rowsHtml){
   const open=!!earnOpen[key];
@@ -1313,30 +1313,34 @@ async function renderRevenue(){
         pend?'chef · massage · nannies · staff · cake · bike rentals · entertainment — profit margin to be determined':'chef · massage · nannies · staff · cake · bike rentals · entertainment');
     })();
 
-    /* Groceries — a pass-through, NOT revenue. Shown in the left column below cash flow purely so the
-       money moving through is visible; excluded from every revenue figure on the page. */
-    const secGroc = (function(){
-      const g=m.groceryMovements; if(!g||!g.count) return '';
-      return sec('Groceries · movements only',`
-        <div class="today-stats" style="margin-bottom:10px">
-          <div class="stat"><div class="num money">${money0(g.charged)}</div><div class="lbl">Charged</div></div>
-          <div class="stat paid"><div class="num money">${money0(g.paid)}</div><div class="lbl">Collected</div></div>
-          <div class="stat owed"><div class="num money">${money0(g.due)}</div><div class="lbl">Still owed</div></div>
+    /* Groceries — the supermarket bill and service fee are a pass-through, but CPH keeps the
+       PICK-UP & DELIVERY fee on each grocery invoice. That fee is the earning; shown here in the
+       same format as the other services. */
+    const secGrocEarn = (function(){
+      const ge=m.groceryEarnings; if(!ge) return '';
+      const has=ge.all.charged>0;
+      const up=(ge.rows||[]).filter(r=>r.upcoming);
+      return sec('Grocery earnings · pick-up &amp; delivery',`
+        <div class="today-stats" style="margin-bottom:12px">
+          <div class="stat paid"><div class="num money">${money0(ge.all.margin)}</div><div class="lbl">CPH earnings</div></div>
+          <div class="stat"><div class="num money">${money0(ge.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ge.all.cost)}</div><div class="lbl">Grocery bill</div></div>
+          <div class="stat"><div class="num">${ge.all.count}</div><div class="lbl">Invoices</div></div>
         </div>
-        ${earnList('groc',`${g.count} grocery invoice${g.count===1?'':'s'} — not counted as revenue`,
-          (g.rows||[]).map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
-            <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')}${r.no?' · #'+esc(r.no):''}</span></span>
-            <span class="rev-od-m">${money0(r.total)} <span class="ups-pill ${r.paid?'ok':'due'}">${r.paid?'paid':'due'}</span></span>
-          </div>`).join(''))}`,
-        'a pass-through — shown for visibility, excluded from revenue');
+        ${has?earnBySource(ge.bySource,{key:'count',label:'invoices'}):'<div class="rev-empty">No grocery invoices yet — this section fills in automatically when one is added.</div>'}
+        ${up.length?earnList('grocearn',`Upcoming — projected: <b style="color:#12794D">${money0(ge.upcoming.margin)}</b> on ${ge.upcoming.count} invoice${ge.upcoming.count===1?'':'s'}`,
+          up.map(r=>`<div class="rev-od-row" onclick="selectStay('${r.stayId}')">
+            <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
+            <span class="rev-od-m">${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
+          </div>`).join('')):''}`,
+        'CPH keeps the pick-up &amp; delivery fee · the grocery bill is a pass-through');
     })();
 
-    /* LEFT column = KPI cards + cash flow + groceries beneath them. Insert now that they're built. */
+    /* LEFT column = KPI cards + cash flow beneath them. Insert now that they're built. */
     { document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove();
       const sl=document.getElementById('stayList');
       if(sl)sl.insertAdjacentHTML('beforebegin', kpiHtml
-        + (secCash?`<div id="revCash" class="rev-left-cash">${secCash}</div>`:'')
-        + (secGroc?`<div id="revGroc" class="rev-left-cash">${secGroc}</div>`:'')); }
+        + (secCash?`<div id="revCash" class="rev-left-cash">${secCash}</div>`:'')); }
 
     el.innerHTML=`
     <div class="today-head">Revenue &amp; upsell</div>
@@ -1348,7 +1352,8 @@ async function renderRevenue(){
     ${secCar}
     ${secXfer}
     ${secYacht}
-    ${secInvilla}`;
+    ${secInvilla}
+    ${secGrocEarn}`;
 
   /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
   const rail=document.getElementById('preview'); if(!rail) return;

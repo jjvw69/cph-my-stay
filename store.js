@@ -1146,6 +1146,53 @@ function upsellMetrics() {
   grocRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const groceryMovements = { charged: grocCharged, paid: grocPaid, due: grocDue, count: grocCount, rows: grocRows };
 
+  // ---- GROCERY EARNINGS (pick-up & delivery fee) ---------------------------------------------
+  // Groceries are mostly a pass-through — the supermarket bill and the service fee flow straight
+  // out — but CPH keeps the PICK-UP & DELIVERY fee on each grocery invoice. That fee is CPH's
+  // earning; everything else on the invoice is the guest's grocery bill. Reported here in the
+  // same shape as the other earnings sections so it slots into the CPH earnings roll-up.
+  //   charged = full grocery invoice value (sub-total + service fee + pick-up)
+  //   margin  = pick-up & delivery fee (what CPH keeps)   ·   cost = charged − margin
+  const grocEarnRows = [];
+  stays.forEach(s => {
+    let charged = 0, margin = 0, count = 0, via = '', paidAmt = 0, dueAmt = 0;
+    (s.invoices || []).forEach(inv => {
+      if (inv.status === 'draft') return;
+      if (!isGroceryInv(inv)) return;
+      const g = groceryBreakdown(inv);
+      const pickup = Number(g.pickup) || 0;
+      const chg = Number(g.totalUSD) || 0;            // full invoice value (sub + service fee + pick-up)
+      if (!chg && !pickup) return;
+      charged += chg; margin += pickup; count++;
+      if (!via) { const v = (inv.items || []).map(it => String(it.bookedVia || '').trim()).find(Boolean); if (v) via = v; }
+      if (inv.status === 'paid') paidAmt += chg; else dueAmt += chg;
+    });
+    if (count) grocEarnRows.push({
+      stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
+      checkin: s.checkin || '', count,
+      source: via || (s.source || 'Unknown').trim(),
+      charged: Math.round(charged * 100) / 100, margin: Math.round(margin * 100) / 100,
+      cost: Math.round((charged - margin) * 100) / 100,
+      paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
+      upcoming: !!(s.checkout && s.checkout >= today),
+    });
+  });
+  const grocEarnBySrc = {};
+  grocEarnRows.forEach(r => {
+    const e = grocEarnBySrc[r.source] || (grocEarnBySrc[r.source] = { key: r.source, bookings: 0, count: 0, charged: 0, cost: 0, margin: 0 });
+    e.bookings++; e.count += r.count; e.charged += r.charged; e.cost += r.cost; e.margin += r.margin;
+  });
+  grocEarnRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const grocEarnSum = list => list.reduce((a, r) => ({
+    charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
+  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+  const groceryEarnings = {
+    all: grocEarnSum(grocEarnRows),
+    upcoming: grocEarnSum(grocEarnRows.filter(r => r.upcoming)),
+    rows: grocEarnRows,
+    bySource: Object.values(grocEarnBySrc).sort((a, b) => b.margin - a.margin),
+  };
+
   // ---- TOTAL CPH EARNINGS --------------------------------------------------------------------
   // What WE actually made, across the services where we take a margin — NOT what was invoiced.
   // (Groceries deliberately excluded: they're a pass-through, not a CPH margin line.)
@@ -1173,12 +1220,13 @@ function upsellMetrics() {
     { key: 'Airport transfers', margin: transferEarnings.all.margin, charged: transferEarnings.all.charged },
     { key: 'Yacht charters', margin: yachtEarnings.all.margin, charged: yachtEarnings.all.charged },
     { key: 'In-villa services', margin: invillaEarnings.all.margin, charged: invillaEarnings.all.charged },
+    { key: 'Groceries', margin: groceryEarnings.all.margin, charged: groceryEarnings.all.charged },
     { key: 'Service fees', margin: serviceFeeIncome, charged: serviceFeeIncome },
   ].filter(p => p.margin > 0).sort((a, b) => b.margin - a.margin);
   const totalEarnings = {
     margin: earnParts.reduce((a, p) => a + p.margin, 0),
     charged: earnParts.reduce((a, p) => a + p.charged, 0),
-    upcomingMargin: cartEarnings.upcoming.margin + carEarnings.upcoming.margin + transferEarnings.upcoming.margin + yachtEarnings.upcoming.margin + invillaEarnings.upcoming.margin,
+    upcomingMargin: cartEarnings.upcoming.margin + carEarnings.upcoming.margin + transferEarnings.upcoming.margin + yachtEarnings.upcoming.margin + invillaEarnings.upcoming.margin + groceryEarnings.upcoming.margin,
     parts: earnParts,
   };
 
@@ -1218,7 +1266,7 @@ function upsellMetrics() {
     byChannel: sortRev(CH),
     byPayee: PAYEE, overdue, overdueTotal: overdue.filter(o => o.daysOverdue > 0).reduce((a, o) => a + o.total, 0),
     cartEarnings, carEarnings, transferEarnings, yachtEarnings, invillaEarnings, totalEarnings, cashFlow,
-    groceryMovements,
+    groceryMovements, groceryEarnings,
   };
 }
 
