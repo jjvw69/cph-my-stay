@@ -109,9 +109,19 @@
   .rev-od-row.pay-done .pay-cost{text-decoration:line-through;color:var(--soft)}
   .pay-charged{color:#9AA49B;margin-right:8px;font-size:12px}
   .pay-cost{color:#9E5B43;font-weight:700;margin-right:8px}
+  .pay-profit{color:#12794D;font-weight:700;margin-right:8px;font-size:12px}
+  .pay-status{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;padding:1px 8px;margin-right:8px}
+  .pay-status.ok{background:#E7F1EC;color:#12794D}
+  .pay-status.due{background:#FBEEE7;color:#9E5B43}
+  .pay-await{font-size:11px;color:#9AA49B;font-style:italic}
   .pay-btn{font-family:var(--ui);font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:3px 10px;cursor:pointer}
   .pay-btn:hover{border-color:#9E5B43;color:#9E5B43}
   .pay-btn.on{background:#E7F1EC;border-color:#BFE0CE;color:#12794D}
+  .rev-od-row.pay-unpaid{opacity:.82}
+  .pay-pend{color:#9AA49B;font-weight:600}
+  .pay-prof{color:#12794D;font-weight:600}
+  .pay-rail-profit{font-family:var(--display);font-size:22px;font-weight:700;color:#12794D}
+  .pay-rail-profit span{display:block;font-family:var(--ui);font-size:11.5px;font-weight:500;color:var(--soft)}
   .pay-changed{flex-basis:100%;font-size:11px;color:#9A2B2B;margin-top:2px}
   .rev-payee{display:flex;gap:22px}
   .rev-payee>div{flex:1;background:#F7F9F8;border:1px solid var(--line);border-radius:12px;padding:10px 13px}
@@ -1181,7 +1191,7 @@ async function renderRevenue(){
   const m=METRICS;
   if(!m){ el.innerHTML='<div class="today-clear">Revenue is restricted to Jan and Ivonna.</div>'; return; }
   const od=(m.overdue||[]).filter(o=>o.daysOverdue>0);
-  const sec=(t,body,sub)=>`<div class="rev-sec"><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
+  const sec=(t,body,sub,id)=>`<div class="rev-sec"${id?` id="${id}"`:''}><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   /* LEFT column carries the headline KPI cards, stacked. The booking list / search / folders are
      hidden in revenue view (see .cols.rev-mode CSS); nav stays on the Today/Arrivals buttons at
      the top of the left column. */
@@ -1198,7 +1208,7 @@ async function renderRevenue(){
   /* Sections are built as named blocks, then placed in the order Jan wants:
      Revenue by arrival month → CPH earnings → Golf carts → Airport transfers.
      Cash flow lives in the LEFT column, under the KPI cards. */
-  const secRevMonth = sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned');
+  const secRevMonth = sec('Revenue by arrival month', revMonthChart(m.byMonth||[]), 'when the money is earned', 'rsec-month');
 
   const secCph = (function(){
       const t=m.totalEarnings; if(!t||!t.margin) return '';
@@ -1218,7 +1228,7 @@ async function renderRevenue(){
           <div class="rev-bar-sub">${money0(p.charged)} charged to guests</div>
         </div>`).join('')}
         ${t.upcomingMargin?`<div class="rev-sub" style="margin-top:8px">Still to come from upcoming stays: <b style="color:#12794D">${money0(t.upcomingMargin)}</b></div>`:''}`,
-        'the margin — not the invoice total');
+        'the margin — not the invoice total', 'rsec-cph');
     })();
 
     /* WHEN the outstanding money actually lands, from the due dates on the unpaid invoices. */
@@ -1258,7 +1268,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
             <span class="rev-od-m">${r.carts}× cart · ${r.nights}n · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        `US$ ${ce.perNight} per cart per day · rate tier changes with the season, the spread doesn't`);
+        `US$ ${ce.perNight} per cart per day · rate tier changes with the season, the spread doesn't`, 'rsec-cart');
     })();
 
     const secXfer = (function(){
@@ -1277,7 +1287,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
             <span class="rev-od-m">${r.trips} leg${r.trips===1?'':'s'} · ${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        `${te.pct}% of what the guest is charged · the supplier keeps the rest`);
+        `${te.pct}% of what the guest is charged · the supplier keeps the rest`, 'rsec-xfer');
     })();
 
     const secYacht = (function(){
@@ -1296,7 +1306,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
             <span class="rev-od-m">${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        `${ye.pct}% markup added on top of the boat's price`);
+        `${ye.pct}% markup added on top of the boat's price`, 'rsec-yacht');
     })();
 
     const secCar = (function(){
@@ -1316,7 +1326,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
             <span class="rev-od-m">${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        `${ce.pct}% of what the guest is charged · the supplier keeps the rest`);
+        `${ce.pct}% of what the guest is charged · the supplier keeps the rest`, 'rsec-car');
     })();
 
     /* Chef · massage · nannies · staff · entertainment — grouped. Margin % is TBD, so while it's
@@ -1341,7 +1351,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}${r.supplier?' · '+esc(r.supplier):''}</span></span>
             <span class="rev-od-m">${money0(r.charged)} ${payPill(r)}${pend?'':` <span class="rev-cm">+${money0(r.margin)}</span>`}</span>
           </div>`).join('')):''}`,
-        pend?'chef · massage · nannies · staff · cake · bike rentals · entertainment — profit margin to be determined':'chef · massage · nannies · staff · cake · bike rentals · entertainment');
+        pend?'chef · massage · nannies · staff · cake · bike rentals · entertainment — profit margin to be determined':'chef · massage · nannies · staff · cake · bike rentals · entertainment', 'rsec-invilla');
     })();
 
     /* Groceries — the supermarket bill and service fee are a pass-through, but CPH keeps the
@@ -1364,7 +1374,7 @@ async function renderRevenue(){
             <span class="rev-od-g">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source)}</span></span>
             <span class="rev-od-m">${money0(r.charged)} ${payPill(r)} <span class="rev-cm">+${money0(r.margin)}</span></span>
           </div>`).join('')):''}`,
-        'CPH keeps the pick-up &amp; delivery fee · the grocery bill is a pass-through');
+        'CPH keeps the pick-up &amp; delivery fee · the grocery bill is a pass-through', 'rsec-groc');
     })();
 
     /* LEFT column = KPI cards + cash flow beneath them. Insert now that they're built. */
@@ -1386,6 +1396,8 @@ async function renderRevenue(){
     ${secInvilla}
     ${secGrocEarn}`;
 
+  buildRevSecNav();  // top section-nav chips, same style as the stay editor's secbar
+
   /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
   const rail=document.getElementById('preview'); if(!rail) return;
   const owing=(m.overdue||[]).slice(0,12); // every unpaid invoice, worst first
@@ -1402,56 +1414,96 @@ async function renderRevenue(){
   </div>`;
 }
 
-/* ---- Jan view: supplier payables ("what CPH still owes suppliers") ----
-   Golf-cart table format: KPI cards on top, one block per supplier, one row per paid booking with a
-   Mark-paid toggle. Numbers come from PAID invoices only (paid by the guest = now owed) and are
-   drawn from the same invoice data as the rest of the console. */
+/* Top section-nav for the Upsell (Revenue) view — same hedge-green secbar and chip styling as the
+   stay editor, so Jan can jump straight to Golf carts / Transfers / Yacht etc. Only chips for
+   sections actually present this render are shown. Reuses jumpSec() (generic scroll + highlight). */
+const REVNAV_GROUPS=[
+  {g:'Overview', ids:[['rsec-month','By month'],['rsec-cph','CPH earnings']]},
+  {g:'Services', ids:[['rsec-cart','Golf carts'],['rsec-car','Car rental'],['rsec-xfer','Transfers'],['rsec-yacht','Yacht'],['rsec-invilla','In-villa'],['rsec-groc','Groceries']]},
+];
+function buildSecNavFor(groups){
+  const ed=document.getElementById('editor'); const bar=document.getElementById('secbar'); if(!ed||!bar) return;
+  const groupHtml=grp=>{
+    const chips=grp.ids.filter(([id])=>ed.querySelector('#'+id)).map(([id,lbl])=>`<button class="secnav-chip" onclick="jumpSec('${id}')">${esc(lbl)}</button>`);
+    return chips.length?`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`:'';
+  };
+  const html=groups.map(groupHtml).join('');
+  bar.innerHTML=html?`<div class="secbar-row secbar-main">${html}</div>`:'';
+}
+function buildRevSecNav(){ buildSecNavFor(REVNAV_GROUPS); }
+
+/* ---- Jan view: supplier payables ("what CPH owes suppliers" + the profit to account) ----
+   Golf-cart table format: KPI cards on top, one block per supplier, one row per booking. Each row
+   shows what's charged, the supplier cost, CPH's profit, and a Paid/Unpaid pill; guest-paid rows
+   carry a Mark-paid toggle. Includes SENT (unpaid) and PAID invoices — unpaid ones are "awaiting the
+   guest", so not owed to the supplier yet. Same invoice data as the rest of the console. */
 async function renderPayables(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!PAYABLES) await refreshPayables();
   const p=PAYABLES;
-  if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; return; }
-  const sec=(t,body,sub)=>`<div class="rev-sec"><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
+  if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
+  const sec=(t,body,sub,id)=>`<div class="rev-sec"${id?` id="${id}"`:''}><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':'Mixed';
-  const payRow=r=>`<div class="rev-od-row${r.settled?' pay-done':''}">
+  const payRow=r=>`<div class="rev-od-row${r.settled?' pay-done':''}${r.guestPaid?'':' pay-unpaid'}">
       <span class="rev-od-g" onclick="selectStay('${r.stayId}')">${esc(r.guest)}<span class="rev-od-v"> · ${esc(r.villa||'—')} · ${esc(fmtDay(r.checkin))} · ${esc(r.source||'—')} · ${esc(r.detail)}${r.invoiceNo?' · #'+esc(r.invoiceNo):''}</span></span>
       <span class="rev-od-m">
         <span class="pay-charged" title="charged to the guest">${money0(r.charged)}</span>
         <b class="pay-cost" title="what to pay the supplier">${money0(r.cost)}</b>
-        <button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>
+        <span class="pay-profit" title="CPH profit on this booking">+${money0(r.margin)}</span>
+        <span class="pay-status ${r.guestPaid?'ok':'due'}" title="${r.guestPaid?'Guest has paid this invoice':'Invoice sent — guest has not paid yet'}">${r.guestPaid?'Paid':'Unpaid'}</span>
+        ${r.guestPaid
+          ? `<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`
+          : `<span class="pay-await" title="Not owed to the supplier until the guest pays">awaiting guest</span>`}
       </span>
       ${r.changed?`<span class="pay-changed">Amount changed since you settled it (${money0(r.settledAmount)} → ${money0(r.cost)}) — please re-check.</span>`:''}
     </div>`;
-  const groups=(p.bySupplier||[]).map(g=>sec(
+  const groups=(p.bySupplier||[]).map((g,i)=>sec(
     `${esc(g.supplier)} <span class="pay-sup-cat">${catLabel(g.category)}</span>`,
     `<div class="pay-sup-head">
-        <span class="pay-owe">${money0(g.outstanding)}<span class="lbl">to pay</span></span>
+        <span class="pay-owe">${money0(g.outstanding)}<span class="lbl">to pay now</span></span>
+        ${g.pending?`<span class="pay-pend">${money0(g.pending)} awaiting guest</span>`:''}
         ${g.settled?`<span class="pay-set">${money0(g.settled)} settled</span>`:''}
+        <span class="pay-prof">+${money0(g.profit)} profit</span>
         <span class="pay-cnt">${g.count} booking${g.count===1?'':'s'}</span>
       </div>
-      <div class="rev-od">${g.rows.map(payRow).join('')}</div>`,''));
+      <div class="rev-od">${g.rows.map(payRow).join('')}</div>`,'','psec-'+i));
   el.innerHTML=`
-    <div class="today-head">Suppliers to pay</div>
-    <div class="today-date">What CPH owes suppliers on paid bookings · golf carts &amp; transfers · Jan only</div>
+    <div class="today-head">Suppliers to pay &amp; profit</div>
+    <div class="today-date">Supplier costs and CPH profit on golf carts &amp; transfers · Jan only</div>
     <div class="today-stats" style="margin:10px 0 14px">
-      <div class="stat owed"><div class="num money" style="color:#9E5B43">${money0(p.outstanding)}</div><div class="lbl">Still to pay</div></div>
-      <div class="stat paid"><div class="num money">${money0(p.settled)}</div><div class="lbl">Settled</div></div>
-      <div class="stat"><div class="num money">${money0(p.total)}</div><div class="lbl">Total · paid bookings</div></div>
-      <div class="stat"><div class="num">${p.count}</div><div class="lbl">Payables</div></div>
+      <div class="stat owed"><div class="num money" style="color:#9E5B43">${money0(p.toPay)}</div><div class="lbl">To pay suppliers now</div></div>
+      <div class="stat paid"><div class="num money">${money0(p.profit)}</div><div class="lbl">Profit to account</div></div>
+      <div class="stat"><div class="num money">${money0(p.pending)}</div><div class="lbl">Awaiting guest payment</div></div>
+      <div class="stat"><div class="num money">${money0(p.settled)}</div><div class="lbl">Settled</div></div>
     </div>
-    ${p.count?groups.join(''):'<div class="today-clear">No supplier payables yet — this fills in automatically as guests pay their golf-cart and transfer invoices.</div>'}`;
+    ${p.count?groups.join(''):'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
+  buildPaySecNav(p);
   const rail=document.getElementById('preview'); if(!rail) return;
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
+  const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
   rail.innerHTML=`<div class="rev-rail">
-    ${sec('Outstanding by supplier',
+    ${sec('To pay each supplier now',
       owing.length?`<div class="rev-od">${owing.map(g=>`
         <div class="rev-od-row" style="cursor:default">
           <span class="rev-od-g">${esc(g.supplier)}<span class="rev-od-v"> · ${catLabel(g.category)}</span></span>
           <span class="rev-od-m"><b style="color:#9E5B43">${money0(g.outstanding)}</b></span>
         </div>`).join('')}</div>`
-      :'<div class="rev-empty">Nothing outstanding — every supplier is settled.</div>',
-      'what to pay each vendor right now')}
+      :'<div class="rev-empty">Nothing to pay right now — every guest-paid booking is settled.</div>',
+      'guest has paid · supplier not yet paid')}
+    ${waiting.length?sec('Awaiting guest payment',
+      `<div class="rev-od">${waiting.map(g=>`
+        <div class="rev-od-row" style="cursor:default">
+          <span class="rev-od-g">${esc(g.supplier)}<span class="rev-od-v"> · ${catLabel(g.category)}</span></span>
+          <span class="rev-od-m"><b style="color:var(--soft)">${money0(g.pending)}</b></span>
+        </div>`).join('')}</div>`,
+      'becomes payable once the guest pays'):''}
+    ${sec('Profit to account',`<div class="pay-rail-profit">${money0(p.profit)}<span> realised${p.profitPending?` · ${money0(p.profitPending)} pending`:''}</span></div>`,'CPH margin on paid bookings')}
   </div>`;
+}
+/* Section-nav chips for the Jan view — one chip per supplier block (psec-0, psec-1, …). */
+function buildPaySecNav(p){
+  const groups=[{g:'Suppliers', ids:(p.bySupplier||[]).map((g,i)=>['psec-'+i, g.supplier])}];
+  buildSecNavFor(groups);
 }
 /* Tick a supplier payable as paid (or reopen it). Persists on the server, then repaints. */
 window.togglePayableSettled=async function(key,settled,amount){

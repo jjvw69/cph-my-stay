@@ -1292,8 +1292,10 @@ function payables() {
   const round = v => Math.round((Number(v) || 0) * 100) / 100;
   const rows = [];
   const attach = base => {
+    base.margin = round(base.charged - base.cost);         // CPH profit = what's charged − supplier cost
     const st = payablesSettled[base.key] || null;
-    base.settled = !!(st && st.settled);
+    // Only a guest-PAID invoice can be "settled with the supplier"; unpaid ones are never owed yet.
+    base.settled = !!(base.guestPaid && st && st.settled);
     base.settledAmount = st ? Number(st.amount) || 0 : 0;
     base.settledAt = st ? st.at || 0 : 0;
     // invoice edited after Jan settled it → the amount owed no longer matches what he paid
@@ -1306,7 +1308,8 @@ function payables() {
       checkin: s.checkin || '', upcoming: !!(s.checkout && s.checkout >= today),
     };
     (s.invoices || []).forEach(inv => {
-      if (inv.status !== 'paid') return;                 // paid by guest = now owed to the supplier
+      if (inv.status !== 'paid' && inv.status !== 'sent') return;   // skip drafts; include sent (unpaid) + paid
+      const guestPaid = inv.status === 'paid';           // has the guest actually paid this invoice?
       const invNo = inv.no || '', paidAt = inv.paidAt || 0;
       // --- golf carts (Julio only) ---
       let cAmt = 0, cCost = 0, carts = 0, cartNights = 0, nights = 0, cSup = '', cVia = '';
@@ -1322,7 +1325,7 @@ function payables() {
       });
       if (cartNights) rows.push(attach(Object.assign({}, meta, {
         key: inv.id + ':cart', invoiceId: inv.id, invoiceNo: invNo, paidAt,
-        category: 'cart', supplier: cSup || 'Julio', via: cVia,
+        category: 'cart', supplier: cSup || 'Julio', via: cVia, guestPaid,
         // booking agent: the channel that booked THIS cart, else the stay's own source
         source: cVia || (s.source || 'Unknown').trim(),
         detail: carts + '× cart · ' + nights + 'n',
@@ -1339,7 +1342,7 @@ function payables() {
       });
       if (tAmt) rows.push(attach(Object.assign({}, meta, {
         key: inv.id + ':transfer', invoiceId: inv.id, invoiceNo: invNo, paidAt,
-        category: 'transfer', supplier: tSup || '(supplier not set)', via: tVia,
+        category: 'transfer', supplier: tSup || '(supplier not set)', via: tVia, guestPaid,
         // booking agent: the channel that booked THIS transfer, else the stay's own source
         source: tVia || (s.source || 'Unknown').trim(),
         detail: trips + ' leg' + (trips === 1 ? '' : 's'),
@@ -1347,25 +1350,35 @@ function payables() {
       })));
     });
   });
-  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  // Unpaid (awaiting the guest) first so Jan sees what's coming, then paid, each block by check-in.
+  rows.sort((a, b) => (a.guestPaid === b.guestPaid ? String(a.checkin).localeCompare(String(b.checkin)) : (a.guestPaid ? 1 : -1)));
   // group by supplier — the actionable unit is "pay this vendor US$X"
   const bySupMap = {};
   rows.forEach(r => {
-    const e = bySupMap[r.supplier] || (bySupMap[r.supplier] = { supplier: r.supplier, category: r.category, count: 0, cost: 0, outstanding: 0, settled: 0, rows: [] });
-    e.count++; e.cost += r.cost; if (r.settled) e.settled += r.cost; else e.outstanding += r.cost;
+    const e = bySupMap[r.supplier] || (bySupMap[r.supplier] = { supplier: r.supplier, category: r.category, count: 0, cost: 0, outstanding: 0, settled: 0, pending: 0, profit: 0, rows: [] });
+    e.count++; e.cost += r.cost; e.profit += r.margin;
+    if (!r.guestPaid) e.pending += r.cost;               // guest hasn't paid → not owed yet
+    else if (r.settled) e.settled += r.cost;             // paid to the supplier already
+    else e.outstanding += r.cost;                        // paid by guest, still to pay the supplier
     if (e.category !== r.category) e.category = 'mixed';
     e.rows.push(r);
   });
   const bySupplier = Object.values(bySupMap)
-    .map(e => Object.assign(e, { cost: round(e.cost), outstanding: round(e.outstanding), settled: round(e.settled) }))
-    .sort((a, b) => b.outstanding - a.outstanding || b.cost - a.cost);
-  const sumCost = list => round(list.reduce((a, r) => a + r.cost, 0));
-  const byCat = cat => { const rs = rows.filter(r => r.category === cat); return { count: rs.length, cost: sumCost(rs), outstanding: sumCost(rs.filter(r => !r.settled)) }; };
+    .map(e => Object.assign(e, { cost: round(e.cost), outstanding: round(e.outstanding), settled: round(e.settled), pending: round(e.pending), profit: round(e.profit) }))
+    .sort((a, b) => b.outstanding - a.outstanding || b.pending - a.pending || b.cost - a.cost);
+  const paid = rows.filter(r => r.guestPaid), unpaid = rows.filter(r => !r.guestPaid);
+  const sum = (list, f) => round(list.reduce((a, r) => a + f(r), 0));
+  const byCat = cat => { const rs = rows.filter(r => r.category === cat); const rp = rs.filter(r => r.guestPaid); return { count: rs.length, cost: sum(rs, r => r.cost), outstanding: sum(rp.filter(r => !r.settled), r => r.cost), pending: sum(rs.filter(r => !r.guestPaid), r => r.cost), profit: sum(rs, r => r.margin) }; };
   return {
-    total: sumCost(rows),
-    outstanding: sumCost(rows.filter(r => !r.settled)),
-    settled: sumCost(rows.filter(r => r.settled)),
-    count: rows.length,
+    // supplier side — what Jan owes vendors
+    toPay: sum(paid.filter(r => !r.settled), r => r.cost),   // guest paid, supplier not yet paid → pay now
+    settled: sum(paid.filter(r => r.settled), r => r.cost),  // already paid to the supplier
+    pending: sum(unpaid, r => r.cost),                       // supplier cost that becomes due once the guest pays
+    // profit side — what Jan books as CPH earnings
+    profit: sum(paid, r => r.margin),                        // realised profit (guest has paid)
+    profitPending: sum(unpaid, r => r.margin),               // profit still to come (guest hasn't paid)
+    totalCharged: sum(rows, r => r.charged),
+    count: rows.length, paidCount: paid.length, unpaidCount: unpaid.length,
     cart: byCat('cart'), transfer: byCat('transfer'),
     bySupplier, rows,
   };
