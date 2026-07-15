@@ -1306,6 +1306,9 @@ function payables() {
     const meta = {
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
       checkin: s.checkin || '', upcoming: !!(s.checkout && s.checkout >= today),
+      // CPH booking agent for the whole reservation (how the villa was booked) — distinct from the
+      // per-service "bookedVia" channel below. Lets Jan see which agent/partner brought the booking.
+      bookingAgent: (s.source || '').trim(),
     };
     (s.invoices || []).forEach(inv => {
       if (inv.status !== 'paid' && inv.status !== 'sent') return;   // skip drafts; include sent (unpaid) + paid
