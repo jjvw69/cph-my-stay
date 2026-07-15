@@ -190,20 +190,23 @@ function calendarICS(who){
         guests?(guests+' guests'):'', label&&who!=='none'?('Greeter: '+label):''].filter(Boolean);
       // Link is NOT repeated in the notes — the URL property below already gives Apple a tappable row.
       const notesFor=(extra)=>[...(extra?[extra]:[]), ...baseNotes].filter(Boolean).join('\n');
-      // TIMED events (1h). Apple draws a timed event as a colour bar + text, not a filled block —
-      // that's Apple's rendering rule for timed events and is not configurable here.
-      const ev=(uid,summary,start,notes)=>{ L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
-        'SUMMARY:'+icsEsc(summary),'DTSTART:'+start,'DTEND:'+icsPlusHour(start));
+      // ALL-DAY events (VALUE=DATE) → Apple renders them as SOLID greeter-coloured blocks in month view
+      // (a timed event only draws a thin bar). All-day blocks don't show a clock time, so the flight /
+      // check-in / check-out time is carried in the FIRST notes line instead. DTEND is exclusive → +1 day.
+      const ev=(uid,summary,day,timeLabel,flight)=>{ const d1=icsDate(day); if(!d1) return;
+        const notes=notesFor([timeLabel,flight].filter(Boolean).join('  ·  '));
+        L.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+now,'LAST-MODIFIED:'+stamp,
+        'SUMMARY:'+icsEsc(summary),'DTSTART;VALUE=DATE:'+d1,'DTEND;VALUE=DATE:'+icsDatePlus(day,1));
         if(villaFull) L.push('LOCATION:'+icsEsc(villaFull));
         L.push('DESCRIPTION:'+icsEsc(notes),'URL:'+link,'TRANSP:TRANSPARENT','END:VEVENT'); };
-      // (J) ARR | BAH3 | Hartley   —  at the arrival flight time, else the villa's check-in time
-      const a=icsStampLocal(s.checkin,arrTime,15);
-      if(a) ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, a,
-        notesFor(flightLine('Arrival flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:tf.arrTime})));
-      // (J) DEP | BAH3 | Hartley   —  at the return flight time, else the villa's check-out time
-      const d=icsStampLocal(s.checkout,depTime,11);
-      if(d) ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, d,
-        notesFor(flightLine('Return flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:tf.depTime})));
+      // (J) ARR | BAH3 | Hartley   —  on the check-in day; time = arrival flight, else villa check-in
+      ev('arr-'+s.id+'@cph-my-stay', prefix+'ARR | '+code+' | '+name, s.checkin,
+        'Arrival '+(arrTime||'3:00 PM'),
+        flightLine('Flight',{airline:tf.arrAirline,flightNo:tf.arrFlightNo,place:tf.arrFrom&&('from '+tf.arrFrom),time:''}));
+      // (J) DEP | BAH3 | Hartley   —  on the check-out day; time = return flight, else villa check-out
+      ev('dep-'+s.id+'@cph-my-stay', prefix+'DEP | '+code+' | '+name, s.checkout,
+        'Departure '+(depTime||'11:00 AM'),
+        flightLine('Flight',{airline:tf.depAirline,flightNo:tf.depFlightNo,place:tf.depTo&&('to '+tf.depTo),time:''}));
     });
   L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n')+'\r\n';
