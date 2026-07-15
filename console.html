@@ -2635,8 +2635,8 @@ function invLbl(){ return 'display:block;font-size:11.5px;letter-spacing:.12em;t
 function invPickOptions(sel){ let h='';
   const sent=(cur&&cur.sentServices)||[];
   if(sent.length){ h+='<optgroup label="Offered services">'+sent.map((s,idx)=>`<option value="svc:${idx}"${sel==='svc:'+idx?' selected':''}>${esc([s.name,s.option].filter(Boolean).join(' · '))}${s.rate?' · '+esc(s.rate):''}</option>`).join('')+'</optgroup>'; }
-  // 'arrivalmeals' / 'grocery' aren't charged via the service invoice (meals aren't billed; groceries use the grocery invoice), so hide them here.
-  const ad=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).filter(a=>a.id!=='arrivalmeals'&&a.id!=='grocery');
+  // 'arrivalmeals' / 'grocery' aren't charged via the service invoice (meals aren't billed; groceries use the grocery invoice); 'yacht' is billed via the dedicated Yacht invoice (fleet picker) — so hide them here.
+  const ad=((typeof BOOT!=='undefined'&&BOOT.addons)||[]).filter(a=>a.id!=='arrivalmeals'&&a.id!=='grocery'&&a.id!=='yacht');
   if(ad.length){ h+='<optgroup label="Villa add-ons">'+ad.map(a=>`<option value="addon:${esc(a.id)}"${sel==='addon:'+a.id?' selected':''}>${esc(a.name)}${a.rates?' · '+esc(a.rates):''}</option>`).join('')+'</optgroup>'; }
   h+=`<option value="custom"${sel==='custom'?' selected':''}>➕ Custom service — type the name below</option>`; // anything not in the catalog: free-text description + amount
   return h;
