@@ -25,6 +25,7 @@ const ADDON_CATALOG = [
   { id: 'transfer',      category: 'Travel & transfers',    name: 'Private airport transfer',           desc: 'Meet & greet at the airport and a private drive to your villa.' },
   { id: 'carrental',     category: 'Travel & transfers',    name: 'Car rental',                         desc: 'A rental car arranged and waiting for you.' },
   { id: 'golfcart',      category: 'Travel & transfers',    name: 'Golf cart',                          desc: 'Your own cart to get around the resort.' },
+  { id: 'bicycle',       category: 'Travel & transfers',    name: 'Bicycle rental',                     desc: 'Bicycles delivered to your villa for getting around the resort.' },
   { id: 'yacht',         category: 'Travel & transfers',    name: 'Luxury yacht charter',               desc: 'Private yacht and catamaran charters along the coast.' },
   // Provisioning
   { id: 'grocery',       category: 'Provisioning',          name: 'Grocery pre-stocking',               desc: 'Your villa stocked with groceries before you arrive.' },
@@ -47,6 +48,7 @@ const ADDON_CATALOG = [
 // options/rates offered stay identical. Same [label, rate] shape on both sides. Edit here only.
 const SERVICE_OPTIONS = {
   golfcart:[['4-seater · year-round','$80 / day'],['4-seater · Easter & holidays','$120 / day'],['6-seater · year-round','$105 / day'],['6-seater · Easter & holidays','$150 / day']],
+  bicycle:[['Adult · per day','$70 / day'],['Child · per day','$50 / day'],['Custom rate — enter amount below','']],
   carrental:[['Small SUV','$85 / day'],['Luxury SUV','$120 / day'],['Mid-size SUV (3 rows)','$140 / day'],['Minivan (Hyundai H-1)','$125 / day'],['Minivan Full','$160 / day'],['Minibus (up to 15)','$160 / day'],['Chevrolet Tahoe','$320 / day'],['Chevrolet Suburban','$360 / day']],
   transfer:[
     ['LRM → Casa de Campo · Standard · One-way','$50'],['LRM → Casa de Campo · Standard · Round-trip','$90'],

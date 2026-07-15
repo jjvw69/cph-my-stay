@@ -1488,6 +1488,15 @@ const SERVICE_INFO = {
       <div class="rt"><span>6-seater · Easter &amp; holidays</span><span>US$ 150</span></div>
       <div class="rtnote">Full payment confirms the reservation. Fuel is at the guest's expense.</div>`
   },
+  bicycle: {
+    range:true, fromLabel:'From', toLabel:'To', noTime:true, noGuests:true,
+    notePlaceholder:'How many bikes, rider heights/ages for children, anything else we should know…',
+    selects:`<label class="reqlbl">Rider</label><select id="rqService"><option>Adult</option><option>Child</option></select>`,
+    rates:`<b>RATES (per day)</b>
+      <div class="rt"><span>Adult</span><span>US$ 70</span></div>
+      <div class="rt"><span>Child</span><span>US$ 50</span></div>
+      <div class="rtnote">Bikes are delivered to your villa. Full payment confirms the reservation.</div>`
+  },
   carrental: {
     range:true, fromLabel:'Pick-up date', toLabel:'Return date', noGuests:true,
     notePlaceholder:'Driver needed? Child seat? Wi-Fi? Anything else…',
@@ -1796,6 +1805,7 @@ function suggestedPriceFor(refId,o){ o=o||{};
   if(refId==='transfer'){ const TT={LRM:{'Standard':[50,90],'Comfort':[80,150],'VIP Black Luxury':[150,280]},PUJ:{'Standard':[125,240],'Comfort':[160,300],'VIP Black Luxury':[290,560]},SDQ:{'Standard':[140,270],'Comfort':[190,360],'VIP Black Luxury':[320,620]}}; const rt=o.route||''; const code=/PUJ/.test(rt)?'PUJ':/SDQ/.test(rt)?'SDQ':'LRM'; const p=(TT[code]||TT.LRM)[o.svc]; return p?('US$ '+(o.trip==='Round-trip'?p[1]:p[0])):''; }
   if(refId==='golfcart'){ const per=(o.cartTypeRaw==='6-seater')?105:80; const q=Math.max(1,Number(o.cartQty)||1); return 'US$ '+(per*q)+'/day'; }
   if(refId==='carrental'){ const C={'Small SUV (up to 5)':85,'Mid-size SUV (up to 5)':140,'Luxury SUV (up to 5)':120,'Minivan (up to 9)':125,'Minivan Full (up to 9)':160,'Minibus (up to 15)':160,'Chevrolet Tahoe':320,'Chevrolet Suburban (up to 7)':360}; return C[o.svc]?('US$ '+C[o.svc]+'/day'):''; }
+  if(refId==='bicycle'){ return o.svc==='Child'?'US$ 50/day':'US$ 70/day'; }
   if(refId==='catalina') return 'US$ 48/adult';
   return (SERVICE_INFO[refId]&&SERVICE_INFO[refId].defaultPrice)||'';
 }
