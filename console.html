@@ -267,7 +267,7 @@
   .inx-no{color:var(--soft);font-size:11.5px}
   .ab-wrap{padding:2px 2px 20px}
   .ab-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:12px}
-  table.ab{border-collapse:collapse;width:100%;font-size:12px;min-width:1120px}
+  table.ab{border-collapse:collapse;width:auto;font-size:12px}
   table.ab th{position:sticky;top:0;z-index:1;background:#F0EFE7;color:var(--soft);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);white-space:nowrap}
   table.ab td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
   table.ab tbody tr:hover td{background:#FBFAF6}
@@ -286,7 +286,10 @@
   .ab-super{white-space:normal;overflow-wrap:anywhere;min-width:110px;max-width:190px;color:var(--ink);font-size:11.5px}
   .ab-staff{color:var(--ink);font-size:11.5px}
   /* Auto-fit + wrap: columns size to their content, but long text wraps (capped by max-width) instead of forcing horizontal scroll. min-width:0 keeps short cells compact; cart keeps its per-line breaks via pre-line. */
-  .ab-dt,.ab-guest,.ab-ppl,.ab-prov,.ab-villa,.ab-cart,.ab-super,.ab-staff{min-width:0;white-space:normal;overflow-wrap:break-word}
+  /* Long-text columns wrap within their max-width; short columns stay on one line so they hug content. */
+  .ab-guest,.ab-villa,.ab-cart,.ab-super{min-width:0;white-space:normal;overflow-wrap:break-word}
+  .ab-dt,.ab-ppl,.ab-prov,.ab-staff{min-width:0;white-space:nowrap;overflow-wrap:normal}
+  .ab-ppl{text-align:center}
   .ab-villa{max-width:150px}
   .ab-cart{max-width:170px;white-space:pre-line}
   .ab-super,.ab-staff{max-width:190px}
