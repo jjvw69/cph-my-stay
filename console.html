@@ -56,9 +56,13 @@
   /* Jan payables ledger runs full-width so every column (incl. profit + mark-paid) is visible. */
   .cols.pay-mode{grid-template-columns:1fr}
   .cols.pay-mode .col.left,.cols.pay-mode .col.right{display:none}
-  /* Revenue view: the LEFT column carries the headline KPI cards (stacked), the CENTER carries the
-     charts and tables, the RIGHT rail carries the money to chase. */
-  .cols.rev-mode .col.left .lfilter,.cols.rev-mode .col.left .search,.cols.rev-mode .col.left #yearNav,.cols.rev-mode .col.left #stayList{display:none}
+  /* Revenue (Upsell) view runs full-width like the Jan ledger: the section title + month chart span
+     the top, then everything else sits in an even 50/50 two-column grid below. */
+  .cols.rev-mode{grid-template-columns:1fr}
+  .cols.rev-mode .col.left,.cols.rev-mode .col.right{display:none}
+  .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:4px}
+  .rev-col{min-width:0;display:flex;flex-direction:column}
+  @media(max-width:900px){ .rev-grid{grid-template-columns:1fr} }
   .rev-kpi-left{display:flex;flex-direction:column;gap:10px;margin-top:4px}
   .rev-kpi-left .stat{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
   .rev-kpi-left .stat .num{font-size:30px}
@@ -1225,7 +1229,7 @@ window.toggleCf=function(k){ cfOpen.has(k)?cfOpen.delete(k):cfOpen.add(k); const
 window.revShowDue=function(){
   (METRICS&&METRICS.cashFlow||[]).forEach(c=>cfOpen.add(c.key));
   renderRevenue().then(()=>{
-    const box=document.querySelector('.col.left'), t=document.getElementById('revCash');
+    const box=document.getElementById('editor'), t=document.getElementById('revCash');
     if(box&&t) box.scrollTop = box.scrollTop + t.getBoundingClientRect().top - box.getBoundingClientRect().top - 6;
   });
 };
@@ -1432,41 +1436,49 @@ async function renderRevenue(){
         'CPH keeps the pick-up &amp; delivery fee · the grocery bill is a pass-through', 'rsec-groc');
     })();
 
-    /* LEFT column = KPI cards + cash flow beneath them. Insert now that they're built. */
-    { document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove();
-      const sl=document.getElementById('stayList');
-      if(sl)sl.insertAdjacentHTML('beforebegin', kpiHtml
-        + (secCash?`<div id="revCash" class="rev-left-cash">${secCash}</div>`:'')); }
-
-    el.innerHTML=`
-    <div class="today-head">Revenue &amp; upsell</div>
-    <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
-    ${/* ORDER (Jan's): the trend first, then what we made, then per-service. Cash flow is in the left column. */''}
-    ${secRevMonth}
-    ${secCph}
-    ${secCart}
-    ${secCar}
-    ${secXfer}
-    ${secYacht}
-    ${secInvilla}
-    ${secGrocEarn}`;
-
-  buildRevSecNav();  // top section-nav chips, same style as the stay editor's secbar
-
-  /* The right rail carries the money that needs chasing — the one thing you'd act on today. */
-  const rail=document.getElementById('preview'); if(!rail) return;
-  const owing=(m.overdue||[]).slice(0,12); // every unpaid invoice, worst first
-  rail.innerHTML=`<div class="rev-rail">
-    ${/* The "To collect" card was removed — the "Still to collect" KPI card at the top of the page
-          already says it, and saying it twice made neither one land. */''}
-    ${owing.length?sec('Unpaid invoices',`<div class="rev-od">${owing.map(o=>`
+    /* Money-to-chase blocks (formerly the right rail) now live in the right grid column. */
+    const owing=(m.overdue||[]).slice(0,12); // every unpaid invoice, worst first
+    const unpaidSec = owing.length?sec('Unpaid invoices',`<div class="rev-od">${owing.map(o=>`
       <div class="rev-od-row" onclick="selectStay('${o.stayId}')">
         <span class="rev-od-g">${esc(o.guest)}<span class="rev-od-v"> · ${esc(o.villa||'—')}</span></span>
         <span class="rev-od-m">${money0(o.total)}${o.daysOverdue>0?` <span class="rev-od-d">${o.daysOverdue}d late</span>`:(o.dueBy?` <span class="rev-od-due">due ${esc(fmtDayY(o.dueBy))}</span>`:'')}</span>
-      </div>`).join('')}</div>`,'soonest due first · tap to open'):''}
-    ${/* "Collected by" removed — the Jan/Ivonna split isn't something you act on from this page. */''}
-    ${sec('Top villas earnings', revVillaBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa · tap a villa to see its invoices')}
-  </div>`;
+      </div>`).join('')}</div>`,'soonest due first · tap to open'):'';
+    const topVillasSec = sec('Top villas earnings', revVillaBars(m.byVilla||[],m.totalRevenue,10), 'invoiced add-ons per villa · tap a villa to see its invoices');
+
+    /* Full-width: nav + title + the revenue-by-month trend. Everything else sits in an even 50/50 grid. */
+    el.innerHTML=`
+    <div class="pay-topnav">
+      <button onclick="backToList()" title="Back to the stay list">← All stays</button>
+      <button onclick="showToday()">▦ Today</button>
+      <button onclick="showArrivals()">▤ Arrivals</button>
+      <button onclick="showInbox()">✉ Messages</button>
+      ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
+    </div>
+    <div class="today-head">Revenue &amp; upsell</div>
+    <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
+    ${secRevMonth}
+    <div class="rev-grid">
+      <div class="rev-col">
+        ${kpiHtml}
+        ${secCph}
+        ${secCart}
+        ${secCar}
+        ${secCash?`<div id="revCash">${secCash}</div>`:''}
+      </div>
+      <div class="rev-col">
+        ${unpaidSec}
+        ${topVillasSec}
+        ${secXfer}
+        ${secYacht}
+        ${secInvilla}
+        ${secGrocEarn}
+      </div>
+    </div>`;
+
+  buildRevSecNav();  // top section-nav chips, same style as the stay editor's secbar
+
+  /* Right physical rail is hidden in full-width rev-mode; its content now lives in the grid above. */
+  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
 
 /* Top section-nav for the Upsell (Revenue) view — same hedge-green secbar and chip styling as the
