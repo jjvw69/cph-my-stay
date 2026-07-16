@@ -212,6 +212,11 @@
      Tinted green so staff can spot live stays at a glance in the left column. */
   .staycard.inhouse{background:#E6F3EC;border-color:#B9DDC9}
   .staycard.inhouse.unread{box-shadow:inset 3px 0 0 var(--purple)}
+  /* Arrives today = checkin is today. Amber/gold left bar + warm tint so today's arrivals
+     stand out from the calm green in-house stays in the left column. Takes priority over inhouse. */
+  .staycard.arrtoday{background:#FBF1E1;border-color:#E9CF9C;box-shadow:inset 4px 0 0 #C8852F}
+  .staycard.arrtoday.unread{box-shadow:inset 4px 0 0 #C8852F}
+  .staycard.arrtoday.sel{border-color:var(--accent);background:#F6E8CE}
   .staycard .g{display:flex;align-items:center}
   .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
@@ -325,6 +330,11 @@
   .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
   .nrx.open .nrx-chev{transform:rotate(90deg)}
   .nrx.open .nrx-head{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+  /* In-house guests inside "Arrivals not ready" — already checked in, so tint the row green to set
+     them apart from arrivals still on the way. */
+  .nrx.nr-inhouse .nrx-head{background:#E6F3EC;border-color:#B9DDC9}
+  .nrx.nr-inhouse .nrx-head:hover{border-color:var(--accent)}
+  .nrx.nr-inhouse .nrx-head .tr-m{color:#4A7A5E}
   .nrx-body{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff;padding:6px 14px 11px}
   .nrx-h{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin:0 0 6px}
   .nrx-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);padding:5px 0}
@@ -1042,9 +1052,11 @@ function renderList(){
     const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
-    // In-house = same rule as the Today overview's "In-house now" card: checkin <= today < checkout.
-    const inHouse=!!(s.checkin&&s.checkout&&s.checkin<=today&&today<s.checkout);
-    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${inHouse?'inhouse':''}" onclick="selectStay('${s.id}')" ${inHouse?'title="In-house now"':''}>
+    // Arrives today = checkin is today (amber). In-house = arrived earlier, still with us (green).
+    // arrToday takes priority so a same-day arrival reads as "today", not a passive in-house stay.
+    const arrToday=!!(s.checkin&&s.checkin===today&&(!s.checkout||today<s.checkout));
+    const inHouse=!arrToday&&!!(s.checkin&&s.checkout&&s.checkin<today&&today<s.checkout);
+    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':'')}>
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
@@ -1817,7 +1829,8 @@ function nrYearCols(list){
 function notReadyRow(s){
   const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
   const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
-  return `<div class="nrx ${open?'open':''}" id="nrx-${s.id}">
+  const nrInhouse=arrPill(s).txt==='in house';
+  return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
       <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
       <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
