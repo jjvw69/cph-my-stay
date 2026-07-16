@@ -2389,11 +2389,10 @@ function stayVitals(s){
   return `<div class="vitals" style="background:transparent;border:0;padding:0">
     <div style="background:var(--accent);border-radius:14px;padding:15px 17px;color:#fff">
       <div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600">${arrLine}</div>
-      <div style="font-size:24px;font-weight:700;margin-top:3px;letter-spacing:-.01em">${fmtName(s.leadName||'New stay')}${villa?`<span style="font-weight:400;opacity:.78;font-size:18px"> · ${esc(villa)}</span>`:''}</div>
+      <div style="font-size:24px;font-weight:700;margin-top:3px;letter-spacing:-.01em">${fmtName(s.leadName||'New stay')}${(s.villaNumber||s.villaInternal)?`<span style="font-weight:400;opacity:.78;font-size:18px"> · ${esc(s.villaNumber||s.villaInternal)}</span>`:''}${villa?`<span style="font-weight:400;opacity:.78;font-size:18px"> · ${esc(villa)}</span>`:''}</div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">
         ${nights!=null?heroChip(nights+' nights'):''}
         ${heroChip(esc(partyTxt),(cap&&party>cap))}
-        ${(s.villaNumber||s.villaInternal)?heroChip('Villa '+esc(s.villaNumber||s.villaInternal)):(s.villaName?heroChip(esc(s.villaName)):'')}
         ${heroChip(esc(appTxt),!!s.guestLastSeen)}
         <button onclick="openGuestApp()" title="Open the guest app for review" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.30);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px">Open guest app ↗</button>
       </div>
