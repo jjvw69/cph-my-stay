@@ -67,6 +67,19 @@
   .rev-grid > .rev-sec{margin-top:0;min-width:0}
   @media(max-width:1200px){ .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr} }
   @media(max-width:900px){ .rev-grid,.rev-grid.rev-grid-3{grid-template-columns:1fr} }
+  /* Divider style A (Upsell only): flat columns — no card boxes — separated by a single hairline,
+     matching the console's main .left/.right column dividers. */
+  .cols.rev-mode .rev-sec{background:transparent;border:none;border-radius:0;padding:0}
+  .cols.rev-mode .rev-grid{column-gap:0;row-gap:26px}
+  .cols.rev-mode .rev-grid:not(.rev-grid-3) > *{padding:0 28px}
+  .cols.rev-mode .rev-grid:not(.rev-grid-3) > *:first-child{padding-left:0}
+  .cols.rev-mode .rev-grid:not(.rev-grid-3) > *:last-child{padding-right:0;border-left:1px solid var(--line)}
+  .cols.rev-mode .rev-grid.rev-grid-3 > *{padding:0 28px}
+  .cols.rev-mode .rev-grid.rev-grid-3 > *:nth-child(3n+1){padding-left:0;border-left:none}
+  .cols.rev-mode .rev-grid.rev-grid-3 > *:nth-child(3n){padding-right:0}
+  .cols.rev-mode .rev-grid.rev-grid-3 > *:not(:nth-child(3n+1)){border-left:1px solid var(--line)}
+  /* Stacked sections within one column (e.g. month chart above CPH earnings) get a hairline too. */
+  .cols.rev-mode .rev-col > .rev-sec + .rev-sec{border-top:1px solid var(--line);margin-top:24px;padding-top:24px}
   /* Slim effectiveness strip under the Upsell title: how BROADLY and how DEEPLY guests upsell. */
   .rev-headstats{display:flex;flex-wrap:wrap;gap:5px 24px;margin:9px 0 2px;font-size:13.5px;color:var(--soft)}
   .rev-headstats b{color:var(--ink);font-weight:700}
