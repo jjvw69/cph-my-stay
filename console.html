@@ -213,12 +213,14 @@
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
-  /* In-house = guest physically at the villa now. Amber/gold left marker bar only (no card tint). */
-  .staycard.inhouse{box-shadow:inset 4px 0 0 #C8852F}
-  .staycard.inhouse.unread{box-shadow:inset 4px 0 0 #C8852F}
-  /* Arrives today = checkin is today. Red left marker bar only. Takes priority over inhouse. */
-  .staycard.arrtoday{box-shadow:inset 4px 0 0 #C0392B}
-  .staycard.arrtoday.unread{box-shadow:inset 4px 0 0 #C0392B}
+  /* In-house = guest physically at the villa now. Whole card filled yellow. */
+  .staycard.inhouse{background:#FBE49A;border-color:#FBE49A}
+  .staycard.inhouse.sel{border-color:var(--accent);background:#F7DA80}
+  /* Arrives today = checkin is today. Whole card filled intense red (white text). Priority over inhouse. */
+  .staycard.arrtoday{background:#C0392B;border-color:#C0392B}
+  .staycard.arrtoday.sel{border-color:var(--accent);background:#A93326}
+  .staycard.arrtoday .g{color:#fff}
+  .staycard.arrtoday .meta{color:rgba(255,255,255,.9)}
   .staycard .g{display:flex;align-items:center}
   .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
@@ -327,7 +329,7 @@
   .fudue-sec .today-row .tr-tag.red{background:#F3DADA;color:#9A2B2B}
   .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
   /* "today" arrival pill — same red as the arriving-today left card marker. */
-  .tr-tag.today{background:#F6DAD5;color:#C0392B}
+  .tr-tag.today{background:#C0392B;color:#fff}
   .nrx{margin-bottom:8px}
   .nrx .nrx-head{margin-bottom:0}
   .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
