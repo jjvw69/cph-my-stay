@@ -432,7 +432,7 @@
   .yrnav:not(:empty){margin-left:3px;padding-left:9px;border-left:1px solid var(--line)}
   .yrchip{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#F6F5F1;border-radius:20px;padding:4px 10px;color:var(--soft);cursor:pointer}
   .yrchip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .yrsep{position:sticky;top:0;z-index:2;background:var(--bg,#fff);font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);padding:7px 2px 5px;border-bottom:1px solid var(--line);margin:6px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .yrsep{position:sticky;top:0;z-index:2;background:var(--hedge);font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;padding:7px 12px 6px;border-radius:8px;margin:6px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
   /* "↑ Top" lives on the sticky year row, so it's always in reach while you scroll that year. */
   .yrtop{font-size:10px;font-weight:700;letter-spacing:.04em;border:1px solid var(--line);background:#fff;border-radius:20px;padding:2px 8px;color:var(--soft);cursor:pointer}
   .yrtop:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -773,7 +773,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" onclick="doExport()" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="backupBtn" onclick="doExport()" style="display:none" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -892,6 +892,8 @@ async function enter(staff){
   const rb=document.getElementById('revBtn'); if(rb)rb.style.display=CAN_REV?'':'none';
   CAN_PAY=!!(staff&&staff.canPayables);
   const pb=document.getElementById('payBtn'); if(pb)pb.style.display=CAN_PAY?'':'none';
+  // Backup (full data export) is owner-only — hidden for concierges (e.g. María Fernanda).
+  const bk=document.getElementById('backupBtn'); if(bk)bk.style.display=(CAN_REV||CAN_PAY)?'':'none';
   await refreshPayables();
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
