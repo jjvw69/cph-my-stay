@@ -78,6 +78,42 @@
   .dir-meta{font-size:12px;color:var(--soft);margin-top:4px}
   .dir-dim{color:#9AA49B}
   .dir-note{font-size:12.5px;color:var(--ink);background:#FBF8F1;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:6px 10px;margin-top:8px}
+  .dir-headbtns{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
+  .dir-add-btn.ghost{background:#fff;color:var(--accent)}
+  .dir-add-btn.ghost:hover{background:#F3F8F5}
+  .dir-stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px}
+  .dir-stat{font-family:var(--ui);font-size:12px;font-weight:600;color:var(--soft);background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px;cursor:pointer;display:flex;gap:7px;align-items:center}
+  .dir-stat:hover{border-color:var(--accent)}
+  .dir-stat.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .dir-stat b{font-weight:800}
+  .dir-stat.on b{color:#fff}
+  .dir-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 2px}
+  .dir-search{flex:1;min-width:200px;padding:9px 13px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-family:var(--ui)}
+  .dir-search:focus{outline:none;border-color:var(--accent)}
+  .dir-sel{padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:12.5px;font-family:var(--ui);color:var(--soft);background:#fff;cursor:pointer}
+  .dir-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+  .dir-tag{font-size:10.5px;font-weight:600;background:#EDEFF6;color:#4A4E63;border-radius:6px;padding:2px 8px}
+  .dir-badge.warn{background:#FBF0DD;color:#9A6A16}
+  .dir-badge.mute{background:#EEE;color:#888}
+  .dir-badge.rep{background:#EAF3EE;color:#12794D}
+  .dir-prefs{font-size:12px;color:var(--soft);margin-top:6px}
+  .dir-prefs b{color:var(--ink);font-weight:600}
+  .dir-last{font-size:11px;color:#9AA49B;margin-top:6px}
+  .dir-acts2{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;border-top:1px dashed var(--line);padding-top:9px}
+  .dir-compose{max-width:760px;margin-top:12px}
+  .dc-field{margin-bottom:14px}
+  .dc-label{display:block;font-size:12px;font-weight:700;color:var(--soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:5px}
+  .dc-input,.dc-area,.dc-sel{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:var(--ui);box-sizing:border-box}
+  .dc-area{min-height:220px;resize:vertical;line-height:1.5;font-size:14px}
+  .dc-input:focus,.dc-area:focus,.dc-sel:focus{outline:none;border-color:var(--accent)}
+  .dc-hint{font-size:11.5px;color:#9AA49B;margin-top:5px}
+  .dc-aud{background:#F3F8F5;border:1px solid #DCEBE2;border-radius:10px;padding:11px 14px;font-size:13px;color:var(--ink);margin-bottom:14px}
+  .dc-aud b{color:var(--accent)}
+  .dc-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .dc-send{font-family:var(--ui);font-size:14px;font-weight:700;border:none;background:var(--accent);color:#fff;border-radius:11px;padding:11px 20px;cursor:pointer}
+  .dc-send:hover{filter:brightness(1.06)}
+  .dc-send:disabled{opacity:.5;cursor:not-allowed}
+  .dc-cancel{font-family:var(--ui);font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:11px;padding:11px 18px;cursor:pointer}
   @media(max-width:1200px){ #dirBody{column-count:2} }
   @media(max-width:900px){ #dirBody{column-count:1} }
   /* Revenue (Upsell) view runs full-width like the Jan ledger: the section title + month chart span
@@ -1698,51 +1734,169 @@ window.togglePayableSettled=async function(key,settled,amount){
 function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode'); c.classList.remove('dir-mode');} }
 /* Guest contact directory — an A–Z address book built from every booking's guest, plus a hand-editable
    layer (add contacts, annotate entries). Full-width like the Jan/Upsell views. */
-let DIRECTORY=null;
+let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_COMPOSE=false;
+const DIR_AGENTS={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'};
+function dirAgentName(a){ const k=String(a||'').toLowerCase(); return DIR_AGENTS[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); }
+function dirFmtRange(ci,co){ const f=iso=>{ if(!iso)return ''; const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }; const a=f(ci),b=f(co); return a&&b?(a+' – '+b):(a||b||''); }
+const DIR_TEMPLATES={
+  christmas:{name:'🎄 Christmas greetings',subject:'Merry Christmas from Caribbean Paradise Homes',body:"Dear {first name},\n\nAs the year draws to a close, everyone at Caribbean Paradise Homes wants to wish you and your family a very Merry Christmas. It was a joy to host you at {last villa}, and we hope your memories of Casa de Campo have stayed warm all year.\n\nIf a Caribbean escape is on your mind for the season ahead, we would love to welcome you back — simply reply to this email and we'll take care of everything.\n\nWarmest wishes for a joyful holiday,\nJan & the CPH team"},
+  newyear:{name:'🥂 New Year wishes',subject:'Happy New Year from Casa de Campo',body:"Dear {first name},\n\nHappy New Year from all of us at Caribbean Paradise Homes! We hope 2027 brings you health, happiness, and plenty of reasons to celebrate.\n\nWhenever you're ready for your next getaway, your villa in paradise is waiting. Just reply and we'll help you plan the perfect stay.\n\nWith warm wishes,\nJan & the CPH team"},
+  winback:{name:'🌴 We miss you',subject:"We'd love to welcome you back, {first name}",body:"Dear {first name},\n\nIt's been a little while since your stay at {last villa}, and we wanted to reach out to say we'd love to have you back in Casa de Campo.\n\nWhether it's the beaches, the golf, or simply slowing down by the pool, your next escape is closer than you think. Reply to this email and we'll find you the perfect villa for the dates you have in mind.\n\nWarm regards,\nJan & the CPH team"},
+  newvilla:{name:'✨ New villa announcement',subject:'A new villa has just joined our collection',body:"Dear {first name},\n\nWe're excited to share that a beautiful new villa has just joined the Caribbean Paradise Homes collection in Casa de Campo.\n\n[Add a sentence or two about the villa — location, bedrooms, and what makes it special.]\n\nIf you'd like a first look or to check availability for your dates, just reply — we'd be delighted to send you the details.\n\nWarm regards,\nJan & the CPH team"},
+  offer:{name:'🎁 Special offer',subject:'A special offer for our returning guests',body:"Dear {first name},\n\nAs a valued past guest, we wanted you to be the first to know about a special offer on Casa de Campo villa stays.\n\n[Describe the offer here — the discount or perk, and the travel window it applies to.]\n\nTo take advantage of it, simply reply to this email and we'll hold your dates.\n\nWarm regards,\nJan & the CPH team"},
+};
 window.showDirectory=async function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
-  cur=null; setDirty(false); clearRevLeft(); centerView='directory'; setView(true); renderList(); renderHome();
+  cur=null; setDirty(false); clearRevLeft(); centerView='directory'; DIR_COMPOSE=false; setView(true); renderList(); renderHome();
 };
-async function renderDirectory(){
-  const el=document.getElementById('editor'); if(!el) return;
-  if(!DIRECTORY) el.innerHTML='<div class="today-clear">Loading directory…</div>';
-  try{ const r=await api('/api/staff/directory'); if(r.ok) DIRECTORY=(r.body&&r.body.directory)||{entries:[]}; }catch(e){ if(!DIRECTORY) DIRECTORY={entries:[]}; }
-  const entries=(DIRECTORY&&DIRECTORY.entries)||[];
+function dirEntries(){ return (DIRECTORY&&DIRECTORY.entries)||[]; }
+function dirFiltered(){
+  const q=DIR_SEARCH.trim().toLowerCase();
+  return dirEntries().filter(e=>{
+    if(DIR_SEG==='repeat' && !((e.stays||0)>1)) return false;
+    if(DIR_SEG==='rebook' && !e.dueRebook) return false;
+    if(DIR_SEG==='email' && !String(e.email||'').trim()) return false;
+    if(DIR_SEG==='optout' && !e.optOut) return false;
+    if(DIR_TAG && !(e.tags||[]).map(t=>String(t).toLowerCase()).includes(DIR_TAG.toLowerCase())) return false;
+    if(q){ const hay=[e.firstName,e.lastName,e.fullName,e.email,e.villa,e.villaInternal,(e.tags||[]).join(' '),e.source,dirAgentName(e.agent)].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
+    return true;
+  });
+}
+function dirCard(e){
   const norm=s=>String(s||'').trim();
-  const agentName=a=>{ const m={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'}; const k=String(a||'').toLowerCase(); return m[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); };
-  const fmtRange=(ci,co)=>{ const f=iso=>{ if(!iso)return ''; const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }; const a=f(ci),b=f(co); return a&&b?(a+' – '+b):(a||b||''); };
-  const sorted=entries.slice().sort((a,b)=>{ const al=norm(a.lastName||a.fullName).toLowerCase(), bl=norm(b.lastName||b.fullName).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName).toLowerCase()<norm(b.firstName).toLowerCase()?-1:1; });
+  const nm=esc((norm(e.firstName)?norm(e.firstName)+' ':'')+norm(e.lastName||e.fullName))||'(no name)';
+  const badges=[
+    e.kind==='custom'?'<span class="dir-badge">added</span>':'',
+    (e.stays||0)>1?`<span class="dir-badge rep">${e.stays} stays</span>`:'',
+    e.dueRebook?'<span class="dir-badge warn">re-book</span>':'',
+    e.optOut?'<span class="dir-badge mute">unsubscribed</span>':'',
+  ].join('');
+  const contact=[e.email?`<a href="mailto:${esc(e.email)}" class="dir-link">✉ ${esc(e.email)}</a>`:'', e.phone?`<a href="tel:${esc(String(e.phone).replace(/[^0-9+]/g,''))}" class="dir-link">☎ ${esc(e.phone)}</a>`:''].filter(Boolean).join('');
+  const stayLine=[e.villaInternal?esc(e.villaInternal):'', e.villa?esc(e.villa):'', dirFmtRange(e.checkin,e.checkout)].filter(Boolean).join(' · ');
+  const meta=[e.source?esc(e.source):'', e.agent?('Agent: '+esc(dirAgentName(e.agent))):''].filter(Boolean).join(' · ');
+  const tags=(e.tags||[]).length?`<div class="dir-tags">${e.tags.map(t=>`<span class="dir-tag">${esc(t)}</span>`).join('')}</div>`:'';
+  const p=e.prefs||{}; const prefsArr=[p.villaSize?('Villa: '+esc(p.villaSize)):'', p.budget?('Budget: '+esc(p.budget)):'', p.occasion?('For: '+esc(p.occasion)):''].filter(Boolean);
+  const prefs=prefsArr.length?`<div class="dir-prefs">★ ${prefsArr.join(' · ')}</div>`:'';
+  const last=e.lastContact?`<div class="dir-last">Last contacted ${new Date(e.lastContact).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}${(e.activity&&e.activity[0]&&e.activity[0].text)?' · '+esc(String(e.activity[0].text).slice(0,50)):''}</div>`:'';
+  const em=String(e.email||'').trim(); const ph=String(e.phone||'').replace(/[^0-9+]/g,'');
+  const first=norm(e.firstName)||norm(e.fullName).split(' ')[0]||'there';
+  const greet=encodeURIComponent('Dear '+first+',\n\n');
+  const emailBtn=em?`<a class="dir-btn" href="mailto:${esc(em)}?body=${greet}">✉ Email</a>`:'';
+  const waBtn=ph?`<a class="dir-btn" href="https://wa.me/${esc(ph.replace(/^\+/,''))}?text=${greet}" target="_blank" rel="noopener">WhatsApp</a>`:'';
+  const key=esc(e.key);
+  const acts=[emailBtn,waBtn,
+    `<button class="dir-btn" onclick="dirLog('${key}')">✎ Log</button>`,
+    `<button class="dir-btn" onclick="dirTags('${key}')">Tags</button>`,
+    `<button class="dir-btn" onclick="dirPrefs('${key}')">Prefs</button>`,
+    `<button class="dir-btn" onclick="dirNote('${key}')">Note</button>`,
+    `<button class="dir-btn" onclick="dirOptOut('${key}',${e.optOut?'true':'false'})">${e.optOut?'Re-subscribe':'Opt out'}</button>`,
+    e.kind==='custom'?`<button class="dir-btn" onclick="dirEdit('${esc(e.id)}')">Edit</button><button class="dir-btn danger" onclick="dirDelete('${esc(e.id)}')">Delete</button>`:'',
+  ].filter(Boolean).join('');
+  return `<div class="dir-card">
+    <div class="dir-top"><div class="dir-name">${nm}${badges}</div></div>
+    ${contact?`<div class="dir-contact">${contact}</div>`:'<div class="dir-contact dir-dim">No contact details on file</div>'}
+    ${stayLine?`<div class="dir-meta">${stayLine}</div>`:''}
+    ${meta?`<div class="dir-meta dir-dim">${meta}</div>`:''}
+    ${tags}${prefs}
+    ${e.note?`<div class="dir-note">${esc(e.note)}</div>`:''}
+    ${last}
+    <div class="dir-acts2">${acts}</div>
+  </div>`;
+}
+function dirPaint(){
+  const entries=dirEntries();
+  const nEmail=entries.filter(e=>String(e.email||'').trim()).length;
+  const nRep=entries.filter(e=>(e.stays||0)>1).length;
+  const nRebook=entries.filter(e=>e.dueRebook).length;
+  const nOut=entries.filter(e=>e.optOut).length;
+  const stat=(seg,label,n)=>`<button class="dir-stat${DIR_SEG===seg?' on':''}" onclick="DIR_SEG='${seg}';dirPaint()"><b>${n}</b> ${label}</button>`;
+  const sEl=document.getElementById('dirStats');
+  if(sEl) sEl.innerHTML=[stat('all','All',entries.length),stat('email','With email',nEmail),stat('repeat','Repeat guests',nRep),stat('rebook','Due to re-book',nRebook),stat('optout','Unsubscribed',nOut)].join('');
+  const norm=s=>String(s||'').trim();
+  const sorted=dirFiltered().slice().sort((a,b)=>{ const al=norm(a.lastName||a.fullName).toLowerCase(), bl=norm(b.lastName||b.fullName).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName).toLowerCase()<norm(b.firstName).toLowerCase()?-1:1; });
   const groups={}, order=[];
   sorted.forEach(e=>{ const base=norm(e.lastName||e.firstName||e.fullName); let L=(base[0]||'#').toUpperCase(); if(!/[A-Z]/.test(L)) L='#'; if(!groups[L]){ groups[L]=[]; order.push(L); } groups[L].push(e); });
-  const card=e=>{
-    const nm=esc((norm(e.firstName)?norm(e.firstName)+' ':'')+norm(e.lastName||e.fullName))||'(no name)';
-    const contact=[e.email?`<a href="mailto:${esc(e.email)}" class="dir-link">✉ ${esc(e.email)}</a>`:'', e.phone?`<a href="tel:${esc(String(e.phone).replace(/[^0-9+]/g,''))}" class="dir-link">☎ ${esc(e.phone)}</a>`:''].filter(Boolean).join('');
-    const stayLine=[e.villaInternal?esc(e.villaInternal):'', e.villa?esc(e.villa):'', fmtRange(e.checkin,e.checkout)].filter(Boolean).join(' · ');
-    const meta=[e.source?esc(e.source):'', e.agent?('Agent: '+esc(agentName(e.agent))):'', (e.stays>1?e.stays+' stays':'')].filter(Boolean).join(' · ');
-    const isCustom=e.kind==='custom';
-    return `<div class="dir-card">
-      <div class="dir-top"><div class="dir-name">${nm}${isCustom?'<span class="dir-badge">added</span>':''}</div>
-        <div class="dir-actions">${isCustom?`<button class="dir-btn" onclick="dirEdit('${esc(e.id)}')">Edit</button><button class="dir-btn danger" onclick="dirDelete('${esc(e.id)}')">Delete</button>`:`<button class="dir-btn" onclick="dirNote('${esc(e.key)}')">Note</button>`}</div></div>
-      ${contact?`<div class="dir-contact">${contact}</div>`:'<div class="dir-contact dir-dim">No contact details on file</div>'}
-      ${stayLine?`<div class="dir-meta">${stayLine}</div>`:''}
-      ${meta?`<div class="dir-meta dir-dim">${meta}</div>`:''}
-      ${e.note?`<div class="dir-note">${esc(e.note)}</div>`:''}
-    </div>`;
-  };
+  const body=document.getElementById('dirBody');
+  if(body) body.innerHTML=order.length?order.map(L=>`<div class="dir-letter">${L}</div>${groups[L].map(dirCard).join('')}`).join(''):'<div class="today-clear">No contacts match your filters.</div>';
+}
+async function renderDirectory(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(DIR_COMPOSE){ if(document.getElementById('dcBody')){ dirRefreshAud(); return; } return renderDirCompose(); }
+  const hadShell=!!document.getElementById('dirBody');
+  if(!DIRECTORY && !hadShell) el.innerHTML='<div class="today-clear">Loading directory…</div>';
+  try{ const r=await api('/api/staff/directory'); if(r.ok) DIRECTORY=(r.body&&r.body.directory)||{entries:[]}; }catch(e){ if(!DIRECTORY) DIRECTORY={entries:[]}; }
+  if(hadShell && document.getElementById('dirBody')){ dirPaint(); const rr=document.getElementById('preview'); if(rr) rr.innerHTML=''; return; }
+  const allTags=[...new Set(dirEntries().flatMap(e=>e.tags||[]))].sort();
   el.innerHTML=`<div class="pay-topnav">
       <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button onclick="showToday()">▦ Today</button>
       <button onclick="showArrivals()">▤ Arrivals</button>
     </div>
-    <div class="dir-head"><div><div class="today-head">Directory</div><div class="today-date">${entries.length} contact${entries.length===1?'':'s'} · built from every booking, plus your own · A–Z by last name</div></div>
-      <button class="dir-add-btn" onclick="dirAdd()">＋ Add contact</button></div>
-    <div id="dirBody">${order.length?order.map(L=>`<div class="dir-letter">${L}</div>${groups[L].map(card).join('')}`).join(''):'<div class="today-clear">No contacts yet.</div>'}</div>`;
+    <div class="dir-head"><div><div class="today-head">Directory</div><div class="today-date">Your guest address book — stay in touch, send seasonal notes &amp; offers · A–Z by last name</div></div>
+      <div class="dir-headbtns">
+        <button class="dir-add-btn" onclick="dirCompose()">✉ Compose email</button>
+        <button class="dir-add-btn ghost" onclick="dirAdd()">＋ Add contact</button>
+        <button class="dir-add-btn ghost" onclick="dirExport()">⬇ Export CSV</button>
+      </div></div>
+    <div class="dir-stats" id="dirStats"></div>
+    <div class="dir-toolbar">
+      <input class="dir-search" id="dirSearch" placeholder="Search name, email, villa, tag…" value="${esc(DIR_SEARCH)}" oninput="DIR_SEARCH=this.value;dirPaint()">
+      ${allTags.length?`<select class="dir-sel" onchange="DIR_TAG=this.value;dirPaint()"><option value="">All tags</option>${allTags.map(t=>`<option value="${esc(t)}"${t===DIR_TAG?' selected':''}>${esc(t)}</option>`).join('')}</select>`:''}
+    </div>
+    <div id="dirBody"></div>`;
+  dirPaint();
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
+function dirRefreshAud(){
+  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
+  const c=document.getElementById('dcCount'); if(c) c.textContent=aud.length;
+  const b=document.getElementById('dcSend'); if(b) b.textContent='Send to '+aud.length+' guest'+(aud.length===1?'':'s');
+}
+function renderDirCompose(){
+  const el=document.getElementById('editor'); if(!el) return;
+  const prevS=(document.getElementById('dcSubject')||{}).value, prevB=(document.getElementById('dcBody')||{}).value;
+  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
+  const segLabel={all:'all contacts',email:'contacts with email',repeat:'repeat guests',rebook:'guests due to re-book',optout:'unsubscribed guests'}[DIR_SEG]||'current filter';
+  const tplOpts=Object.keys(DIR_TEMPLATES).map(k=>`<option value="${k}">${esc(DIR_TEMPLATES[k].name)}</option>`).join('');
+  el.innerHTML=`<div class="pay-topnav"><button class="nav-back" onclick="dirCloseCompose()">← Back to directory</button></div>
+    <div class="dir-head"><div><div class="today-head">Compose email</div><div class="today-date">Send a personalised broadcast to a segment of your guest directory</div></div></div>
+    <div class="dir-compose">
+      <div class="dc-aud">Sending to <b id="dcCount">${aud.length}</b> guest${aud.length===1?'':'s'} — <b>${segLabel}</b>${DIR_SEARCH?` matching “${esc(DIR_SEARCH)}”`:''}${DIR_TAG?` · tag “${esc(DIR_TAG)}”`:''}. Guests without an email or who unsubscribed are skipped automatically. <span style="color:#9AA49B">Tip: filter the directory first to choose who this goes to.</span></div>
+      <div class="dc-field"><label class="dc-label">Start from a template</label><select class="dc-sel" onchange="dirApplyTpl(this.value)"><option value="">— Blank —</option>${tplOpts}</select></div>
+      <div class="dc-field"><label class="dc-label">Subject</label><input class="dc-input" id="dcSubject" placeholder="e.g. Season's greetings from Casa de Campo"></div>
+      <div class="dc-field"><label class="dc-label">Message</label><textarea class="dc-area" id="dcBody" placeholder="Write your message…"></textarea>
+        <div class="dc-hint">Personalise with <b>{first name}</b> and <b>{last villa}</b> — each guest gets their own version. A signature and an unsubscribe link are added automatically.</div></div>
+      <div class="dc-row"><button class="dc-send" id="dcSend" onclick="dirSendBroadcast()">Send to ${aud.length} guest${aud.length===1?'':'s'}</button><button class="dc-cancel" onclick="dirCloseCompose()">Cancel</button></div>
+    </div>`;
+  if(prevS!==undefined){ const s=document.getElementById('dcSubject'); if(s) s.value=prevS; }
+  if(prevB!==undefined){ const b=document.getElementById('dcBody'); if(b) b.value=prevB; }
+  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
+}
+window.dirCompose=function(){ DIR_COMPOSE=true; renderDirCompose(); };
+window.dirCloseCompose=function(){ DIR_COMPOSE=false; renderDirectory(); };
+window.dirApplyTpl=function(k){ const t=DIR_TEMPLATES[k]; if(!t)return; const s=document.getElementById('dcSubject'), b=document.getElementById('dcBody'); if((s&&s.value.trim())||(b&&b.value.trim())){ if(!confirm('Replace the current subject and message with this template?')) return; } if(s)s.value=t.subject; if(b)b.value=t.body; };
+window.dirSendBroadcast=async function(){
+  const subject=((document.getElementById('dcSubject')||{}).value||'').trim();
+  const body=((document.getElementById('dcBody')||{}).value||'').trim();
+  if(!subject||!body){ toast&&toast('Add a subject and a message'); return; }
+  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
+  if(!aud.length){ toast&&toast('No recipients with an email address'); return; }
+  if(!confirm('Send this email to '+aud.length+' guest'+(aud.length===1?'':'s')+'?')) return;
+  const btn=document.getElementById('dcSend'); if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
+  const keys=aud.map(e=>e.key);
+  const r=await api('/api/staff/directory/broadcast',{method:'POST',body:JSON.stringify({keys,subject,body})});
+  if(r.ok&&r.body&&r.body.ok){ toast&&toast('Sent to '+r.body.sent+(r.body.skipped?(' · '+r.body.skipped+' skipped'):'')); DIRECTORY=null; DIR_COMPOSE=false; renderDirectory(); }
+  else { toast&&toast((r.body&&r.body.error)||'Could not send'); if(btn){ btn.disabled=false; dirRefreshAud(); } }
+};
+window.dirExport=function(){ const a=document.createElement('a'); a.href='/api/staff/directory/export.csv'; a.download='cph-directory.csv'; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(),0); toast&&toast('Exporting CSV…'); };
 window.dirAdd=async function(){ const fn=prompt('First name:'); if(fn===null)return; const ln=prompt('Last name:'); if(ln===null)return; if(!fn.trim()&&!ln.trim()){ toast&&toast('A name is required'); return; } const email=prompt('Email:')||''; const phone=prompt('Phone:')||''; const note=prompt('Note (optional):')||''; const r=await api('/api/staff/directory/contact',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email,phone,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Contact added'); } else toast&&toast('Could not add contact'); };
-window.dirEdit=async function(id){ const e=((DIRECTORY&&DIRECTORY.entries)||[]).find(x=>x.id===id); if(!e)return; const fn=prompt('First name:',e.firstName||''); if(fn===null)return; const ln=prompt('Last name:',e.lastName||''); if(ln===null)return; const email=prompt('Email:',e.email||''); if(email===null)return; const phone=prompt('Phone:',e.phone||''); if(phone===null)return; const note=prompt('Note:',e.note||''); if(note===null)return; const r=await api('/api/staff/directory/contact/'+id,{method:'PUT',body:JSON.stringify({firstName:fn,lastName:ln,email,phone,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Saved'); } else toast&&toast('Could not save'); };
+window.dirEdit=async function(id){ const e=dirEntries().find(x=>x.id===id); if(!e)return; const fn=prompt('First name:',e.firstName||''); if(fn===null)return; const ln=prompt('Last name:',e.lastName||''); if(ln===null)return; const email=prompt('Email:',e.email||''); if(email===null)return; const phone=prompt('Phone:',e.phone||''); if(phone===null)return; const note=prompt('Note:',e.note||''); if(note===null)return; const r=await api('/api/staff/directory/contact/'+id,{method:'PUT',body:JSON.stringify({firstName:fn,lastName:ln,email,phone,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Saved'); } else toast&&toast('Could not save'); };
 window.dirDelete=async function(id){ if(!confirm('Delete this contact from the directory?'))return; const r=await api('/api/staff/directory/contact/'+id,{method:'DELETE'}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Deleted'); } else toast&&toast('Could not delete'); };
-window.dirNote=async function(key){ const e=((DIRECTORY&&DIRECTORY.entries)||[]).find(x=>x.key===key); const note=prompt('Note for this contact:',(e&&e.note)||''); if(note===null)return; const r=await api('/api/staff/directory/note',{method:'PUT',body:JSON.stringify({key,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Note saved'); } else toast&&toast('Could not save note'); };
+window.dirNote=async function(key){ const e=dirEntries().find(x=>x.key===key); const note=prompt('Note for this contact:',(e&&e.note)||''); if(note===null)return; const r=await api('/api/staff/directory/note',{method:'PUT',body:JSON.stringify({key,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Note saved'); } else toast&&toast('Could not save note'); };
+window.dirLog=async function(key){ const text=prompt('Log a contact (call, WhatsApp, email, note):',''); if(text===null)return; if(!text.trim())return; const r=await api('/api/staff/directory/activity',{method:'POST',body:JSON.stringify({key,type:'note',text})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Logged'); } else toast&&toast('Could not log'); };
+window.dirTags=async function(key){ const e=dirEntries().find(x=>x.key===key); const cur=((e&&e.tags)||[]).join(', '); const v=prompt('Tags (comma-separated) — e.g. VIP, wedding, golf, family:',cur); if(v===null)return; const r=await api('/api/staff/directory/meta',{method:'PUT',body:JSON.stringify({key,patch:{tags:v}})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Tags saved'); } else toast&&toast('Could not save tags'); };
+window.dirPrefs=async function(key){ const e=dirEntries().find(x=>x.key===key)||{}; const p=e.prefs||{}; const villaSize=prompt('Preferred villa (e.g. 4-bed oceanfront):',p.villaSize||''); if(villaSize===null)return; const budget=prompt('Budget band (e.g. $$$ or 8–12k/week):',p.budget||''); if(budget===null)return; const occasion=prompt('Typical occasion (e.g. family, golf, wedding):',p.occasion||''); if(occasion===null)return; const r=await api('/api/staff/directory/meta',{method:'PUT',body:JSON.stringify({key,patch:{prefs:{villaSize,budget,occasion}}})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Preferences saved'); } else toast&&toast('Could not save'); };
+window.dirOptOut=async function(key,cur){ const to=!cur; if(to&&!confirm('Mark this guest as unsubscribed? They will be excluded from all broadcasts.'))return; const r=await api('/api/staff/directory/meta',{method:'PUT',body:JSON.stringify({key,patch:{optOut:to}})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast(to?'Unsubscribed':'Re-subscribed'); } else toast&&toast('Could not update'); };
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); clearRevLeft(); centerView='today'; setView(true); renderList(); renderHome();

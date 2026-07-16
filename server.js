@@ -360,9 +360,10 @@ function sendWhatsAppTo(to,text,ref,templateSid){
   }catch(e){ console.error('[notify] whatsapp threw',e.message); }
 }
 function sendEmail(subject,text,ref){ sendEmailTo(NOTIFY_EMAIL,subject,text,ref); }
-function sendEmailTo(to,subject,text,ref){
+function sendEmailTo(to,subject,text,ref,html){
   try{
-    const body=JSON.stringify({from:NOTIFY_FROM,to:[to],subject,text});
+    const payload={from:NOTIFY_FROM,to:[to],subject,text}; if(html)payload.html=html;
+    const body=JSON.stringify(payload);
     const https=require('https');
     const rq=https.request('https://api.resend.com/emails',{method:'POST',headers:{'Authorization':'Bearer '+RESEND_API_KEY,'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},resp=>{ let d=''; resp.on('data',c=>d+=c); resp.on('end',()=>{ resp.statusCode>=300?console.error('[notify] email failed',resp.statusCode,d):console.log('[notify] emailed %s re %s',to,ref); }); });
     rq.on('error',e=>console.error('[notify] email error',e.message)); rq.write(body); rq.end();
@@ -495,6 +496,16 @@ async function route(req,res){
   if(m==='POST'&&url==='/api/twilio/inbound') return twilioInbound(req,res);
   if(m==='POST'&&url==='/api/twilio/status'){ try{ const b=await readForm(req); const st=b.MessageStatus||b.SmsStatus||''; const err=b.ErrorCode||''; if(st==='undelivered'||st==='failed'){ console.error('[notify] whatsapp DELIVERY FAILED status=%s errorCode=%s to=%s sid=%s',st,err,b.To||'',b.MessageSid||''); } else { console.log('[notify] whatsapp status=%s to=%s',st,b.To||''); } }catch(e){} res.writeHead(204); return res.end(); }
 
+  // public one-click unsubscribe from directory broadcasts
+  if(m==='GET'&&url.split('?')[0]==='/unsubscribe'){
+    let done=false; try{
+      const q=require('url').parse(req.url,true).query||{}; const tok=String(q.t||'');
+      if(tok){ const key=Buffer.from(tok.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'); if(key){ store.setDirectoryMeta(key,{optOut:true}); done=true; } }
+    }catch(e){}
+    res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
+    return res.end('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Helvetica,Arial,sans-serif;background:#FBF1D8;color:#2b2b2b;display:flex;min-height:90vh;align-items:center;justify-content:center;text-align:center;padding:24px"><div><h2 style="color:#12794D">Caribbean Paradise Homes</h2><p>'+(done?'You have been unsubscribed. You will no longer receive our updates.':'We could not process this request, but you can reply to any email and we will remove you.')+'</p></div></body>');
+  }
+
   // staff api
   if(m==='POST'&&url==='/api/staff/login') return staffLogin(req,res);
   if(m==='POST'&&url==='/api/staff/logout'){ clearCookie(res,STAFF_COOKIE); return sendJSON(res,200,{ok:true}); }
@@ -525,6 +536,42 @@ async function route(req,res){
     if(dirC&&!dirC[1]&&m==='POST'){ const b=await readBody(req); const c=store.addDirectoryContact(b); return c?sendJSON(res,200,{ok:true,contact:c}):sendJSON(res,400,{ok:false,error:'A name is required.'}); }
     if(dirC&&dirC[1]&&m==='PUT'){ const b=await readBody(req); const c=store.updateDirectoryContact(dirC[1],b); return c?sendJSON(res,200,{ok:true,contact:c}):sendJSON(res,404,{ok:false,error:'Contact not found'}); }
     if(dirC&&dirC[1]&&m==='DELETE'){ const okd=store.deleteDirectoryContact(dirC[1]); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Contact not found'}); }
+    if(m==='PUT' &&url==='/api/staff/directory/meta'){ const b=await readBody(req); const mm=store.setDirectoryMeta(String(b.key||''),b.patch||b); return mm?sendJSON(res,200,{ok:true,meta:mm}):sendJSON(res,400,{ok:false,error:'A key is required.'}); }
+    if(m==='POST'&&url==='/api/staff/directory/activity'){ const b=await readBody(req); const mm=store.addDirectoryActivity(String(b.key||''),String(b.type||'note'),String(b.text||'')); return mm?sendJSON(res,200,{ok:true,meta:mm}):sendJSON(res,400,{ok:false,error:'A key is required.'}); }
+    if(m==='GET' &&url==='/api/staff/directory/export.csv'){ const csv=store.directoryCSV(); res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="cph-directory.csv"'}); return res.end(csv); }
+    if(m==='POST'&&url==='/api/staff/directory/broadcast'){
+      const b=await readBody(req);
+      if(!RESEND_API_KEY) return sendJSON(res,400,{ok:false,error:'Email is not configured (RESEND_API_KEY missing).'});
+      const subject=String(b.subject||'').trim(), bodyTpl=String(b.body||'').trim();
+      if(!subject||!bodyTpl) return sendJSON(res,400,{ok:false,error:'A subject and message are required.'});
+      const wantKeys=Array.isArray(b.keys)?b.keys.map(String):[];
+      const byKey={}; store.guestDirectory().entries.forEach(e=>{byKey[e.key]=e;});
+      const targets=(wantKeys.length?wantKeys:Object.keys(byKey)).map(k=>byKey[k]).filter(Boolean);
+      const merge=(t,e)=>String(t)
+        .replace(/\{first ?name\}/gi,e.firstName||e.fullName||'there')
+        .replace(/\{last ?name\}/gi,e.lastName||'')
+        .replace(/\{name\}/gi,e.fullName||[e.firstName,e.lastName].filter(Boolean).join(' ')||'there')
+        .replace(/\{last ?villa\}/gi,e.villa||'your villa')
+        .replace(/\{villa\}/gi,e.villa||'your villa');
+      let sent=0; const skipped=[];
+      targets.forEach(e=>{
+        const email=String(e.email||'').trim();
+        if(!email){ skipped.push({key:e.key,why:'no email'}); return; }
+        if(e.optOut){ skipped.push({key:e.key,why:'opted out'}); return; }
+        const tok=Buffer.from(e.key,'utf8').toString('base64').replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+        const unsub=APP_URL+'/unsubscribe?t='+tok;
+        const txt=merge(bodyTpl,e)+'\n\n— Caribbean Paradise Homes\nTo stop receiving these emails, unsubscribe: '+unsub;
+        const html='<div style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#2b2b2b">'
+          +merge(bodyTpl,e).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>')
+          +'<div style="margin-top:22px;color:#555">— Caribbean Paradise Homes</div>'
+          +'<div style="margin-top:16px;font-size:12px;color:#999">You are receiving this because you have stayed with us. '
+          +'<a href="'+unsub+'" style="color:#999">Unsubscribe</a>.</div></div>';
+        sendEmailTo(email,merge(subject,e),txt,'broadcast',html);
+        store.addDirectoryActivity(e.key,'email',subject);
+        sent++;
+      });
+      return sendJSON(res,200,{ok:true,sent,skipped:skipped.length,skippedList:skipped});
+    }
     if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);

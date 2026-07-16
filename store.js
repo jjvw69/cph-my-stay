@@ -354,11 +354,31 @@ function persistPayables() { writeJSON(PAYABLES_FILE, payablesSettled); }
 // (custom contacts + a note on any entry). Only the editable layer is stored; auto entries are
 // rebuilt from the bookings each time so they stay current.
 const DIRECTORY_FILE = path.join(DATA_DIR, 'directory.json');
-let directoryData = readJSON(DIRECTORY_FILE, { contacts: [], notes: {} });
-if (!directoryData || typeof directoryData !== 'object') directoryData = { contacts: [], notes: {} };
+let directoryData = readJSON(DIRECTORY_FILE, { contacts: [], notes: {}, meta: {} });
+if (!directoryData || typeof directoryData !== 'object') directoryData = { contacts: [], notes: {}, meta: {} };
 if (!Array.isArray(directoryData.contacts)) directoryData.contacts = [];
 if (!directoryData.notes || typeof directoryData.notes !== 'object') directoryData.notes = {};
+if (!directoryData.meta || typeof directoryData.meta !== 'object') directoryData.meta = {};
 function persistDirectory() { writeJSON(DIRECTORY_FILE, directoryData); }
+// meta[key] = { tags:[], optOut:bool, prefs:{villaSize,budget,occasion}, lastContact:ms, nextContact:'YYYY-MM-DD', activity:[{at,type,text}] }
+function blankMeta() { return { tags: [], optOut: false, prefs: { villaSize: '', budget: '', occasion: '' }, lastContact: 0, nextContact: '', activity: [] }; }
+function metaFor(key) {
+  const m = directoryData.meta[key] || {};
+  return {
+    tags: Array.isArray(m.tags) ? m.tags : [],
+    optOut: !!m.optOut,
+    prefs: Object.assign({ villaSize: '', budget: '', occasion: '' }, m.prefs || {}),
+    lastContact: Number(m.lastContact) || 0,
+    nextContact: String(m.nextContact || ''),
+    activity: Array.isArray(m.activity) ? m.activity : [],
+  };
+}
+function rebookInfo(checkout) {
+  // prime rebooking window = last stay ended ~10–14 months ago
+  const t = Date.parse(String(checkout || '') + 'T00:00:00'); if (!t) return { daysAgo: null, dueRebook: false };
+  const daysAgo = Math.floor((Date.now() - t) / 86400000);
+  return { daysAgo, dueRebook: daysAgo >= 300 && daysAgo <= 430 };
+}
 function guestDirectory() {
   const byKey = {};
   stays.forEach(s => {
@@ -385,32 +405,73 @@ function guestDirectory() {
       e.source = s.source || e.source; e.agent = s.bookingAgent || e.agent;
     }
   });
-  const auto = Object.values(byKey).map(e => { const { _latest, ...rest } = e; return Object.assign(rest, { note: directoryData.notes[e.key] || '' }); });
-  const custom = (directoryData.contacts || []).map(c => Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c));
+  const decorate = (e) => {
+    const m = metaFor(e.key); const rb = rebookInfo(e.checkout);
+    return Object.assign(e, {
+      note: directoryData.notes[e.key] || e.note || '',
+      tags: m.tags, optOut: m.optOut, prefs: m.prefs,
+      lastContact: m.lastContact, nextContact: m.nextContact, activity: m.activity,
+      repeat: (e.stays || 0) > 1, daysSinceStay: rb.daysAgo, dueRebook: rb.dueRebook,
+    });
+  };
+  const auto = Object.values(byKey).map(e => { const { _latest, ...rest } = e; return decorate(rest); });
+  const custom = (directoryData.contacts || []).map(c => decorate(Object.assign({ kind: 'custom', key: 'custom:' + c.id, stays: 0 }, c)));
   return { entries: auto.concat(custom) };
 }
 function addDirectoryContact(b) {
   const fn = String((b && b.firstName) || '').trim(), ln = String((b && b.lastName) || '').trim();
   if (!fn && !ln) return null;
   const c = { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), firstName: fn, lastName: ln,
-    email: String((b && b.email) || '').trim(), phone: String((b && b.phone) || '').trim(), note: String((b && b.note) || '').trim() };
+    email: String((b && b.email) || '').trim(), phone: String((b && b.phone) || '').trim(), note: String((b && b.note) || '').trim(),
+    villa: String((b && b.villa) || '').trim(), villaInternal: String((b && b.villaInternal) || '').trim(),
+    source: String((b && b.source) || '').trim(), agent: String((b && b.agent) || '').trim() };
   directoryData.contacts.push(c); persistDirectory();
   return Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c);
 }
 function updateDirectoryContact(id, b) {
   const c = directoryData.contacts.find(x => x.id === id); if (!c) return null;
-  ['firstName', 'lastName', 'email', 'phone', 'note'].forEach(k => { if (b && k in b) c[k] = String(b[k] || '').trim(); });
+  ['firstName', 'lastName', 'email', 'phone', 'note', 'villa', 'villaInternal', 'source', 'agent'].forEach(k => { if (b && k in b) c[k] = String(b[k] || '').trim(); });
   persistDirectory(); return Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c);
 }
 function deleteDirectoryContact(id) {
   const i = directoryData.contacts.findIndex(x => x.id === id); if (i < 0) return false;
-  directoryData.contacts.splice(i, 1); persistDirectory(); return true;
+  directoryData.contacts.splice(i, 1); delete directoryData.meta['custom:' + id]; persistDirectory(); return true;
 }
 function setDirectoryNote(key, note) {
   if (!key) return false;
   note = String(note || '').trim();
   if (note) directoryData.notes[key] = note; else delete directoryData.notes[key];
   persistDirectory(); return true;
+}
+function setDirectoryMeta(key, patch) {
+  if (!key || !patch || typeof patch !== 'object') return null;
+  const m = Object.assign(blankMeta(), directoryData.meta[key] || {});
+  if ('tags' in patch) m.tags = (Array.isArray(patch.tags) ? patch.tags : String(patch.tags || '').split(',')).map(t => String(t).trim()).filter(Boolean).slice(0, 12);
+  if ('optOut' in patch) m.optOut = !!patch.optOut;
+  if ('nextContact' in patch) m.nextContact = String(patch.nextContact || '').trim();
+  if ('prefs' in patch && patch.prefs && typeof patch.prefs === 'object') {
+    m.prefs = Object.assign({ villaSize: '', budget: '', occasion: '' }, m.prefs, {});
+    ['villaSize', 'budget', 'occasion'].forEach(k => { if (k in patch.prefs) m.prefs[k] = String(patch.prefs[k] || '').trim(); });
+  }
+  directoryData.meta[key] = m; persistDirectory(); return m;
+}
+function addDirectoryActivity(key, type, text) {
+  if (!key) return null;
+  const m = Object.assign(blankMeta(), directoryData.meta[key] || {});
+  m.activity = (Array.isArray(m.activity) ? m.activity : []);
+  m.activity.unshift({ at: Date.now(), type: String(type || 'note'), text: String(text || '').slice(0, 400) });
+  m.activity = m.activity.slice(0, 60);
+  m.lastContact = Date.now();
+  directoryData.meta[key] = m; persistDirectory(); return m;
+}
+function directoryCSV() {
+  const esc = (v) => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const cols = ['First name', 'Last name', 'Email', 'Phone', 'Villa', 'Internal', 'Check-in', 'Check-out', 'Source', 'Agent', 'Stays', 'Tags', 'Opted out', 'Note'];
+  const rows = [cols.join(',')];
+  guestDirectory().entries.forEach(e => {
+    rows.push([e.firstName, e.lastName, e.email, e.phone, e.villa, e.villaInternal, e.checkin, e.checkout, e.source, e.agent, e.stays || '', (e.tags || []).join(' | '), e.optOut ? 'yes' : '', e.note].map(esc).join(','));
+  });
+  return rows.join('\r\n');
 }
 
 // ----- global invoice numbering ------------------------------------------------
@@ -2223,6 +2284,7 @@ module.exports = {
   cartInfo,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
+  setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),
