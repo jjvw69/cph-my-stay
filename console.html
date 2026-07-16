@@ -65,6 +65,10 @@
   .rev-col{min-width:0;display:flex;flex-direction:column}
   @media(max-width:1200px){ .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr} }
   @media(max-width:900px){ .rev-grid,.rev-grid.rev-grid-3{grid-template-columns:1fr} }
+  /* Slim effectiveness strip under the Upsell title: how BROADLY and how DEEPLY guests upsell. */
+  .rev-headstats{display:flex;flex-wrap:wrap;gap:5px 24px;margin:9px 0 2px;font-size:13.5px;color:var(--soft)}
+  .rev-headstats b{color:var(--ink);font-weight:700}
+  .rev-headstats .dim{color:#9AA49B}
   .rev-kpi-left{display:flex;flex-direction:column;gap:10px;margin-top:4px}
   .rev-kpi-left .stat{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
   .rev-kpi-left .stat .num{font-size:30px}
@@ -1458,7 +1462,12 @@ async function renderRevenue(){
     </div>
     <div class="today-head">Revenue &amp; upsell</div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
-    ${/* Top: three columns — month trend · CPH earnings · cash flow. */''}
+    ${/* Effectiveness strip: attach rate (how many bookings upsell) + average basket among those who do. */''}
+    <div class="rev-headstats">
+      <span><b>${m.attachRate||0}%</b> of bookings bought an add-on <span class="dim">(${m.staysWithBooking||0} of ${m.published||0})</span></span>
+      <span><b>${money0(m.staysWithBooking?m.totalRevenue/m.staysWithBooking:0)}</b> average add-on spend when they do</span>
+    </div>
+    ${/* Top: two columns — month trend + CPH earnings (left) · cash flow + unpaid (right). */''}
     <div class="rev-grid">
       <div class="rev-col">${secRevMonth}${secCph}</div>
       <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}${unpaidSec}</div>
