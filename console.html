@@ -1980,7 +1980,7 @@ function renderToday(){
   const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
   // Guests currently on property: checked in, not yet checked out.
-  const inhouse=L.filter(s=>s.checkin&&s.checkout&&s.checkin<=today&&today<s.checkout);
+  const inhouse=L.filter(s=>s.checkin&&s.checkout&&s.checkin<today&&today<s.checkout);
   // Airport transfers happening today — an arrival (date) or a departure (endDate) that lands on today.
   const xfToday=L.filter(s=>(s.transfers||[]).some(t=>t.date===today||t.endDate===today));
   // Every upcoming published arrival still missing pre check-in, guest passports, or the airport
