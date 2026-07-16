@@ -1099,7 +1099,7 @@ function renderList(){
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
       <div class="meta">${s.guests} guests</div>
-      <div class="pillrow"><span class="pill ${pill}">${esc(s.status)}</span>${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
+      <div class="pillrow">${pill!=='published'?`<span class="pill ${pill}">${esc(s.status)}</span>`:''}${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
   }).join('');
   renderYearNav(_years);
 }
