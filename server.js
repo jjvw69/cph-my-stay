@@ -475,6 +475,25 @@ async function route(req,res){
     return res.end(s);
   }
 
+  // full live-data backup — token-protected (BACKUP_TOKEN env var), read-only, no cookie needed.
+  // Returns every persisted JSON file on the data disk so a weekly job can archive them.
+  if(m==='GET' && url==='/api/backup'){
+    const q=require('url').parse(req.url,true).query||{};
+    const want=String(q.token||'');
+    const tok=String(process.env.BACKUP_TOKEN||'');
+    if(!tok || want!==tok){ return sendJSON(res,403,{ok:false,error:'forbidden'}); }
+    const dir=store.DATA_DIR;
+    const wanted=['stays.json','directory.json','services.json','payables.json','staff.json'];
+    const out={ok:true,exportedAt:new Date().toISOString(),dataDir:dir,files:{}};
+    for(const f of wanted){
+      try{ out.files[f]=JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); }
+      catch(e){ out.files[f]=null; }
+    }
+    const body=JSON.stringify(out,null,2);
+    res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Content-Disposition':'attachment; filename="my-stay-livedata-'+new Date().toISOString().slice(0,10)+'.json"'});
+    return res.end(body);
+  }
+
   // guest api
   if(m==='GET' &&url==='/api/version') return sendJSON(res,200,{ok:true,ver:APP_VER});
   if(m==='POST'&&url==='/api/login') return guestLogin(req,res);
