@@ -911,8 +911,8 @@ async function enter(staff){
   const rb=document.getElementById('revBtn'); if(rb)rb.style.display=CAN_REV?'':'none';
   CAN_PAY=!!(staff&&staff.canPayables);
   const pb=document.getElementById('payBtn'); if(pb)pb.style.display=CAN_PAY?'':'none';
-  // Backup (full data export) is owner-only — hidden for concierges (e.g. María Fernanda).
-  const bk=document.getElementById('backupBtn'); if(bk)bk.style.display=(CAN_REV||CAN_PAY)?'':'none';
+  // Backup (full data export) is Jan-only — hidden for concierges AND for Ivonna.
+  const bk=document.getElementById('backupBtn'); if(bk)bk.style.display=CAN_PAY?'':'none';
   await refreshPayables();
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
