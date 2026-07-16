@@ -1383,7 +1383,7 @@ function renderExplore(){
   </div>`;
 }
 window.setExCat=function(c){ const segOld=document.getElementById('exSeg'); const prevLeft=segOld?segOld.scrollLeft:0; state._exCat=c; state._exPage=0; render(); const seg=document.getElementById('exSeg'); if(seg){ seg.scrollLeft=prevLeft; const on=seg.querySelector('button.on'); if(on){ const L=on.offsetLeft, R=L+on.offsetWidth; if(L<seg.scrollLeft+8){ seg.scrollLeft=Math.max(0,L-8); } else if(R>seg.scrollLeft+seg.clientWidth-8){ seg.scrollLeft=R-seg.clientWidth+8; } } } const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
-window.setExPage=function(n){ state._exPage=Math.max(0,n); render(); const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
+window.setExPage=function(n){ const segOld=document.getElementById('exSeg'); const prevLeft=segOld?segOld.scrollLeft:0; state._exPage=Math.max(0,n); render(); const seg=document.getElementById('exSeg'); if(seg) seg.scrollLeft=prevLeft; const s=document.querySelector('.scroll'); if(s)s.scrollTop=0; };
 window.askConcierge=function(n){ waHandoff('I\'d love to know more about '+n+'.'); };
 
 /* ---------- guest interest requests (add-on + itinerary) ---------- */
@@ -1934,12 +1934,12 @@ async function pollStay(){
   // GOLDEN RULE: anything MERGED below must also be in this signature — a field that's merged but not
   // signed is dead code (an isolated change to it leaves the sig identical, so we early-return and
   // never merge it). wifiHandover and guest were exactly that: merged, unsigned, therefore never synced.
-  const sig=JSON.stringify([f.booking,f.villa,f.concierge&&f.concierge.id,(f.addOns||[]).map(a=>a.id+':'+(a.rates||a.price||'')+':'+(a.recommended?1:0)).join('|'),f.staffHours,f.wifiName,f.wifiPassword,f.wifiHandover,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guest,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.readiness,f.invoices,f.sentServices,f.yachtProposal]);
+  const sig=JSON.stringify([f.booking,f.villa,f.concierge&&f.concierge.id,(f.addOns||[]).map(a=>a.id+':'+(a.rates||a.price||'')+':'+(a.recommended?1:0)).join('|'),f.staffHours,f.wifiName,f.wifiPassword,f.wifiHandover,f.villaNumber,f.registrationNumber,f.welcomeMessage,f.guest,f.guestList,f.grocery,f.mealPlan,f.guestCheckin,f.readiness,f.invoices,f.sentServices,f.yachtProposal,f.bookingSource]);
   if(sig===_staySig) return; _staySig=sig;
   // merge static + guest-owned fields (leave requests/messages to their pollers)
   s.booking=f.booking; s.villa=f.villa; s.concierge=f.concierge||s.concierge;
   if(f.guest) s.guest=f.guest;   // a name/email/phone correction in the console reaches an open app
-  ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover'].forEach(k=>{ if(k in f) s[k]=f[k]; });
+  ['staffHours','wifiName','wifiPassword','villaNumber','registrationNumber','welcomeMessage','wifiHandover','bookingSource'].forEach(k=>{ if(k in f) s[k]=f[k]; });
   s.guestList=f.guestList; s.grocery=f.grocery; s.mealPlan=f.mealPlan; s.guestCheckin=f.guestCheckin; s.readiness=f.readiness;
   // A guest list edited in the console must reach an ALREADY-OPEN guest app: refresh the pre check-in
   // rows from the shared list. Empty rows only — never overwrite what the guest is typing.
