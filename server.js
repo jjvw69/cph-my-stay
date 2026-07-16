@@ -378,6 +378,24 @@ async function guestSaveMealPlan(req,res){ const s=guestSession(req); if(!s) ret
 async function guestRespondSentService(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const it=store.respondSentService(s.ref,String(b.id||''),String(b.response||'')); if(!it) return sendJSON(res,404,{ok:false,error:'Not found'}); console.log('[sent-service] %s %s %s',s.ref,it.name,it.status); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,service:it}); }
 async function guestChooseYacht(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const yp=store.chooseYacht(s.ref,String(b.optionId||'')); if(!yp) return sendJSON(res,404,{ok:false,error:'Not found'}); const chosen=(yp.options||[]).find(o=>o.id===yp.chosenId)||{}; console.log('[yacht] %s chose %s',s.ref,chosen.name||yp.chosenId); const st=store.getPublishedByRefForSession(s.ref); notifyConcierge(st,{type:'yacht',title:'Yacht charter chosen: '+(chosen.name||''),date:'',time:''}); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,yachtProposal:yp}); }
 function guestTyping(req,res){ const s=guestSession(req); if(s) broadcastStaff({type:'typing',ref:s.ref}); return sendJSON(res,200,{ok:true}); }
+async function guestSaveRating(req,res){ const s=guestSession(req); if(!s) return sendJSON(res,401,{ok:false,error:'Not signed in.'}); const b=await readBody(req); const g=store.saveGuestRating(s.ref,b||{}); if(!g) return sendJSON(res,400,{ok:false,error:'A star rating is required.'}); console.log('[rating] %s %d star',s.ref,g.stars); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,guestRating:g}); }
+// Post-stay review request email (Trustpilot + private in-app rating). Independent of GuestWisely.
+const TRUSTPILOT_URL='https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com';
+function esc2(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function buildReviewEmail(info){
+  const first=info.firstName||(String(info.guest||'there').split(' ')[0])||'there';
+  const villa=info.villa||'Casa de Campo';
+  const subject='How was your stay at '+villa+'?';
+  const text=['Dear '+first+',','','Thank you for staying with us at '+villa+'. It was a pleasure hosting you and your family, and we hope you left with wonderful memories of Casa de Campo.','',"If you have a moment, we'd be very grateful if you would share your experience on Trustpilot — it genuinely helps other families discover us:",TRUSTPILOT_URL,'','You can also rate your stay privately inside your My Stay app.','','Warm regards,','Jan','Caribbean Paradise Homes'].join('\n');
+  const html='<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#22302a;line-height:1.6;font-size:15px">'
+    +'<p>Dear '+esc2(first)+',</p>'
+    +'<p>Thank you for staying with us at <b>'+esc2(villa)+'</b>. It was a pleasure hosting you and your family, and we hope you left with wonderful memories of Casa de Campo.</p>'
+    +"<p>If you have a moment, we'd be very grateful if you would share your experience on Trustpilot — it genuinely helps other families discover us.</p>"
+    +'<p style="text-align:center;margin:26px 0"><a href="'+TRUSTPILOT_URL+'" style="background:#C9A24B;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:bold;display:inline-block">Leave a review</a></p>'
+    +'<p style="font-size:13px;color:#6b756f">You can also rate your stay privately inside your My Stay app.</p>'
+    +'<p style="margin-top:22px">Warm regards,<br>Jan<br><b>Caribbean Paradise Homes</b></p></div>';
+  return {subject,text,html};
+}
 
 // ---- Inbound WhatsApp/SMS (Twilio webhook). Lands the guest's reply in the right stay's chat. ----
 // Configure Twilio: the WhatsApp number's "When a message comes in" → POST {APP_URL}/api/twilio/inbound
@@ -512,6 +530,7 @@ async function route(req,res){
   if(m==='POST'&&url==='/api/sent-service/respond') return guestRespondSentService(req,res);
   if(m==='POST'&&url==='/api/yacht/choose') return guestChooseYacht(req,res);
   if(m==='POST'&&url==='/api/typing') return guestTyping(req,res);
+  if(m==='POST'&&url==='/api/rating') return guestSaveRating(req,res);
   if(m==='POST'&&url==='/api/twilio/inbound') return twilioInbound(req,res);
   if(m==='POST'&&url==='/api/twilio/status'){ try{ const b=await readForm(req); const st=b.MessageStatus||b.SmsStatus||''; const err=b.ErrorCode||''; if(st==='undelivered'||st==='failed'){ console.error('[notify] whatsapp DELIVERY FAILED status=%s errorCode=%s to=%s sid=%s',st,err,b.To||'',b.MessageSid||''); } else { console.log('[notify] whatsapp status=%s to=%s',st,b.To||''); } }catch(e){} res.writeHead(204); return res.end(); }
 
@@ -545,6 +564,8 @@ async function route(req,res){
     if(svU&&m==='PUT'){ const b=await readBody(req); const it=store.updateService(svU[1],b); if(it) broadcastStaff({type:'services'}); return it?sendJSON(res,200,{ok:true,service:it}):sendJSON(res,404,{ok:false,error:'Service not found'}); }
     if(svU&&m==='DELETE'){ const okd=store.deleteCustomService(svU[1]); if(okd) broadcastStaff({type:'services'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Only custom services can be deleted'}); }
     if(m==='GET' &&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stays:store.listStays()});
+    if(m==='GET' &&url==='/api/staff/review-queue') return sendJSON(res,200,{ok:true,queue:store.reviewQueue()});
+    if(m==='POST'&&url==='/api/staff/review-request/send'){ const b=await readBody(req); const ch=String(b.channel||'email'); const info=store.markReviewSent(String(b.stayId||''),(s&&s.email)||'',ch); if(!info) return sendJSON(res,404,{ok:false,error:'Stay not found.'}); let emailed=false; if(RESEND_API_KEY&&info.email&&ch==='email'){ const em=buildReviewEmail(info); sendEmailTo(info.email,em.subject,em.text,info.ref,em.html); emailed=true; } console.log('[review] request %s via %s (emailed=%s)',info.ref,ch,emailed); broadcastStaff({type:'update'}); return sendJSON(res,200,{ok:true,emailed,info}); }
     if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
     if(m==='GET' &&url==='/api/staff/payables'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     if(m==='POST'&&url==='/api/staff/payables/settle'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); const b=await readBody(req); const ok=store.setPayableSettled(String(b.key||''),!!b.settled,b.amount); if(!ok) return sendJSON(res,400,{ok:false,error:'A payable key is required.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }

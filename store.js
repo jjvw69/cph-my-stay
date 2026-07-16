@@ -869,6 +869,7 @@ function summaryStay(s) {
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
     transferNote: [boardSupplier(s, RE_TRANSFER_LINE), (function(){ const v = boardBookedVia(s, RE_TRANSFER_LINE); return v ? 'via ' + v : ''; })(), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
     bookingAgent: s.bookingAgent || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '',
+    reviewReq: s.reviewReq || null, guestRating: s.guestRating || null, phone: s.phone || '',
     groceryDeposit: parseFloat(s.groceryDeposit) || 0, groceryDepositPaid: !!s.groceryDepositPaid };
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
@@ -1597,6 +1598,53 @@ function runAutomations() {
   if (sent.length) persistStays();
   return sent;
 }
+
+// ---------------------------------------------- post-stay review requests (staff-approve queue)
+// Native to the console, independent of GuestWisely. Surfaces every published stay that has checked
+// out (morning after onward, within the last 45 days) and not yet had a review request sent, so a
+// concierge can send it with one click. Also carries any private in-app rating the guest submitted.
+function reviewQueue() {
+  const today = new Date(new Date().toDateString());
+  const daysSinceOf = iso => { const d = new Date(String(iso) + 'T00:00:00'); return isNaN(d) ? null : Math.round((today - d) / 864e5); };
+  const out = [];
+  stays.forEach(s => {
+    if (s.status !== 'published' || !s.checkout) return;
+    const daysSince = daysSinceOf(s.checkout);
+    if (daysSince == null || daysSince < 1 || daysSince > 45) return;
+    const v = getVilla(s.villaId);
+    out.push({
+      stayId: s.id, ref: s.reference, guest: s.leadName || s.lastName || 'Guest',
+      villa: s.villaName || (v ? v.name : '') || '', checkout: s.checkout, daysSince,
+      email: s.email || '', phone: s.phone || '',
+      sent: !!(s.reviewReq && s.reviewReq.sentAt), sentAt: (s.reviewReq && s.reviewReq.sentAt) || 0,
+      channel: (s.reviewReq && s.reviewReq.channel) || '',
+      rating: s.guestRating ? { stars: s.guestRating.stars, comment: s.guestRating.comment || '', at: s.guestRating.at } : null,
+    });
+  });
+  return out.sort((a, b) => (Number(a.sent) - Number(b.sent)) || (a.daysSince - b.daysSince));
+}
+/** Record that a review request was sent (email or WhatsApp handoff). Returns the info the server
+ *  needs to build/send the email. Idempotent-ish: re-sending just refreshes the timestamp. */
+function markReviewSent(id, by, channel) {
+  const s = getStay(id); if (!s) return null;
+  s.reviewReq = { sentAt: Date.now(), by: String(by || ''), channel: String(channel || 'email') };
+  s.updatedAt = Date.now(); persistStays();
+  const v = getVilla(s.villaId);
+  return { stayId: s.id, ref: s.reference, guest: s.leadName || s.lastName || 'Guest',
+    firstName: (s.leadName || '').split(' ')[0] || '', villa: s.villaName || (v ? v.name : '') || '',
+    email: s.email || '', phone: s.phone || '' };
+}
+/** Guest submits their private in-app star rating (1–5) + optional comment. Keyed by booking ref. */
+function saveGuestRating(ref, patch) {
+  const r = norm(ref).toLowerCase();
+  const s = stays.find(x => x.status === 'published' && norm(x.reference).toLowerCase() === r);
+  if (!s) return null;
+  const stars = Math.max(1, Math.min(5, parseInt(patch && patch.stars, 10) || 0));
+  if (!stars) return null;
+  s.guestRating = { stars, comment: norm((patch && patch.comment) || '').slice(0, 800), at: Date.now() };
+  s.updatedAt = Date.now(); persistStays();
+  return s.guestRating;
+}
 function createStay() { const s = blankStay(); stays.push(s); persistStays(); return s; }
 // The arrivals-board "Super" column (`provisioning`, imported from the old Excel sheet) and the
 // Grocery pre-stocking "Provisioning (Super)" picker (`grocerySuper`) are ONE value shown in two
@@ -2255,6 +2303,8 @@ function toGuestStay(s) {
     readiness: stayReadiness(s),
     grocery: s.grocery || null,
     mealPlan: s.mealPlan || null,
+    guestRating: s.guestRating || null,
+    reviewReq: s.reviewReq ? { sentAt: s.reviewReq.sentAt } : null,
   };
 }
 
@@ -2298,7 +2348,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, exportAll, runAutomations, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, runAutomations, reviewQueue, markReviewSent, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,

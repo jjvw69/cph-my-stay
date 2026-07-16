@@ -2147,6 +2147,9 @@ function renderInbox(){
     ${L.length?rows:`<div class="today-clear">No guest messages yet.</div>`}`;
 }
 function todayRow(s,tag,meta){ const m=meta!=null?meta:(esc(s.villa||'—')+(s.checkin?' · '+esc(s.checkin):'')); return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${m}</span></span>${tag||''}</button>`; }
+/* Post-stay review-request row: guest · villa · checked-out date, with a one-click Send (email via
+   Resend) and an optional WhatsApp handoff. Shows the guest's private in-app rating once it lands. */
+function reviewRow(s){ const dtxt=s.checkout?('checked out '+fmtDay(s.checkout)):''; const gr=s.guestRating; const rate=(gr&&gr.stars)?` <span class="tr-tag green" title="${esc(gr.comment||'')}">${'★'.repeat(gr.stars)}</span>`:''; return `<div class="today-row" style="cursor:default;align-items:center"><span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${dtxt}</span>${rate}</span><span style="display:flex;gap:6px;flex-shrink:0"><button onclick="event.stopPropagation();sendReview('${s.id}')" style="border:0;background:#12794D;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap">Send review request</button>${s.phone?`<button onclick="event.stopPropagation();waReview('${s.id}')" title="Send via WhatsApp instead" style="border:1px solid #25D366;background:#fff;color:#128C3E;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer">WhatsApp</button>`:''}</span></div>`; }
 // Tap-to-expand "not ready" row — shows the 3 pre-arrival items with done/pending state at a glance.
 let nrOpen=new Set();
 window.toggleNR=function(id){ const open=!nrOpen.has(id); if(open)nrOpen.add(id);else nrOpen.delete(id); const w=document.getElementById('nrx-'+id); const b=document.getElementById('nrb-'+id); if(w)w.classList.toggle('open',open); if(b)b.style.display=open?'block':'none'; };
@@ -2250,6 +2253,10 @@ window.goTile=function(key){ const arr=todayGroups[key]||[]; if(!arr.length) ret
    individual invoices (guest · villa · #no · amount · paid/due). */
 const upsOpen=new Set();
 window.toggleUps=function(id){ upsOpen.has(id)?upsOpen.delete(id):upsOpen.add(id); const e=document.getElementById('editor'); const sc=e?e.scrollTop:0; renderHome(); if(e)e.scrollTop=sc; };
+/* Send the post-stay review request by email (Resend), or hand off to WhatsApp. Both mark the stay
+   as "requested" so it drops out of the queue. Trustpilot is asked of every checked-out guest. */
+window.sendReview=async function(id){ const r=await api('/api/staff/review-request/send',{method:'POST',body:JSON.stringify({stayId:id,channel:'email'})}); if(r.ok){ toast(r.body&&r.body.emailed?'Review request emailed':'Marked as requested (no email on file)'); await loadList(); renderHome(); } else { toast((r.body&&r.body.error)||'Could not send'); } };
+window.waReview=async function(id){ const s=(LIST||[]).find(x=>x.id===id)||{}; const first=(s.guest||'there').split(' ')[0]; const txt='Hi '+first+', thank you for staying with Caribbean Paradise Homes! If you have a moment we would love a quick review on Trustpilot: https://www.trustpilot.com/evaluate/caribbeanparadisehomes.com'; const phone=String(s.phone||'').replace(/[^\d]/g,''); if(phone) window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(txt),'_blank'); await api('/api/staff/review-request/send',{method:'POST',body:JSON.stringify({stayId:id,channel:'whatsapp'})}); toast('Opened WhatsApp · marked as requested'); await loadList(); renderHome(); };
 /* Service breakdown — the rows only; the Revenue view supplies the headline stats and the section
    frame, so this no longer draws its own card. */
 function upsellServices(){
@@ -2295,7 +2302,10 @@ function renderToday(){
   const notReady=upcomingPub.filter(s=>s.readiness?!s.readiness.ready:(!s.preCheckinDone||!s.transferArranged||!s.hasReg));
   // Upcoming arrivals (within a week) who have never opened the guest app.
   const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d<=7&&!hasDeparted(s);});
-  todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened};
+  // Post-stay review requests — checked out (morning after onward), within the last 45 days, not yet requested.
+  const reviewCut=addDays(today,-45);
+  const reviewDue=L.filter(s=>s.status==='published'&&s.checkout&&s.checkout<today&&s.checkout>=reviewCut&&!(s.reviewReq&&s.reviewReq.sentAt)).sort((a,b)=>(b.checkout||'').localeCompare(a.checkout||''));
+  todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened,reviewDue};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);
   const totMsgs=msgs.reduce((a,s)=>a+unreadMsgs(s),0);
   const totUnpaid=unpaid.reduce((a,s)=>a+(s.unpaid||0),0);
@@ -2325,6 +2335,7 @@ function renderToday(){
       ${stat(xfToday.length,'Transfers today','xfToday',true)}
       ${stat(notReady.length,'Arrivals not ready','notReady',true)}
       ${stat(totPending,'Awaiting confirmation','pending',true)}
+      ${stat(reviewDue.length,'Reviews to request','reviewDue')}
     </div>
     ${/* Money owed sits directly under the cards, above the upsell panel. */''}
     ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$ ${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3>${unpaid.map(s=>unpaidRow(s)).join('')}</div>`:''}
@@ -2334,7 +2345,8 @@ function renderToday(){
     ${notReady.length?`<div class="today-sec" id="tsec-notReady"><h3>Arrivals not ready</h3>${nrYearCols(notReady)}</div>`:''}
     ${sec('Airport transfers today','xfToday', xfToday.map(s=>{const t=(s.transfers||[]).find(t=>t.date===today||t.endDate===today)||{};const dep=t.endDate===today&&t.date!==today;return todayRow(s,`<span class="tr-tag ${dep?'amber':'green'}">${dep?'departure':'arrival'}</span>`);}))}
     ${sec('Departing today','depToday', depToday.map(s=>todayRow(s,`<span class="tr-tag amber">check-out</span>`)))}
-    ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}`;
+    ${sec('Awaiting confirmation','pending', pending.map(s=>todayRow(s,`<span class="tr-tag amber">${s.pending} request${s.pending==1?'':'s'}</span>`)))}
+    ${reviewDue.length?`<div class="today-sec" id="tsec-reviewDue"><h3>Reviews to request</h3>${reviewDue.map(s=>reviewRow(s)).join('')}</div>`:''}`;
   refreshTodayBtn();
 }
 
