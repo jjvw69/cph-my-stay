@@ -172,10 +172,14 @@
   .pay-rail-profit span{display:block;font-family:var(--ui);font-size:11.5px;font-weight:500;color:var(--soft)}
   /* nav row (back to the main console views) sits above the section title */
   .pay-topnav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
-  .pay-topnav button{font-family:var(--ui);font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer}
-  .pay-topnav button:hover{border-color:#12794D;color:#12794D}
-  .pay-topnav button.nav-owner{color:#5A3A88}
-  .pay-topnav button.nav-owner:hover{border-color:#5A3A88}
+  /* Unified filled-pill nav (matches the Today/Arrivals home toggle): green primary,
+     purple for owner (Jan/Upsell), subtle grey for the back button. */
+  .pay-topnav button{font-family:var(--ui);font-size:13px;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:11px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .pay-topnav button:hover{filter:brightness(1.06)}
+  .pay-topnav button.nav-owner{background:var(--purple);border-color:var(--purple);color:#fff}
+  .pay-topnav button.nav-owner:hover{filter:brightness(1.08)}
+  .pay-topnav button.nav-back{background:#EAEEEC;border-color:#DAE0DD;color:#4B5A51}
+  .pay-topnav button.nav-back:hover{background:#E2E7E4;border-color:#B9C4BE;filter:none}
   /* summary panels (the old right-rail content) now sit BELOW the ledger */
   .pay-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:2px 0 16px}
   .pay-sumcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
@@ -196,7 +200,9 @@
   .ab-btns{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap}
   .ab-btns{gap:8px}
   .ab-btns .ab-today{flex:0 0 auto;width:auto;margin:0;padding:5px 12px;font-size:12px;font-weight:500;border-radius:9px}
-  .ab-actbtn{display:flex;align-items:center;justify-content:center;gap:7px;background:#fff;color:var(--accent);border:1px solid var(--accent);border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;cursor:pointer}
+  /* Arrivals-board utility buttons — subtle grey secondary pill (Today stays a green pill). */
+  .ab-actbtn{display:flex;align-items:center;justify-content:center;gap:7px;background:#EAEEEC;color:#4B5A51;border:1px solid #DAE0DD;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;cursor:pointer}
+  .ab-actbtn:hover{background:#E2E7E4;border-color:#B9C4BE}
   .ab-actbtn:hover{background:#F2F7F3}
   @media print{
     .topbar,.botnav,.ab-btns,.today-date,.backlist{display:none!important}
@@ -1495,7 +1501,7 @@ async function renderRevenue(){
     /* Full-width: nav + title + the revenue-by-month trend. Everything else sits in an even 50/50 grid. */
     el.innerHTML=`
     <div class="pay-topnav">
-      <button onclick="backToList()" title="Back to the stay list">← All stays</button>
+      <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button onclick="showToday()">▦ Today</button>
       <button onclick="showArrivals()">▤ Arrivals</button>
       <button onclick="showInbox()">✉ Messages</button>
@@ -1604,7 +1610,7 @@ async function renderPayables(){
   </table></div>`;
   // Nav back to the main console views (the left column is hidden in full-width pay-mode).
   const nav=`<div class="pay-topnav">
-    <button onclick="backToList()" title="Back to the stay list">← All stays</button>
+    <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
     <button onclick="showInbox()">✉ Messages</button>
