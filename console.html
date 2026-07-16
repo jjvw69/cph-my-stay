@@ -1504,7 +1504,6 @@ async function renderRevenue(){
       <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button onclick="showToday()">▦ Today</button>
       <button onclick="showArrivals()">▤ Arrivals</button>
-      <button onclick="showInbox()">✉ Messages</button>
       ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
     </div>
     <div class="today-head">Revenue &amp; upsell</div>
@@ -1613,7 +1612,6 @@ async function renderPayables(){
     <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
-    <button onclick="showInbox()">✉ Messages</button>
     ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◷ Upsell</button>`:''}
   </div>`;
   // Summary panels (the old right-rail content) — now placed BELOW the ledger.
