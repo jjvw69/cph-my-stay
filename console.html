@@ -343,6 +343,11 @@
   .nrx.nr-inhouse .nrx-head{background:#FBF3DA;border-color:#E9CF9C}
   .nrx.nr-inhouse .nrx-head:hover{border-color:var(--accent)}
   .nrx.nr-inhouse .nrx-head .tr-m{color:#9A7B36}
+  /* Arriving today inside "Arrivals not ready" — same intense red as the today card/pill. */
+  .nrx.nr-today .nrx-head{background:#C0392B;border-color:#C0392B}
+  .nrx.nr-today .nrx-head:hover{border-color:var(--accent)}
+  .nrx.nr-today .nrx-head .tr-g{color:#fff}
+  .nrx.nr-today .nrx-head .tr-m,.nrx.nr-today .nrx-head .tr-sep,.nrx.nr-today .nrx-head .nrx-chev{color:rgba(255,255,255,.92)}
   .nrx-body{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff;padding:6px 14px 11px}
   .nrx-h{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin:0 0 6px}
   .nrx-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);padding:5px 0}
@@ -1852,8 +1857,8 @@ function nrYearCols(list){
 function notReadyRow(s){
   const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
   const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
-  const nrInhouse=arrPill(s).txt==='in house';
-  return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''}" id="nrx-${s.id}">
+  const _apTxt=arrPill(s).txt; const nrInhouse=_apTxt==='in house'; const nrToday=_apTxt==='today';
+  return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''} ${nrToday?'nr-today':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
       <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
       <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
