@@ -117,6 +117,9 @@
   .dc-area{min-height:220px;resize:vertical;line-height:1.5;font-size:14px}
   .dc-input:focus,.dc-area:focus,.dc-sel:focus{outline:none;border-color:var(--accent)}
   .dc-hint{font-size:11.5px;color:#9AA49B;margin-top:5px}
+  .dc-modes{display:flex;gap:8px;margin-bottom:14px}
+  .dc-mode{font-family:var(--ui);font-size:13px;font-weight:600;color:var(--soft);background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 15px;cursor:pointer}
+  .dc-mode.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .dc-aud{background:#F3F8F5;border:1px solid #DCEBE2;border-radius:10px;padding:11px 14px;font-size:13px;color:var(--ink);margin-bottom:14px}
   .dc-aud b{color:var(--accent)}
   .dc-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -1744,7 +1747,11 @@ window.togglePayableSettled=async function(key,settled,amount){
 function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode'); c.classList.remove('dir-mode');} }
 /* Guest contact directory — an A–Z address book built from every booking's guest, plus a hand-editable
    layer (add contacts, annotate entries). Full-width like the Jan/Upsell views. */
-let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_COMPOSE=false;
+let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_COMPOSE=false, DIR_COMPOSE_MODE='seg', DIR_COMPOSE_ONE='';
+function dirComposeAudience(){
+  if(DIR_COMPOSE_MODE==='one'){ const e=dirEntries().find(x=>x.key===DIR_COMPOSE_ONE); return (e && String(e.email||'').trim() && !e.optOut)?[e]:[]; }
+  return dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
+}
 const DIR_AGENTS={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'};
 function dirAgentName(a){ const k=String(a||'').toLowerCase(); return DIR_AGENTS[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); }
 function dirFmtRange(ci,co){ const f=iso=>{ if(!iso)return ''; const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }; const a=f(ci),b=f(co); return a&&b?(a+' – '+b):(a||b||''); }
@@ -1870,40 +1877,53 @@ async function renderDirectory(){
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
 function dirRefreshAud(){
-  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
-  const c=document.getElementById('dcCount'); if(c) c.textContent=aud.length;
-  const b=document.getElementById('dcSend'); if(b) b.textContent='Send to '+aud.length+' guest'+(aud.length===1?'':'s');
+  const one=DIR_COMPOSE_MODE==='one'; const aud=dirComposeAudience();
+  const nm=aud.length?((aud[0].fullName||((aud[0].firstName||'')+' '+(aud[0].lastName||''))).trim()||aud[0].email):'';
+  const c=document.getElementById('dcCount'); if(c) c.textContent= one ? (aud.length?(nm+' <'+aud[0].email+'>'):'No guest selected') : String(aud.length);
+  const b=document.getElementById('dcSend'); if(b) b.textContent= one ? (aud.length?('Send to '+(aud[0].firstName||nm)):'Send') : ('Send to '+aud.length+' guest'+(aud.length===1?'':'s'));
 }
 function renderDirCompose(){
   const el=document.getElementById('editor'); if(!el) return;
   const prevS=(document.getElementById('dcSubject')||{}).value, prevB=(document.getElementById('dcBody')||{}).value;
-  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
+  const one=DIR_COMPOSE_MODE==='one';
+  const aud=dirComposeAudience();
   const segLabel={all:'all contacts',email:'contacts with email',repeat:'repeat guests',rebook:'guests due to re-book',optout:'unsubscribed guests'}[DIR_SEG]||'current filter';
   const tplOpts=Object.keys(DIR_TEMPLATES).map(k=>`<option value="${k}">${esc(DIR_TEMPLATES[k].name)}</option>`).join('');
+  const nameOf=e=>((e.fullName||((e.firstName||'')+' '+(e.lastName||''))).trim()||e.email);
+  const withEmail=dirEntries().filter(e=>String(e.email||'').trim() && !e.optOut).slice().sort((a,b)=>nameOf(a).toLowerCase()<nameOf(b).toLowerCase()?-1:1);
+  const sendLabel=one?(aud.length?('Send to '+esc(aud[0].firstName||nameOf(aud[0]))):'Send'):('Send to '+aud.length+' guest'+(aud.length===1?'':'s'));
+  const audBox=one
+    ? `<div class="dc-aud">${aud.length?`Sending to <b id="dcCount">${esc(nameOf(aud[0]))}</b> &lt;${esc(aud[0].email)}&gt;`:`<b id="dcCount">No guest selected</b> — choose one above.`}</div>`
+    : `<div class="dc-aud">Sending to <b id="dcCount">${aud.length}</b> guest${aud.length===1?'':'s'} — <b>${segLabel}</b>${DIR_SEARCH?` matching “${esc(DIR_SEARCH)}”`:''}${DIR_TAG?` · tag “${esc(DIR_TAG)}”`:''}. Guests without an email or who unsubscribed are skipped automatically. <span style="color:#9AA49B">Tip: filter the directory first to choose who this goes to.</span></div>`;
+  const picker=one?`<div class="dc-field"><label class="dc-label">Choose the guest</label><select class="dc-sel" onchange="dirComposePick(this.value)"><option value="">— Select a guest —</option>${withEmail.map(e=>`<option value="${esc(e.key)}"${e.key===DIR_COMPOSE_ONE?' selected':''}>${esc(nameOf(e))} — ${esc(e.email)}</option>`).join('')}</select>${withEmail.length?'':'<div class="dc-hint">No contacts have an email on file yet.</div>'}</div>`:'';
   el.innerHTML=`<div class="pay-topnav"><button class="nav-back" onclick="dirCloseCompose()">← Back to directory</button></div>
-    <div class="dir-head"><div><div class="today-head">Compose email</div><div class="today-date">Send a personalised broadcast to a segment of your guest directory</div></div></div>
+    <div class="dir-head"><div><div class="today-head">Compose email</div><div class="today-date">Send a personalised email to one guest or a whole segment</div></div></div>
     <div class="dir-compose">
-      <div class="dc-aud">Sending to <b id="dcCount">${aud.length}</b> guest${aud.length===1?'':'s'} — <b>${segLabel}</b>${DIR_SEARCH?` matching “${esc(DIR_SEARCH)}”`:''}${DIR_TAG?` · tag “${esc(DIR_TAG)}”`:''}. Guests without an email or who unsubscribed are skipped automatically. <span style="color:#9AA49B">Tip: filter the directory first to choose who this goes to.</span></div>
+      <div class="dc-modes"><button class="dc-mode${!one?' on':''}" onclick="dirComposeMode('seg')">A segment</button><button class="dc-mode${one?' on':''}" onclick="dirComposeMode('one')">One guest</button></div>
+      ${picker}${audBox}
       <div class="dc-field"><label class="dc-label">Start from a template</label><select class="dc-sel" onchange="dirApplyTpl(this.value)"><option value="">— Blank —</option>${tplOpts}</select></div>
       <div class="dc-field"><label class="dc-label">Subject</label><input class="dc-input" id="dcSubject" placeholder="e.g. Season's greetings from Casa de Campo"></div>
       <div class="dc-field"><label class="dc-label">Message</label><textarea class="dc-area" id="dcBody" placeholder="Write your message…"></textarea>
         <div class="dc-hint">Personalise with <b>{first name}</b> and <b>{last villa}</b> — each guest gets their own version. A signature and an unsubscribe link are added automatically.</div></div>
-      <div class="dc-row"><button class="dc-send" id="dcSend" onclick="dirSendBroadcast()">Send to ${aud.length} guest${aud.length===1?'':'s'}</button><button class="dc-cancel" onclick="dirCloseCompose()">Cancel</button></div>
+      <div class="dc-row"><button class="dc-send" id="dcSend" onclick="dirSendBroadcast()">${sendLabel}</button><button class="dc-cancel" onclick="dirCloseCompose()">Cancel</button></div>
     </div>`;
   if(prevS!==undefined){ const s=document.getElementById('dcSubject'); if(s) s.value=prevS; }
   if(prevB!==undefined){ const b=document.getElementById('dcBody'); if(b) b.value=prevB; }
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
-window.dirCompose=function(){ DIR_COMPOSE=true; renderDirCompose(); };
+window.dirComposeMode=function(m){ DIR_COMPOSE_MODE=(m==='one')?'one':'seg'; renderDirCompose(); };
+window.dirComposePick=function(key){ DIR_COMPOSE_ONE=key||''; renderDirCompose(); };
+window.dirCompose=function(){ DIR_COMPOSE=true; DIR_COMPOSE_MODE='seg'; DIR_COMPOSE_ONE=''; renderDirCompose(); };
 window.dirCloseCompose=function(){ DIR_COMPOSE=false; renderDirectory(); };
 window.dirApplyTpl=function(k){ const t=DIR_TEMPLATES[k]; if(!t)return; const s=document.getElementById('dcSubject'), b=document.getElementById('dcBody'); if((s&&s.value.trim())||(b&&b.value.trim())){ if(!confirm('Replace the current subject and message with this template?')) return; } if(s)s.value=t.subject; if(b)b.value=t.body; };
 window.dirSendBroadcast=async function(){
   const subject=((document.getElementById('dcSubject')||{}).value||'').trim();
   const body=((document.getElementById('dcBody')||{}).value||'').trim();
   if(!subject||!body){ toast&&toast('Add a subject and a message'); return; }
-  const aud=dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
-  if(!aud.length){ toast&&toast('No recipients with an email address'); return; }
-  if(!confirm('Send this email to '+aud.length+' guest'+(aud.length===1?'':'s')+'?')) return;
+  const aud=dirComposeAudience();
+  if(!aud.length){ toast&&toast(DIR_COMPOSE_MODE==='one'?'Choose a guest first':'No recipients with an email address'); return; }
+  const who=DIR_COMPOSE_MODE==='one'?((aud[0].fullName||aud[0].firstName||aud[0].email)):(aud.length+' guest'+(aud.length===1?'':'s'));
+  if(!confirm('Send this email to '+who+'?')) return;
   const btn=document.getElementById('dcSend'); if(btn){ btn.disabled=true; btn.textContent='Sending…'; }
   const keys=aud.map(e=>e.key);
   const r=await api('/api/staff/directory/broadcast',{method:'POST',body:JSON.stringify({keys,subject,body})});
