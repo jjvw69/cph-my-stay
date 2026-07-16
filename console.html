@@ -97,6 +97,8 @@
   .dir-stat.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .dir-stat b{font-weight:800}
   .dir-stat.on b{color:#fff}
+  .dir-srcsel{display:inline-block;appearance:auto;-webkit-appearance:menulist;padding:6px 10px}
+  .dir-srcsel option{color:#2b2b2b}
   .dir-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 2px}
   .dir-search{flex:1;min-width:200px;padding:9px 13px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-family:var(--ui)}
   .dir-search:focus{outline:none;border-color:var(--accent)}
@@ -1747,7 +1749,7 @@ window.togglePayableSettled=async function(key,settled,amount){
 function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode'); c.classList.remove('dir-mode');} }
 /* Guest contact directory — an A–Z address book built from every booking's guest, plus a hand-editable
    layer (add contacts, annotate entries). Full-width like the Jan/Upsell views. */
-let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_COMPOSE=false, DIR_COMPOSE_MODE='seg', DIR_COMPOSE_ONE='';
+let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_SOURCE='', DIR_COMPOSE=false, DIR_COMPOSE_MODE='seg', DIR_COMPOSE_ONE='';
 function dirComposeAudience(){
   if(DIR_COMPOSE_MODE==='one'){ const e=dirEntries().find(x=>x.key===DIR_COMPOSE_ONE); return (e && String(e.email||'').trim() && !e.optOut)?[e]:[]; }
   return dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
@@ -1775,6 +1777,7 @@ function dirFiltered(){
     if(DIR_SEG==='email' && !String(e.email||'').trim()) return false;
     if(DIR_SEG==='optout' && !e.optOut) return false;
     if(DIR_TAG && !(e.tags||[]).map(t=>String(t).toLowerCase()).includes(DIR_TAG.toLowerCase())) return false;
+    if(DIR_SOURCE && String(e.source||'')!==DIR_SOURCE) return false;
     if(q){ const hay=[e.firstName,e.lastName,e.fullName,e.email,e.villa,e.villaInternal,(e.tags||[]).join(' '),e.source,dirAgentName(e.agent)].join(' ').toLowerCase(); if(hay.indexOf(q)<0) return false; }
     return true;
   });
@@ -1828,7 +1831,9 @@ function dirPaint(){
   const nOut=entries.filter(e=>e.optOut).length;
   const stat=(seg,label,n)=>`<button class="dir-stat${DIR_SEG===seg?' on':''}" onclick="DIR_SEG='${seg}';dirPaint()"><b>${n}</b> ${label}</button>`;
   const sEl=document.getElementById('dirStats');
-  if(sEl) sEl.innerHTML=[stat('all','All',entries.length),stat('email','With email',nEmail),stat('repeat','Repeat guests',nRep),stat('rebook','Due to re-book',nRebook),stat('optout','Unsubscribed',nOut)].join('');
+  const sources=[...new Set(entries.map(e=>String(e.source||'').trim()).filter(Boolean))].sort();
+  const srcSel=`<select class="dir-stat dir-srcsel${DIR_SOURCE?' on':''}" onchange="DIR_SOURCE=this.value;dirPaint()"><option value="">By source: all</option>${sources.map(sc=>`<option value="${esc(sc)}"${sc===DIR_SOURCE?' selected':''}>${esc(sc)}</option>`).join('')}</select>`;
+  if(sEl) sEl.innerHTML=[stat('all','All',entries.length),stat('email','With email',nEmail),stat('repeat','Repeat guests',nRep),stat('rebook','Due to re-book',nRebook),stat('optout','Unsubscribed',nOut),srcSel].join('');
   const norm=s=>String(s||'').trim();
   const sorted=dirFiltered().slice().sort((a,b)=>{ const al=norm(a.lastName||a.fullName).toLowerCase(), bl=norm(b.lastName||b.fullName).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName).toLowerCase()<norm(b.firstName).toLowerCase()?-1:1; });
   const groups={}, order=[];
