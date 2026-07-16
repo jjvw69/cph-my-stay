@@ -1357,6 +1357,40 @@ function payables() {
         detail: trips + ' leg' + (trips === 1 ? '' : 's'),
         charged: round(tAmt), cost: round(tCost),
       })));
+      // --- yacht charters (CPH adds a 28% markup on the boat's price; the boat operator is the supplier) ---
+      let yAmt = 0, ySup = '', yVia = '';
+      const _yachtInv = inv.kind === 'yacht' || /yacht|catamaran|charter|boat/i.test(String(inv.title || ''));
+      (inv.items || []).forEach(it => {
+        if (!_yachtInv && !/yacht|catamaran|charter|boat/i.test(String(it.label || ''))) return;
+        const amt = Number(it.amount) || 0; if (!amt) return;
+        yAmt += amt;                                            // the boat's price = CPH's cost
+        if (!ySup && it.supplier) ySup = String(it.supplier).trim(); if (!yVia && it.bookedVia) yVia = String(it.bookedVia).trim();
+      });
+      if (yAmt) {
+        const boatCost = round(yAmt), yMargin = round(boatCost * 0.28);
+        rows.push(attach(Object.assign({}, meta, {
+          key: inv.id + ':yacht', invoiceId: inv.id, invoiceNo: invNo, paidAt,
+          category: 'yacht', supplier: ySup || '(supplier not set)', via: yVia, guestPaid,
+          source: yVia || (s.source || 'Unknown').trim(),
+          detail: 'yacht charter',
+          charged: round(boatCost + yMargin), cost: boatCost,     // margin (28%) computed by attach()
+        })));
+      }
+      // --- cake (bakery) — pass-through for now: CPH owes the bakery the full amount, no markup set (profit 0) ---
+      let kAmt = 0, kSup = '', kVia = '';
+      (inv.items || []).forEach(it => {
+        if (!/\bcake\b/i.test(String(it.label || '')) && !/\bcake\b/i.test(String(inv.title || ''))) return;
+        const amt = Number(it.amount) || 0; if (!amt) return;
+        kAmt += amt;
+        if (!kSup && it.supplier) kSup = String(it.supplier).trim(); if (!kVia && it.bookedVia) kVia = String(it.bookedVia).trim();
+      });
+      if (kAmt) rows.push(attach(Object.assign({}, meta, {
+        key: inv.id + ':cake', invoiceId: inv.id, invoiceNo: invNo, paidAt,
+        category: 'cake', supplier: kSup || '(supplier not set)', via: kVia, guestPaid,
+        source: kVia || (s.source || 'Unknown').trim(),
+        detail: 'cake',
+        charged: round(kAmt), cost: round(kAmt),                 // pass-through until a cake markup is set
+      })));
     });
   });
   // Unpaid (awaiting the guest) first so Jan sees what's coming, then paid, each block by check-in.

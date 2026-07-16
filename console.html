@@ -153,6 +153,8 @@
   .pd-tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border-radius:5px;padding:1px 6px;margin-right:5px;color:#fff}
   .pd-tag.cat-cart{background:#12794D}
   .pd-tag.cat-xfer{background:#5A3A88}
+  .pd-tag.cat-yacht{background:#1F6F8B}
+  .pd-tag.cat-cake{background:#B5556F}
   .pd-tag.cat-mixed{background:#A37E2C}
   .pd-no{color:#9AA49B;margin-left:5px}
   .pd-sup{font-weight:600;color:var(--ink)}
@@ -1527,11 +1529,6 @@ async function renderRevenue(){
     </div>
     <div class="today-head"><span style="font-weight:400">Revenue &amp;</span> <b style="font-weight:800">upsell</b></div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
-    ${/* Effectiveness strip: attach rate (how many bookings upsell) + average basket among those who do. */''}
-    <div class="rev-headstats">
-      <span><b>${m.attachRate||0}%</b> of bookings bought an add-on <span class="dim">(${m.staysWithBooking||0} of ${m.published||0})</span></span>
-      <span><b>${money0(m.staysWithBooking?m.totalRevenue/m.staysWithBooking:0)}</b> average add-on spend when they do</span>
-    </div>
     ${/* Top: two columns — month trend + CPH earnings (left) · cash flow (right). */''}
     <div class="rev-grid">
       <div class="rev-col">${secRevMonth}${secCph}</div>
@@ -1591,9 +1588,9 @@ async function renderPayables(){
   const p=PAYABLES;
   if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
   const sec=(t,body,sub,id)=>`<div class="rev-sec"${id?` id="${id}"`:''}><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
-  const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':'Mixed';
-  const catClass=c=>c==='cart'?'cat-cart':c==='transfer'?'cat-xfer':'cat-mixed';
-  const catShort=c=>c==='cart'?'Cart':c==='transfer'?'Transfer':'Mixed';
+  const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':c==='yacht'?'Yacht charter':c==='cake'?'Cake':'Mixed';
+  const catClass=c=>c==='cart'?'cat-cart':c==='transfer'?'cat-xfer':c==='yacht'?'cat-yacht':c==='cake'?'cat-cake':'cat-mixed';
+  const catShort=c=>c==='cart'?'Cart':c==='transfer'?'Transfer':c==='yacht'?'Yacht':c==='cake'?'Cake':'Mixed';
   const agentName=a=>{ const m={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'}; const k=String(a||'').toLowerCase(); return m[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); };
   let rows=(p.rows||[]).slice();
   if(PAY_FILTER) rows=rows.filter(r=>r.supplier===PAY_FILTER);
