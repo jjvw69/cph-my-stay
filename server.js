@@ -538,7 +538,7 @@ async function route(req,res){
     if(dirC&&dirC[1]&&m==='DELETE'){ const okd=store.deleteDirectoryContact(dirC[1]); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Contact not found'}); }
     if(m==='PUT' &&url==='/api/staff/directory/meta'){ const b=await readBody(req); const mm=store.setDirectoryMeta(String(b.key||''),b.patch||b); return mm?sendJSON(res,200,{ok:true,meta:mm}):sendJSON(res,400,{ok:false,error:'A key is required.'}); }
     if(m==='POST'&&url==='/api/staff/directory/activity'){ const b=await readBody(req); const mm=store.addDirectoryActivity(String(b.key||''),String(b.type||'note'),String(b.text||'')); return mm?sendJSON(res,200,{ok:true,meta:mm}):sendJSON(res,400,{ok:false,error:'A key is required.'}); }
-    if(m==='GET' &&url==='/api/staff/directory/export.csv'){ const csv=store.directoryCSV(); res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="cph-directory.csv"'}); return res.end(csv); }
+    if(m==='GET' &&url==='/api/staff/directory/export.csv'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Not allowed'}); const csv=store.directoryCSV(); res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="cph-directory.csv"'}); return res.end(csv); }
     if(m==='POST'&&url==='/api/staff/directory/broadcast'){
       const b=await readBody(req);
       if(!RESEND_API_KEY) return sendJSON(res,400,{ok:false,error:'Email is not configured (RESEND_API_KEY missing).'});

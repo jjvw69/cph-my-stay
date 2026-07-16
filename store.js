@@ -1845,6 +1845,22 @@ function saveCheckin(reference, data) {
   // so the console's "Arrival airport / Flight" always reflect the guest's real arrival.
   if (s.guestCheckin.airport) s.airport = s.guestCheckin.airport;
   if (s.guestCheckin.flight) s.flight = s.guestCheckin.flight;
+  // Contact capture (optional) — feeds the guest Directory + marketing consent.
+  const em = norm(data.email).slice(0, 160);
+  const ph = norm(data.phone).slice(0, 40);
+  const emOk = /.+@.+\..+/.test(em);
+  if (emOk) s.email = em;
+  if (ph) s.phone = ph;
+  s.guestCheckin.email = emOk ? em : (s.email || '');
+  s.guestCheckin.phone = ph || s.phone || '';
+  if ('emailOptIn' in data) {
+    const optIn = !!data.emailOptIn;
+    s.guestCheckin.emailOptIn = optIn;
+    // wire consent straight to the Directory: unticked => unsubscribed (excluded from broadcasts)
+    const nm = String(s.leadName || s.lastName || '').trim();
+    const dedup = s.email ? String(s.email).trim().toLowerCase() : ('name:' + nm.toLowerCase());
+    if (nm || s.email) setDirectoryMeta('auto:' + dedup, { optOut: !optIn });
+  }
   s.updatedAt = Date.now(); persistStays(); return s.guestCheckin;
 }
 /** Staff resets a single pre-arrival SECTION so the guest re-does just that part (not a blanket wipe).
