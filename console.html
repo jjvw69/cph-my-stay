@@ -1508,18 +1508,14 @@ async function renderRevenue(){
       <div class="rev-col">${secRevMonth}${secCph}</div>
       <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}</div>
     </div>
-    ${/* Below: the rest, split evenly. Per-service earnings left · money-to-chase + smaller services right. */''}
-    <div class="rev-grid">
-      <div class="rev-col">
-        ${secCart}
-        ${secCar}
-        ${secYacht}
-      </div>
-      <div class="rev-col">
-        ${secXfer}
-        ${secInvilla}
-        ${secGrocEarn}
-      </div>
+    ${/* Per-service earnings: three across, two rows — cart · airport · car, then yacht · in-villa · groceries. */''}
+    <div class="rev-grid rev-grid-3">
+      ${secCart}
+      ${secXfer}
+      ${secCar}
+      ${secYacht}
+      ${secInvilla}
+      ${secGrocEarn}
     </div>
     ${/* Bottom: Top villas earnings beside Unpaid invoices — two columns. */''}
     <div class="rev-grid">
