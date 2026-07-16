@@ -63,6 +63,8 @@
   .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:4px}
   .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr 1fr}
   .rev-col{min-width:0;display:flex;flex-direction:column}
+  /* Sections placed directly as grid items (e.g. the 3-across earnings grid): let the grid gap own spacing. */
+  .rev-grid > .rev-sec{margin-top:0;min-width:0}
   @media(max-width:1200px){ .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr} }
   @media(max-width:900px){ .rev-grid,.rev-grid.rev-grid-3{grid-template-columns:1fr} }
   /* Slim effectiveness strip under the Upsell title: how BROADLY and how DEEPLY guests upsell. */
@@ -214,8 +216,9 @@
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
   /* In-house = guest physically at the villa now. Whole card filled yellow. */
-  .staycard.inhouse{background:#FBE49A;border-color:#FBE49A}
-  .staycard.inhouse.sel{border-color:var(--accent);background:#F7DA80}
+  /* Matches the in-house pill shade (.tr-tag.amber). */
+  .staycard.inhouse{background:#FBF1D8;border-color:#ECE1BE}
+  .staycard.inhouse.sel{border-color:var(--accent);background:#F4E8C2}
   /* Arrives today = checkin is today. Whole card filled intense red (white text). Priority over inhouse. */
   .staycard.arrtoday{background:#C0392B;border-color:#C0392B}
   .staycard.arrtoday.sel{border-color:var(--accent);background:#A93326}
