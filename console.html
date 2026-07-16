@@ -2302,8 +2302,8 @@ function renderToday(){
   const notReady=upcomingPub.filter(s=>s.readiness?!s.readiness.ready:(!s.preCheckinDone||!s.transferArranged||!s.hasReg));
   // Upcoming arrivals (within a week) who have never opened the guest app.
   const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d<=7&&!hasDeparted(s);});
-  // Post-stay review requests — checked out (morning after onward), within the last 45 days, not yet requested.
-  const reviewCut=addDays(today,-45);
+  // Post-stay review requests — checked out (morning after onward), within the last 14 days, not yet requested.
+  const reviewCut=addDays(today,-14);
   const reviewDue=L.filter(s=>s.status==='published'&&s.checkout&&s.checkout<today&&s.checkout>=reviewCut&&!(s.reviewReq&&s.reviewReq.sentAt)).sort((a,b)=>(b.checkout||'').localeCompare(a.checkout||''));
   todayGroups={arrToday,depToday,pending,unpaid,msgs,fudue,inhouse,xfToday,notReady,notOpened,reviewDue};
   const totPending=pending.reduce((a,s)=>a+(s.pending||0),0);

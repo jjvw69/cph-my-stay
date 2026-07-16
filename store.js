@@ -1601,7 +1601,7 @@ function runAutomations() {
 
 // ---------------------------------------------- post-stay review requests (staff-approve queue)
 // Native to the console, independent of GuestWisely. Surfaces every published stay that has checked
-// out (morning after onward, within the last 45 days) and not yet had a review request sent, so a
+// out (morning after onward, within the last 14 days) and not yet had a review request sent, so a
 // concierge can send it with one click. Also carries any private in-app rating the guest submitted.
 function reviewQueue() {
   const today = new Date(new Date().toDateString());
@@ -1610,7 +1610,7 @@ function reviewQueue() {
   stays.forEach(s => {
     if (s.status !== 'published' || !s.checkout) return;
     const daysSince = daysSinceOf(s.checkout);
-    if (daysSince == null || daysSince < 1 || daysSince > 45) return;
+    if (daysSince == null || daysSince < 1 || daysSince > 14) return;
     const v = getVilla(s.villaId);
     out.push({
       stayId: s.id, ref: s.reference, guest: s.leadName || s.lastName || 'Guest',
