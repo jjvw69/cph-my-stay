@@ -432,7 +432,9 @@
   .yrnav:not(:empty){margin-left:3px;padding-left:9px;border-left:1px solid var(--line)}
   .yrchip{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#F6F5F1;border-radius:20px;padding:4px 10px;color:var(--soft);cursor:pointer}
   .yrchip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .yrsep{position:sticky;top:0;z-index:2;background:var(--hedge);font-size:11px;font-weight:800;letter-spacing:.08em;color:#fff;padding:7px 12px 6px;border-radius:8px;margin:6px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .yrsep{position:sticky;top:0;z-index:2;background:var(--bg,#fff);font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--soft);padding:7px 2px 5px;border-bottom:1px solid var(--line);margin:6px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  /* A NEW year (2027+, not the first) gets the hedge-green bar to mark the transition. */
+  .yrsep.yr-new{background:var(--hedge);color:#fff;padding:7px 12px 6px;border-radius:8px;border-bottom:0}
   /* "↑ Top" lives on the sticky year row, so it's always in reach while you scroll that year. */
   .yrtop{font-size:10px;font-weight:700;letter-spacing:.04em;border:1px solid var(--line);background:#fff;border-radius:20px;padding:2px 8px;color:var(--soft);cursor:pointer}
   .yrtop:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -1059,7 +1061,7 @@ function renderList(){
   el.innerHTML=strip+items.map(s=>{
     const yr=String(s.checkin||'').slice(0,4);
     let sep='';
-    if(yr&&yr!==_lastYr){ _lastYr=yr; _years.push(yr); sep=`<div class="yrsep" id="yr-${yr}"><span>${yr}</span><button class="yrtop" title="Back to the top of the list" onclick="jumpTop()">↑ Top</button></div>`; }
+    if(yr&&yr!==_lastYr){ _lastYr=yr; const _newYear=_years.length>0; _years.push(yr); sep=`<div class="yrsep ${_newYear?'yr-new':''}" id="yr-${yr}"><span>${yr}</span><button class="yrtop" title="Back to the top of the list" onclick="jumpTop()">↑ Top</button></div>`; }
     const _fmtLong=iso=>{ if(!iso)return '?'; const x=new Date(iso+'T00:00:00'); return isNaN(x)?iso:x.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}); };
     const dates=_fmtLong(s.checkin)+' – '+_fmtLong(s.checkout);
     const _villaLine=[s.villaInternal,s.villa].map(x=>String(x||'').trim()).filter(Boolean).join(' | ')||'—';
@@ -1508,7 +1510,7 @@ async function renderRevenue(){
       <button onclick="showArrivals()">▤ Arrivals</button>
       ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
     </div>
-    <div class="today-head">Revenue &amp; upsell</div>
+    <div class="today-head"><span style="font-weight:400">Revenue &amp;</span> <b style="font-weight:800">upsell</b></div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
     ${/* Effectiveness strip: attach rate (how many bookings upsell) + average basket among those who do. */''}
     <div class="rev-headstats">
@@ -1630,7 +1632,7 @@ async function renderPayables(){
   </div>`;
   el.innerHTML=`
     ${nav}
-    <div class="today-head">Jan - Suppliers to pay &amp; profit</div>
+    <div class="today-head"><span style="font-weight:400">Jan -</span> <b style="font-weight:800">Suppliers to pay &amp; profit</b></div>
     <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · Jan only</div>
     ${p.count?summary+ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
   buildPaySecNav(p);
@@ -1838,7 +1840,7 @@ function renderInbox(){
     return `<button class="today-row" onclick="selectStay('${s.id}')"><span class="tr-main"><span class="tr-g">${esc(s.guest)}${u?' <span class="unread-dot"></span>':''}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')}</span>${prev?`<span class="ibx-prev">${prev}</span>`:''}</span>${u?`<span class="tr-tag amber">${u} new</span>`:`<span class="tr-tag grey">${s.lastMsgAt?fmtAgo(s.lastMsgAt):''}</span>`}</button>`; }).join('');
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
-    <div class="today-head">Inbox</div>
+    <div class="today-head"><b style="font-weight:800">Inbox</b></div>
     <div class="today-date">All guest conversations · newest first</div>
     ${L.length?rows:`<div class="today-clear">No guest messages yet.</div>`}`;
 }
@@ -2005,7 +2007,7 @@ function renderToday(){
   const nothing=!arrToday.length&&!arrTom.length&&!depToday.length&&!pending.length&&!unpaid.length&&!msgs.length&&!fudue.length&&!inhouse.length&&!xfToday.length&&!notReady.length&&!notOpened.length;
   el.innerHTML=`
     <button class="backlist" onclick="backToList()">← All stays</button>
-    <div class="today-head">Today’s overview</div>
+    <div class="today-head"><span style="font-weight:400">Today’s</span> <b style="font-weight:800">overview</b></div>
     <div class="today-date">${dstr}</div>
     ${/* Follow-ups due sits ABOVE the stat cards — it's a dated commitment to a guest, so it gets
           top billing over the passive counts (in-house / arriving today). */''}
