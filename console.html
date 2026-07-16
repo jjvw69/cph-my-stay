@@ -61,8 +61,10 @@
   .cols.rev-mode{grid-template-columns:1fr}
   .cols.rev-mode .col.left,.cols.rev-mode .col.right{display:none}
   .rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:4px}
+  .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr 1fr}
   .rev-col{min-width:0;display:flex;flex-direction:column}
-  @media(max-width:900px){ .rev-grid{grid-template-columns:1fr} }
+  @media(max-width:1200px){ .rev-grid.rev-grid-3{grid-template-columns:1fr 1fr} }
+  @media(max-width:900px){ .rev-grid,.rev-grid.rev-grid-3{grid-template-columns:1fr} }
   .rev-kpi-left{display:flex;flex-direction:column;gap:10px;margin-top:4px}
   .rev-kpi-left .stat{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:0 1px 2px rgba(20,33,28,.04)}
   .rev-kpi-left .stat .num{font-size:30px}
@@ -1456,20 +1458,23 @@ async function renderRevenue(){
     </div>
     <div class="today-head">Revenue &amp; upsell</div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
-    ${secRevMonth}
+    ${/* Top: three columns — month trend · CPH earnings · cash flow. */''}
+    <div class="rev-grid rev-grid-3">
+      <div class="rev-col">${secRevMonth}</div>
+      <div class="rev-col">${secCph}</div>
+      <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}</div>
+    </div>
+    ${/* Below: the rest, split evenly. Per-service earnings left · money-to-chase + smaller services right. */''}
     <div class="rev-grid">
       <div class="rev-col">
-        ${kpiHtml}
-        ${secCph}
         ${secCart}
         ${secCar}
-        ${secCash?`<div id="revCash">${secCash}</div>`:''}
+        ${secXfer}
+        ${secYacht}
       </div>
       <div class="rev-col">
         ${unpaidSec}
         ${topVillasSec}
-        ${secXfer}
-        ${secYacht}
         ${secInvilla}
         ${secGrocEarn}
       </div>
