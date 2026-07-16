@@ -1498,10 +1498,10 @@ async function renderRevenue(){
       <span><b>${m.attachRate||0}%</b> of bookings bought an add-on <span class="dim">(${m.staysWithBooking||0} of ${m.published||0})</span></span>
       <span><b>${money0(m.staysWithBooking?m.totalRevenue/m.staysWithBooking:0)}</b> average add-on spend when they do</span>
     </div>
-    ${/* Top: two columns — month trend + CPH earnings (left) · cash flow + unpaid (right). */''}
+    ${/* Top: two columns — month trend + CPH earnings (left) · cash flow (right). */''}
     <div class="rev-grid">
       <div class="rev-col">${secRevMonth}${secCph}</div>
-      <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}${unpaidSec}</div>
+      <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}</div>
     </div>
     ${/* Below: the rest, split evenly. Per-service earnings left · money-to-chase + smaller services right. */''}
     <div class="rev-grid">
@@ -1516,8 +1516,11 @@ async function renderRevenue(){
         ${secGrocEarn}
       </div>
     </div>
-    ${/* Top villas earnings: one full-width block at the very bottom. */''}
-    ${topVillasSec}`;
+    ${/* Bottom: Top villas earnings beside Unpaid invoices — two columns. */''}
+    <div class="rev-grid">
+      <div class="rev-col">${topVillasSec}</div>
+      <div class="rev-col">${unpaidSec}</div>
+    </div>`;
 
   buildRevSecNav();  // top section-nav chips, same style as the stay editor's secbar
 
