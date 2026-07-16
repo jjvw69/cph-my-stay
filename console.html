@@ -1169,7 +1169,7 @@ function renderList(){
     const fuCls=s.followUpDate?(s.followUpDate<today?'over':s.followUpDate===today?'due':''):'';
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
     const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">US$ ${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
-    const _R=s.readiness; const _upc=s.checkin&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
+    const _R=s.readiness; const _upc=s.checkin&&s.checkin>=today&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
     // Arrives today = checkin is today (amber). In-house = arrived earlier, still with us (green).
@@ -2181,7 +2181,7 @@ function notReadyRow(s){
             called "Pre check-in" and the items are its steps; naming one of them "Pre check-in" too
             was the confusing part. A step goes green the moment the guest fills it in. */''}
       <div class="nrx-h">Pre check-in</div>
-      ${item(!!R.preCheckin,'Guest details &amp; party')}
+      ${item(!!R.preCheckin,'Guest details & party')}
       ${item(!!R.passports,'Passports')}
       ${item(!!R.transferReady,'Transportation')}
       <button class="nrx-open" onclick="event.stopPropagation();selectStay('${s.id}')">Open stay →</button>
@@ -2305,7 +2305,9 @@ function renderToday(){
   const xfToday=L.filter(s=>(s.transfers||[]).some(t=>t.date===today||t.endDate===today));
   // Every upcoming published arrival still missing pre check-in, guest passports, or the airport
   // transfer (arranged OR guest self-declared). Not day-gated — stays flagged until all three are in.
-  const upcomingPub=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&d!=null&&!hasDeparted(s);});
+  // Only stays that have NOT yet arrived (check-in today or later). Once a guest is in-house we assume
+  // everything was handed over at meet & greet, so they drop off "Arrivals not ready".
+  const upcomingPub=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&s.checkin&&s.checkin>=today&&d!=null&&!hasDeparted(s);});
   const notReady=upcomingPub.filter(s=>s.readiness?!s.readiness.ready:(!s.preCheckinDone||!s.transferArranged||!s.hasReg));
   // Upcoming arrivals (within a week) who have never opened the guest app.
   const notOpened=L.filter(s=>{const d=daysUntil(s.checkin);return s.status==='published'&&!s.guestLastSeen&&s.checkin&&d!=null&&d<=7&&!hasDeparted(s);});
