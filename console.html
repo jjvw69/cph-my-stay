@@ -62,7 +62,7 @@
   .dir-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
   .dir-add-btn{font-family:var(--ui);font-size:13px;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:11px;padding:8px 14px;cursor:pointer;flex-shrink:0}
   .dir-add-btn:hover{filter:brightness(1.06)}
-  #dirBody{column-count:3;column-gap:28px;margin-top:10px}
+  #dirBody{column-count:4;column-gap:24px;margin-top:10px}
   .dir-letter{break-inside:avoid;font-family:var(--display,serif);font-size:22px;font-weight:700;color:var(--accent);border-bottom:2px solid var(--line);padding:4px 0 3px;margin:16px 0 10px}
   .dir-card{break-inside:avoid;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px}
   .dir-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -132,8 +132,9 @@
   .dc-send:hover{filter:brightness(1.06)}
   .dc-send:disabled{opacity:.5;cursor:not-allowed}
   .dc-cancel{font-family:var(--ui);font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:11px;padding:11px 18px;cursor:pointer}
-  @media(max-width:1200px){ #dirBody{column-count:2} }
-  @media(max-width:900px){ #dirBody{column-count:1} }
+  @media(max-width:1500px){ #dirBody{column-count:3} }
+  @media(max-width:1150px){ #dirBody{column-count:2} }
+  @media(max-width:800px){ #dirBody{column-count:1} }
   /* Revenue (Upsell) view runs full-width like the Jan ledger: the section title + month chart span
      the top, then everything else sits in an even 50/50 two-column grid below. */
   .cols.rev-mode{grid-template-columns:1fr}
@@ -1752,9 +1753,10 @@ window.togglePayableSettled=async function(key,settled,amount){
 function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode'); c.classList.remove('dir-mode');} }
 /* Guest contact directory — an A–Z address book built from every booking's guest, plus a hand-editable
    layer (add contacts, annotate entries). Full-width like the Jan/Upsell views. */
-let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_SOURCE='', DIR_COMPOSE=false, DIR_COMPOSE_MODE='seg', DIR_COMPOSE_ONE='';
+let DIRECTORY=null, DIR_SEARCH='', DIR_SEG='all', DIR_TAG='', DIR_SOURCE='', DIR_COMPOSE=false, DIR_COMPOSE_MODE='seg', DIR_COMPOSE_ONE='', DIR_COMPOSE_SRC='';
 function dirComposeAudience(){
   if(DIR_COMPOSE_MODE==='one'){ const e=dirEntries().find(x=>x.key===DIR_COMPOSE_ONE); return (e && String(e.email||'').trim() && !e.optOut)?[e]:[]; }
+  if(DIR_COMPOSE_MODE==='source'){ return DIR_COMPOSE_SRC ? dirEntries().filter(e=>String(e.source||'')===DIR_COMPOSE_SRC && String(e.email||'').trim() && !e.optOut) : []; }
   return dirFiltered().filter(e=>String(e.email||'').trim() && !e.optOut);
 }
 const DIR_AGENTS={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'};
@@ -1893,21 +1895,28 @@ function dirRefreshAud(){
 function renderDirCompose(){
   const el=document.getElementById('editor'); if(!el) return;
   const prevS=(document.getElementById('dcSubject')||{}).value, prevB=(document.getElementById('dcBody')||{}).value;
-  const one=DIR_COMPOSE_MODE==='one';
+  const one=DIR_COMPOSE_MODE==='one', src=DIR_COMPOSE_MODE==='source';
   const aud=dirComposeAudience();
   const segLabel={all:'all contacts',email:'contacts with email',repeat:'repeat guests',rebook:'guests due to re-book',optout:'unsubscribed guests'}[DIR_SEG]||'current filter';
   const tplOpts=Object.keys(DIR_TEMPLATES).map(k=>`<option value="${k}">${esc(DIR_TEMPLATES[k].name)}</option>`).join('');
   const nameOf=e=>((e.fullName||((e.firstName||'')+' '+(e.lastName||''))).trim()||e.email);
   const withEmail=dirEntries().filter(e=>String(e.email||'').trim() && !e.optOut).slice().sort((a,b)=>nameOf(a).toLowerCase()<nameOf(b).toLowerCase()?-1:1);
+  const sources=[...new Set(dirEntries().map(e=>String(e.source||'').trim()).filter(Boolean))].sort();
   const sendLabel=one?(aud.length?('Send to '+esc(aud[0].firstName||nameOf(aud[0]))):'Send'):('Send to '+aud.length+' guest'+(aud.length===1?'':'s'));
   const audBox=one
     ? `<div class="dc-aud">${aud.length?`Sending to <b id="dcCount">${esc(nameOf(aud[0]))}</b> &lt;${esc(aud[0].email)}&gt;`:`<b id="dcCount">No guest selected</b> — choose one above.`}</div>`
+    : src
+    ? `<div class="dc-aud">${DIR_COMPOSE_SRC?`Sending to <b id="dcCount">${aud.length}</b> guest${aud.length===1?'':'s'} from <b>${esc(DIR_COMPOSE_SRC)}</b> — guests without an email or who unsubscribed are skipped.`:`<b id="dcCount">No source selected</b> — choose one above.`}</div>`
     : `<div class="dc-aud">Sending to <b id="dcCount">${aud.length}</b> guest${aud.length===1?'':'s'} — <b>${segLabel}</b>${DIR_SEARCH?` matching “${esc(DIR_SEARCH)}”`:''}${DIR_TAG?` · tag “${esc(DIR_TAG)}”`:''}. Guests without an email or who unsubscribed are skipped automatically. <span style="color:#9AA49B">Tip: filter the directory first to choose who this goes to.</span></div>`;
-  const picker=one?`<div class="dc-field"><label class="dc-label">Choose the guest</label><select class="dc-sel" onchange="dirComposePick(this.value)"><option value="">— Select a guest —</option>${withEmail.map(e=>`<option value="${esc(e.key)}"${e.key===DIR_COMPOSE_ONE?' selected':''}>${esc(nameOf(e))} — ${esc(e.email)}</option>`).join('')}</select>${withEmail.length?'':'<div class="dc-hint">No contacts have an email on file yet.</div>'}</div>`:'';
+  const picker=one
+    ? `<div class="dc-field"><label class="dc-label">Choose the guest</label><select class="dc-sel" onchange="dirComposePick(this.value)"><option value="">— Select a guest —</option>${withEmail.map(e=>`<option value="${esc(e.key)}"${e.key===DIR_COMPOSE_ONE?' selected':''}>${esc(nameOf(e))} — ${esc(e.email)}</option>`).join('')}</select>${withEmail.length?'':'<div class="dc-hint">No contacts have an email on file yet.</div>'}</div>`
+    : src
+    ? `<div class="dc-field"><label class="dc-label">Choose the source</label><select class="dc-sel" onchange="dirComposeSrcPick(this.value)"><option value="">— Select a source —</option>${sources.map(sc=>`<option value="${esc(sc)}"${sc===DIR_COMPOSE_SRC?' selected':''}>${esc(sc)}</option>`).join('')}</select></div>`
+    : '';
   el.innerHTML=`<div class="pay-topnav"><button class="nav-back" onclick="dirCloseCompose()">← Back to directory</button></div>
-    <div class="dir-head"><div><div class="today-head">Compose email</div><div class="today-date">Send a personalised email to one guest or a whole segment</div></div></div>
+    <div class="dir-head"><div><div class="today-head">Compose email</div><div class="today-date">Send a personalised email to one guest, everyone from a source, or a whole segment</div></div></div>
     <div class="dir-compose">
-      <div class="dc-modes"><button class="dc-mode${!one?' on':''}" onclick="dirComposeMode('seg')">A segment</button><button class="dc-mode${one?' on':''}" onclick="dirComposeMode('one')">One guest</button></div>
+      <div class="dc-modes"><button class="dc-mode${(!one&&!src)?' on':''}" onclick="dirComposeMode('seg')">A segment</button><button class="dc-mode${src?' on':''}" onclick="dirComposeMode('source')">By source</button><button class="dc-mode${one?' on':''}" onclick="dirComposeMode('one')">One guest</button></div>
       ${picker}${audBox}
       <div class="dc-field"><label class="dc-label">Start from a template</label><select class="dc-sel" onchange="dirApplyTpl(this.value)"><option value="">— Blank —</option>${tplOpts}</select></div>
       <div class="dc-field"><label class="dc-label">Subject</label><input class="dc-input" id="dcSubject" placeholder="e.g. Season's greetings from Casa de Campo"></div>
@@ -1919,10 +1928,11 @@ function renderDirCompose(){
   if(prevB!==undefined){ const b=document.getElementById('dcBody'); if(b) b.value=prevB; }
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
-window.dirComposeMode=function(m){ DIR_COMPOSE_MODE=(m==='one')?'one':'seg'; renderDirCompose(); };
+window.dirComposeMode=function(m){ DIR_COMPOSE_MODE=(m==='one'||m==='source')?m:'seg'; renderDirCompose(); };
 window.dirComposePick=function(key){ DIR_COMPOSE_ONE=key||''; renderDirCompose(); };
+window.dirComposeSrcPick=function(v){ DIR_COMPOSE_SRC=v||''; renderDirCompose(); };
 window.dirScrollTop=function(){ const e=document.getElementById('editor'); if(e&&e.scrollHeight>e.clientHeight){ e.scrollTo({top:0,behavior:'smooth'}); } try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); } };
-window.dirCompose=function(){ DIR_COMPOSE=true; DIR_COMPOSE_MODE='seg'; DIR_COMPOSE_ONE=''; renderDirCompose(); };
+window.dirCompose=function(){ DIR_COMPOSE=true; DIR_COMPOSE_MODE='seg'; DIR_COMPOSE_ONE=''; DIR_COMPOSE_SRC=''; renderDirCompose(); };
 window.dirCloseCompose=function(){ DIR_COMPOSE=false; renderDirectory(); };
 window.dirApplyTpl=function(k){ const t=DIR_TEMPLATES[k]; if(!t)return; const s=document.getElementById('dcSubject'), b=document.getElementById('dcBody'); if((s&&s.value.trim())||(b&&b.value.trim())){ if(!confirm('Replace the current subject and message with this template?')) return; } if(s)s.value=t.subject; if(b)b.value=t.body; };
 window.dirSendBroadcast=async function(){
