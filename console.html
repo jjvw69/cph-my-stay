@@ -213,18 +213,15 @@
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
-  /* In-house = guest physically at the villa now. Amber/gold left bar + warm tint. */
-  .staycard.inhouse{background:#FBF1E1;border-color:#E9CF9C;box-shadow:inset 4px 0 0 #C8852F}
+  /* In-house = guest physically at the villa now. Amber/gold left marker bar only (no card tint). */
+  .staycard.inhouse{box-shadow:inset 4px 0 0 #C8852F}
   .staycard.inhouse.unread{box-shadow:inset 4px 0 0 #C8852F}
-  /* Arrives today = checkin is today. Red left bar + tint so today's arrivals stand out as
-     top-priority. Takes priority over inhouse. */
-  .staycard.arrtoday{background:#FBEAE7;border-color:#EBC4BE;box-shadow:inset 4px 0 0 #C0392B}
+  /* Arrives today = checkin is today. Red left marker bar only. Takes priority over inhouse. */
+  .staycard.arrtoday{box-shadow:inset 4px 0 0 #C0392B}
   .staycard.arrtoday.unread{box-shadow:inset 4px 0 0 #C0392B}
-  .staycard.arrtoday.sel{border-color:var(--accent);background:#F6DED9}
   .staycard .g{display:flex;align-items:center}
   .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
-  .staycard.inhouse.sel{border-color:var(--accent);background:#F6E8CE}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
   .pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin-top:7px}
@@ -329,16 +326,18 @@
   .fudue-sec .today-row .tr-tag{background:rgba(255,255,255,.92);color:var(--purple)}
   .fudue-sec .today-row .tr-tag.red{background:#F3DADA;color:#9A2B2B}
   .tr-tag.green{background:#E2EFE0;color:#3F6B4E}
+  /* "today" arrival pill — same red as the arriving-today left card marker. */
+  .tr-tag.today{background:#F6DAD5;color:#C0392B}
   .nrx{margin-bottom:8px}
   .nrx .nrx-head{margin-bottom:0}
   .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
   .nrx.open .nrx-chev{transform:rotate(90deg)}
   .nrx.open .nrx-head{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
-  /* In-house guests inside "Arrivals not ready" — already checked in, so tint the row green to set
+  /* In-house guests inside "Arrivals not ready" — already checked in, so tint the row yellow to set
      them apart from arrivals still on the way. */
-  .nrx.nr-inhouse .nrx-head{background:#E6F3EC;border-color:#B9DDC9}
+  .nrx.nr-inhouse .nrx-head{background:#FBF3DA;border-color:#E9CF9C}
   .nrx.nr-inhouse .nrx-head:hover{border-color:var(--accent)}
-  .nrx.nr-inhouse .nrx-head .tr-m{color:#4A7A5E}
+  .nrx.nr-inhouse .nrx-head .tr-m{color:#9A7B36}
   .nrx-body{border:1px solid var(--line);border-top:0;border-radius:0 0 12px 12px;background:#fff;padding:6px 14px 11px}
   .nrx-h{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--soft);margin:0 0 6px}
   .nrx-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);padding:5px 0}
@@ -1903,7 +1902,7 @@ function arrPill(s){
   if(co && co<t) return {txt:'departed', cls:'grey'};   // stay is over
   if(ci && ci<t) return {txt:'in house', cls:'amber'};  // arrived, still with us
   const d=daysUntil(ci);
-  return {txt:(d===0?'today':'in '+d+'d'), cls:'green'};
+  return {txt:(d===0?'today':'in '+d+'d'), cls:(d===0?'today':'green')};
 }
 function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
