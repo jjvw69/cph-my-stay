@@ -2393,6 +2393,7 @@ function stayVitals(s){
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px">
         ${nights!=null?heroChip(nights+' nights'):''}
         ${heroChip(esc(partyTxt),(cap&&party>cap))}
+        ${heroChip((Number(s.adults)||0)+' adult'+((Number(s.adults)||0)===1?'':'s')+((Number(s.children)||0)>0?', '+(Number(s.children))+' child'+(Number(s.children)===1?'':'ren'):''))}
         ${heroChip(esc(appTxt),!!s.guestLastSeen)}
         <button onclick="openGuestApp()" title="Open the guest app for review" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.30);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:4px">Open guest app ↗</button>
       </div>
