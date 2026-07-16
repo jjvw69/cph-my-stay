@@ -1634,6 +1634,15 @@ function markReviewSent(id, by, channel) {
     firstName: (s.leadName || '').split(' ')[0] || '', villa: s.villaName || (v ? v.name : '') || '',
     email: s.email || '', phone: s.phone || '' };
 }
+/** Same info as markReviewSent but WITHOUT marking — used to compose/preview the email so the
+ *  concierge can copy it and send it themselves, then mark it sent separately. */
+function reviewInfo(id) {
+  const s = getStay(id); if (!s) return null;
+  const v = getVilla(s.villaId);
+  return { stayId: s.id, ref: s.reference, guest: s.leadName || s.lastName || 'Guest',
+    firstName: (s.leadName || '').split(' ')[0] || '', villa: s.villaName || (v ? v.name : '') || '',
+    email: s.email || '', phone: s.phone || '' };
+}
 /** Guest submits their private in-app star rating (1–5) + optional comment. Keyed by booking ref. */
 function saveGuestRating(ref, patch) {
   const r = norm(ref).toLowerCase();
@@ -2348,7 +2357,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, exportAll, runAutomations, reviewQueue, markReviewSent, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
