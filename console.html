@@ -2888,7 +2888,7 @@ function renderEditor(){
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
         <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
-          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}<option value="__custom__" ${_sndSvc==='__custom__'?'selected':''}>➕ Custom service — type the name…</option></select>
+          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${sndSvcOptionsHtml()}</select>
           ${_sndSvc==='__custom__'?`<input id="sndCustomName" value="${esc(_sndCustomName)}" oninput="sndCustomName(this.value)" placeholder="Service name (e.g. Helicopter tour · Photographer)" autofocus style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">`:''}
           <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>
           <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
@@ -3192,6 +3192,20 @@ window.sndCustomName=function(v){ _sndCustomName=v; }; // typed name for a servi
 window.selSendOpt=function(v){ _sndOptVal=v; const p=String(v||'').split('||'); _sndRate=(v&&p[1]!=null)?p[1]:''; const r=document.getElementById('sndRate'); if(r)r.value=_sndRate; };
 window.sndSet=function(k,v){ _sndExtra[k]=v; };
 window.sndTripChange=function(){ const sel=document.getElementById('snd_trip'); const round=!!sel&&sel.value==='Round-trip'; _sndExtra.trip=sel?sel.value:''; const w=document.getElementById('sndReturnWrap'); if(w)w.style.display=round?'grid':'none'; };
+/* Options for the "Send a service" picker: the villa add-ons/services catalog PLUS the bookable
+   Explore-section items (restaurants for dinner reservations, tours, golf, activities) — so staff can
+   proactively push a dinner reservation or any Explore experience, not just the add-on catalog.
+   Explore ids are prefixed "exp:" so the send handler can tell them apart. Single source: BOOT.explore
+   comes from store.js EXPLORE_SCENES via the staff bootstrap. info-only / noBook items are excluded. */
+function sndSvcOptionsHtml(){
+  const addons=(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('');
+  const exp=(BOOT.explore||[]).filter(x=>!x.info&&!x.noBook);
+  const grp=(label,cats)=>{ const items=exp.filter(x=>cats.indexOf(x.cat)>=0); if(!items.length)return ''; return `<optgroup label="${esc(label)}">`+items.map(x=>{const v='exp:'+x.id;return `<option value="${esc(v)}" ${_sndSvc===v?'selected':''}>${esc(x.name)}${x.meta?' · '+esc(x.meta):''}</option>`;}).join('')+`</optgroup>`; };
+  return `<optgroup label="Villa add-ons &amp; services">${addons}</optgroup>`
+    + grp('Dining · reservations',['Dining','Cafe'])
+    + grp('Activities, tours &amp; golf',['Activities','Outside','Golf'])
+    + `<optgroup label="Other"><option value="__custom__" ${_sndSvc==='__custom__'?'selected':''}>➕ Custom service — type the name…</option></optgroup>`;
+}
 /* Adaptive per-service booking-detail fields for the "Send a service" form — mirror the guest's own
    request form so a pushed service carries dates/flight/qty and can prefill an invoice. */
 function sndDetailFields(){
@@ -3200,6 +3214,11 @@ function sndDetailFields(){
   const num=(k,ph)=>`<input id="snd_${k}" value="${S(k)}" oninput="sndSet('${k}',this.value)" type="number" min="0" placeholder="${esc(ph)}" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">`;
   const dat=(k,lbl)=>`<label style="font-size:11px;color:#7A8579;display:flex;flex-direction:column;gap:3px">${esc(lbl)}<input id="snd_${k}" type="date" value="${S(k)}" oninput="sndSet('${k}',this.value)" style="border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-size:14px;background:#fff"></label>`;
   const wrap=inner=>`<div style="grid-column:1/-1;display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">${inner}</div>`;
+  if(id.indexOf('exp:')===0){
+    const it=(BOOT.explore||[]).find(x=>('exp:'+x.id)===id)||{};
+    const isDining=it.cat==='Dining'||it.cat==='Cafe';
+    return wrap(`${dat('date',isDining?'Reservation date':'Date')}${txt('time',isDining?'Time':'Time (optional)')}${num('guests',isDining?'Party size':'Participants / guests')}`);
+  }
   if(id==='transfer'){
     const round=E.trip==='Round-trip';
     const trip=`<select id="snd_trip" onchange="sndTripChange()" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option ${!round?'selected':''}>One-way</option><option ${round?'selected':''}>Round-trip</option></select>`;
@@ -3212,12 +3231,15 @@ function sndDetailFields(){
 }
 let _sndBusy=false;
 let _confirmBusy=false, _yachtBusy=false; // double-click guards: a second tap would re-fire the price / re-send the proposal
-window.sendServiceUI=async function(){ if(!cur||_sndBusy)return; _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500); const id=_sndSvc; if(!id){ alert('Choose a service.'); return; } const svc=(BOOT.addons||[]).find(a=>a.id===id)||{};
+window.sendServiceUI=async function(){ if(!cur||_sndBusy)return; _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500); const id=_sndSvc; if(!id){ alert('Choose a service.'); return; }
+  // Explore-section booking (dinner reservation / tour / activity), custom, or an add-on from the catalog.
+  const isExplore=id.indexOf('exp:')===0; const expItem=isExplore?((BOOT.explore||[]).find(x=>('exp:'+x.id)===id)||{}):null;
+  const svc=isExplore?{}:((BOOT.addons||[]).find(a=>a.id===id)||{});
   // Custom service: the name is typed, not picked from the catalog.
   const isCustom=id==='__custom__'; const typedName=String(((document.getElementById('sndCustomName')||{}).value)||_sndCustomName||'').trim();
   if(isCustom&&!typedName){ alert('Type the service name.'); _sndBusy=false; return; }
-  const svcId=isCustom?'custom':id; const svcName=isCustom?typedName:(svc.name||'');
-  const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); const option=custom||(_sndOptVal.split('||')[0]||''); const rate=String(_sndRate||'').trim(); const E=_sndExtra||{}; const note=String(E.note||'').trim();
+  const svcId=isCustom?'custom':(isExplore?('explore:'+(expItem.id||'')):id); const svcName=isCustom?typedName:(isExplore?(expItem.name||''):(svc.name||''));
+  const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); let option=custom||(_sndOptVal.split('||')[0]||''); if(isExplore&&!option) option=((expItem.cat==='Dining'||expItem.cat==='Cafe')?'Restaurant reservation':(expItem.meta||'')); const rate=String(_sndRate||'').trim(); const E=_sndExtra||{}; const note=String(E.note||'').trim();
   const body={serviceId:svcId,name:svcName,option,rate,note,date:E.date||'',endDate:E.endDate||'',time:E.time||'',guests:E.guests||'',qty:E.qty||'',trip:E.trip||'',airline:E.airline||'',flightNo:E.flightNo||'',flightOrigin:E.flightOrigin||'',arrivalTime:E.arrivalTime||'',returnAirline:E.returnAirline||'',returnFlightNo:E.returnFlightNo||'',returnDest:E.returnDest||'',returnTime:E.returnTime||''};
   const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify(body)}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); _sndSvc=''; _sndOptVal=''; _sndRate=''; _sndCustomName=''; _sndExtra={}; renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
 window.modifySentUI=async function(sid){ if(!cur)return; const ss=(cur.sentServices||[]).find(x=>x.id===sid); if(!ss)return; const option=prompt('Option / how it’s provided:',ss.option||''); if(option===null)return; const rate=prompt('Rate shown to guest:',ss.rate||''); if(rate===null)return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'PUT',body:JSON.stringify({option,rate})}); if(!r.ok){ alert(r.body.error||'Could not update.'); return; } const i=cur.sentServices.findIndex(x=>x.id===sid); if(i>=0)cur.sentServices[i]=r.body.service; renderEditor(); renderPreview(); toast&&toast('Updated — guest will re-confirm.'); };

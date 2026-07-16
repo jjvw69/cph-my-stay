@@ -2348,7 +2348,7 @@ ensureDir();
 seedStaffFromEnv();
 
 module.exports = {
-  DATA_DIR, ADDON_CATALOG, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
+  DATA_DIR, ADDON_CATALOG, EXPLORE_SCENES, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
   BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
