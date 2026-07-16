@@ -1794,7 +1794,6 @@ function dirCard(e){
     e.kind==='custom'?'<span class="dir-badge">added</span>':'',
     (e.stays||0)>1?`<span class="dir-badge rep">${e.stays} stays</span>`:'',
     e.dueRebook?'<span class="dir-badge warn">re-book</span>':'',
-    e.optOut?'<span class="dir-badge mute">unsubscribed</span>':'',
   ].join('');
   const contact=[e.email?`<a href="mailto:${esc(e.email)}" class="dir-link">✉ ${esc(e.email)}</a>`:'', e.phone?`<a href="tel:${esc(String(e.phone).replace(/[^0-9+]/g,''))}" class="dir-link">☎ ${esc(e.phone)}</a>`:''].filter(Boolean).join('');
   const stayLine=[e.villaInternal?esc(e.villaInternal):'', e.villa?esc(e.villa):'', dirFmtRange(e.checkin,e.checkout)].filter(Boolean).join(' · ');
@@ -1814,7 +1813,6 @@ function dirCard(e){
     `<button class="dir-btn" onclick="dirTags('${key}')">Tags</button>`,
     `<button class="dir-btn" onclick="dirPrefs('${key}')">Prefs</button>`,
     `<button class="dir-btn" onclick="dirNote('${key}')">Note</button>`,
-    `<button class="dir-btn" onclick="dirOptOut('${key}',${e.optOut?'true':'false'})">${e.optOut?'Re-subscribe':'Opt out'}</button>`,
     e.kind==='custom'?`<button class="dir-btn" onclick="dirEdit('${esc(e.id)}')">Edit</button><button class="dir-btn danger" onclick="dirDelete('${esc(e.id)}')">Delete</button>`:'',
   ].filter(Boolean).join('');
   return `<div class="dir-card">
@@ -1828,6 +1826,13 @@ function dirCard(e){
     <div class="dir-acts2">${acts}</div>
   </div>`;
 }
+function dirSurname(e){
+  // The A–Z bucket should use the real SURNAME (last word) even for joint names like
+  // "Bob & Jeanne Golden" or "Silvina and Gaston Gil" → group under Golden / Gil.
+  const full=String((e&&e.fullName)|| (((e&&e.firstName)||'')+' '+((e&&e.lastName)||''))).trim();
+  const toks=full.split(/\s+/).filter(t=>t && t!=='&' && t.toLowerCase()!=='and' && t!=='+');
+  return (toks.length?toks[toks.length-1]:full);
+}
 function dirPaint(){
   const entries=dirEntries();
   const nEmail=entries.filter(e=>String(e.email||'').trim()).length;
@@ -1838,11 +1843,11 @@ function dirPaint(){
   const sEl=document.getElementById('dirStats');
   const sources=[...new Set(entries.map(e=>String(e.source||'').trim()).filter(Boolean))].sort();
   const srcSel=`<select class="dir-stat dir-srcsel${DIR_SOURCE?' on':''}" onchange="DIR_SOURCE=this.value;dirPaint()"><option value="">By source: all</option>${sources.map(sc=>`<option value="${esc(sc)}"${sc===DIR_SOURCE?' selected':''}>${esc(sc)}</option>`).join('')}</select>`;
-  if(sEl) sEl.innerHTML=[stat('all','All',entries.length),stat('email','With email',nEmail),stat('repeat','Repeat guests',nRep),stat('rebook','Due to re-book',nRebook),stat('optout','Unsubscribed',nOut),srcSel].join('');
+  if(sEl) sEl.innerHTML=[stat('all','All',entries.length),stat('email','With email',nEmail),stat('repeat','Repeat guests',nRep),stat('rebook','Due to re-book',nRebook),srcSel].join('');
   const norm=s=>String(s||'').trim();
-  const sorted=dirFiltered().slice().sort((a,b)=>{ const al=norm(a.lastName||a.fullName).toLowerCase(), bl=norm(b.lastName||b.fullName).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName).toLowerCase()<norm(b.firstName).toLowerCase()?-1:1; });
+  const sorted=dirFiltered().slice().sort((a,b)=>{ const al=dirSurname(a).toLowerCase(), bl=dirSurname(b).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName||a.fullName).toLowerCase()<norm(b.firstName||b.fullName).toLowerCase()?-1:1; });
   const groups={}, order=[];
-  sorted.forEach(e=>{ const base=norm(e.lastName||e.firstName||e.fullName); let L=(base[0]||'#').toUpperCase(); if(!/[A-Z]/.test(L)) L='#'; if(!groups[L]){ groups[L]=[]; order.push(L); } groups[L].push(e); });
+  sorted.forEach(e=>{ const base=dirSurname(e); let L=(base[0]||'#').toUpperCase(); if(!/[A-Z]/.test(L)) L='#'; if(!groups[L]){ groups[L]=[]; order.push(L); } groups[L].push(e); });
   const body=document.getElementById('dirBody');
   if(body) body.innerHTML=order.length?order.map(L=>`<div class="dir-letter">${L}</div>${groups[L].map(dirCard).join('')}`).join(''):'<div class="today-clear">No contacts match your filters.</div>';
 }
@@ -1870,8 +1875,7 @@ async function renderDirectory(){
         <p><b>Stay in touch &amp; win repeat bookings.</b> Every guest from every booking is here automatically. Use it to keep in contact, offer new villas, and send seasonal notes.</p>
         <ul>
           <li><b>Compose email</b> — send a personalised broadcast to a segment. Pick a ready-made template (Christmas, New Year, "we miss you", new villa, special offer); <code>{first name}</code> and <code>{last villa}</code> fill in per guest. A signature + unsubscribe link are added automatically.</li>
-          <li><b>On each contact</b> — ✉ Email &amp; WhatsApp (pre-filled), <b>Log</b> a call/message, add <b>Tags</b> (VIP, wedding, golf…), record <b>Prefs</b> (villa, budget, occasion), a <b>Note</b>, or <b>Opt out</b> a guest.</li>
-          <li><b>Consent handled</b> — unsubscribed guests are excluded from every broadcast, and each email carries a one-click unsubscribe link.</li>
+          <li><b>On each contact</b> — ✉ Email &amp; WhatsApp (pre-filled), <b>Log</b> a call/message, add <b>Tags</b> (VIP, wedding, golf…), record <b>Prefs</b> (villa, budget, occasion), or a <b>Note</b>.</li>
           <li><b>Emails now self-fill</b> — guests can add their email, mobile and marketing consent during pre check-in, so this list keeps growing on its own.${CAN_REV?' <b>Export CSV</b> pulls the whole directory for use elsewhere.':''}</li>
         </ul>
       </div>
