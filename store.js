@@ -348,6 +348,71 @@ let payablesSettled = readJSON(PAYABLES_FILE, {});
 if (!payablesSettled || typeof payablesSettled !== 'object') payablesSettled = {};
 function persistPayables() { writeJSON(PAYABLES_FILE, payablesSettled); }
 
+// ----- guest directory (staff address book, persisted) -----
+// directoryData = { contacts:[{id,firstName,lastName,email,phone,note}], notes:{ [autoKey]: note } }.
+// The directory is BOTH an auto-list built from every booking's guest AND a hand-editable layer
+// (custom contacts + a note on any entry). Only the editable layer is stored; auto entries are
+// rebuilt from the bookings each time so they stay current.
+const DIRECTORY_FILE = path.join(DATA_DIR, 'directory.json');
+let directoryData = readJSON(DIRECTORY_FILE, { contacts: [], notes: {} });
+if (!directoryData || typeof directoryData !== 'object') directoryData = { contacts: [], notes: {} };
+if (!Array.isArray(directoryData.contacts)) directoryData.contacts = [];
+if (!directoryData.notes || typeof directoryData.notes !== 'object') directoryData.notes = {};
+function persistDirectory() { writeJSON(DIRECTORY_FILE, directoryData); }
+function guestDirectory() {
+  const byKey = {};
+  stays.forEach(s => {
+    const name = String(s.leadName || s.lastName || '').trim();
+    const email = String(s.email || '').trim().toLowerCase();
+    if (!name && !email) return;
+    const parts = name.split(/\s+/).filter(Boolean);
+    const firstName = parts.length > 1 ? parts[0] : '';
+    const lastName = parts.length > 1 ? parts.slice(1).join(' ') : (parts[0] || '');
+    const dedupKey = email || ('name:' + name.toLowerCase());
+    const e = byKey[dedupKey] || (byKey[dedupKey] = {
+      key: 'auto:' + dedupKey, kind: 'auto', firstName, lastName, fullName: name,
+      email: s.email || '', phone: s.phone || '', villa: s.villaName || '', villaInternal: s.villaInternal || '',
+      checkin: s.checkin || '', checkout: s.checkout || '', source: s.source || '', agent: s.bookingAgent || '',
+      stays: 0, _latest: '',
+    });
+    e.stays++;
+    if (!e.email && s.email) e.email = s.email;
+    if (!e.phone && s.phone) e.phone = s.phone;
+    if (!e._latest || String(s.checkin || '') > e._latest) {   // keep the MOST RECENT stay's villa/dates
+      e._latest = String(s.checkin || '');
+      e.villa = s.villaName || e.villa; e.villaInternal = s.villaInternal || e.villaInternal;
+      e.checkin = s.checkin || e.checkin; e.checkout = s.checkout || e.checkout;
+      e.source = s.source || e.source; e.agent = s.bookingAgent || e.agent;
+    }
+  });
+  const auto = Object.values(byKey).map(e => { const { _latest, ...rest } = e; return Object.assign(rest, { note: directoryData.notes[e.key] || '' }); });
+  const custom = (directoryData.contacts || []).map(c => Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c));
+  return { entries: auto.concat(custom) };
+}
+function addDirectoryContact(b) {
+  const fn = String((b && b.firstName) || '').trim(), ln = String((b && b.lastName) || '').trim();
+  if (!fn && !ln) return null;
+  const c = { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), firstName: fn, lastName: ln,
+    email: String((b && b.email) || '').trim(), phone: String((b && b.phone) || '').trim(), note: String((b && b.note) || '').trim() };
+  directoryData.contacts.push(c); persistDirectory();
+  return Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c);
+}
+function updateDirectoryContact(id, b) {
+  const c = directoryData.contacts.find(x => x.id === id); if (!c) return null;
+  ['firstName', 'lastName', 'email', 'phone', 'note'].forEach(k => { if (b && k in b) c[k] = String(b[k] || '').trim(); });
+  persistDirectory(); return Object.assign({ kind: 'custom', key: 'custom:' + c.id }, c);
+}
+function deleteDirectoryContact(id) {
+  const i = directoryData.contacts.findIndex(x => x.id === id); if (i < 0) return false;
+  directoryData.contacts.splice(i, 1); persistDirectory(); return true;
+}
+function setDirectoryNote(key, note) {
+  if (!key) return false;
+  note = String(note || '').trim();
+  if (note) directoryData.notes[key] = note; else delete directoryData.notes[key];
+  persistDirectory(); return true;
+}
+
 // ----- global invoice numbering ------------------------------------------------
 // ONE running sequence across ALL bookings — every invoice gets its own unique
 // number, starting at 001. Never per-stay (two bookings must never share a no).
@@ -2157,6 +2222,7 @@ module.exports = {
   listVillas, getVilla,
   cartInfo,
   listStays, getStay, exportAll, runAutomations, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
   toGuestStay, findPublishedForLogin, getPublishedByRefForSession, touchGuestSeen, markStaffRead,
   _counts: () => ({ stays: stays.length, staff: staff.length }),

@@ -518,6 +518,13 @@ async function route(req,res){
     if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
     if(m==='GET' &&url==='/api/staff/payables'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     if(m==='POST'&&url==='/api/staff/payables/settle'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); const b=await readBody(req); const ok=store.setPayableSettled(String(b.key||''),!!b.settled,b.amount); if(!ok) return sendJSON(res,400,{ok:false,error:'A payable key is required.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
+    // ----- guest directory (staff address book) -----
+    if(m==='GET' &&url==='/api/staff/directory') return sendJSON(res,200,{ok:true,directory:store.guestDirectory()});
+    if(m==='PUT' &&url==='/api/staff/directory/note'){ const b=await readBody(req); const ok=store.setDirectoryNote(String(b.key||''),b.note); return ok?sendJSON(res,200,{ok:true}):sendJSON(res,400,{ok:false,error:'A key is required.'}); }
+    const dirC=url.match(/^\/api\/staff\/directory\/contact(?:\/([A-Za-z0-9]+))?$/);
+    if(dirC&&!dirC[1]&&m==='POST'){ const b=await readBody(req); const c=store.addDirectoryContact(b); return c?sendJSON(res,200,{ok:true,contact:c}):sendJSON(res,400,{ok:false,error:'A name is required.'}); }
+    if(dirC&&dirC[1]&&m==='PUT'){ const b=await readBody(req); const c=store.updateDirectoryContact(dirC[1],b); return c?sendJSON(res,200,{ok:true,contact:c}):sendJSON(res,404,{ok:false,error:'Contact not found'}); }
+    if(dirC&&dirC[1]&&m==='DELETE'){ const okd=store.deleteDirectoryContact(dirC[1]); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Contact not found'}); }
     if(m==='GET' &&url==='/api/staff/export'){ const data=JSON.stringify({exportedAt:new Date().toISOString(),stays:store.exportAll()},null,2); res.writeHead(200,{'Content-Type':'application/json','Content-Disposition':'attachment; filename="my-stay-backup-'+new Date().toISOString().slice(0,10)+'.json"'}); return res.end(data); }
     if(m==='POST'&&url==='/api/staff/stays') return sendJSON(res,200,{ok:true,stay:store.createStay()});
     const cm=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/requests\/([A-Za-z0-9]+)\/confirm$/);

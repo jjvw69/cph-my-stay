@@ -56,6 +56,29 @@
   /* Jan payables ledger runs full-width so every column (incl. profit + mark-paid) is visible. */
   .cols.pay-mode{grid-template-columns:1fr}
   .cols.pay-mode .col.left,.cols.pay-mode .col.right{display:none}
+  /* Guest directory — full-width A–Z address book. */
+  .cols.dir-mode{grid-template-columns:1fr}
+  .cols.dir-mode .col.left,.cols.dir-mode .col.right{display:none}
+  .dir-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:6px}
+  .dir-add-btn{font-family:var(--ui);font-size:13px;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:11px;padding:8px 14px;cursor:pointer;flex-shrink:0}
+  .dir-add-btn:hover{filter:brightness(1.06)}
+  #dirBody{column-count:2;column-gap:28px;margin-top:10px}
+  .dir-letter{break-inside:avoid;font-family:var(--display,serif);font-size:22px;font-weight:700;color:var(--accent);border-bottom:2px solid var(--line);padding:4px 0 3px;margin:16px 0 10px}
+  .dir-card{break-inside:avoid;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 12px}
+  .dir-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .dir-name{font-size:15px;font-weight:700;color:var(--ink)}
+  .dir-badge{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:#EAF3EE;color:#12794D;border-radius:5px;padding:1px 6px;margin-left:5px;vertical-align:middle}
+  .dir-actions{display:flex;gap:6px;flex-shrink:0}
+  .dir-btn{font-size:11.5px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:8px;padding:3px 9px;cursor:pointer}
+  .dir-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .dir-btn.danger:hover{border-color:#9A2B2B;color:#9A2B2B}
+  .dir-contact{display:flex;flex-wrap:wrap;gap:5px 16px;margin-top:6px;font-size:13px}
+  .dir-link{color:var(--accent);text-decoration:none}
+  .dir-link:hover{text-decoration:underline}
+  .dir-meta{font-size:12px;color:var(--soft);margin-top:4px}
+  .dir-dim{color:#9AA49B}
+  .dir-note{font-size:12.5px;color:var(--ink);background:#FBF8F1;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:6px 10px;margin-top:8px}
+  @media(max-width:900px){ #dirBody{column-count:1} }
   /* Revenue (Upsell) view runs full-width like the Jan ledger: the section title + month chart span
      the top, then everything else sits in an even 50/50 two-column grid below. */
   .cols.rev-mode{grid-template-columns:1fr}
@@ -799,6 +822,7 @@
         <button class="lchip newchip" id="newStay" title="Create a new booking">＋ New</button>
         <button class="lchip on" data-f="current" onclick="setFilter('current')">Current</button>
         <button class="lchip" data-f="archive" onclick="setFilter('archive')">Archive</button>
+        <button class="lchip" id="dirChip" onclick="showDirectory()" title="Guest contact directory">Directory</button>
         <span class="yrnav" id="yearNav"></span>
       </div>
       <div id="stayList"></div>
@@ -1106,7 +1130,7 @@ function renderList(){
   renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
-window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols){_cols.classList.remove('board-mode'); _cols.classList.remove('rev-mode'); _cols.classList.remove('pay-mode');} document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); renderHome(); refreshHomeBtns(); botNavActive(); };
+window.backToList=function(){ cur=null; centerView='today'; const _cols=document.querySelector('.cols'); if(_cols){_cols.classList.remove('board-mode'); _cols.classList.remove('rev-mode'); _cols.classList.remove('pay-mode'); _cols.classList.remove('dir-mode');} document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); setView(false); const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; renderList(); renderHome(); refreshHomeBtns(); botNavActive(); };
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur); const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); clearRevLeft(); renderList(); renderEditor(); renderPreview(); setView(true); } };
@@ -1142,7 +1166,7 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay) renderArrivalsPanel(); refreshHomeBtns(); }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const dir=centerView==='directory'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay); cols.classList.toggle('dir-mode',dir); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(dir) renderDirectory(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay&&!dir) renderArrivalsPanel(); refreshHomeBtns(); }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
 function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
@@ -1670,7 +1694,54 @@ window.togglePayableSettled=async function(key,settled,amount){
 };
 /* Revenue view injects KPI/cash/groceries panels into the left column; strip them (and rev-mode)
    when switching to any other view so they never linger on Today/Inbox/Arrivals. */
-function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode');} }
+function clearRevLeft(){ ['revKpi','revCash','revGroc'].forEach(id=>document.getElementById(id)?.remove()); const c=document.querySelector('.cols'); if(c){c.classList.remove('rev-mode'); c.classList.remove('pay-mode'); c.classList.remove('dir-mode');} }
+/* Guest contact directory — an A–Z address book built from every booking's guest, plus a hand-editable
+   layer (add contacts, annotate entries). Full-width like the Jan/Upsell views. */
+let DIRECTORY=null;
+window.showDirectory=async function(){
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); clearRevLeft(); centerView='directory'; setView(true); renderList(); renderHome();
+};
+async function renderDirectory(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!DIRECTORY) el.innerHTML='<div class="today-clear">Loading directory…</div>';
+  try{ const r=await api('/api/staff/directory'); if(r.ok) DIRECTORY=(r.body&&r.body.directory)||{entries:[]}; }catch(e){ if(!DIRECTORY) DIRECTORY={entries:[]}; }
+  const entries=(DIRECTORY&&DIRECTORY.entries)||[];
+  const norm=s=>String(s||'').trim();
+  const agentName=a=>{ const m={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'}; const k=String(a||'').toLowerCase(); return m[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); };
+  const fmtRange=(ci,co)=>{ const f=iso=>{ if(!iso)return ''; const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }; const a=f(ci),b=f(co); return a&&b?(a+' – '+b):(a||b||''); };
+  const sorted=entries.slice().sort((a,b)=>{ const al=norm(a.lastName||a.fullName).toLowerCase(), bl=norm(b.lastName||b.fullName).toLowerCase(); if(al!==bl) return al<bl?-1:1; return norm(a.firstName).toLowerCase()<norm(b.firstName).toLowerCase()?-1:1; });
+  const groups={}, order=[];
+  sorted.forEach(e=>{ const base=norm(e.lastName||e.firstName||e.fullName); let L=(base[0]||'#').toUpperCase(); if(!/[A-Z]/.test(L)) L='#'; if(!groups[L]){ groups[L]=[]; order.push(L); } groups[L].push(e); });
+  const card=e=>{
+    const nm=esc((norm(e.firstName)?norm(e.firstName)+' ':'')+norm(e.lastName||e.fullName))||'(no name)';
+    const contact=[e.email?`<a href="mailto:${esc(e.email)}" class="dir-link">✉ ${esc(e.email)}</a>`:'', e.phone?`<a href="tel:${esc(String(e.phone).replace(/[^0-9+]/g,''))}" class="dir-link">☎ ${esc(e.phone)}</a>`:''].filter(Boolean).join('');
+    const stayLine=[e.villaInternal?esc(e.villaInternal):'', e.villa?esc(e.villa):'', fmtRange(e.checkin,e.checkout)].filter(Boolean).join(' · ');
+    const meta=[e.source?esc(e.source):'', e.agent?('Agent: '+esc(agentName(e.agent))):'', (e.stays>1?e.stays+' stays':'')].filter(Boolean).join(' · ');
+    const isCustom=e.kind==='custom';
+    return `<div class="dir-card">
+      <div class="dir-top"><div class="dir-name">${nm}${isCustom?'<span class="dir-badge">added</span>':''}</div>
+        <div class="dir-actions">${isCustom?`<button class="dir-btn" onclick="dirEdit('${esc(e.id)}')">Edit</button><button class="dir-btn danger" onclick="dirDelete('${esc(e.id)}')">Delete</button>`:`<button class="dir-btn" onclick="dirNote('${esc(e.key)}')">Note</button>`}</div></div>
+      ${contact?`<div class="dir-contact">${contact}</div>`:'<div class="dir-contact dir-dim">No contact details on file</div>'}
+      ${stayLine?`<div class="dir-meta">${stayLine}</div>`:''}
+      ${meta?`<div class="dir-meta dir-dim">${meta}</div>`:''}
+      ${e.note?`<div class="dir-note">${esc(e.note)}</div>`:''}
+    </div>`;
+  };
+  el.innerHTML=`<div class="pay-topnav">
+      <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
+      <button onclick="showToday()">▦ Today</button>
+      <button onclick="showArrivals()">▤ Arrivals</button>
+    </div>
+    <div class="dir-head"><div><div class="today-head">Directory</div><div class="today-date">${entries.length} contact${entries.length===1?'':'s'} · built from every booking, plus your own · A–Z by last name</div></div>
+      <button class="dir-add-btn" onclick="dirAdd()">＋ Add contact</button></div>
+    <div id="dirBody">${order.length?order.map(L=>`<div class="dir-letter">${L}</div>${groups[L].map(card).join('')}`).join(''):'<div class="today-clear">No contacts yet.</div>'}</div>`;
+  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
+}
+window.dirAdd=async function(){ const fn=prompt('First name:'); if(fn===null)return; const ln=prompt('Last name:'); if(ln===null)return; if(!fn.trim()&&!ln.trim()){ toast&&toast('A name is required'); return; } const email=prompt('Email:')||''; const phone=prompt('Phone:')||''; const note=prompt('Note (optional):')||''; const r=await api('/api/staff/directory/contact',{method:'POST',body:JSON.stringify({firstName:fn,lastName:ln,email,phone,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Contact added'); } else toast&&toast('Could not add contact'); };
+window.dirEdit=async function(id){ const e=((DIRECTORY&&DIRECTORY.entries)||[]).find(x=>x.id===id); if(!e)return; const fn=prompt('First name:',e.firstName||''); if(fn===null)return; const ln=prompt('Last name:',e.lastName||''); if(ln===null)return; const email=prompt('Email:',e.email||''); if(email===null)return; const phone=prompt('Phone:',e.phone||''); if(phone===null)return; const note=prompt('Note:',e.note||''); if(note===null)return; const r=await api('/api/staff/directory/contact/'+id,{method:'PUT',body:JSON.stringify({firstName:fn,lastName:ln,email,phone,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Saved'); } else toast&&toast('Could not save'); };
+window.dirDelete=async function(id){ if(!confirm('Delete this contact from the directory?'))return; const r=await api('/api/staff/directory/contact/'+id,{method:'DELETE'}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Deleted'); } else toast&&toast('Could not delete'); };
+window.dirNote=async function(key){ const e=((DIRECTORY&&DIRECTORY.entries)||[]).find(x=>x.key===key); const note=prompt('Note for this contact:',(e&&e.note)||''); if(note===null)return; const r=await api('/api/staff/directory/note',{method:'PUT',body:JSON.stringify({key,note})}); if(r.ok){ DIRECTORY=null; renderDirectory(); toast&&toast('Note saved'); } else toast&&toast('Could not save note'); };
 window.showToday=function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); clearRevLeft(); centerView='today'; setView(true); renderList(); renderHome();
