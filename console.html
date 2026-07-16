@@ -214,9 +214,11 @@
   .ab-btns{gap:8px}
   .ab-btns .ab-today{flex:0 0 auto;width:auto;margin:0;padding:5px 12px;font-size:12px;font-weight:500;border-radius:9px}
   /* Arrivals-board utility buttons — subtle grey secondary pill (Today stays a green pill). */
-  .ab-actbtn{display:flex;align-items:center;justify-content:center;gap:7px;background:#EAEEEC;color:#4B5A51;border:1px solid #DAE0DD;border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;cursor:pointer}
-  .ab-actbtn:hover{background:#E2E7E4;border-color:#B9C4BE}
-  .ab-actbtn:hover{background:#F2F7F3}
+  /* Arrivals-board buttons match the other sections: green primary actions, grey back. */
+  .ab-actbtn{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:1px solid var(--accent);border-radius:11px;padding:10px 12px;font-size:13.5px;font-weight:500;cursor:pointer}
+  .ab-actbtn:hover{filter:brightness(1.06)}
+  .ab-actbtn.ab-back{background:#EAEEEC;color:#4B5A51;border-color:#DAE0DD}
+  .ab-actbtn.ab-back:hover{background:#E2E7E4;border-color:#B9C4BE;filter:none}
   @media print{
     .topbar,.botnav,.ab-btns,.today-date,.backlist{display:none!important}
     .cols,.col.center,.ab-scroll{overflow:visible!important;height:auto!important}
@@ -1833,7 +1835,7 @@ function renderArrivalsBoard(){
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
     <div class="ab-btns">
-      <button class="ab-actbtn ab-today" onclick="backToList()" title="Back to the stay list">← All stays</button>
+      <button class="ab-actbtn ab-today ab-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button class="ab-actbtn ab-today" onclick="exportBoardExcel()">⬇ View in Excel</button>
       <button class="ab-actbtn ab-today" onclick="printBoard()">🖨 Print</button>
       <button class="ab-actbtn ab-today" onclick="showCalendarSync()">📅 Sync to Calendar</button>
