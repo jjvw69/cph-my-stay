@@ -91,6 +91,9 @@
   .dir-guide-body ul{margin:0;padding-left:18px}
   .dir-guide-body li{margin:5px 0}
   .dir-guide-body code{background:#E4EFE9;border-radius:4px;padding:1px 5px;font-size:12px;color:#12794D}
+  .dir-totop{text-align:center;padding:20px 0 10px}
+  .dir-totop button{font-family:var(--ui);font-size:13px;font-weight:600;color:var(--accent);background:#fff;border:1px solid var(--line);border-radius:20px;padding:8px 18px;cursor:pointer}
+  .dir-totop button:hover{border-color:var(--accent);background:#F3F8F5}
   .dir-stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px}
   .dir-stat{font-family:var(--ui);font-size:12px;font-weight:600;color:var(--soft);background:#fff;border:1px solid var(--line);border-radius:20px;padding:6px 13px;cursor:pointer;display:flex;gap:7px;align-items:center}
   .dir-stat:hover{border-color:var(--accent)}
@@ -1865,7 +1868,6 @@ async function renderDirectory(){
         <p><b>Stay in touch &amp; win repeat bookings.</b> Every guest from every booking is here automatically. Use it to keep in contact, offer new villas, and send seasonal notes.</p>
         <ul>
           <li><b>Compose email</b> — send a personalised broadcast to a segment. Pick a ready-made template (Christmas, New Year, "we miss you", new villa, special offer); <code>{first name}</code> and <code>{last villa}</code> fill in per guest. A signature + unsubscribe link are added automatically.</li>
-          <li><b>Filter first, then send</b> — the chips (All · With email · Repeat guests · Due to re-book · Unsubscribed), search box and tag menu set who a broadcast goes to. <b>Due to re-book</b> auto-flags guests whose last stay ended 10–14 months ago — your prime re-booking window.</li>
           <li><b>On each contact</b> — ✉ Email &amp; WhatsApp (pre-filled), <b>Log</b> a call/message, add <b>Tags</b> (VIP, wedding, golf…), record <b>Prefs</b> (villa, budget, occasion), a <b>Note</b>, or <b>Opt out</b> a guest.</li>
           <li><b>Consent handled</b> — unsubscribed guests are excluded from every broadcast, and each email carries a one-click unsubscribe link.</li>
           <li><b>Emails now self-fill</b> — guests can add their email, mobile and marketing consent during pre check-in, so this list keeps growing on its own.${CAN_REV?' <b>Export CSV</b> pulls the whole directory for use elsewhere.':''}</li>
@@ -1877,7 +1879,8 @@ async function renderDirectory(){
       <input class="dir-search" id="dirSearch" placeholder="Search name, email, villa, tag…" value="${esc(DIR_SEARCH)}" oninput="DIR_SEARCH=this.value;dirPaint()">
       ${allTags.length?`<select class="dir-sel" onchange="DIR_TAG=this.value;dirPaint()"><option value="">All tags</option>${allTags.map(t=>`<option value="${esc(t)}"${t===DIR_TAG?' selected':''}>${esc(t)}</option>`).join('')}</select>`:''}
     </div>
-    <div id="dirBody"></div>`;
+    <div id="dirBody"></div>
+    <div class="dir-totop"><button onclick="dirScrollTop()">↑ Back to top</button></div>`;
   dirPaint();
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
@@ -1918,6 +1921,7 @@ function renderDirCompose(){
 }
 window.dirComposeMode=function(m){ DIR_COMPOSE_MODE=(m==='one')?'one':'seg'; renderDirCompose(); };
 window.dirComposePick=function(key){ DIR_COMPOSE_ONE=key||''; renderDirCompose(); };
+window.dirScrollTop=function(){ const e=document.getElementById('editor'); if(e&&e.scrollHeight>e.clientHeight){ e.scrollTo({top:0,behavior:'smooth'}); } try{ window.scrollTo({top:0,behavior:'smooth'}); }catch(_){ window.scrollTo(0,0); } };
 window.dirCompose=function(){ DIR_COMPOSE=true; DIR_COMPOSE_MODE='seg'; DIR_COMPOSE_ONE=''; renderDirCompose(); };
 window.dirCloseCompose=function(){ DIR_COMPOSE=false; renderDirectory(); };
 window.dirApplyTpl=function(k){ const t=DIR_TEMPLATES[k]; if(!t)return; const s=document.getElementById('dcSubject'), b=document.getElementById('dcBody'); if((s&&s.value.trim())||(b&&b.value.trim())){ if(!confirm('Replace the current subject and message with this template?')) return; } if(s)s.value=t.subject; if(b)b.value=t.body; };
