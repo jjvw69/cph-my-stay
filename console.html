@@ -1098,8 +1098,8 @@ function renderList(){
       <div class="g">${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
-      <div class="meta">${s.guests} guests</div>
-      <div class="pillrow">${pill!=='published'?`<span class="pill ${pill}">${esc(s.status)}</span>`:''}${nrB}${reqB}${srcB}${fuB}${upB}</div></div>`;
+      <div class="meta">${s.guests} guests${(s.adults!=null||s.children!=null)?` · ${Number(s.adults)||0} adult${(Number(s.adults)||0)===1?'':'s'}${(Number(s.children)||0)>0?`, ${Number(s.children)} child${Number(s.children)===1?'':'ren'}`:''}`:''}</div>
+      <div class="pillrow">${srcB}${pill!=='published'?`<span class="pill ${pill}">${esc(s.status)}</span>`:''}${nrB}${reqB}${fuB}${upB}</div></div>`;
   }).join('');
   renderYearNav(_years);
 }

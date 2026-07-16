@@ -723,7 +723,7 @@ function summaryStay(s) {
   const gcCart = (gcDisp.indexOf(' · ') >= 0) ? gcDisp
     : [gcDisp, [boardSupplier(s, RE_CART_LINE), cartVia ? 'via ' + cartVia : ''].filter(Boolean).join(' · ')].map(x => String(x || '').trim()).filter(Boolean).join('\n');
   return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
-    villa: s.villaName || (v ? v.name : ''), villaInternal: s.villaInternal || (v ? v.internalName : '') || '', checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0),
+    villa: s.villaName || (v ? v.name : ''), villaInternal: s.villaInternal || (v ? v.internalName : '') || '', checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0), adults: Number(s.adults) || 0, children: Number(s.children) || 0,
     source: s.source || '', followUpDate: (fu&&fu.date)||'', followUpNote: (fu&&fu.note)||'', followUps: (s.followUps||[]).slice(), requests: (s.requests || []).length,
     pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled' && r.status !== 'done').length,
     guestMsgs: (s.messages || []).filter(m => m.from === 'guest').length, guestLastSeen: s.guestLastSeen || 0,
