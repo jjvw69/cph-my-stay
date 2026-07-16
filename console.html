@@ -1460,8 +1460,8 @@ async function renderRevenue(){
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
     ${/* Top: three columns — month trend · CPH earnings · cash flow. */''}
     <div class="rev-grid rev-grid-3">
-      <div class="rev-col">${secRevMonth}</div>
-      <div class="rev-col">${secCph}</div>
+      <div class="rev-col">${secRevMonth}${secCph}</div>
+      <div class="rev-col"></div>
       <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}${unpaidSec}</div>
     </div>
     ${/* Below: the rest, split evenly. Per-service earnings left · money-to-chase + smaller services right. */''}
@@ -1469,10 +1469,10 @@ async function renderRevenue(){
       <div class="rev-col">
         ${secCart}
         ${secCar}
-        ${secXfer}
         ${secYacht}
       </div>
       <div class="rev-col">
+        ${secXfer}
         ${secInvilla}
         ${secGrocEarn}
       </div>
