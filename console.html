@@ -1462,7 +1462,7 @@ async function renderRevenue(){
     <div class="rev-grid rev-grid-3">
       <div class="rev-col">${secRevMonth}</div>
       <div class="rev-col">${secCph}</div>
-      <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}</div>
+      <div class="rev-col">${secCash?`<div id="revCash">${secCash}</div>`:''}${unpaidSec}</div>
     </div>
     ${/* Below: the rest, split evenly. Per-service earnings left · money-to-chase + smaller services right. */''}
     <div class="rev-grid">
@@ -1473,12 +1473,12 @@ async function renderRevenue(){
         ${secYacht}
       </div>
       <div class="rev-col">
-        ${unpaidSec}
-        ${topVillasSec}
         ${secInvilla}
         ${secGrocEarn}
       </div>
-    </div>`;
+    </div>
+    ${/* Top villas earnings: one full-width block at the very bottom. */''}
+    ${topVillasSec}`;
 
   buildRevSecNav();  // top section-nav chips, same style as the stay editor's secbar
 
