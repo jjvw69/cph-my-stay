@@ -1820,7 +1820,7 @@ function renderArrivalsBoard(){
     </tr>`;}).join('');
   el.innerHTML=`<div class="ab-wrap">
     <div class="ab-btns">
-      <button class="todaybtn ab-today" onclick="showToday()">▦ Today</button>
+      <button class="ab-actbtn ab-today" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button class="ab-actbtn ab-today" onclick="exportBoardExcel()">⬇ View in Excel</button>
       <button class="ab-actbtn ab-today" onclick="printBoard()">🖨 Print</button>
       <button class="ab-actbtn ab-today" onclick="showCalendarSync()">📅 Sync to Calendar</button>
