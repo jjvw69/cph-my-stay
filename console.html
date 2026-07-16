@@ -213,17 +213,18 @@
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
-  .staycard.inhouse{background:#E6F3EC;border-color:#B9DDC9}
-  .staycard.inhouse.unread{box-shadow:inset 3px 0 0 var(--purple)}
-  /* Arrives today = checkin is today. Amber/gold left bar + warm tint so today's arrivals
-     stand out from the calm green in-house stays in the left column. Takes priority over inhouse. */
-  .staycard.arrtoday{background:#FBF1E1;border-color:#E9CF9C;box-shadow:inset 4px 0 0 #C8852F}
-  .staycard.arrtoday.unread{box-shadow:inset 4px 0 0 #C8852F}
-  .staycard.arrtoday.sel{border-color:var(--accent);background:#F6E8CE}
+  /* In-house = guest physically at the villa now. Amber/gold left bar + warm tint. */
+  .staycard.inhouse{background:#FBF1E1;border-color:#E9CF9C;box-shadow:inset 4px 0 0 #C8852F}
+  .staycard.inhouse.unread{box-shadow:inset 4px 0 0 #C8852F}
+  /* Arrives today = checkin is today. Red left bar + tint so today's arrivals stand out as
+     top-priority. Takes priority over inhouse. */
+  .staycard.arrtoday{background:#FBEAE7;border-color:#EBC4BE;box-shadow:inset 4px 0 0 #C0392B}
+  .staycard.arrtoday.unread{box-shadow:inset 4px 0 0 #C0392B}
+  .staycard.arrtoday.sel{border-color:var(--accent);background:#F6DED9}
   .staycard .g{display:flex;align-items:center}
   .unread-dot{width:9px;height:9px;border-radius:50%;background:var(--gold);display:inline-block;margin-left:8px;flex:0 0 auto}
   .staycard.sel{border-color:var(--accent);background:#F1F4EF}
-  .staycard.inhouse.sel{border-color:var(--accent);background:#D8EBE1}
+  .staycard.inhouse.sel{border-color:var(--accent);background:#F6E8CE}
   .staycard .g{font-weight:500;font-size:16px}
   .staycard .meta{font-size:13.5px;color:var(--soft);margin-top:3px}
   .pill{display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:20px;margin-top:7px}
