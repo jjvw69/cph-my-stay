@@ -2334,9 +2334,10 @@ function renderArrivalsPanel(){
   const host=document.getElementById('preview'); if(!host) return;
   const L=LIST||[];
   const _t=todayStr();
-  // Departed stays must drop off the upcoming-arrivals list entirely (they used to sit there as "today"
-  // forever, because the clamp hid their negative day count).
-  const pub=L.filter(s=>s.status==='published'&&s.checkin&&daysUntil(s.checkin)!=null&&!(s.checkout&&s.checkout<_t));
+  // Only guests still to ARRIVE count here — in-house guests (check-in already passed) and departed
+  // stays are excluded from every band. daysUntil() clamps negatives to 0, so without the checkin>=_t
+  // guard an in-house guest would show up as "arriving in 0 days" and pad the 0–14 band.
+  const pub=L.filter(s=>s.status==='published'&&s.checkin&&s.checkin>=_t&&daysUntil(s.checkin)!=null&&!(s.checkout&&s.checkout<_t));
   const band=(a,b)=>pub.filter(s=>{const d=daysUntil(s.checkin);return d>=a&&d<=b;}).sort((x,y)=>(x.checkin||'').localeCompare(y.checkin||''));
   const cur=ARR_BANDS[arrWin]||ARR_BANDS[0];
   const list=band(cur[0],cur[1]);
