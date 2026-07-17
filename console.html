@@ -3195,12 +3195,16 @@ window.sndTripChange=function(){ const sel=document.getElementById('snd_trip'); 
    Explore ids are prefixed "exp:" so the send handler can tell them apart. Single source: BOOT.explore
    comes from store.js EXPLORE_SCENES via the staff bootstrap. info-only / noBook items are excluded. */
 function sndSvcOptionsHtml(){
-  const addons=(BOOT.addons||[]).map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('');
-  const exp=(BOOT.explore||[]).filter(x=>!x.info&&!x.noBook);
+  // Yacht is intentionally excluded — it has its own dedicated Yacht proposal feature, so it is not
+  // offered here as a plain sent service (both the 'yacht' add-on and the 'yacht-charter' Explore item).
+  // Golf COURSES (the Golf category) are excluded too — tee times are booked with the resort directly,
+  // not sent as a CPH service. Golf CART (a rental) stays under Villa add-ons.
+  const addons=(BOOT.addons||[]).filter(a=>a.id!=='yacht').map(a=>`<option value="${esc(a.id)}" ${_sndSvc===a.id?'selected':''}>${esc(a.name)}</option>`).join('');
+  const exp=(BOOT.explore||[]).filter(x=>!x.info&&!x.noBook&&x.cat!=='Golf'&&x.id!=='yacht-charter');
   const grp=(label,cats)=>{ const items=exp.filter(x=>cats.indexOf(x.cat)>=0); if(!items.length)return ''; return `<optgroup label="${esc(label)}">`+items.map(x=>{const v='exp:'+x.id;return `<option value="${esc(v)}" ${_sndSvc===v?'selected':''}>${esc(x.name)}${x.meta?' · '+esc(x.meta):''}</option>`;}).join('')+`</optgroup>`; };
   return `<optgroup label="Villa add-ons &amp; services">${addons}</optgroup>`
     + grp('Dining · reservations',['Dining','Cafe'])
-    + grp('Activities, tours &amp; golf',['Activities','Outside','Golf'])
+    + grp('Activities &amp; tours',['Activities','Outside'])
     + `<optgroup label="Other"><option value="__custom__" ${_sndSvc==='__custom__'?'selected':''}>➕ Custom service — type the name…</option></optgroup>`;
 }
 /* The inner controls of the "Send a service" form, as their own fragment so selSendSvc can re-render
