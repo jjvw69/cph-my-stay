@@ -416,7 +416,7 @@ async function staffLogin(req,res){
   const st=store.getStaffByEmail(email);
   if(!st||!store.verifyPassword(password,st.pw)) return sendJSON(res,401,{ok:false,error:'Wrong email or password.'});
   setCookie(res,STAFF_COOKIE,sign({t:'s',sid:st.id,email:st.email,role:st.role},STAFF_HOURS),STAFF_HOURS); attempts.delete('s:'+ip(req));
-  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st),canPayables:canSeePayables(st)})});
+  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st),canPayables:canSeePayables(st),canIvonna:canSeeIvonna(st)})});
 }
 /* Staff auth guard with a SLIDING session. The cookie used to be a hard 8h from login: after 8h
    the console kept rendering (it had already loaded) but every API call 401'd, so it looked frozen
@@ -447,6 +447,17 @@ function canSeePayables(s){
   const email=String(s.email||'').toLowerCase();
   if(PAYABLES_EMAILS.includes(email)) return true;
   return /^jan@/.test(email); // fallback if the account was seeded on another domain
+}
+/* IVONNA LEDGER ACCESS — the "Ivonna" view (her own bookings + the money on them) is visible to
+   Ivonna and to Jan (owner), but not to concierges. Gated on the SERVER so the numbers can't be
+   fetched by anyone else. Override with the IVONNA_EMAILS env var (comma-separated). */
+const IVONNA_EMAILS = String(process.env.IVONNA_EMAILS || 'ivonna@caribbeanparadisehomes.com,jan@caribbeanparadisehomes.com')
+  .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+function canSeeIvonna(s){
+  if(!s) return false;
+  const email=String(s.email||'').toLowerCase();
+  if(IVONNA_EMAILS.includes(email)) return true;
+  return /^(ivonna|jan)@/.test(email); // fallback if the account was seeded on another domain
 }
 function requireStaff(req,res){
   const s=staffSession(req);
@@ -553,7 +564,7 @@ async function route(req,res){
     const s=staffSession(req); if(!s) return sendJSON(res,200,{ok:false,staff:null});
     const rec=store.getStaffByEmail(s.email);
     const fallback=String(s.email||'').split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s),canPayables:canSeePayables(s)}});
+    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s),canPayables:canSeePayables(s),canIvonna:canSeeIvonna(s)}});
   }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
@@ -567,6 +578,7 @@ async function route(req,res){
     if(m==='GET' &&url==='/api/staff/review-queue') return sendJSON(res,200,{ok:true,queue:store.reviewQueue()});
     if(m==='POST'&&url==='/api/staff/review-request/send'){ const b=await readBody(req); const ch=String(b.channel||'email'); const doMark=b.mark!==false; const info=doMark?store.markReviewSent(String(b.stayId||''),(s&&s.email)||'',ch):store.reviewInfo(String(b.stayId||'')); if(!info) return sendJSON(res,404,{ok:false,error:'Stay not found.'}); const em=buildReviewEmail(info); let emailed=false; if(doMark&&RESEND_API_KEY&&info.email&&ch==='email'){ sendEmailTo(info.email,em.subject,em.text,info.ref,em.html); emailed=true; } if(doMark){ console.log('[review] request %s via %s (emailed=%s)',info.ref,ch,emailed); broadcastStaff({type:'update'}); } return sendJSON(res,200,{ok:true,emailed,marked:doMark,info,email:{to:info.email,subject:em.subject,body:em.text}}); }
     if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
+    if(m==='GET' &&url==='/api/staff/ivonna-ledger'){ if(!canSeeIvonna(s)) return sendJSON(res,403,{ok:false,error:'This view is restricted.'}); return sendJSON(res,200,{ok:true,ledger:store.agentLedger('ivonna')}); }
     if(m==='GET' &&url==='/api/staff/payables'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     if(m==='POST'&&url==='/api/staff/payables/settle'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); const b=await readBody(req); const ok=store.setPayableSettled(String(b.key||''),!!b.settled,b.amount); if(!ok) return sendJSON(res,400,{ok:false,error:'A payable key is required.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     // ----- guest directory (staff address book) -----

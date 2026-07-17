@@ -1603,6 +1603,44 @@ function payables() {
     bySupplier, rows,
   };
 }
+// A CPH booking agent's own book of business — every stay where they are the internal
+// bookingAgent, with the money on it (total invoiced, collected, still to collect). Unlike
+// payables() this is the GUEST side (what the agent's guests owe CPH), not the supplier side.
+// Used by the per-agent console view (e.g. Ivonna's "My bookings & money").
+function agentLedger(agentKey) {
+  const key = String(agentKey || '').trim().toLowerCase();
+  const round = v => Math.round((Number(v) || 0) * 100) / 100;
+  const _n = new Date();
+  const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
+  const rows = [];
+  stays.forEach(s => {
+    if ((s.bookingAgent || '').trim().toLowerCase() !== key) return;
+    // Count sent (unpaid) + paid invoices; drafts are not real money yet.
+    const invs = (s.invoices || []).filter(i => i.status === 'sent' || i.status === 'paid');
+    const invoiced = round(invs.reduce((a, i) => a + invoiceTotal(i), 0));
+    const collected = round(invs.filter(i => i.status === 'paid').reduce((a, i) => a + invoiceTotal(i), 0));
+    const toCollect = round(invs.filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0));
+    const status = invs.length === 0 ? 'none' : (toCollect <= 0 ? 'paid' : (collected > 0 ? 'partial' : 'unpaid'));
+    rows.push({
+      stayId: s.id, reference: s.reference || '', guest: s.leadName || s.lastName || '(no name)',
+      villa: s.villaName || '', villaInternal: (s.villaInternal || '').trim(),
+      checkin: s.checkin || '', checkout: s.checkout || '',
+      upcoming: !!(s.checkout && s.checkout >= today),
+      source: (s.source || '').trim(),
+      invoiced, collected, toCollect,
+      invCount: invs.length, sentCount: invs.filter(i => i.status === 'sent').length, paidCount: invs.filter(i => i.status === 'paid').length,
+      upsell: round(stayRevenue(s)), status,
+    });
+  });
+  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  const sum = (list, f) => round(list.reduce((a, r) => a + f(r), 0));
+  const upcoming = rows.filter(r => r.upcoming), past = rows.filter(r => !r.upcoming);
+  return {
+    agent: key, count: rows.length, upcomingCount: upcoming.length, pastCount: past.length,
+    invoiced: sum(rows, r => r.invoiced), collected: sum(rows, r => r.collected), toCollect: sum(rows, r => r.toCollect),
+    upcomingToCollect: sum(upcoming, r => r.toCollect), upsell: sum(rows, r => r.upsell), rows,
+  };
+}
 /** Mark a supplier payable settled (Jan paid the supplier) or clear it. amount = cost at settle time. */
 function setPayableSettled(key, settled, amount) {
   key = String(key || ''); if (!key) return false;
@@ -2408,7 +2446,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, agentLedger, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,

@@ -251,6 +251,10 @@
   .pay-status{display:inline-block;font-size:10px;font-weight:800;border-radius:20px;padding:2px 8px;margin-right:5px;vertical-align:middle}
   .pay-status.ok{background:#E7F1EC;color:#12794D}
   .pay-status.due{background:#FBEEE7;color:#9E5B43}
+  .pay-status.part{background:#FBF3DD;color:#9A6A16}
+  .pay-status.novoice{background:#EEF0EF;color:#8A928C}
+  /* "upcoming" flag on the Ivonna ledger date cell */
+  .iv-up{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#EDE7F5;color:#5A3A88;border-radius:5px;padding:1px 6px;margin-left:7px;vertical-align:middle}
   .pay-btn{font-family:var(--ui);font-size:10.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:20px;padding:2px 9px;cursor:pointer;vertical-align:middle}
   .pay-btn:hover{border-color:#9E5B43;color:#9E5B43}
   .pay-btn.on{background:#E7F1EC;border-color:#BFE0CE;color:#12794D}
@@ -877,7 +881,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="backupBtn" onclick="doExport()" style="display:none" title="Download a backup of every stay as a file">⬇ Backup</button><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -990,6 +994,9 @@ let CAN_REV=false;
 /* The Jan view (supplier payables) is Jan-only — a tighter gate than Revenue. canPayables comes
    back on /me and login; /api/staff/payables 403s anyone else. This only hides the button. */
 let CAN_PAY=false;
+/* The Ivonna view (her own bookings + money) is visible to Ivonna and Jan. canIvonna comes back
+   on /me and login; /api/staff/ivonna-ledger 403s anyone else. This only hides the button. */
+let CAN_IVONNA=false;
 async function enter(staff){
   document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='flex';
   document.getElementById('who').textContent=staff.name||staff.email;
@@ -997,9 +1004,10 @@ async function enter(staff){
   const rb=document.getElementById('revBtn'); if(rb)rb.style.display=CAN_REV?'':'none';
   CAN_PAY=!!(staff&&staff.canPayables);
   const pb=document.getElementById('payBtn'); if(pb)pb.style.display=CAN_PAY?'':'none';
-  // Backup (full data export) is Jan-only — hidden for concierges AND for Ivonna.
-  const bk=document.getElementById('backupBtn'); if(bk)bk.style.display=CAN_PAY?'':'none';
+  CAN_IVONNA=!!(staff&&staff.canIvonna);
+  const ib=document.getElementById('ivBtn'); if(ib)ib.style.display=CAN_IVONNA?'':'none';
   await refreshPayables();
+  await refreshIvonnaLedger();
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
   await loadList();
@@ -1016,6 +1024,9 @@ async function refreshMetrics(){ if(!CAN_REV){ METRICS=null; return; } try{ cons
 /* Jan-only supplier payables. Server 403s everyone else — don't ask if we know we can't. */
 let PAYABLES=null;
 async function refreshPayables(){ if(!CAN_PAY){ PAYABLES=null; return; } try{ const r=await api('/api/staff/payables'); if(r.ok) PAYABLES=r.body.payables; }catch(e){} }
+/* Ivonna's own bookings + money. Server 403s anyone but Ivonna & Jan — don't ask if we can't. */
+let IVONNA_LEDGER=null;
+async function refreshIvonnaLedger(){ if(!CAN_IVONNA){ IVONNA_LEDGER=null; return; } try{ const r=await api('/api/staff/ivonna-ledger'); if(r.ok) IVONNA_LEDGER=r.body.ledger; }catch(e){} }
 async function loadList(sel){ const r=await api('/api/staff/stays'); LIST=(r.body&&r.body.stays)||[]; renderList(); refreshTodayBtn(); if(sel) selectStay(sel); else if(!cur) renderHome(); }
 
 /* ============ live sync ============ */
@@ -1241,9 +1252,9 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const dir=centerView==='directory'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay); cols.classList.toggle('dir-mode',dir); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(dir) renderDirectory(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay&&!dir) renderArrivalsPanel(); refreshHomeBtns(); const _eh=document.getElementById('editor'); if(_eh)_eh.scrollTop=0; }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const iv=centerView==='ivonna'; const dir=centerView==='directory'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay||iv); cols.classList.toggle('dir-mode',dir); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(iv) renderIvonna(); else if(dir) renderDirectory(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay&&!iv&&!dir) renderArrivalsPanel(); refreshHomeBtns(); const _eh=document.getElementById('editor'); if(_eh)_eh.scrollTop=0; }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
-function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } }
+function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } const iv=document.getElementById('ivBtn'); if(iv){ iv.style.display=CAN_IVONNA?'':'none'; iv.classList.toggle('on',centerView==='ivonna'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
    every concierge saw them. They now live here, behind the server-side canRevenue gate. */
 window.showRevenue=function(){
@@ -1257,6 +1268,13 @@ window.showJan=async function(){
   if(!CAN_PAY) return;
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); clearRevLeft(); centerView='payables'; setView(true); await refreshPayables(); renderList(); renderHome();
+};
+/* Ivonna view — her own book of business (every stay where she's the CPH agent + the money on it).
+   Visible to Ivonna and Jan (server-gated via canIvonna). Runs full-width like the Jan/Upsell views. */
+window.showIvonna=async function(){
+  if(!CAN_IVONNA) return;
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); clearRevLeft(); centerView='ivonna'; setView(true); await refreshIvonnaLedger(); renderList(); renderHome();
 };
 /* ---- Revenue dashboard (owner view) ----
    Everything below is drawn from the SAME invoice data as the rest of the console — no separate
@@ -1755,6 +1773,60 @@ async function renderPayables(){
   buildPaySecNav(p);
   // Ledger runs full-width (pay-mode hides the side rail); nothing to render in #preview.
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
+}
+/* ---- Ivonna view: her own bookings + the money on them ----
+   One sortable table of every stay where Ivonna is the CPH booking agent, with total invoiced,
+   collected, and still-to-collect. Guest side (what her guests owe CPH) — not supplier payables.
+   Reuses the Jan-ledger styles. Visible to Ivonna and Jan. */
+let IV_SORT={col:'date',dir:1};
+window.ivSort=function(col){ if(IV_SORT.col===col) IV_SORT.dir*=-1; else { IV_SORT.col=col; IV_SORT.dir=(col==='invoiced'||col==='collected'||col==='tocollect')?-1:1; } renderIvonna(); };
+async function renderIvonna(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!IVONNA_LEDGER) await refreshIvonnaLedger();
+  const sb=document.getElementById('secbar'); if(sb)sb.innerHTML='';
+  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
+  const p=IVONNA_LEDGER;
+  if(!p){ el.innerHTML='<div class="today-clear">This view is restricted to Ivonna and Jan.</div>'; return; }
+  const stName=st=>st==='paid'?'Paid in full':st==='partial'?'Part paid':st==='unpaid'?'Unpaid':'No invoice';
+  const stCls=st=>st==='paid'?'ok':st==='partial'?'part':st==='unpaid'?'due':'novoice';
+  let rows=(p.rows||[]).slice();
+  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),source:(r.source||'').toLowerCase(),invoiced:r.invoiced,collected:r.collected,tocollect:r.toCollect,status:(r.toCollect>0?0:1)}[c]);
+  rows.sort((a,b)=>{ const x=sval(a,IV_SORT.col),y=sval(b,IV_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*IV_SORT.dir; });
+  const th=(c,lbl,cls)=>`<th class="${cls||''}${IV_SORT.col===c?' srt':''}" onclick="ivSort('${c}')">${lbl}${IV_SORT.col===c?(IV_SORT.dir>0?' ▲':' ▼'):''}</th>`;
+  const row=r=>`<tr class="pay-r">
+      <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}${r.upcoming?'<span class="iv-up">upcoming</span>':''}</td>
+      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span>${r.villaInternal?`<span class="pd-int">${esc(r.villaInternal)}</span>`:''}</td>
+      <td class="pd-src">${esc(r.source||'—')}</td>
+      <td class="pd-num pd-inv" title="total invoiced — sent + paid">${money0(r.invoiced)}</td>
+      <td class="pd-num pd-prof" title="collected — guest has paid">${money0(r.collected)}</td>
+      <td class="pd-num pd-pay" title="still to collect from the guest">${money0(r.toCollect)}</td>
+      <td class="pd-st"><span class="pay-status ${stCls(r.status)}">${stName(r.status)}</span></td>
+    </tr>`;
+  const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
+    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}${th('source','Source')}${th('invoiced','Invoiced','num')}${th('collected','Collected','num')}${th('tocollect','To collect','num')}<th>Status</th></tr></thead>
+    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="7" style="padding:16px;color:var(--soft)">No bookings assigned to Ivonna yet.</td></tr>'}</tbody>
+    <tfoot><tr class="pay-tot"><td colspan="3" class="pd-lbl">${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(p.invoiced)}</td><td class="pd-num pd-prof">${money0(p.collected)}</td><td class="pd-num pd-pay">${money0(p.toCollect)}</td><td></td></tr></tfoot>
+  </table></div>`;
+  const nav=`<div class="pay-topnav">
+    <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
+    <button onclick="showToday()">▦ Today</button>
+    <button onclick="showArrivals()">▤ Arrivals</button>
+    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◷ Upsell</button>`:''}
+    ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
+  </div>`;
+  const summary=`<div class="pay-summary">
+    <div class="pay-sumcard"><h4>Bookings</h4><div class="sub">reservations where Ivonna is the CPH agent</div>
+      <div class="pay-rail-profit" style="color:var(--purple)">${p.count}<span>${p.upcomingCount} upcoming · ${p.pastCount} past</span></div></div>
+    <div class="pay-sumcard"><h4>Invoiced</h4><div class="sub">total billed across her bookings</div>
+      <div class="pay-rail-profit">${money0(p.invoiced)}<span>${money0(p.collected)} collected</span></div></div>
+    <div class="pay-sumcard"><h4>Still to collect</h4><div class="sub">sent invoices the guest hasn't paid yet</div>
+      <div class="pay-rail-profit" style="color:#9E5B43">${money0(p.toCollect)}<span>${money0(p.upcomingToCollect)} on upcoming stays</span></div></div>
+  </div>`;
+  el.innerHTML=`
+    ${nav}
+    <div class="today-head"><span style="font-weight:400">Ivonna -</span> <b style="font-weight:800">My bookings &amp; money</b></div>
+    <div class="today-date">Every reservation where Ivonna is the CPH booking agent · invoiced, collected &amp; still to collect · click a column to sort · Ivonna &amp; Jan only</div>
+    ${p.count?summary+ledger:'<div class="today-clear">No bookings are assigned to Ivonna yet. Set the CPH booking agent on a stay to Ivonna and it will appear here.</div>'}`;
 }
 /* Top bar for the Jan view = supplier FILTER chips (All + each supplier, with counts). Clicking a
    chip filters the ledger to that supplier; the active chip is highlighted. Lives in the #secbar. */
