@@ -3294,7 +3294,11 @@ function invPickOptions(sel){ let h='';
 /* Options for a service: SVC_OPTIONS presets, or the yacht fleet (single source: store.js YACHT_CATALOG via bootstrap). */
 /* Service options come from store.js (BOOT.serviceOptions) — single source shared with the guest app.
    Falls back to the local SVC_OPTIONS only if the bootstrap didn't carry them. */
-function svcOpts(id){ const src=(typeof BOOT!=='undefined'&&BOOT.serviceOptions)||null; return (src&&src[id])||SVC_OPTIONS[id]||[]; }
+function svcOpts(id){
+  // Explore-section items (exp:<id>) carry their booking choices in BOOT.exploreOptions (single source:
+  // store.js EXPLORE_BOOK, same list the guest app shows). No preset price — the concierge sets the rate.
+  if(id&&id.indexOf('exp:')===0){ const bk=((typeof BOOT!=='undefined'&&BOOT.exploreOptions)||{})[id.slice(4)]; return (bk&&bk.choices&&bk.choices.length)?bk.choices.map(c=>[c,'']):[]; }
+  const src=(typeof BOOT!=='undefined'&&BOOT.serviceOptions)||null; return (src&&src[id])||SVC_OPTIONS[id]||[]; }
 function invSvcOpts(id){ if(!id)return []; const o=svcOpts(id); if(o.length)return o; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
 function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)return '';
   return `<select onchange="invOptPick(${i},this.value)" style="${invInput('margin-bottom:7px')}"><option value="">— pick an option (destination / type / rate) —</option>${opts.map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}"${it.svcOpt===raw?' selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>`;

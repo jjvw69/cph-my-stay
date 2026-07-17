@@ -316,6 +316,29 @@ const EXPLORE_SCENES = [
   { id:'onnos-night', cat:'Nightlife', info:true, name:'Onno’s', meta:'Altos de Chavón · late bar', desc:'All-day tapas spot by day, one of the liveliest late bars after dark — 100+ cocktails before Genesis.', img:'https://caribbeanparadisehomes.com/wp-content/uploads/sites/58/2024/12/onnosres.jpg', more:'https://www.casadecampo.com.do/experiences/nightlife/' },
 ];
 
+// Single source of truth for the per-Explore-item booking OPTIONS (the "what would you like?"
+// choices shown when a guest — or a concierge — books a restaurant / activity / tour). Keyed by
+// EXPLORE_SCENES id. Served to BOTH the guest app (request modal, via toGuestStay.exploreOptions)
+// and the Concierge Console (Send-a-service option picker, via BOOT.exploreOptions) so the choices
+// stay identical on both sides. Mirror of what the guest previously hard-coded in index.html
+// SERVICE_INFO.selects — edit HERE only. Items with no fixed choices (a single per-person tour like
+// Catalina, the cave, Santo Domingo, rum, zip-line) are intentionally omitted; the concierge just
+// sets date/guests/price.
+const EXPLORE_BOOK = {
+  spa:            { label:'Service',              choices:['Massage','Facial','Body treatment','Hydrothermal Experience','In-villa treatment','Other'] },
+  tennis:         { label:'What would you like?', choices:['Tennis — court rental','Tennis — private lesson','Tennis — group clinic','Padel — court rental','Padel — lesson','Racquet / paddle rental','Other'] },
+  equestrian:     { label:'What would you like?', choices:['Horseback ride','Pony ride (kids 4–6)','Riding / jumping lesson','Polo lesson','Donkey polo','Ranch horseback tour','Other'] },
+  shooting:       { label:'What would you like?', choices:['Skeet / Trap round','Five-stand round','Sporting clays round','Flush (group)','Lesson','Bird shooting','Other'] },
+  'horseback-tour': { label:'Which ranch?',       choices:['Rancho Peligro — 2h trail ride','Rancho Peligro — 2h with picnic','Rancho Higüeral — 2h','Rancho Cacata — 2h'] },
+  pottery:        { label:"Who's joining?",       choices:['Adult','Child','Mixed group'] },
+  kayak:          { label:'Kayak',                choices:['Single kayak','Double kayak'] },
+  watersports:    { label:'What would you like?', choices:['Snorkelling gear','Kayak (single)','Kayak (double)','Banana boat ride','Hobie Wave','Sunfish sailboat','Sun floats','Other'] },
+  buggies:        { label:'Buggy',                choices:['Single-motor buggy','Double-motor buggy','Child'] },
+  cigar:          { label:'Which tour?',          choices:['Tabacalera de García factory tour','Cigar Country store tour'] },
+  'family-programs': { label:'Program (by age)',  choices:["Toddlers 'N' Casa — ages 1–3","Kidz 'N' Casa — ages 4–6",'Casa Tweens — ages 7–12','Bonche 4 Teens — ages 13–17'] },
+  'yacht-charter': { label:'Charter',             choices:['Half-day charter','Full-day charter','Sunset cruise','Island day trip (Catalina / Saona)','Multi-day charter','Other'] },
+};
+
 // ----------------------------------------------------------------- persistence
 function ensureDir() { try { fs.mkdirSync(DATA_DIR, { recursive: true }); } catch (e) {} }
 function readJSON(file, dflt) { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return dflt; } }
@@ -2303,6 +2326,7 @@ function toGuestStay(s) {
     serviceOptions: SERVICE_OPTIONS,              // single source — same service options/rates on guest + console
 
     explore: EXPLORE_SCENES,
+    exploreOptions: EXPLORE_BOOK,                  // single source — per-activity booking choices, shared with the console
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', returnAirline: r.returnAirline || '', returnFlightNo: r.returnFlightNo || '', returnDest: r.returnDest || '', returnTime: r.returnTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
     sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
@@ -2348,7 +2372,7 @@ ensureDir();
 seedStaffFromEnv();
 
 module.exports = {
-  DATA_DIR, ADDON_CATALOG, EXPLORE_SCENES, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
+  DATA_DIR, ADDON_CATALOG, EXPLORE_SCENES, EXPLORE_BOOK, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
   BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
