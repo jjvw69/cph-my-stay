@@ -1749,11 +1749,16 @@ function paintPayables(p,C){
     <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="10" style="padding:16px;color:var(--soft)">No bookings for this supplier.</td></tr>'}</tbody>
     <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${C.filter?esc(C.filter)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
   </table></div>`;
+  // Full-width owner views hide the left column (where the ◐/◑/◒ header buttons live), so the
+  // top bar must carry the cross-links between the owner views itself — otherwise you can't hop
+  // from Ivonna's book back to Jan's without going via the stay list.
   const nav=`<div class="pay-topnav">
     <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
     ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
+    ${(CAN_IVONNA&&C.who!=='Ivonna')?`<button class="nav-owner" onclick="showIvonna()" title="Ivonna — her bookings &amp; profit">◑ Ivonna</button>`:''}
+    ${(CAN_PAY&&C.who!=='Jan')?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◒ Jan</button>`:''}
   </div>`;
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
   const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
