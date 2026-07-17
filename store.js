@@ -1612,33 +1612,38 @@ function agentLedger(agentKey) {
   const round = v => Math.round((Number(v) || 0) * 100) / 100;
   const _n = new Date();
   const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
+  // ONE ROW PER INVOICE (sent or paid) — like the Jan payables ledger, each line is either Paid or
+  // Unpaid and can be ticked off. Drafts are excluded (not real money yet). Booking-level totals for
+  // the summary cards are rolled up separately.
   const rows = [];
+  let bookings = 0, upcomingBookings = 0, pastBookings = 0;
   stays.forEach(s => {
     if ((s.bookingAgent || '').trim().toLowerCase() !== key) return;
-    // Count sent (unpaid) + paid invoices; drafts are not real money yet.
-    const invs = (s.invoices || []).filter(i => i.status === 'sent' || i.status === 'paid');
-    const invoiced = round(invs.reduce((a, i) => a + invoiceTotal(i), 0));
-    const collected = round(invs.filter(i => i.status === 'paid').reduce((a, i) => a + invoiceTotal(i), 0));
-    const toCollect = round(invs.filter(i => i.status === 'sent').reduce((a, i) => a + invoiceTotal(i), 0));
-    const status = invs.length === 0 ? 'none' : (toCollect <= 0 ? 'paid' : (collected > 0 ? 'partial' : 'unpaid'));
-    rows.push({
+    bookings++;
+    const upcoming = !!(s.checkout && s.checkout >= today);
+    if (upcoming) upcomingBookings++; else pastBookings++;
+    const meta = {
       stayId: s.id, reference: s.reference || '', guest: s.leadName || s.lastName || '(no name)',
       villa: s.villaName || '', villaInternal: (s.villaInternal || '').trim(),
-      checkin: s.checkin || '', checkout: s.checkout || '',
-      upcoming: !!(s.checkout && s.checkout >= today),
-      source: (s.source || '').trim(),
-      invoiced, collected, toCollect,
-      invCount: invs.length, sentCount: invs.filter(i => i.status === 'sent').length, paidCount: invs.filter(i => i.status === 'paid').length,
-      upsell: round(stayRevenue(s)), status,
+      checkin: s.checkin || '', checkout: s.checkout || '', upcoming, source: (s.source || '').trim(),
+    };
+    (s.invoices || []).forEach(inv => {
+      if (inv.status !== 'sent' && inv.status !== 'paid') return;   // skip drafts
+      rows.push(Object.assign({}, meta, {
+        key: s.id + ':' + inv.id, invId: inv.id, invNo: inv.no || '',
+        title: inv.title || 'Invoice', kind: inv.kind || '', dueBy: inv.dueBy || '',
+        total: round(invoiceTotal(inv)), paid: inv.status === 'paid',
+      }));
     });
   });
-  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
+  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)) || String(a.invNo).localeCompare(String(b.invNo)));
   const sum = (list, f) => round(list.reduce((a, r) => a + f(r), 0));
-  const upcoming = rows.filter(r => r.upcoming), past = rows.filter(r => !r.upcoming);
+  const paidRows = rows.filter(r => r.paid), unpaidRows = rows.filter(r => !r.paid);
   return {
-    agent: key, count: rows.length, upcomingCount: upcoming.length, pastCount: past.length,
-    invoiced: sum(rows, r => r.invoiced), collected: sum(rows, r => r.collected), toCollect: sum(rows, r => r.toCollect),
-    upcomingToCollect: sum(upcoming, r => r.toCollect), upsell: sum(rows, r => r.upsell), rows,
+    agent: key, count: bookings, upcomingCount: upcomingBookings, pastCount: pastBookings,
+    invoiceCount: rows.length, paidCount: paidRows.length, unpaidCount: unpaidRows.length,
+    invoiced: sum(rows, r => r.total), collected: sum(paidRows, r => r.total), toCollect: sum(unpaidRows, r => r.total),
+    upcomingToCollect: sum(unpaidRows.filter(r => r.upcoming), r => r.total), rows,
   };
 }
 /** Mark a supplier payable settled (Jan paid the supplier) or clear it. amount = cost at settle time. */

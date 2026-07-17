@@ -320,7 +320,8 @@
   .left .hd .label{font-size:12.5px}
   .newbtn{font-size:14px;color:var(--accent);font-weight:500}
   .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;margin-bottom:12px}
-  .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer}
+  .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer;position:relative}
+  .inhouse-pill{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#E4F1E9;color:#12794D;border-radius:20px;padding:2px 8px;z-index:1}
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
@@ -881,7 +882,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◷ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◐ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -1191,6 +1192,7 @@ function renderList(){
     const arrToday=!!(s.checkin&&s.checkin===today&&(!s.checkout||today<s.checkout));
     const inHouse=!arrToday&&!!(s.checkin&&s.checkout&&s.checkin<today&&today<s.checkout);
     return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''} ${isFresh(s)?'fresh':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':'')}>
+      ${inHouse?'<span class="inhouse-pill">In house</span>':''}
       <div class="g">${isFresh(s)?'<span class="newbadge" title="New booking — pinned to the top for 24 hours">NEW</span>':''}${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
@@ -1751,7 +1753,7 @@ async function renderPayables(){
     <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
-    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◷ Upsell</button>`:''}
+    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
   </div>`;
   // Summary panels (the old right-rail content) — now placed BELOW the ledger.
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
@@ -1775,11 +1777,11 @@ async function renderPayables(){
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
 /* ---- Ivonna view: her own bookings + the money on them ----
-   One sortable table of every stay where Ivonna is the CPH booking agent, with total invoiced,
-   collected, and still-to-collect. Guest side (what her guests owe CPH) — not supplier payables.
-   Reuses the Jan-ledger styles. Visible to Ivonna and Jan. */
+   ONE ROW PER INVOICE (sent or paid) across every stay where Ivonna is the CPH booking agent — like
+   the Jan ledger, each line is simply Paid or Unpaid and carries a Mark-paid toggle. Guest side (what
+   her guests owe CPH), not supplier payables. Reuses the Jan-ledger styles. Visible to Ivonna and Jan. */
 let IV_SORT={col:'date',dir:1};
-window.ivSort=function(col){ if(IV_SORT.col===col) IV_SORT.dir*=-1; else { IV_SORT.col=col; IV_SORT.dir=(col==='invoiced'||col==='collected'||col==='tocollect')?-1:1; } renderIvonna(); };
+window.ivSort=function(col){ if(IV_SORT.col===col) IV_SORT.dir*=-1; else { IV_SORT.col=col; IV_SORT.dir=(col==='amount')?-1:1; } renderIvonna(); };
 async function renderIvonna(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!IVONNA_LEDGER) await refreshIvonnaLedger();
@@ -1787,31 +1789,34 @@ async function renderIvonna(){
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
   const p=IVONNA_LEDGER;
   if(!p){ el.innerHTML='<div class="today-clear">This view is restricted to Ivonna and Jan.</div>'; return; }
-  const stName=st=>st==='paid'?'Paid in full':st==='partial'?'Part paid':st==='unpaid'?'Unpaid':'No invoice';
-  const stCls=st=>st==='paid'?'ok':st==='partial'?'part':st==='unpaid'?'due':'novoice';
   let rows=(p.rows||[]).slice();
-  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),source:(r.source||'').toLowerCase(),invoiced:r.invoiced,collected:r.collected,tocollect:r.toCollect,status:(r.toCollect>0?0:1)}[c]);
-  rows.sort((a,b)=>{ const x=sval(a,IV_SORT.col),y=sval(b,IV_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*IV_SORT.dir; });
+  // Unpaid first (they need chasing), then paid — unless the user picks another sort column.
+  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),invoice:(r.title||'').toLowerCase(),source:(r.source||'').toLowerCase(),amount:r.total,status:(r.paid?1:0)}[c]);
+  rows.sort((a,b)=>{ if(IV_SORT.col==='date'){ const s=(a.paid?1:0)-(b.paid?1:0); if(s) return s*IV_SORT.dir; } const x=sval(a,IV_SORT.col),y=sval(b,IV_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*IV_SORT.dir; });
   const th=(c,lbl,cls)=>`<th class="${cls||''}${IV_SORT.col===c?' srt':''}" onclick="ivSort('${c}')">${lbl}${IV_SORT.col===c?(IV_SORT.dir>0?' ▲':' ▼'):''}</th>`;
-  const row=r=>`<tr class="pay-r">
+  const row=r=>{
+    const action=r.paid
+      ? `<button class="pay-btn on" onclick="event.stopPropagation();ivMarkPaid('${r.stayId}','${r.invId}',0)" title="Paid — tap to mark it unpaid again">✓ Paid</button>`
+      : `<button class="pay-btn" onclick="event.stopPropagation();ivMarkPaid('${r.stayId}','${r.invId}',1)" title="Tap once the guest has paid this invoice">Mark paid</button>`;
+    return `<tr class="pay-r ${r.paid?'st-settled':'st-topay'}">
       <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}${r.upcoming?'<span class="iv-up">upcoming</span>':''}</td>
       <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span>${r.villaInternal?`<span class="pd-int">${esc(r.villaInternal)}</span>`:''}</td>
+      <td>${esc(r.title)}${r.invNo?`<span class="pd-no">#${esc(r.invNo)}</span>`:''}${r.dueBy&&!r.paid?`<span class="pd-via">due ${esc(fmtDay(r.dueBy))}</span>`:''}</td>
       <td class="pd-src">${esc(r.source||'—')}</td>
-      <td class="pd-num pd-inv" title="total invoiced — sent + paid">${money0(r.invoiced)}</td>
-      <td class="pd-num pd-prof" title="collected — guest has paid">${money0(r.collected)}</td>
-      <td class="pd-num pd-pay" title="still to collect from the guest">${money0(r.toCollect)}</td>
-      <td class="pd-st"><span class="pay-status ${stCls(r.status)}">${stName(r.status)}</span></td>
+      <td class="pd-num pd-inv" title="invoice total">${money0(r.total)}</td>
+      <td class="pd-st"><span class="pay-status ${r.paid?'ok':'due'}">${r.paid?'Paid':'Unpaid'}</span>${action}</td>
     </tr>`;
+  };
   const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
-    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}${th('source','Source')}${th('invoiced','Invoiced','num')}${th('collected','Collected','num')}${th('tocollect','To collect','num')}<th>Status</th></tr></thead>
-    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="7" style="padding:16px;color:var(--soft)">No bookings assigned to Ivonna yet.</td></tr>'}</tbody>
-    <tfoot><tr class="pay-tot"><td colspan="3" class="pd-lbl">${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(p.invoiced)}</td><td class="pd-num pd-prof">${money0(p.collected)}</td><td class="pd-num pd-pay">${money0(p.toCollect)}</td><td></td></tr></tfoot>
+    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}${th('invoice','Invoice')}${th('source','Source')}${th('amount','Amount','num')}<th>Status</th></tr></thead>
+    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="6" style="padding:16px;color:var(--soft)">No sent or paid invoices on Ivonna bookings yet.</td></tr>'}</tbody>
+    <tfoot><tr class="pay-tot"><td colspan="4" class="pd-lbl">${p.unpaidCount} unpaid · ${p.paidCount} paid</td><td class="pd-num">${money0(p.invoiced)}</td><td></td></tr></tfoot>
   </table></div>`;
   const nav=`<div class="pay-topnav">
     <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
-    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◷ Upsell</button>`:''}
+    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
     ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
   </div>`;
   const summary=`<div class="pay-summary">
@@ -1825,9 +1830,20 @@ async function renderIvonna(){
   el.innerHTML=`
     ${nav}
     <div class="today-head"><span style="font-weight:400">Ivonna -</span> <b style="font-weight:800">My bookings &amp; money</b></div>
-    <div class="today-date">Every reservation where Ivonna is the CPH booking agent · invoiced, collected &amp; still to collect · click a column to sort · Ivonna &amp; Jan only</div>
+    <div class="today-date">Every invoice on Ivonna's bookings · Paid or Unpaid · tap Mark paid once the guest settles · Ivonna &amp; Jan only</div>
     ${p.count?summary+ledger:'<div class="today-clear">No bookings are assigned to Ivonna yet. Set the CPH booking agent on a stay to Ivonna and it will appear here.</div>'}`;
 }
+/* Mark one of Ivonna's guest invoices Paid, or revert it to Unpaid. Uses the standard invoice-status
+   route; reverting posts 'send' but the server only notifies the guest on a FIRST send (draft→sent),
+   so toggling paid↔unpaid here never messages the guest. */
+window.ivMarkPaid=async function(stayId,invId,toPaid){
+  try{
+    const r=await api('/api/staff/stays/'+stayId+'/invoices/'+invId+'/'+(toPaid?'paid':'send'),{method:'POST'});
+    if(!r.ok||!r.body||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not update invoice.'); return; }
+    await refreshIvonnaLedger(); renderIvonna();
+    if(typeof toast==='function') toast(toPaid?'Marked paid.':'Marked unpaid.');
+  }catch(e){ alert('Could not update invoice.'); }
+};
 /* Top bar for the Jan view = supplier FILTER chips (All + each supplier, with counts). Clicking a
    chip filters the ledger to that supplier; the active chip is highlighted. Lives in the #secbar. */
 function buildPaySecNav(p){
