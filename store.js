@@ -686,8 +686,17 @@ function blankStay() {
     followUpDate: '', followUpNote: '', followUps: [], depositReminderAdded: false,
     wifiName: '', wifiPassword: '', villaNumber: '', registrationNumber: '',
     paymentStatus: '', balanceDue: '', securityDeposit: '', totalCharge: '', amountPaid: '', balanceDueBy: '',
+    // isNew flags a freshly-created booking so it stands out (a "NEW" badge) in the console list until a
+    // staff member opens it. Shared across all staff (server-side); cleared by acknowledgeStay on open.
+    isNew: true, acknowledgedAt: 0,
     createdAt: Date.now(), updatedAt: Date.now(),
   };
+}
+/** Clear the "NEW" flag on a booking (shared across staff) — called when a concierge opens it. */
+function acknowledgeStay(stayId) {
+  const s = getStay(stayId); if (!s) return null;
+  if (s.isNew) { s.isNew = false; s.acknowledgedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); }
+  return { id: s.id, isNew: !!s.isNew, acknowledgedAt: s.acknowledgedAt || 0 };
 }
 function listStays() {
   return stays.slice().sort((a, b) => (a.checkin || '').localeCompare(b.checkin || '')).map(summaryStay);
@@ -880,7 +889,7 @@ function summaryStay(s) {
   const cartVia = boardBookedVia(s, RE_CART_LINE);
   const gcCart = (gcDisp.indexOf(' · ') >= 0) ? gcDisp
     : [gcDisp, [boardSupplier(s, RE_CART_LINE), cartVia ? 'via ' + cartVia : ''].filter(Boolean).join(' · ')].map(x => String(x || '').trim()).filter(Boolean).join('\n');
-  return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)',
+  return { id: s.id, reference: s.reference, status: s.status, guest: s.leadName || s.lastName || '(no name)', isNew: !!s.isNew,
     villa: s.villaName || (v ? v.name : ''), villaInternal: s.villaInternal || (v ? v.internalName : '') || '', checkin: s.checkin, checkout: s.checkout, guests: (s.adults || 0) + (s.children || 0), adults: Number(s.adults) || 0, children: Number(s.children) || 0,
     source: s.source || '', followUpDate: (fu&&fu.date)||'', followUpNote: (fu&&fu.note)||'', followUps: (s.followUps||[]).slice(), requests: (s.requests || []).length,
     pending: (s.requests || []).filter(r => r.status !== 'confirmed' && r.status !== 'cancelled' && r.status !== 'done').length,
@@ -2390,7 +2399,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
