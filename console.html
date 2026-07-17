@@ -2887,16 +2887,7 @@ function renderEditor(){
       }).join('')||'<div class="counter" style="margin:0 0 12px">Nothing sent yet.</div>'}</div>
       <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:12px">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send a service</div>
-        <div class="sndform" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">
-          <select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${sndSvcOptionsHtml()}</select>
-          ${_sndSvc==='__custom__'?`<input id="sndCustomName" value="${esc(_sndCustomName)}" oninput="sndCustomName(this.value)" placeholder="Service name (e.g. Helicopter tour · Photographer)" autofocus style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">`:''}
-          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>
-          <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$ 120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          ${sndDetailFields()}
-          <input id="sndNote" value="${esc(_sndExtra.note||'')}" oninput="sndSet('note',this.value)" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          <button onclick="sendServiceUI()" style="grid-column:1/-1;justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>
-        </div>
+        <div class="sndform" id="sndFormWrap" style="display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr))">${sndFormInner()}</div>
       </div>
     </div>
 
@@ -3187,15 +3178,13 @@ window.sendLoginLink=function(){ if(!cur)return; const ph=String(cur.phone||'').
 window.fmtDueBy=function(v){ v=String(v||'').trim(); if(/^\d{4}-\d{2}-\d{2}$/.test(v)){ const d=new Date(v+'T00:00:00'); if(!isNaN(d)) return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); } return v; };
 window.recalcBalance=function(){ if(!cur)return; const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0; const tv=(document.getElementById('payTotal')||{}).value||''; const pv=(document.getElementById('payPaid')||{}).value||''; const by=((document.getElementById('payBy')||{}).value||'').trim(); cur.totalCharge=tv; cur.amountPaid=pv; cur.balanceDueBy=by; const total=num(tv), paid=num(pv); let out='—'; if(tv.trim()||pv.trim()){ const bal=Math.max(0,total-paid); out='US$ '+bal.toLocaleString('en-US')+(by?' by '+fmtDueBy(by):''); } cur.balanceDue=(out==='—')?'':out; const el=document.getElementById('payBal'); if(el)el.textContent=out; if(typeof markDirty==='function')markDirty(); };
 window.setSndRate=function(v){ _sndRate=v; };
-window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; _sndExtra={}; if(id!=='__custom__')_sndCustomName=''; const c=document.getElementById('sndOptCustom'); if(c)c.value='';
-  // renderEditor() rebuilds the whole editor, which otherwise loses the scroll position and drops focus —
-  // making the Send-a-service form jump away as soon as you pick a service. Preserve the scroll (and keep
-  // focus without scrolling) so the form stays put and you can finish it.
-  const ed=document.getElementById('editor'); const sc=ed?ed.scrollTop:0;
-  renderEditor();
-  if(ed)ed.scrollTop=sc;
-  const n=document.getElementById('sndCustomName')||document.getElementById('sndSvc'); if(n){ try{ n.focus({preventScroll:true}); }catch(e){ try{ n.focus(); }catch(_){} } }
-  if(ed)ed.scrollTop=sc; };
+window.selSendSvc=function(id){ _sndSvc=id; _sndOptVal=''; _sndRate=''; _sndExtra={}; if(id!=='__custom__')_sndCustomName='';
+  // Re-render ONLY the send-service form (its own #sndFormWrap), not the whole editor. A full
+  // renderEditor() rebuilt every section and scrolled the page down toward Payment / Invoices as soon
+  // as a service was picked. Updating just this fragment keeps the scroll position exactly where it is.
+  const w=document.getElementById('sndFormWrap');
+  if(w){ w.innerHTML=sndFormInner(); const n=document.getElementById('sndCustomName')||document.getElementById('sndSvc'); if(n){ try{ n.focus({preventScroll:true}); }catch(e){ try{ n.focus(); }catch(_){} } } }
+  else { renderEditor(); } };
 window.sndCustomName=function(v){ _sndCustomName=v; }; // typed name for a service that isn't in the catalog
 window.selSendOpt=function(v){ _sndOptVal=v; const p=String(v||'').split('||'); _sndRate=(v&&p[1]!=null)?p[1]:''; const r=document.getElementById('sndRate'); if(r)r.value=_sndRate; };
 window.sndSet=function(k,v){ _sndExtra[k]=v; };
@@ -3214,6 +3203,17 @@ function sndSvcOptionsHtml(){
     + grp('Activities, tours &amp; golf',['Activities','Outside','Golf'])
     + `<optgroup label="Other"><option value="__custom__" ${_sndSvc==='__custom__'?'selected':''}>➕ Custom service — type the name…</option></optgroup>`;
 }
+/* The inner controls of the "Send a service" form, as their own fragment so selSendSvc can re-render
+   ONLY this form (in #sndFormWrap) instead of the whole editor — which used to rebuild everything and
+   scroll the page away toward the Payment / Invoices sections the moment you picked a service. */
+function sndFormInner(){ return `<select id="sndSvc" onchange="selSendSvc(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">— choose a service —</option>${sndSvcOptionsHtml()}</select>
+          ${_sndSvc==='__custom__'?`<input id="sndCustomName" value="${esc(_sndCustomName)}" oninput="sndCustomName(this.value)" placeholder="Service name (e.g. Helicopter tour · Photographer)" autofocus style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">`:''}
+          <select id="sndOpt" onchange="selSendOpt(this.value)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff"><option value="">${svcOpts(_sndSvc).length?'— pick an option —':'— no preset options · type one below —'}</option>${svcOpts(_sndSvc).map(o=>{const raw=o[0]+'||'+o[1];return `<option value="${esc(raw)}" ${_sndOptVal===raw?'selected':''}>${esc(o[0])}${o[1]?' · '+esc(o[1]):''}</option>`;}).join('')}</select>
+          <input id="sndOptCustom" placeholder="Or type a custom option (e.g. 7-night chef package)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$ 120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          ${sndDetailFields()}
+          <input id="sndNote" value="${esc(_sndExtra.note||'')}" oninput="sndSet('note',this.value)" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
+          <button onclick="sendServiceUI()" style="grid-column:1/-1;justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>`; }
 /* Adaptive per-service booking-detail fields for the "Send a service" form — mirror the guest's own
    request form so a pushed service carries dates/flight/qty and can prefill an invoice. */
 function sndDetailFields(){

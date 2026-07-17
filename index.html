@@ -1744,7 +1744,9 @@ window.openReq=function(type,refId){
   const _rateOv = (_addon && _addon.rates) ? _addon.rates : '';
   const _rateBody = _rateOv ? rateLinesToHtml(_rateOv) : (info.rates || (_addon&&_addon.price?`<div class="rt"><span>Rate</span><span>${esc(usdStr(_addon.price))}</span></div>`:''));
   const ratesBlock = _rateBody ? `<div class="reqrates">${_rateBody}<div class="rtnote" style="border-top:1px solid #E6DDCC;margin-top:8px;padding-top:7px">Rates are indicative and subject to final confirmation by your concierge before you’re charged.</div></div>` : '';
-  const menuBlock = info.menu ? `<a class="reqmenu" href="${info.menu}" target="_blank" rel="noopener">View full menu &amp; prices →</a>` : '';
+  // "View full menu & prices →" link removed from the booking modal (Jul 2026) — guide rates now show
+  // inline in the dropdown, so the extra link to the resort's marketing page is redundant.
+  const menuBlock = '';
   let selectsBlock = info.selects || '';
   // Explore items (restaurants, activities, tours): prefer the shared booking choices the server sends
   // (state.stay.exploreOptions, single source: store.js EXPLORE_BOOK) so the guest app and the Concierge
