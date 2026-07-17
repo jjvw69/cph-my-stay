@@ -1006,6 +1006,7 @@ function upsellMetrics() {
   const _n = new Date();
   const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
   const M = {}, SRC = {}, VIL = {}, CH = {}, PAYEE = { jan: 0, ivonna: 0 }, VILITEMS = {};
+  const marginM = {}; // CPH earnings (margin) accumulated by ARRIVAL month — powers "CPH earns" on the by-month chart
   const overdue = [];
   const bump = (map, key, amt, paid) => {
     if (!key) return;
@@ -1387,7 +1388,7 @@ function upsellMetrics() {
     const lines = (inv.items || []).reduce((a, it) => a + (Number(it.amount) || 0), 0);
     const extras = (inv.extras || []).reduce((a, x) => a + (Number(x.amount) || 0), 0);
     const fee = Math.round((total - lines - extras) * 100) / 100;
-    if (fee > 0.005) serviceFeeIncome += fee;
+    if (fee > 0.005) { serviceFeeIncome += fee; const mk = String(s.checkin || '').slice(0, 7); if (mk) marginM[mk] = (marginM[mk] || 0) + fee; }
   }));
   serviceFeeIncome = Math.round(serviceFeeIncome * 100) / 100;
 
@@ -1421,6 +1422,14 @@ function upsellMetrics() {
     .sort((a, b) => (a.key === 'nodate' ? 1 : b.key === 'nodate' ? -1 : a.key.localeCompare(b.key)));
 
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
+  // Attribute each service's margin to the stay's ARRIVAL month (service fees already folded in above),
+  // so the by-month chart can show what CPH earns alongside the revenue. Sum ≈ totalEarnings.margin.
+  [cartRows, carRows, xferRows, yachtRows, invillaRows].forEach(rows => (rows || []).forEach(r => {
+    const mk = String(r.checkin || '').slice(0, 7); if (!mk) return;
+    marginM[mk] = (marginM[mk] || 0) + (Number(r.margin) || 0);
+  }));
+  Object.keys(marginM).forEach(k => { const e = M[k] || (M[k] = { key: k, revenue: 0, paid: 0, due: 0, booked: 0 }); e.margin = Math.round(marginM[k] * 100) / 100; });
+  Object.values(M).forEach(e => { if (e.margin == null) e.margin = 0; });
   const byMonth = Object.values(M).sort((a, b) => a.key.localeCompare(b.key)); // chronological — it's a trend
   // Unpaid invoices are ordered BY DUE DATE — soonest first, so anything already past its date sits
   // at the very top and the next thing to chase is right under it. Invoices with no due date at all

@@ -1276,23 +1276,29 @@ function fill12(rows){
 function revMonthChart(rows){
   rows=fill12(rows||[]);
   if(!rows.length) return '<div class="rev-empty">No invoices yet.</div>';
-  const W=Math.max(560,rows.length*64), H=190, PAD=26, BW=Math.min(38,(W-PAD*2)/rows.length-14);
+  const kfmt=v=>v>=1000?Math.round(v/1000)+'k':Math.round(v);
+  // Bottom band now carries two lines: the month label and, under it, what CPH earns that month.
+  const W=Math.max(560,rows.length*64), H=210, PAD=26, BOT=42, BW=Math.min(38,(W-PAD*2)/rows.length-14);
   const max=Math.max(...rows.map(r=>r.revenue),1);
-  const y=v=>H-PAD-(v/max)*(H-PAD*2);
+  const base=H-BOT;                                   // baseline sits above the two-line bottom band
+  const y=v=>base-(v/max)*(base-PAD*2);
+  const totalMargin=rows.reduce((a,r)=>a+(Number(r.margin)||0),0);
   const bars=rows.map((r,i)=>{
     const x=PAD+i*((W-PAD*2)/rows.length)+((W-PAD*2)/rows.length-BW)/2;
     const yPaid=y(r.paid), yTot=y(r.revenue);
-    const empty=!r.revenue;
-    return `<g><title>${monthLbl(r.key)} — ${empty?'nothing invoiced':`${money0(r.revenue)} invoiced · ${money0(r.paid)} paid${r.due?' · '+money0(r.due)+' due':''}`}</title>`
-      +(empty?`<rect x="${x}" y="${H-PAD-2}" width="${BW}" height="2" rx="1" fill="#E3E7E4"></rect>`
-             :`<rect x="${x}" y="${yTot}" width="${BW}" height="${Math.max(0,H-PAD-yTot)}" rx="4" fill="#E7C3C0"></rect>`
-              +`<rect x="${x}" y="${yPaid}" width="${BW}" height="${Math.max(0,H-PAD-yPaid)}" rx="4" fill="#12794D"></rect>`
-              +`<text x="${x+BW/2}" y="${yTot-5}" text-anchor="middle" font-size="9.5" fill="#4A554E">${r.revenue>=1000?Math.round(r.revenue/1000)+'k':Math.round(r.revenue)}</text>`)
-      +`<text x="${x+BW/2}" y="${H-PAD+14}" text-anchor="middle" font-size="10" fill="${empty?'#B7BEB9':'#7B857E'}">${monthLbl(r.key)}</text></g>`;
+    const empty=!r.revenue; const mg=Number(r.margin)||0;
+    return `<g><title>${monthLbl(r.key)} — ${empty?'nothing invoiced':`${money0(r.revenue)} invoiced · ${money0(r.paid)} paid${r.due?' · '+money0(r.due)+' due':''}${mg?' · CPH earns '+money0(mg):''}`}</title>`
+      +(empty?`<rect x="${x}" y="${base-2}" width="${BW}" height="2" rx="1" fill="#E3E7E4"></rect>`
+             :`<rect x="${x}" y="${yTot}" width="${BW}" height="${Math.max(0,base-yTot)}" rx="4" fill="#E7C3C0"></rect>`
+              +`<rect x="${x}" y="${yPaid}" width="${BW}" height="${Math.max(0,base-yPaid)}" rx="4" fill="#12794D"></rect>`
+              +`<text x="${x+BW/2}" y="${yTot-5}" text-anchor="middle" font-size="9.5" fill="#4A554E">${kfmt(r.revenue)}</text>`)
+      +`<text x="${x+BW/2}" y="${base+14}" text-anchor="middle" font-size="10" fill="${empty?'#B7BEB9':'#7B857E'}">${monthLbl(r.key)}</text>`
+      +(mg?`<text x="${x+BW/2}" y="${base+28}" text-anchor="middle" font-size="9.5" font-weight="700" fill="#12794D">+${kfmt(mg)}</text>`:'')
+      +`</g>`;
   }).join('');
   return `<div class="rev-scroll"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img">
-    <line x1="${PAD-6}" y1="${H-PAD}" x2="${W-PAD+6}" y2="${H-PAD}" stroke="#E3E7E4"></line>${bars}</svg></div>
-    <div class="rev-key"><span><i style="background:#12794D"></i>Paid</span><span><i style="background:#E7C3C0"></i>Still to collect</span></div>`;
+    <line x1="${PAD-6}" y1="${base}" x2="${W-PAD+6}" y2="${base}" stroke="#E3E7E4"></line>${bars}</svg></div>
+    <div class="rev-key"><span><i style="background:#12794D"></i>Paid</span><span><i style="background:#E7C3C0"></i>Still to collect</span><span style="color:#12794D;font-weight:700">+ = CPH earns${totalMargin?' · '+money0(totalMargin)+' total':''}</span></div>`;
 }
 /* Horizontal ranked bars — used for booking source, channel and villa. */
 /* Who brings the earnings in — a donut of CPH margin by booking source, with a legend beside it.
