@@ -882,7 +882,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◐ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◔ Jan</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◐ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◒ Jan</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -1650,7 +1650,7 @@ async function renderRevenue(){
       <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
       <button onclick="showToday()">▦ Today</button>
       <button onclick="showArrivals()">▤ Arrivals</button>
-      ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
+      ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◒ Jan</button>`:''}
     </div>
     <div class="today-head"><span style="font-weight:400">Revenue &amp;</span> <b style="font-weight:800">upsell</b></div>
     <div class="today-date">Every issued invoice across all bookings · Jan &amp; Ivonna only</div>
@@ -1698,37 +1698,38 @@ function buildSecNavFor(groups){
 }
 function buildRevSecNav(){ buildSecNavFor(REVNAV_GROUPS); }
 
-/* ---- Jan view: supplier payables LEDGER ("what CPH owes suppliers" + the profit to account) ----
-   One sortable table, every booking. Columns: date · guest/villa · service · supplier · CPH agent ·
-   source(+via) · invoice · pay-supplier · profit · status. Click a header to sort; the top chips
-   filter by supplier. Includes SENT (unpaid) + PAID invoices — unpaid = "awaiting guest" (not owed
-   yet). Same invoice data as the rest of the console. */
-let PAY_SORT={col:'date',dir:1};   // dir 1 asc, -1 desc
-let PAY_FILTER='';                  // '' = all suppliers
+/* ---- Supplier payables LEDGER ("what CPH owes suppliers" + the profit to account) ----
+   ONE shared renderer (paintPayables) drives TWO identical views: Jan's book (showJan) and Ivonna's
+   book (showIvonna) — same columns, supplier filter bar, summary cards and settle toggle, only the
+   underlying data (bookingAgent === jan | ivonna) differs. Columns: date · guest/villa · service ·
+   supplier · CPH agent · source(+via) · invoice · pay-supplier · profit · status. */
+let PAY_SORT={col:'date',dir:1};   // dir 1 asc, -1 desc — Jan view
+let PAY_FILTER='';                  // '' = all suppliers — Jan view
+let IV_SORT={col:'date',dir:1};    // Ivonna view (independent state so the two don't collide)
+let IV_FILTER='';
 window.paySort=function(col){ if(PAY_SORT.col===col) PAY_SORT.dir*=-1; else { PAY_SORT.col=col; PAY_SORT.dir=(col==='invoice'||col==='pay'||col==='profit')?-1:1; } renderPayables(); };
 window.payFilter=function(sup){ PAY_FILTER=sup?decodeURIComponent(sup):''; renderPayables(); };
-async function renderPayables(){
+window.ivSort=function(col){ if(IV_SORT.col===col) IV_SORT.dir*=-1; else { IV_SORT.col=col; IV_SORT.dir=(col==='invoice'||col==='pay'||col==='profit')?-1:1; } renderIvonna(); };
+window.ivFilter=function(sup){ IV_FILTER=sup?decodeURIComponent(sup):''; renderIvonna(); };
+/* Shared painter. C = {who, scope, sort, filter, sortFn, filterFn, settleFn}. */
+function paintPayables(p,C){
   const el=document.getElementById('editor'); if(!el) return;
-  if(!PAYABLES) await refreshPayables();
-  const p=PAYABLES;
-  if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
-  const sec=(t,body,sub,id)=>`<div class="rev-sec"${id?` id="${id}"`:''}><h3>${t}${sub?`<span class="rev-sub">${sub}</span>`:''}</h3>${body}</div>`;
   const catLabel=c=>c==='cart'?'Golf cart':c==='transfer'?'Airport transfer':c==='yacht'?'Yacht charter':c==='cake'?'Cake':'Mixed';
   const catClass=c=>c==='cart'?'cat-cart':c==='transfer'?'cat-xfer':c==='yacht'?'cat-yacht':c==='cake'?'cat-cake':'cat-mixed';
   const catShort=c=>c==='cart'?'Cart':c==='transfer'?'Transfer':c==='yacht'?'Yacht':c==='cake'?'Cake':'Mixed';
   const agentName=a=>{ const m={ivonna:'Ivonna',jan:'Jan','maria-fernanda':'María Fernanda',maria:'María'}; const k=String(a||'').toLowerCase(); return m[k]||(a?a.charAt(0).toUpperCase()+a.slice(1):''); };
   let rows=(p.rows||[]).slice();
-  if(PAY_FILTER) rows=rows.filter(r=>r.supplier===PAY_FILTER);
+  if(C.filter) rows=rows.filter(r=>r.supplier===C.filter);
   const rank=r=>r.settled?2:(r.guestPaid?0:1);
   const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),supplier:(r.supplier||'').toLowerCase(),agent:(r.cphAgent||'').toLowerCase(),source:(r.bookingSource||'').toLowerCase(),invoice:r.charged,pay:r.cost,profit:r.margin,status:rank(r)}[c]);
-  rows.sort((a,b)=>{ const x=sval(a,PAY_SORT.col),y=sval(b,PAY_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*PAY_SORT.dir; });
+  rows.sort((a,b)=>{ const x=sval(a,C.sort.col),y=sval(b,C.sort.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*C.sort.dir; });
   const tInv=rows.reduce((s,r)=>s+r.charged,0), tPay=rows.reduce((s,r)=>s+r.cost,0), tProf=rows.reduce((s,r)=>s+r.margin,0);
-  const th=(c,lbl,cls)=>`<th class="${cls||''}${PAY_SORT.col===c?' srt':''}" onclick="paySort('${c}')">${lbl}${PAY_SORT.col===c?(PAY_SORT.dir>0?' ▲':' ▼'):''}</th>`;
+  const th=(c,lbl,cls)=>`<th class="${cls||''}${C.sort.col===c?' srt':''}" onclick="${C.sortFn}('${c}')">${lbl}${C.sort.col===c?(C.sort.dir>0?' ▲':' ▼'):''}</th>`;
   const row=r=>{
     const state=r.settled?'st-settled':(r.guestPaid?'st-topay':'st-await');
     const via=(r.via&&r.via!==r.bookingSource)?`<span class="pd-via">via ${esc(r.via)}</span>`:'';
     const action=r.guestPaid
-      ? `<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();togglePayableSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`
+      ? `<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();${C.settleFn}('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Settled'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid this supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`
       : `<span class="pay-await" title="Not owed to the supplier until the guest pays">awaiting guest</span>`;
     return `<tr class="pay-r ${state}">
       <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}</td>
@@ -1746,16 +1747,14 @@ async function renderPayables(){
   const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
     <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}<th>Service</th>${th('supplier','Supplier')}${th('agent','CPH agent')}${th('source','Source')}${th('invoice','Invoice','num')}${th('pay','Pay supplier','num')}${th('profit','Profit','num')}<th>Status</th></tr></thead>
     <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="10" style="padding:16px;color:var(--soft)">No bookings for this supplier.</td></tr>'}</tbody>
-    <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${PAY_FILTER?esc(PAY_FILTER)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
+    <tfoot><tr class="pay-tot"><td colspan="6" class="pd-lbl">${C.filter?esc(C.filter)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td class="pd-num">${money0(tInv)}</td><td class="pd-num pd-pay">${money0(tPay)}</td><td class="pd-num pd-prof">+${money0(tProf)}</td><td></td></tr></tfoot>
   </table></div>`;
-  // Nav back to the main console views (the left column is hidden in full-width pay-mode).
   const nav=`<div class="pay-topnav">
     <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
     <button onclick="showToday()">▦ Today</button>
     <button onclick="showArrivals()">▤ Arrivals</button>
     ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
   </div>`;
-  // Summary panels (the old right-rail content) — now placed BELOW the ledger.
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
   const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
   const supRow=(g,cls)=>`<div class="pay-sumrow"><span class="s">${esc(g.supplier)} <span style="color:var(--soft);font-weight:500">· ${catLabel(g.category)}</span></span><span class="v${cls||''}">${money0(cls?g.pending:g.outstanding)}</span></div>`;
@@ -1769,86 +1768,43 @@ async function renderPayables(){
   </div>`;
   el.innerHTML=`
     ${nav}
-    <div class="today-head"><span style="font-weight:400">Jan -</span> <b style="font-weight:800">Suppliers to pay &amp; profit</b></div>
-    <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · Jan only</div>
+    <div class="today-head"><span style="font-weight:400">${esc(C.who)} -</span> <b style="font-weight:800">Suppliers to pay &amp; profit</b></div>
+    <div class="today-date">Full ledger · golf carts &amp; transfers · click a column to sort, chips above to filter · ${esc(C.scope)}</div>
     ${p.count?summary+ledger:'<div class="today-clear">No supplier payables yet — this fills in automatically as golf-cart and transfer invoices are sent and paid.</div>'}`;
-  buildPaySecNav(p);
-  // Ledger runs full-width (pay-mode hides the side rail); nothing to render in #preview.
+  buildPaySecNav(p,C.filter,C.filterFn);
   const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
 }
-/* ---- Ivonna view: her own bookings + the money on them ----
-   ONE ROW PER INVOICE (sent or paid) across every stay where Ivonna is the CPH booking agent — like
-   the Jan ledger, each line is simply Paid or Unpaid and carries a Mark-paid toggle. Guest side (what
-   her guests owe CPH), not supplier payables. Reuses the Jan-ledger styles. Visible to Ivonna and Jan. */
-let IV_SORT={col:'date',dir:1};
-window.ivSort=function(col){ if(IV_SORT.col===col) IV_SORT.dir*=-1; else { IV_SORT.col=col; IV_SORT.dir=(col==='amount')?-1:1; } renderIvonna(); };
+/* Jan's book (default agent). */
+async function renderPayables(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!PAYABLES) await refreshPayables();
+  const p=PAYABLES;
+  if(!p){ el.innerHTML='<div class="today-clear">Supplier payables are restricted to Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
+  paintPayables(p,{who:'Jan',scope:'Jan only',sort:PAY_SORT,filter:PAY_FILTER,sortFn:'paySort',filterFn:'payFilter',settleFn:'togglePayableSettled'});
+}
+/* Ivonna's book — the exact same view, scoped to her bookings. */
 async function renderIvonna(){
   const el=document.getElementById('editor'); if(!el) return;
   if(!IVONNA_LEDGER) await refreshIvonnaLedger();
-  const sb=document.getElementById('secbar'); if(sb)sb.innerHTML='';
-  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
   const p=IVONNA_LEDGER;
-  if(!p){ el.innerHTML='<div class="today-clear">This view is restricted to Ivonna and Jan.</div>'; return; }
-  let rows=(p.rows||[]).slice();
-  // Unpaid first (they need chasing), then paid — unless the user picks another sort column.
-  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),invoice:(r.title||'').toLowerCase(),source:(r.source||'').toLowerCase(),amount:r.total,status:(r.paid?1:0)}[c]);
-  rows.sort((a,b)=>{ if(IV_SORT.col==='date'){ const s=(a.paid?1:0)-(b.paid?1:0); if(s) return s*IV_SORT.dir; } const x=sval(a,IV_SORT.col),y=sval(b,IV_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*IV_SORT.dir; });
-  const th=(c,lbl,cls)=>`<th class="${cls||''}${IV_SORT.col===c?' srt':''}" onclick="ivSort('${c}')">${lbl}${IV_SORT.col===c?(IV_SORT.dir>0?' ▲':' ▼'):''}</th>`;
-  const row=r=>{
-    const action=r.paid
-      ? `<button class="pay-btn on" onclick="event.stopPropagation();ivMarkPaid('${r.stayId}','${r.invId}',0)" title="Paid — tap to mark it unpaid again">✓ Paid</button>`
-      : `<button class="pay-btn" onclick="event.stopPropagation();ivMarkPaid('${r.stayId}','${r.invId}',1)" title="Tap once the guest has paid this invoice">Mark paid</button>`;
-    return `<tr class="pay-r ${r.paid?'st-settled':'st-topay'}">
-      <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}${r.upcoming?'<span class="iv-up">upcoming</span>':''}</td>
-      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span>${r.villaInternal?`<span class="pd-int">${esc(r.villaInternal)}</span>`:''}</td>
-      <td>${esc(r.title)}${r.invNo?`<span class="pd-no">#${esc(r.invNo)}</span>`:''}${r.dueBy&&!r.paid?`<span class="pd-via">due ${esc(fmtDay(r.dueBy))}</span>`:''}</td>
-      <td class="pd-src">${esc(r.source||'—')}</td>
-      <td class="pd-num pd-inv" title="invoice total">${money0(r.total)}</td>
-      <td class="pd-st"><span class="pay-status ${r.paid?'ok':'due'}">${r.paid?'Paid':'Unpaid'}</span>${action}</td>
-    </tr>`;
-  };
-  const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
-    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}${th('invoice','Invoice')}${th('source','Source')}${th('amount','Amount','num')}<th>Status</th></tr></thead>
-    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="6" style="padding:16px;color:var(--soft)">No sent or paid invoices on Ivonna bookings yet.</td></tr>'}</tbody>
-    <tfoot><tr class="pay-tot"><td colspan="4" class="pd-lbl">${p.unpaidCount} unpaid · ${p.paidCount} paid</td><td class="pd-num">${money0(p.invoiced)}</td><td></td></tr></tfoot>
-  </table></div>`;
-  const nav=`<div class="pay-topnav">
-    <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
-    <button onclick="showToday()">▦ Today</button>
-    <button onclick="showArrivals()">▤ Arrivals</button>
-    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
-    ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◔ Jan</button>`:''}
-  </div>`;
-  const summary=`<div class="pay-summary">
-    <div class="pay-sumcard"><h4>Bookings</h4><div class="sub">reservations where Ivonna is the CPH agent</div>
-      <div class="pay-rail-profit" style="color:var(--purple)">${p.count}<span>${p.upcomingCount} upcoming · ${p.pastCount} past</span></div></div>
-    <div class="pay-sumcard"><h4>Invoiced</h4><div class="sub">total billed across her bookings</div>
-      <div class="pay-rail-profit">${money0(p.invoiced)}<span>${money0(p.collected)} collected</span></div></div>
-    <div class="pay-sumcard"><h4>Still to collect</h4><div class="sub">sent invoices the guest hasn't paid yet</div>
-      <div class="pay-rail-profit" style="color:#9E5B43">${money0(p.toCollect)}<span>${money0(p.upcomingToCollect)} on upcoming stays</span></div></div>
-  </div>`;
-  el.innerHTML=`
-    ${nav}
-    <div class="today-head"><span style="font-weight:400">Ivonna -</span> <b style="font-weight:800">My bookings &amp; money</b></div>
-    <div class="today-date">Every invoice on Ivonna's bookings · Paid or Unpaid · tap Mark paid once the guest settles · Ivonna &amp; Jan only</div>
-    ${p.count?summary+ledger:'<div class="today-clear">No bookings are assigned to Ivonna yet. Set the CPH booking agent on a stay to Ivonna and it will appear here.</div>'}`;
+  if(!p){ el.innerHTML='<div class="today-clear">This view is restricted to Ivonna and Jan.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
+  paintPayables(p,{who:'Ivonna',scope:'Ivonna & Jan',sort:IV_SORT,filter:IV_FILTER,sortFn:'ivSort',filterFn:'ivFilter',settleFn:'ivToggleSettled'});
 }
-/* Mark one of Ivonna's guest invoices Paid, or revert it to Unpaid. Uses the standard invoice-status
-   route; reverting posts 'send' but the server only notifies the guest on a FIRST send (draft→sent),
-   so toggling paid↔unpaid here never messages the guest. */
-window.ivMarkPaid=async function(stayId,invId,toPaid){
+/* Settle toggle for Ivonna's book — same endpoint + shared settle store as Jan; refreshes her ledger. */
+window.ivToggleSettled=async function(key,settled,amount){
   try{
-    const r=await api('/api/staff/stays/'+stayId+'/invoices/'+invId+'/'+(toPaid?'paid':'send'),{method:'POST'});
-    if(!r.ok||!r.body||!r.body.invoice){ alert((r.body&&r.body.error)||'Could not update invoice.'); return; }
+    const r=await api('/api/staff/payables/settle',{method:'POST',body:JSON.stringify({key,settled:!!settled,amount})});
+    if(!r.ok){ alert((r.body&&r.body.error)||'Could not update.'); return; }
     await refreshIvonnaLedger(); renderIvonna();
-    if(typeof toast==='function') toast(toPaid?'Marked paid.':'Marked unpaid.');
-  }catch(e){ alert('Could not update invoice.'); }
+    if(typeof toast==='function') toast(settled?'Marked paid to supplier.':'Reopened — back on the to-pay list.');
+  }catch(e){ alert('Could not update.'); }
 };
 /* Top bar for the Jan view = supplier FILTER chips (All + each supplier, with counts). Clicking a
    chip filters the ledger to that supplier; the active chip is highlighted. Lives in the #secbar. */
-function buildPaySecNav(p){
+function buildPaySecNav(p,filterVal,filterFn){
+  filterVal=filterVal||''; filterFn=filterFn||'payFilter';
   const bar=document.getElementById('secbar'); if(!bar) return;
-  const chip=(sup,lbl,n)=>`<button class="pay-fchip${(PAY_FILTER===sup)?' on':''}" onclick="payFilter('${encodeURIComponent(sup)}')">${esc(lbl)}${n!=null?`<span class="fc-n">${n}</span>`:''}</button>`;
+  const chip=(sup,lbl,n)=>`<button class="pay-fchip${(filterVal===sup)?' on':''}" onclick="${filterFn}('${encodeURIComponent(sup)}')">${esc(lbl)}${n!=null?`<span class="fc-n">${n}</span>`:''}</button>`;
   const sups=(p.bySupplier||[]);
   bar.innerHTML=`<div class="secbar-row"><span class="secnav-gl">Supplier</span>${chip('','All',p.count)}${sups.map(g=>chip(g.supplier,g.supplier,g.count)).join('')}</div>`;
 }

@@ -1463,7 +1463,8 @@ function upsellMetrics() {
 // settled once Jan has paid that supplier; the settled state persists in payables.json.
 const PAY_CART_MARGIN_PER_NIGHT = 20;
 const PAY_TRANSFER_MARGIN_PCT = 0.13;
-function payables() {
+function payables(agentKey) {
+  const agent = String(agentKey || 'jan').trim().toLowerCase();   // whose book: 'jan' (default) or 'ivonna'
   const _n = new Date();
   const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
   const round = v => Math.round((Number(v) || 0) * 100) / 100;
@@ -1480,9 +1481,8 @@ function payables() {
     return base;
   };
   stays.forEach(s => {
-    // Jan payables view is JAN's book only: skip any stay not assigned to Jan as CPH agent
-    // (excludes Ivonna and Unassigned bookings).
-    if ((s.bookingAgent || '').trim().toLowerCase() !== 'jan') return;
+    // This is ONE agent's book only: skip any stay not assigned to that CPH agent.
+    if ((s.bookingAgent || '').trim().toLowerCase() !== agent) return;
     const meta = {
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
       villaInternal: (s.villaInternal || '').trim(),   // internal property name (e.g. "Bahia Minitas 3")
@@ -1601,49 +1601,6 @@ function payables() {
     count: rows.length, paidCount: paid.length, unpaidCount: unpaid.length,
     cart: byCat('cart'), transfer: byCat('transfer'),
     bySupplier, rows,
-  };
-}
-// A CPH booking agent's own book of business — every stay where they are the internal
-// bookingAgent, with the money on it (total invoiced, collected, still to collect). Unlike
-// payables() this is the GUEST side (what the agent's guests owe CPH), not the supplier side.
-// Used by the per-agent console view (e.g. Ivonna's "My bookings & money").
-function agentLedger(agentKey) {
-  const key = String(agentKey || '').trim().toLowerCase();
-  const round = v => Math.round((Number(v) || 0) * 100) / 100;
-  const _n = new Date();
-  const today = _n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0');
-  // ONE ROW PER INVOICE (sent or paid) — like the Jan payables ledger, each line is either Paid or
-  // Unpaid and can be ticked off. Drafts are excluded (not real money yet). Booking-level totals for
-  // the summary cards are rolled up separately.
-  const rows = [];
-  let bookings = 0, upcomingBookings = 0, pastBookings = 0;
-  stays.forEach(s => {
-    if ((s.bookingAgent || '').trim().toLowerCase() !== key) return;
-    bookings++;
-    const upcoming = !!(s.checkout && s.checkout >= today);
-    if (upcoming) upcomingBookings++; else pastBookings++;
-    const meta = {
-      stayId: s.id, reference: s.reference || '', guest: s.leadName || s.lastName || '(no name)',
-      villa: s.villaName || '', villaInternal: (s.villaInternal || '').trim(),
-      checkin: s.checkin || '', checkout: s.checkout || '', upcoming, source: (s.source || '').trim(),
-    };
-    (s.invoices || []).forEach(inv => {
-      if (inv.status !== 'sent' && inv.status !== 'paid') return;   // skip drafts
-      rows.push(Object.assign({}, meta, {
-        key: s.id + ':' + inv.id, invId: inv.id, invNo: inv.no || '',
-        title: inv.title || 'Invoice', kind: inv.kind || '', dueBy: inv.dueBy || '',
-        total: round(invoiceTotal(inv)), paid: inv.status === 'paid',
-      }));
-    });
-  });
-  rows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)) || String(a.invNo).localeCompare(String(b.invNo)));
-  const sum = (list, f) => round(list.reduce((a, r) => a + f(r), 0));
-  const paidRows = rows.filter(r => r.paid), unpaidRows = rows.filter(r => !r.paid);
-  return {
-    agent: key, count: bookings, upcomingCount: upcomingBookings, pastCount: pastBookings,
-    invoiceCount: rows.length, paidCount: paidRows.length, unpaidCount: unpaidRows.length,
-    invoiced: sum(rows, r => r.total), collected: sum(paidRows, r => r.total), toCollect: sum(unpaidRows, r => r.total),
-    upcomingToCollect: sum(unpaidRows.filter(r => r.upcoming), r => r.total), rows,
   };
 }
 /** Mark a supplier payable settled (Jan paid the supplier) or clear it. amount = cost at settle time. */
@@ -2451,7 +2408,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, agentLedger, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,
