@@ -1424,7 +1424,7 @@ function upsellMetrics() {
   const sortRev = o => Object.values(o).sort((a, b) => b.revenue - a.revenue);
   // Attribute each service's margin to the stay's ARRIVAL month (service fees already folded in above),
   // so the by-month chart can show what CPH earns alongside the revenue. Sum ≈ totalEarnings.margin.
-  [cartRows, carRows, xferRows, yachtRows, invillaRows].forEach(rows => (rows || []).forEach(r => {
+  [cartRows, carRows, xferRows, yachtRows, invillaRows, grocEarnRows].forEach(rows => (rows || []).forEach(r => {
     const mk = String(r.checkin || '').slice(0, 7); if (!mk) return;
     marginM[mk] = (marginM[mk] || 0) + (Number(r.margin) || 0);
   }));
