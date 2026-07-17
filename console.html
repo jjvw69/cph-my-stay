@@ -3305,7 +3305,7 @@ function invPickOptions(sel){ let h='';
 function svcOpts(id){
   // Explore-section items (exp:<id>) carry their booking choices in BOOT.exploreOptions (single source:
   // store.js EXPLORE_BOOK, same list the guest app shows). No preset price — the concierge sets the rate.
-  if(id&&id.indexOf('exp:')===0){ const bk=((typeof BOOT!=='undefined'&&BOOT.exploreOptions)||{})[id.slice(4)]; return (bk&&bk.choices&&bk.choices.length)?bk.choices.map(c=>[c,'']):[]; }
+  if(id&&id.indexOf('exp:')===0){ const bk=((typeof BOOT!=='undefined'&&BOOT.exploreOptions)||{})[id.slice(4)]; return (bk&&bk.choices&&bk.choices.length)?bk.choices.map(c=>[(c&&c.label!=null)?c.label:c,(c&&c.rate)?c.rate:'']):[]; }
   const src=(typeof BOOT!=='undefined'&&BOOT.serviceOptions)||null; return (src&&src[id])||SVC_OPTIONS[id]||[]; }
 function invSvcOpts(id){ if(!id)return []; const o=svcOpts(id); if(o.length)return o; if(id==='yacht-charter')return (YACHT_CATALOG||[]).map(y=>[y.name,y.rate]); return []; }
 function invOptRow(it,i){ const opts=invSvcOpts(it.svcId); if(!opts.length)return '';

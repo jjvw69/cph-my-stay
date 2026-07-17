@@ -318,25 +318,34 @@ const EXPLORE_SCENES = [
 
 // Single source of truth for the per-Explore-item booking OPTIONS (the "what would you like?"
 // choices shown when a guest — or a concierge — books a restaurant / activity / tour). Keyed by
-// EXPLORE_SCENES id. Served to BOTH the guest app (request modal, via toGuestStay.exploreOptions)
-// and the Concierge Console (Send-a-service option picker, via BOOT.exploreOptions) so the choices
-// stay identical on both sides. Mirror of what the guest previously hard-coded in index.html
-// SERVICE_INFO.selects — edit HERE only. Items with no fixed choices (a single per-person tour like
-// Catalina, the cave, Santo Domingo, rum, zip-line) are intentionally omitted; the concierge just
-// sets date/guests/price.
+// EXPLORE_SCENES id. Served to BOTH the guest app (request modal dropdown, via toGuestStay.exploreOptions)
+// and the Concierge Console (Send-a-service option picker, via BOOT.exploreOptions) so the choices AND
+// the indicative guide rates stay identical on both sides — edit HERE only.
+// Each choice is { label, rate } — `rate` is an INDICATIVE guide figure shown next to the option
+// ("Massage · from US$ 285"); blank rate = quote-on-request. In the console the guide rate auto-fills
+// the concierge's Rate field (still editable). Rates mirror the resort's published figures on the
+// casadecampo.com experience pages and are refreshed by the monthly rate-sweep task; the concierge
+// always confirms the final price, so these are a guide only.
 const EXPLORE_BOOK = {
-  spa:            { label:'Service',              choices:['Massage','Facial','Body treatment','Hydrothermal Experience','In-villa treatment','Other'] },
-  tennis:         { label:'What would you like?', choices:['Tennis — court rental','Tennis — private lesson','Tennis — group clinic','Padel — court rental','Padel — lesson','Racquet / paddle rental','Other'] },
-  equestrian:     { label:'What would you like?', choices:['Horseback ride','Pony ride (kids 4–6)','Riding / jumping lesson','Polo lesson','Donkey polo','Ranch horseback tour','Other'] },
-  shooting:       { label:'What would you like?', choices:['Skeet / Trap round','Five-stand round','Sporting clays round','Flush (group)','Lesson','Bird shooting','Other'] },
-  'horseback-tour': { label:'Which ranch?',       choices:['Rancho Peligro — 2h trail ride','Rancho Peligro — 2h with picnic','Rancho Higüeral — 2h','Rancho Cacata — 2h'] },
-  pottery:        { label:"Who's joining?",       choices:['Adult','Child','Mixed group'] },
-  kayak:          { label:'Kayak',                choices:['Single kayak','Double kayak'] },
-  watersports:    { label:'What would you like?', choices:['Snorkelling gear','Kayak (single)','Kayak (double)','Banana boat ride','Hobie Wave','Sunfish sailboat','Sun floats','Other'] },
-  buggies:        { label:'Buggy',                choices:['Single-motor buggy','Double-motor buggy','Child'] },
-  cigar:          { label:'Which tour?',          choices:['Tabacalera de García factory tour','Cigar Country store tour'] },
-  'family-programs': { label:'Program (by age)',  choices:["Toddlers 'N' Casa — ages 1–3","Kidz 'N' Casa — ages 4–6",'Casa Tweens — ages 7–12','Bonche 4 Teens — ages 13–17'] },
-  'yacht-charter': { label:'Charter',             choices:['Half-day charter','Full-day charter','Sunset cruise','Island day trip (Catalina / Saona)','Multi-day charter','Other'] },
+  // ---- Resort experiences ----
+  spa:            { label:'Service',              choices:[{label:'Massage',rate:'from US$ 285'},{label:'Facial',rate:'from US$ 285'},{label:'Body treatment',rate:'from US$ 285'},{label:'Hydrothermal Experience',rate:'US$ 140'},{label:'In-villa treatment',rate:'from US$ 95'},{label:'Other',rate:''}] },
+  tennis:         { label:'What would you like?', choices:[{label:'Tennis — court rental',rate:'US$ 35–45'},{label:'Tennis — private lesson',rate:'US$ 65–125 / h'},{label:'Tennis — group clinic',rate:'US$ 25–35'},{label:'Padel — court rental',rate:'US$ 40–45'},{label:'Padel — lesson',rate:'from US$ 60'},{label:'Racquet / paddle rental',rate:'US$ 10–15'},{label:'Other',rate:''}] },
+  equestrian:     { label:'What would you like?', choices:[{label:'Horseback ride',rate:'US$ 45–125 p/p'},{label:'Pony ride (kids 4–6)',rate:'US$ 40'},{label:'Riding / jumping lesson',rate:'US$ 80–125 p/p'},{label:'Polo lesson',rate:'US$ 120–200 p/p'},{label:'Donkey polo',rate:'US$ 70 p/p'},{label:'Ranch horseback tour',rate:'US$ 170–255 p/p'},{label:'Other',rate:''}] },
+  shooting:       { label:'What would you like?', choices:[{label:'Skeet / Trap round',rate:'US$ 45'},{label:'Five-stand round',rate:'US$ 50'},{label:'Sporting clays round',rate:'US$ 105–320'},{label:'Flush (group)',rate:'US$ 105–220'},{label:'Lesson',rate:'US$ 20–80'},{label:'Bird shooting',rate:'from US$ 40 / bird'},{label:'Other',rate:''}] },
+  'horseback-tour': { label:'Which ranch?',       choices:[{label:'Rancho Peligro — 2h trail ride',rate:'US$ 250 p/p'},{label:'Rancho Peligro — 2h with picnic',rate:'US$ 300 p/p'},{label:'Rancho Higüeral — 2h',rate:'US$ 170 p/p'},{label:'Rancho Cacata — 2h',rate:'US$ 170 p/p'}] },
+  pottery:        { label:"Who's joining?",       choices:[{label:'Adult',rate:'US$ 65 p/p'},{label:'Child',rate:'US$ 47'},{label:'Mixed group',rate:'US$ 47–65 p/p'}] },
+  kayak:          { label:'Kayak',                choices:[{label:'Single kayak',rate:'US$ 30 p/p'},{label:'Double kayak',rate:'US$ 45 p/p'}] },
+  watersports:    { label:'What would you like?', choices:[{label:'Snorkelling gear',rate:'US$ 19'},{label:'Kayak (single)',rate:'US$ 25'},{label:'Kayak (double)',rate:'US$ 35'},{label:'Banana boat ride',rate:'US$ 20'},{label:'Hobie Wave',rate:'US$ 50'},{label:'Sunfish sailboat',rate:'US$ 40'},{label:'Sun floats',rate:'US$ 14'},{label:'Other',rate:''}] },
+  'family-programs': { label:'Program (by age)',  choices:[{label:"Toddlers 'N' Casa — ages 1–3",rate:''},{label:"Kidz 'N' Casa — ages 4–6",rate:''},{label:'Casa Tweens — ages 7–12',rate:''},{label:'Bonche 4 Teens — ages 13–17',rate:''}] },
+  'yacht-charter': { label:'Charter',             choices:[{label:'Half-day charter',rate:''},{label:'Full-day charter',rate:''},{label:'Sunset cruise',rate:''},{label:'Island day trip (Catalina / Saona)',rate:''},{label:'Multi-day charter',rate:''},{label:'Other',rate:''}] },
+  // ---- Outside experiences & tours ----
+  buggies:        { label:'Buggy',                choices:[{label:'Single-motor buggy',rate:'US$ 130 p/p'},{label:'Double-motor buggy',rate:'US$ 105 p/p'},{label:'Child',rate:'US$ 90'}] },
+  cigar:          { label:'Which tour?',          choices:[{label:'Tabacalera de García factory tour',rate:'US$ 150 / vehicle (1–5)'},{label:'Cigar Country store tour',rate:'US$ 20 p/p'}] },
+  catalina:       { label:"Who's joining?",       choices:[{label:'Adult',rate:'US$ 48 p/p'},{label:'Child (up to 12)',rate:'US$ 30'}] },
+  zipline:        { label:"Who's joining?",       choices:[{label:'Adult',rate:'US$ 87 p/p'},{label:'Child',rate:'US$ 59'}] },
+  cave:           { label:'Las Maravillas Cave',  choices:[{label:'Per person',rate:'US$ 34 p/p'}] },
+  'santo-domingo':{ label:'Santo Domingo city tour', choices:[{label:'Per person',rate:'US$ 50 p/p'}] },
+  rum:            { label:'Ron Barceló tour',     choices:[{label:'Per person (adults only)',rate:'US$ 57 p/p'}] },
 };
 
 // ----------------------------------------------------------------- persistence

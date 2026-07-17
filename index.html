@@ -1749,7 +1749,7 @@ window.openReq=function(type,refId){
   // Explore items (restaurants, activities, tours): prefer the shared booking choices the server sends
   // (state.stay.exploreOptions, single source: store.js EXPLORE_BOOK) so the guest app and the Concierge
   // Console always offer the identical list. Falls back to the legacy info.selects when none is served.
-  { const _bk=(state.stay&&state.stay.exploreOptions&&state.stay.exploreOptions[refId]); if(_bk&&_bk.choices&&_bk.choices.length){ selectsBlock=`<label class="reqlbl">${esc(_bk.label||'What would you like?')}</label><select id="rqService">${_bk.choices.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`; } }
+  { const _bk=(state.stay&&state.stay.exploreOptions&&state.stay.exploreOptions[refId]); if(_bk&&_bk.choices&&_bk.choices.length){ selectsBlock=`<label class="reqlbl">${esc(_bk.label||'What would you like?')}</label><select id="rqService">${_bk.choices.map(c=>{const lab=(c&&c.label!=null)?c.label:c; const rt=(c&&c.rate)?c.rate:''; return `<option value="${esc(lab)}">${esc(lab)}${rt?' · '+esc(rt):''}</option>`;}).join('')}</select>`; } }
   // Preferred-yacht select is built from the live fleet the server sends (single source: store.js YACHT_CATALOG) so guest ↔ console always match.
   if(refId==='yacht'){ const fleet=(state.stay&&state.stay.yachtFleet)||[]; if(fleet.length) selectsBlock += `<label class="reqlbl">Preferred yacht (optional)</label><select id="rqYacht"><option value="">No preference — let my concierge suggest</option>${fleet.map(n=>`<option>${esc(n)}</option>`).join('')}</select>`; }
   const dateBlock = info.noDate ? ''
