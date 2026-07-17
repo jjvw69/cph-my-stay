@@ -556,6 +556,8 @@
   .msave{display:none}
   .reqcount{display:inline-block;font-size:12px;background:var(--gold);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:700}
   .newbadge{display:inline-block;font-size:10px;letter-spacing:.06em;background:#D7E600;color:#16241E;border-radius:6px;padding:1px 6px;margin-right:7px;vertical-align:middle;font-weight:800}
+  .freshsep{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7B857E;font-weight:700;padding:6px 2px 4px}
+  .staycard.fresh{box-shadow:inset 3px 0 0 #D7E600}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
   .reqlist-2col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1117,8 +1119,7 @@ function chime(){ try{ _AC=_AC||new (window.AudioContext||window.webkitAudioCont
 window.addEventListener('focus',()=>{ syncNow(); });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) syncNow(); });
 document.getElementById('search').addEventListener('input',renderList);
-let _skipAckOnce=''; // the stay you just created opens immediately — don't let that first open clear its own NEW badge
-document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ _skipAckOnce=r.body.stay.id; await loadList(r.body.stay.id); } };
+document.getElementById('newStay').onclick=async()=>{ const r=await api('/api/staff/stays',{method:'POST'}); if(r.ok){ await loadList(r.body.stay.id); } };
 let listFilter='current';
 window.setFilter=function(f){ listFilter=f; document.querySelectorAll('.lchip').forEach(c=>c.classList.toggle('on',c.dataset.f===f)); renderList(); };
 /* Year chips are derived from whatever is in the list right now (Current or Archive) — a 2028
@@ -1155,13 +1156,11 @@ function renderList(){
   // Year jump: the list is already sorted by check-in, so drop a sticky divider whenever the
   // arrival year changes, and offer a chip per year that scrolls straight to it. No filtering —
   // you can keep scrolling from one year into the next.
-  let _lastYr='';
-  const _years=[];
-  el.innerHTML=strip+items.map(s=>{
-    const yr=String(s.checkin||'').slice(0,4);
-    let sep='';
-    if(yr&&yr!==_lastYr){ _lastYr=yr; const _newYear=_years.length>0; _years.push(yr); sep=`<div class="yrsep ${_newYear?'yr-new':''}" id="yr-${yr}"><span>${yr}</span><button class="yrtop" title="Back to the top of the list" onclick="jumpTop()">↑ Top</button></div>`; }
-    const _fmtLong=iso=>{ if(!iso)return '?'; const x=new Date(iso+'T00:00:00'); return isNaN(x)?iso:x.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}); };
+  // A freshly-created booking (isNew) is PINNED to the very top of the list and wears a NEW pill for
+  // 24 hours after creation — then it drops back into its normal check-in position and the pill fades.
+  const isFresh=s=> !!(s.isNew && s.createdAt && (Date.now()-s.createdAt < 86400000));
+  const _fmtLong=iso=>{ if(!iso)return '?'; const x=new Date(iso+'T00:00:00'); return isNaN(x)?iso:x.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}); };
+  const card=s=>{
     const dates=_fmtLong(s.checkin)+' – '+_fmtLong(s.checkout);
     const _villaLine=[s.villaInternal,s.villa].map(x=>String(x||'').trim()).filter(Boolean).join(' | ')||'—';
     const pill=(s.status||'draft').replace(/\s/g,'').toLowerCase();
@@ -1175,16 +1174,28 @@ function renderList(){
     const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
     const unread=isUnread(s);
     // Arrives today = checkin is today (amber). In-house = arrived earlier, still with us (green).
-    // arrToday takes priority so a same-day arrival reads as "today", not a passive in-house stay.
     const arrToday=!!(s.checkin&&s.checkin===today&&(!s.checkout||today<s.checkout));
     const inHouse=!arrToday&&!!(s.checkin&&s.checkout&&s.checkin<today&&today<s.checkout);
-    return sep+`<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':'')}>
-      <div class="g">${s.isNew?'<span class="newbadge" title="Newly added booking — opens clears it for everyone">NEW</span>':''}${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
+    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''} ${isFresh(s)?'fresh':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':'')}>
+      <div class="g">${isFresh(s)?'<span class="newbadge" title="New booking — pinned to the top for 24 hours">NEW</span>':''}${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
       <div class="meta">${s.guests} guests${(s.adults!=null||s.children!=null)?` · ${Number(s.adults)||0} adult${(Number(s.adults)||0)===1?'':'s'}${(Number(s.children)||0)>0?`, ${Number(s.children)} child${Number(s.children)===1?'':'ren'}`:''}`:''}</div>
       <div class="pillrow">${srcB}${pill!=='published'?`<span class="pill ${pill}">${esc(s.status)}</span>`:''}${nrB}${reqB}${fuB}${upB}</div></div>`;
+  };
+  const freshList=items.filter(isFresh).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); // newest first, above everything
+  const freshIds=new Set(freshList.map(s=>s.id));
+  const rest=items.filter(s=>!freshIds.has(s.id));
+  let _lastYr='';
+  const _years=[];
+  const restHtml=rest.map(s=>{
+    const yr=String(s.checkin||'').slice(0,4);
+    let sep='';
+    if(yr&&yr!==_lastYr){ _lastYr=yr; const _newYear=_years.length>0; _years.push(yr); sep=`<div class="yrsep ${_newYear?'yr-new':''}" id="yr-${yr}"><span>${yr}</span><button class="yrtop" title="Back to the top of the list" onclick="jumpTop()">↑ Top</button></div>`; }
+    return sep+card(s);
   }).join('');
+  const freshHtml=freshList.length?`<div class="freshsep">Just added</div>`+freshList.map(card).join(''):'';
+  el.innerHTML=strip+freshHtml+restHtml;
   renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
@@ -1192,9 +1203,8 @@ window.backToList=function(){ cur=null; centerView='today'; const _cols=document
 window.selectStay=async function(id){
   if(dirty && cur && cur.id!==id && !confirm('You have unsaved changes on the current stay. Discard them and switch?')) return;
   const r=await api('/api/staff/stays/'+id); if(r.ok){ cur=r.body.stay; setDirty(false); markViewed(cur);
-    // Opening a NEW booking clears its badge for everyone — except the very first open right after you
-    // created it (so the badge survives for you and the rest of the team to notice in the list).
-    if(cur.isNew){ if(_skipAckOnce===id){ _skipAckOnce=''; } else { cur.isNew=false; const li=LIST.find(x=>x.id===id); if(li)li.isNew=false; api('/api/staff/stays/'+id+'/acknowledge',{method:'POST'}).catch(()=>{}); } }
+    // The NEW pill + top-pin are purely time-based now (24h from creation), so opening a booking no
+    // longer clears them — everyone keeps seeing it at the top for the day.
     const cols=document.querySelector('.cols'); if(cols)cols.classList.remove('board-mode'); clearRevLeft(); renderList(); renderEditor(); renderPreview(); setView(true); const _ed=document.getElementById('editor'); if(_ed)_ed.scrollTop=0; const _pv=document.getElementById('preview'); if(_pv)_pv.scrollTop=0; } };
 
 /* ---- Today overview (cross-stay operations view) ---- */
