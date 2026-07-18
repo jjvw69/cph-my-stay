@@ -569,6 +569,7 @@
   .reqcount{display:inline-block;font-size:12px;background:var(--gold);color:#fff;border-radius:20px;padding:1px 9px;margin-left:8px;vertical-align:middle;font-weight:700}
   .newbadge{display:inline-block;font-size:10px;letter-spacing:.06em;background:#D7E600;color:#16241E;border-radius:6px;padding:1px 6px;margin-right:7px;vertical-align:middle;font-weight:800}
   .freshsep{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7B857E;font-weight:700;padding:6px 2px 4px}
+  .departsep{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#5A3A88;font-weight:700;padding:6px 2px 4px}
   .staycard.fresh{box-shadow:inset 3px 0 0 #D7E600}
   .reqlist{display:flex;flex-direction:column;gap:9px}
   .reglist-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -1207,12 +1208,12 @@ function renderList(){
   };
   const freshList=items.filter(isFresh).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); // newest first, above everything
   const freshIds=new Set(freshList.map(s=>s.id));
-  // Departing today = checkout is today. Pin these to the TOP of their year section (same spirit as
-  // new bookings pinning to the very top), so a guest leaving today is easy to spot and action.
+  // Departing today = checkout is today. Pinned into its OWN "Departing today" group at the very top
+  // (same treatment as the "Just added" group) so a guest leaving today is impossible to miss.
   const _isDeparting=s=>!!(s.checkin&&s.checkout&&s.checkin<today&&today===s.checkout);
-  const rest=items.filter(s=>!freshIds.has(s.id)).map((s,i)=>({s,i}))
-    .sort((a,b)=>{ const ya=String(a.s.checkin||'').slice(0,4), yb=String(b.s.checkin||'').slice(0,4); if(ya!==yb) return ya<yb?-1:1; const da=_isDeparting(a.s)?0:1, db=_isDeparting(b.s)?0:1; if(da!==db) return da-db; return a.i-b.i; })
-    .map(x=>x.s);
+  const departingList=items.filter(s=>!freshIds.has(s.id)&&_isDeparting(s)).sort((a,b)=>String(a.checkin||'').localeCompare(String(b.checkin||'')));
+  const departingIds=new Set(departingList.map(s=>s.id));
+  const rest=items.filter(s=>!freshIds.has(s.id)&&!departingIds.has(s.id));
   let _lastYr='';
   const _years=[];
   const restHtml=rest.map(s=>{
@@ -1222,7 +1223,8 @@ function renderList(){
     return sep+card(s);
   }).join('');
   const freshHtml=freshList.length?`<div class="freshsep">Just added</div>`+freshList.map(card).join(''):'';
-  el.innerHTML=strip+freshHtml+restHtml;
+  const departingHtml=departingList.length?`<div class="departsep">Departing today</div>`+departingList.map(card).join(''):'';
+  el.innerHTML=strip+freshHtml+departingHtml+restHtml;
   renderYearNav(_years);
 }
 function setView(detail){ const a=document.getElementById('app'); if(a)a.classList.toggle('view-detail',!!detail); const c=document.querySelector('.cols'); if(c)c.scrollTop=0; }
