@@ -1175,12 +1175,16 @@ function upsellMetrics() {
       const boatCost = charged;
       const margin = Math.round(boatCost * YACHT_MARKUP * 100) / 100;         // the 28% CPH adds
       const guestCharged = Math.round((boatCost + margin) * 100) / 100;       // what the guest pays
+      // paidAmt/dueAmt are summed from the boat-price line; gross them up by the same markup so
+      // Paid + Unpaid reconcile to the guest-charged figure (not the bare boat price).
+      const gPaid = (dueAmt === 0) ? guestCharged : (paidAmt === 0 ? 0 : Math.min(Math.round(paidAmt * (1 + YACHT_MARKUP) * 100) / 100, guestCharged));
+      const gDue = Math.round((guestCharged - gPaid) * 100) / 100;
       yachtRows.push({
         stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
         checkin: s.checkin || '', count, supplier: sup,
         source: via || (s.source || 'Unknown').trim(),
         charged: guestCharged, cost: boatCost, margin,
-        paidAmt, dueAmt, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
+        paidAmt: gPaid, dueAmt: gDue, paid: dueAmt === 0, partly: paidAmt > 0 && dueAmt > 0,
         upcoming: !!(s.checkout && s.checkout >= today),
       });
     }
