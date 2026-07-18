@@ -1529,6 +1529,8 @@ async function renderRevenue(){
         <div class="today-stats" style="margin-bottom:12px">
           <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ce.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(ce.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(ce.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ce.all.cost)}</div><div class="lbl">Paid to Julio</div></div>
           <div class="stat"><div class="num">${ce.all.cartNights}</div><div class="lbl">Cart-days</div></div>
         </div>
@@ -1548,6 +1550,8 @@ async function renderRevenue(){
         <div class="today-stats" style="margin-bottom:12px">
           <div class="stat paid"><div class="num money">${money0(te.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(te.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(te.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(te.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(te.all.cost)}</div><div class="lbl">Paid to supplier</div></div>
           <div class="stat"><div class="num">${te.all.trips}</div><div class="lbl">Transfers</div></div>
         </div>
@@ -1567,6 +1571,8 @@ async function renderRevenue(){
         <div class="today-stats" style="margin-bottom:12px">
           <div class="stat paid"><div class="num money">${money0(ye.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ye.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(ye.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(ye.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ye.all.cost)}</div><div class="lbl">Boat's price</div></div>
           <div class="stat"><div class="num">${ye.all.count}</div><div class="lbl">Charters</div></div>
         </div>
@@ -1587,6 +1593,8 @@ async function renderRevenue(){
         <div class="today-stats" style="margin-bottom:12px">
           <div class="stat paid"><div class="num money">${money0(ce.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ce.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(ce.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(ce.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ce.all.cost)}</div><div class="lbl">Paid to supplier</div></div>
           <div class="stat"><div class="num">${ce.all.count}</div><div class="lbl">Rentals</div></div>
         </div>
@@ -1612,6 +1620,8 @@ async function renderRevenue(){
             ? `<div class="stat"><div class="num" style="color:#9E5B43;font-size:20px">TBD</div><div class="lbl">CPH profit — to be set</div></div>`
             : `<div class="stat paid"><div class="num money">${money0(ie.all.margin)}</div><div class="lbl">CPH earnings</div></div>`}
           <div class="stat"><div class="num money">${money0(ie.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(ie.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(ie.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           ${pend?'':`<div class="stat"><div class="num money" style="color:#9E5B43">${money0(ie.all.cost)}</div><div class="lbl">Paid to supplier</div></div>`}
           <div class="stat"><div class="num">${ie.all.count}</div><div class="lbl">Bookings</div></div>
         </div>
@@ -1635,6 +1645,8 @@ async function renderRevenue(){
         <div class="today-stats" style="margin-bottom:12px">
           <div class="stat paid"><div class="num money">${money0(ge.all.margin)}</div><div class="lbl">CPH earnings</div></div>
           <div class="stat"><div class="num money">${money0(ge.all.charged)}</div><div class="lbl">Charged to guest</div></div>
+          <div class="stat paid"><div class="num money">${money0(ge.all.paid)}</div><div class="lbl">Paid by guest</div></div>
+          <div class="stat owed"><div class="num money">${money0(ge.all.unpaid)}</div><div class="lbl">Unpaid</div></div>
           <div class="stat"><div class="num money" style="color:#9E5B43">${money0(ge.all.cost)}</div><div class="lbl">Grocery bill</div></div>
           <div class="stat"><div class="num">${ge.all.count}</div><div class="lbl">Invoices</div></div>
         </div>

@@ -1085,7 +1085,8 @@ function upsellMetrics() {
   const cartSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin,
     cartNights: a.cartNights + r.cartNights,
-  }), { charged: 0, cost: 0, margin: 0, cartNights: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, cartNights: 0, paid: 0, unpaid: 0 });
   const cartEarnings = {
     perNight: CART_MARGIN_PER_NIGHT,
     all: cartSum(cartRows),
@@ -1135,7 +1136,8 @@ function upsellMetrics() {
   xferRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const xferSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, trips: a.trips + r.trips,
-  }), { charged: 0, cost: 0, margin: 0, trips: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, trips: 0, paid: 0, unpaid: 0 });
   const transferEarnings = {
     pct: Math.round(TRANSFER_MARGIN_PCT * 100),
     all: xferSum(xferRows),
@@ -1186,7 +1188,8 @@ function upsellMetrics() {
   yachtRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const yachtSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
-  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, count: 0, paid: 0, unpaid: 0 });
   const yachtBySrc = {};
   yachtRows.forEach(r => {
     const e = yachtBySrc[r.source] || (yachtBySrc[r.source] = { key: r.source, bookings: 0, count: 0, charged: 0, cost: 0, margin: 0 });
@@ -1242,7 +1245,8 @@ function upsellMetrics() {
   carRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const carSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
-  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, count: 0, paid: 0, unpaid: 0 });
   const carEarnings = {
     pct: Math.round(CARRENTAL_MARGIN_PCT * 100),
     all: carSum(carRows),
@@ -1293,7 +1297,8 @@ function upsellMetrics() {
   invillaRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const invillaSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + (r.cost || 0), margin: a.margin + (r.margin || 0), count: a.count + r.count,
-  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, count: 0, paid: 0, unpaid: 0 });
   const invillaEarnings = {
     pct: INVILLA_MARGIN_PCT == null ? null : Math.round(INVILLA_MARGIN_PCT * 100),
     pending: INVILLA_MARGIN_PCT == null,
@@ -1363,7 +1368,8 @@ function upsellMetrics() {
   grocEarnRows.sort((a, b) => String(a.checkin).localeCompare(String(b.checkin)));
   const grocEarnSum = list => list.reduce((a, r) => ({
     charged: a.charged + r.charged, cost: a.cost + r.cost, margin: a.margin + r.margin, count: a.count + r.count,
-  }), { charged: 0, cost: 0, margin: 0, count: 0 });
+    paid: a.paid + (r.paidAmt || 0), unpaid: a.unpaid + (r.dueAmt || 0),
+  }), { charged: 0, cost: 0, margin: 0, count: 0, paid: 0, unpaid: 0 });
   const groceryEarnings = {
     all: grocEarnSum(grocEarnRows),
     upcoming: grocEarnSum(grocEarnRows.filter(r => r.upcoming)),
