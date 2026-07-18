@@ -3870,9 +3870,24 @@ function _printSection(title, bodyHtml){
   const villa=s.villaName||v.name||''; const villaNo=s.villaNumber||s.villaInternal||'';
   const dates=[s.checkin,s.checkout].filter(Boolean).join(' → ');
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)} — ${esc(villa||s.reference||'')}</title>
-    <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:720px;margin:24px auto;padding:0 20px;line-height:1.5}
-    h1{font-size:22px;margin:0 0 2px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#5B6E5F;border-bottom:1px solid #E6DDCC;padding-bottom:4px;margin:20px 0 8px}
-    .ref{color:#8B8475;font-size:13px;margin-bottom:6px}ul,ol{margin:6px 0;padding-left:20px}li{font-size:14px;margin:4px 0}p{font-size:14px}@media print{body{margin:0}}</style></head>
+    <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:720px;margin:24px auto;padding:0 20px;line-height:1.55;font-size:14px}
+    h1{font-size:24px;margin:0 0 2px}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#5B6E5F;border-bottom:1px solid #E6DDCC;padding-bottom:4px;margin:22px 0 8px}
+    .ref{color:#8B8475;font-size:13px;margin-bottom:6px}ul,ol{margin:6px 0;padding-left:20px}li{font-size:14px;margin:4px 0}p{font-size:14px}
+    /* arrival meals — grouped by day */
+    .day{margin:0 0 20px;page-break-inside:avoid;break-inside:avoid}
+    .dayh{font-size:17px;font-weight:700;color:#12794D;border-bottom:2px solid #12794D;padding-bottom:4px;margin:20px 0 12px}
+    .meal{margin:0 0 12px;padding-left:12px;border-left:3px solid #E6DDCC}
+    .meal-h{margin-bottom:3px}
+    .meal-t{font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#1F2A24}
+    .meal-m{font-size:12px;color:#8B8475;margin-left:8px;font-weight:400;text-transform:none;letter-spacing:0}
+    .meal-d{font-size:14px;color:#3A463D;line-height:1.5}
+    /* grocery — one item per line, grouped by category */
+    .gcat{margin:0 0 16px;page-break-inside:avoid;break-inside:avoid}
+    .gcath{font-size:15px;font-weight:700;color:#12794D;border-bottom:1px solid #E6DDCC;padding-bottom:3px;margin:16px 0 8px}
+    .glist{list-style:none;padding-left:0;margin:6px 0;column-count:2;column-gap:30px}
+    .glist li{margin:4px 0;font-size:14px;break-inside:avoid}
+    .glist .q{color:#8B8475;font-size:13px}
+    @media print{body{margin:0}}</style></head>
     <body>
     <h1>${esc(title)}</h1>
     <div class="ref">${esc(villa)}${villaNo?' · Villa '+esc(villaNo):''}${dates?' · '+esc(dates):''}${s.leadName?' · '+esc(s.leadName):''} · printed ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
@@ -3881,12 +3896,28 @@ function _printSection(title, bodyHtml){
   const w=window.open('','_blank'); if(!w){ toast('Allow pop-ups to print'); return; } w.document.write(html); w.document.close(); setTimeout(()=>{ try{w.focus();w.print();}catch(e){} },350);
 }
 window.printGrocery=function(){ if(!cur)return; const s=cur;
-  const groc=(s.grocery&&s.grocery.items&&s.grocery.items.length)?('<ul>'+(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});return Object.keys(by).map(cat=>'<li><b>'+esc(cat)+':</b> '+by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')+'</li>').join('');})(s.grocery)+'</ul>'):'<p>None submitted.</p>';
+  let groc='<p>None submitted.</p>';
+  if(s.grocery&&s.grocery.items&&s.grocery.items.length){
+    const by={}; const order=[]; (s.grocery.items||[]).forEach(it=>{ if(!(it.category in by)){ by[it.category]=[]; order.push(it.category); } by[it.category].push(it); });
+    groc=order.map(cat=>'<section class="gcat"><h2 class="gcath">'+esc(cat)+'</h2><ul class="glist">'+by[cat].map(it=>'<li>'+esc(it.name)+(it.qty?' <span class="q">×'+esc(it.qty)+'</span>':'')+'</li>').join('')+'</ul></section>').join('');
+  }
   const note=(s.grocery&&s.grocery.note)?('<h2>Notes / allergies</h2><p>'+esc(s.grocery.note)+'</p>'):'';
   _printSection('Grocery pre-stocking', groc+note);
 };
 window.printMeals=function(){ if(!cur)return; const s=cur;
-  const meals=(s.mealPlan&&mealsSortedC(s.mealPlan).length)?('<ul>'+mealsSortedC(s.mealPlan).map(({lbl,m})=>'<li><b>'+esc(lbl)+':</b> '+[m.date,m.time,m.guests?m.guests+' guests':''].filter(Boolean).map(esc).join(' · ')+(m.desc?' — '+esc(m.desc):'')+'</li>').join('')+'</ul>'):'<p>None submitted.</p>';
+  const fmtD=d=>{ if(!d) return 'Date to be confirmed'; const dt=new Date(d+'T00:00:00'); return isNaN(dt)?d:dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}); };
+  let meals='<p>None submitted.</p>';
+  const rows=s.mealPlan?mealsSortedC(s.mealPlan):[];
+  if(rows.length){
+    const by={}; const order=[]; rows.forEach(({lbl,m})=>{ const key=m.date||''; if(!(key in by)){ by[key]=[]; order.push(key); } by[key].push({lbl,m}); });
+    meals=order.map(key=>{
+      const items=by[key].map(({lbl,m})=>{
+        const meta=[m.time,m.guests?m.guests+' guests':''].filter(Boolean).join(' · ');
+        return '<div class="meal"><div class="meal-h"><span class="meal-t">'+esc(lbl)+'</span>'+(meta?'<span class="meal-m">'+esc(meta)+'</span>':'')+'</div>'+(m.desc?'<div class="meal-d">'+esc(m.desc)+'</div>':'')+'</div>';
+      }).join('');
+      return '<section class="day"><div class="dayh">'+esc(fmtD(key))+'</div>'+items+'</section>';
+    }).join('');
+  }
   const note=(s.mealPlan&&s.mealPlan.note)?('<h2>Notes / dietary</h2><p>'+esc(s.mealPlan.note)+'</p>'):'';
   _printSection('Arrival meals', meals+note);
 };
