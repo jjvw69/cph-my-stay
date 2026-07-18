@@ -322,6 +322,10 @@
   .search{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fff;margin-bottom:12px}
   .staycard{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px;cursor:pointer;position:relative}
   .inhouse-pill{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#E4F1E9;color:#12794D;border-radius:20px;padding:2px 8px;z-index:1}
+  /* Departing = today is the guest's checkout day (last day with us before it archives tomorrow). Purple to stand apart from green in-house / red arrives-today. */
+  .departing-pill{position:absolute;top:10px;right:10px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#E7DEF4;color:#5A3A88;border-radius:20px;padding:2px 8px;z-index:1}
+  .staycard.departing{background:#F5F0FB;border-color:#E2D6F2}
+  .staycard.departing.sel{border-color:var(--accent);background:#EDE3F8}
   .staycard.unread{border-color:#D8CBE6;box-shadow:inset 3px 0 0 var(--purple)}
   /* In-house = guest is physically at the villa right now (checkin <= today < checkout).
      Tinted green so staff can spot live stays at a glance in the left column. */
@@ -1191,8 +1195,10 @@ function renderList(){
     // Arrives today = checkin is today (amber). In-house = arrived earlier, still with us (green).
     const arrToday=!!(s.checkin&&s.checkin===today&&(!s.checkout||today<s.checkout));
     const inHouse=!arrToday&&!!(s.checkin&&s.checkout&&s.checkin<today&&today<s.checkout);
-    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''} ${isFresh(s)?'fresh':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':'')}>
-      ${inHouse?'<span class="inhouse-pill">In house</span>':''}
+    // Departing = checkout is today (arrived earlier, leaving today; archives tomorrow).
+    const departing=!arrToday&&!inHouse&&!!(s.checkin&&s.checkout&&s.checkin<today&&today===s.checkout);
+    return `<div class="staycard ${cur&&cur.id===s.id?'sel':''} ${unread?'unread':''} ${arrToday?'arrtoday':''} ${inHouse?'inhouse':''} ${departing?'departing':''} ${isFresh(s)?'fresh':''}" onclick="selectStay('${s.id}')" ${arrToday?'title="Arrives today"':(inHouse?'title="In-house now"':(departing?'title="Departing today"':''))}>
+      ${inHouse?'<span class="inhouse-pill">In house</span>':''}${departing?'<span class="departing-pill">Departing</span>':''}
       <div class="g">${isFresh(s)?'<span class="newbadge" title="New booking — pinned to the top for 24 hours">NEW</span>':''}${fmtName(s.guest)}${unread?'<span class="unread-dot" title="New guest activity since you last opened this stay"></span>':''}</div>
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
@@ -1201,7 +1207,12 @@ function renderList(){
   };
   const freshList=items.filter(isFresh).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); // newest first, above everything
   const freshIds=new Set(freshList.map(s=>s.id));
-  const rest=items.filter(s=>!freshIds.has(s.id));
+  // Departing today = checkout is today. Pin these to the TOP of their year section (same spirit as
+  // new bookings pinning to the very top), so a guest leaving today is easy to spot and action.
+  const _isDeparting=s=>!!(s.checkin&&s.checkout&&s.checkin<today&&today===s.checkout);
+  const rest=items.filter(s=>!freshIds.has(s.id)).map((s,i)=>({s,i}))
+    .sort((a,b)=>{ const ya=String(a.s.checkin||'').slice(0,4), yb=String(b.s.checkin||'').slice(0,4); if(ya!==yb) return ya<yb?-1:1; const da=_isDeparting(a.s)?0:1, db=_isDeparting(b.s)?0:1; if(da!==db) return da-db; return a.i-b.i; })
+    .map(x=>x.s);
   let _lastYr='';
   const _years=[];
   const restHtml=rest.map(s=>{
