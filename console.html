@@ -1284,7 +1284,7 @@ window.showJan=async function(){
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); clearRevLeft(); centerView='payables'; setView(true); await refreshPayables(); renderList(); renderHome();
 };
-/* Ivonna view — her own book of business (every stay where she's the CPH agent + the money on it).
+/* Ivonna view — her own book of business (every invoice whose "Payment to" payee is her + the money on it).
    Visible to Ivonna and Jan (server-gated via canIvonna). Runs full-width like the Jan/Upsell views. */
 window.showIvonna=async function(){
   if(!CAN_IVONNA) return;
@@ -1726,7 +1726,7 @@ function buildRevSecNav(){ buildSecNavFor(REVNAV_GROUPS); }
 /* ---- Supplier payables LEDGER ("what CPH owes suppliers" + the profit to account) ----
    ONE shared renderer (paintPayables) drives TWO identical views: Jan's book (showJan) and Ivonna's
    book (showIvonna) — same columns, supplier filter bar, summary cards and settle toggle, only the
-   underlying data (bookingAgent === jan | ivonna) differs. Columns: date · guest/villa · service ·
+   underlying data (invoice payTo === jan | ivonna) differs. Columns: date · guest/villa · service ·
    supplier · CPH agent · source(+via) · invoice · pay-supplier · profit · status. */
 let PAY_SORT={col:'date',dir:1};   // dir 1 asc, -1 desc — Jan view
 let PAY_FILTER='';                  // '' = all suppliers — Jan view

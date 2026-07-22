@@ -1490,21 +1490,27 @@ function payables(agentKey) {
     base.changed = base.settled && Math.round(base.settledAmount) !== Math.round(base.cost);
     return base;
   };
+  // Whose book an invoice belongs to = the invoice's own "Payment to" payee (payTo). PAYMENT-TO WINS:
+  // whoever is set as the payee on the invoice owns that money, regardless of the stay's booking agent.
+  // Legacy invoices with no payTo field at all fall back to the stay's bookingAgent.
+  const invAgent = (inv, s) => String(
+    (inv && inv.payTo != null && inv.payTo !== '') ? inv.payTo : (s.bookingAgent || '')
+  ).trim().toLowerCase();
   stays.forEach(s => {
-    // This is ONE agent's book only: skip any stay not assigned to that CPH agent.
-    if ((s.bookingAgent || '').trim().toLowerCase() !== agent) return;
     const meta = {
       stayId: s.id, guest: s.leadName || s.lastName || '(no name)', villa: s.villaName || '',
       villaInternal: (s.villaInternal || '').trim(),   // internal property name (e.g. "Bahia Minitas 3")
       checkin: s.checkin || '', checkout: s.checkout || '',   // arrival + departure
       upcoming: !!(s.checkout && s.checkout >= today),
-      // CPH booking agent = the internal owner of the reservation (ivonna | jan), staff-only field.
-      cphAgent: (s.bookingAgent || '').trim(),
       // Booking source = the channel/OTA the villa was booked through (Direct, Rental Escapes, …).
       bookingSource: (s.source || '').trim(),
     };
     (s.invoices || []).forEach(inv => {
       if (inv.status !== 'paid' && inv.status !== 'sent') return;   // skip drafts; include sent (unpaid) + paid
+      // This is ONE agent's book only: skip any invoice whose payee isn't that CPH agent.
+      const rowAgent = invAgent(inv, s);
+      if (rowAgent !== agent) return;
+      meta.cphAgent = rowAgent;                        // per-invoice owner, from the invoice's payTo
       const guestPaid = inv.status === 'paid';           // has the guest actually paid this invoice?
       const invNo = inv.no || '', paidAt = inv.paidAt || 0;
       // --- golf carts (Julio only) ---
