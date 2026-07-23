@@ -1513,21 +1513,33 @@ function payables(agentKey) {
       meta.cphAgent = rowAgent;                        // per-invoice owner, from the invoice's payTo
       const guestPaid = inv.status === 'paid';           // has the guest actually paid this invoice?
       const invNo = inv.no || '', paidAt = inv.paidAt || 0;
-      // --- golf carts (Julio only) ---
+      // --- golf carts ---
+      // Every cart line on the invoice counts, INCLUDING lines where staff left the Supplier box empty
+      // (those used to be skipped entirely, so the ledger silently under-counted the invoice — e.g. a
+      // 3-cart invoice showing as "2× cart"). A blank supplier inherits the supplier named on the
+      // invoice's other cart lines; if no line names one, the row reads "(supplier not set)".
       let cAmt = 0, cCost = 0, carts = 0, cartNights = 0, nights = 0, cSup = '', cVia = '';
+      const _isCartLine = it => RE_CART_ANY.test(String(it.label || '')) || RE_CART_ANY.test(String(inv.title || ''));
+      // supplier named on any cart line of this invoice (first one wins) — used for the blank ones
+      let cSupNamed = '';
       (inv.items || []).forEach(it => {
-        if (!/julio/i.test(String(it.supplier || ''))) return;
-        if (!RE_CART_ANY.test(String(it.label || '')) && !RE_CART_ANY.test(String(inv.title || ''))) return;
+        if (!cSupNamed && _isCartLine(it) && String(it.supplier || '').trim()) cSupNamed = String(it.supplier).trim();
+      });
+      (inv.items || []).forEach(it => {
+        if (!_isCartLine(it)) return;
+        const lineSup = String(it.supplier || '').trim() || cSupNamed;
+        // a cart line explicitly booked with a different vendor isn't part of this supplier's row
+        if (cSup && lineSup && lineSup.toLowerCase() !== cSup.toLowerCase()) return;
         const p = parseCartText(it.label); const qty = (p && p.qty) || 1;
         const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || nightsBetween(s.checkin, s.checkout) || 0;
         const amt = Number(it.amount) || 0; if (!days || !amt) return;
         cAmt += amt; carts += qty; cartNights += qty * days; nights = Math.max(nights, days);
         cCost += amt - (PAY_CART_MARGIN_PER_NIGHT * qty * days);
-        if (!cSup) cSup = String(it.supplier).trim(); if (!cVia && it.bookedVia) cVia = String(it.bookedVia).trim();
+        if (!cSup) cSup = lineSup; if (!cVia && it.bookedVia) cVia = String(it.bookedVia).trim();
       });
       if (cartNights) rows.push(attach(Object.assign({}, meta, {
         key: inv.id + ':cart', invoiceId: inv.id, invoiceNo: invNo, paidAt,
-        category: 'cart', supplier: cSup || 'Julio', via: cVia, guestPaid,
+        category: 'cart', supplier: cSup || '(supplier not set)', via: cVia, guestPaid,
         // booking agent: the channel that booked THIS cart, else the stay's own source
         source: cVia || (s.source || 'Unknown').trim(),
         detail: carts + '× cart · ' + nights + 'n',
