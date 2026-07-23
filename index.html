@@ -226,6 +226,11 @@ function stayPhase(b){
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* Display-normalise a stored price string so legacy "$300" shows as "US$ 300". Leaves US$/RD$ and non-$ text untouched. */
 const usdStr = v => String(v==null?'':v).replace(/(^|[^A-Za-z$])\$(?=\d)/g,(m,p1)=>p1+'US$ ');
+/* Guests booked through an agency (any non-Direct booking source) are billed by that agency, not by
+   CPH — so the guest app HIDES all service pricing for them (rate tables, suggested prices, confirmed
+   price pills, plan/print price rows, sent-service & yacht rates, Zelle pay boxes and the Bills
+   section). Direct bookings — and any stay with a blank/unknown source — still see prices. */
+function svcHideCost(){ const src=(typeof state!=='undefined'&&state.stay&&state.stay.bookingSource)||''; return !!String(src).trim() && !/direct/i.test(src); }
 const jsq = s => String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/[\r\n]+/g,' ');
 window.copyTxt=function(t,label){ const done=()=>toast((label||'Copied')+' copied'); if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done).catch(()=>fallbackCopy(t,done)); } else fallbackCopy(t,done); };
 function fallbackCopy(t,done){ try{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done&&done(); }catch(e){ toast('Could not copy — please copy it manually'); } }
@@ -418,7 +423,7 @@ function myPlanRow(){
   const nreq=((s.requests||[]).filter(r=>r&&r.status!=='cancelled')).length;
   const sub = pend?(pend+' to confirm · arranged for you') : (nreq?(nreq+' request'+(nreq==1?'':'s')+' · transfers, dining & more') : 'Your itinerary & confirmed bookings');
   const badge = pend?` <span style="font-size:10px;background:#F3ECDD;color:#7A5A2E;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap">${pend} to confirm</span>`:'';
-  const _unpaid=(s.invoices||[]).filter(i=>i.status==='sent').length;
+  const _unpaid=svcHideCost()?0:(s.invoices||[]).filter(i=>i.status==='sent').length;
   const upBadge=_unpaid?` <span style="font-size:10px;background:#F3DADA;color:#9A2B2B;border-radius:6px;padding:1px 7px;vertical-align:middle;white-space:nowrap">Payment due</span>`:'';
   return `<button class="row" onclick="push('plan')"><span class="ic">✦</span><span class="tx"><b>My plan${badge}${upBadge}</b><span>${sub}</span></span><span class="arr">→</span></button>`;
 }
@@ -1438,7 +1443,7 @@ function reqFor(type,refId){ return reqList().filter(r=>r.type===type&&r.refId==
 function reqTitle(type,refId){ const arr=type==='addon'?((state.stay&&state.stay.addOns)||[]):exploreData(); const it=arr.find(x=>x.id===refId); return it?it.name:''; }
 function reqLine(r){ const dateBit=r.date?(fmtDate(r.date)+(r.endDate?' – '+fmtDate(r.endDate):'')):''; const bits=[r.cartType||'', r.serviceLevel||'', dateBit, r.time||'', (r.guests?r.guests+' guest'+(r.guests==1?'':'s'):'')].filter(Boolean).join(' · ');
   const confirmed=r.status==='confirmed'; const done=r.status==='done';
-  const lbl=confirmed?('Confirmed'+(r.price?' · '+esc(usdStr(r.price)):'')):done?'Arranged ✓':'Requested';
+  const lbl=confirmed?('Confirmed'+((r.price&&!svcHideCost())?' · '+esc(usdStr(r.price)):'')):done?'Arranged ✓':'Requested';
   const x=(confirmed||done)?'':`<span class="x" onclick="removeReq('${r.id}')">×</span>`;
   return `<span class="reqpill${(confirmed||done)?' ok':''}">${lbl}${bits?' · '+esc(bits):''}${x}</span>`; }
 const SERVICE_INFO = {
@@ -1742,7 +1747,7 @@ window.openReq=function(type,refId){
   const info = SERVICE_INFO[refId] || {};
   const _addon = type==='addon' ? ((state.stay.addOns||[]).find(a=>a.id===refId)) : null;
   const _rateOv = (_addon && _addon.rates) ? _addon.rates : '';
-  const _rateBody = _rateOv ? rateLinesToHtml(_rateOv) : (info.rates || (_addon&&_addon.price?`<div class="rt"><span>Rate</span><span>${esc(usdStr(_addon.price))}</span></div>`:''));
+  const _rateBody = svcHideCost() ? '' : (_rateOv ? rateLinesToHtml(_rateOv) : (info.rates || (_addon&&_addon.price?`<div class="rt"><span>Rate</span><span>${esc(usdStr(_addon.price))}</span></div>`:'')));
   const ratesBlock = _rateBody ? `<div class="reqrates">${_rateBody}<div class="rtnote" style="border-top:1px solid #E6DDCC;margin-top:8px;padding-top:7px">Rates are indicative and subject to final confirmation by your concierge before you’re charged.</div></div>` : '';
   // "View full menu & prices →" link removed from the booking modal (Jul 2026) — guide rates now show
   // inline in the dropdown, so the extra link to the resort's marketing page is redundant.
@@ -1751,7 +1756,7 @@ window.openReq=function(type,refId){
   // Explore items (restaurants, activities, tours): prefer the shared booking choices the server sends
   // (state.stay.exploreOptions, single source: store.js EXPLORE_BOOK) so the guest app and the Concierge
   // Console always offer the identical list. Falls back to the legacy info.selects when none is served.
-  { const _bk=(state.stay&&state.stay.exploreOptions&&state.stay.exploreOptions[refId]); if(_bk&&_bk.choices&&_bk.choices.length){ selectsBlock=`<label class="reqlbl">${esc(_bk.label||'What would you like?')}</label><select id="rqService">${_bk.choices.map(c=>{const lab=(c&&c.label!=null)?c.label:c; const rt=(c&&c.rate)?c.rate:''; return `<option value="${esc(lab)}">${esc(lab)}${rt?' · '+esc(rt):''}</option>`;}).join('')}</select>`; } }
+  { const _bk=(state.stay&&state.stay.exploreOptions&&state.stay.exploreOptions[refId]); if(_bk&&_bk.choices&&_bk.choices.length){ selectsBlock=`<label class="reqlbl">${esc(_bk.label||'What would you like?')}</label><select id="rqService">${_bk.choices.map(c=>{const lab=(c&&c.label!=null)?c.label:c; const rt=(c&&c.rate)?c.rate:''; return `<option value="${esc(lab)}">${esc(lab)}${(rt&&!svcHideCost())?' · '+esc(rt):''}</option>`;}).join('')}</select>`; } }
   // Preferred-yacht select is built from the live fleet the server sends (single source: store.js YACHT_CATALOG) so guest ↔ console always match.
   if(refId==='yacht'){ const fleet=(state.stay&&state.stay.yachtFleet)||[]; if(fleet.length) selectsBlock += `<label class="reqlbl">Preferred yacht (optional)</label><select id="rqYacht"><option value="">No preference — let my concierge suggest</option>${fleet.map(n=>`<option>${esc(n)}</option>`).join('')}</select>`; }
   const dateBlock = info.noDate ? ''
@@ -1995,7 +2000,7 @@ async function pollRequests(){
   const prevMap={}; prev.forEach(x=>{ prevMap[x.id]=x; });
   const justConfirmed=server.find(x=>x.status==='confirmed' && (!prevMap[x.id] || prevMap[x.id].status!=='confirmed'));
   state.stay.requests=server;
-  if(justConfirmed) toast('Confirmed by your concierge: '+justConfirmed.title+(justConfirmed.price?' · '+usdStr(justConfirmed.price):''));
+  if(justConfirmed) toast('Confirmed by your concierge: '+justConfirmed.title+((justConfirmed.price&&!svcHideCost())?' · '+usdStr(justConfirmed.price):''));
   if(document.querySelector('.reqov')) return;    // don't yank a request modal the guest is filling in
   const top=state.stack.length?state.stack[state.stack.length-1]:null;
   if(top==='plan' || (!top && state.tab==='home')) render();   // refresh the views that show request status
@@ -2249,7 +2254,7 @@ function addonRow(it){
     return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}${saved}</b><span>${esc(it.desc)}</span><div style="margin-top:11px"><button onclick="openMeals()" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">${saved?'Edit your arrival meals →':'Plan your arrival meals →'}</button></div></span></div>`;
   }
   const guide=GUIDE_CONTENT[it.id]?`<button onclick="openGuide('${esc(it.id)}')" style="border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:13px;color:var(--accent);background:#fff;cursor:pointer">More info →</button>`:'';
-  const price=it.price?`<span style="display:block;margin-top:5px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(usdStr(it.price))}</span>`:'';
+  const price=(it.price&&!svcHideCost())?`<span style="display:block;margin-top:5px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(usdStr(it.price))}</span>`:'';
   return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(it.name)}${rec}</b><span>${esc(it.desc)}</span>${price}${pend}<div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">${guide}<button onclick="openReq('addon','${esc(it.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button></div></span></div>`;
 }
 function renderAddons(){
@@ -2421,7 +2426,7 @@ function zelleRow(lbl,disp,copyVal,copyLabel){
   return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:4px 0"><span style="color:#6E7B71;white-space:nowrap">${lbl}</span><span style="display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end"><b style="overflow-wrap:anywhere;text-align:right">${esc(disp)}</b><button onclick="copyTxt('${esc(jsq(copyVal))}','${esc(jsq(copyLabel))}')" style="border:0;background:#EDE6F8;color:#6D1ED4;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">Copy</button></span></div>`;
 }
 function zelleBox(r){
-  if(!r||r.status!=='confirmed'||!r.price) return '';
+  if(!r||r.status!=='confirmed'||!r.price||svcHideCost()) return '';
   const amt=zelleAmt(r.price);
   const ref=(state.stay&&state.stay.booking&&state.stay.booking.reference)||'';
   const memo=[ref,(r.title||'')].filter(Boolean).join(' · ');
@@ -2439,7 +2444,7 @@ function renderPlan(){
   const s=state.stay,b=s.booking;
   const reqs=(reqList()||[]).slice().filter(r=>r&&r.status!=='cancelled').sort((a,b)=>((a.date||'zzzz')+'').localeCompare((b.date||'zzzz')+''));
   const pill=(r)=>r.status==='confirmed'
-    ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${r.price?' · '+esc(usdStr(r.price)):''}</span>`
+    ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">Confirmed${(r.price&&!svcHideCost())?' · '+esc(usdStr(r.price)):''}</span>`
     :r.status==='done'
     ?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:2px 9px;font-weight:600;white-space:nowrap">✓ Arranged</span>`
     :`<span style="font-size:11px;background:#EEF3EE;color:#6E7B71;border-radius:20px;padding:2px 9px;white-space:nowrap">Pending</span>`;
@@ -2464,7 +2469,7 @@ function renderPlan(){
       + kv('When', dateBit)
       + kv('Time', r.time||'')
       + kv('Guests', r.guests?String(r.guests):'')
-      + kv('Price', (r.status==='confirmed'&&r.price)?usdStr(r.price):'')
+      + kv('Price', (r.status==='confirmed'&&r.price&&!svcHideCost())?usdStr(r.price):'')
       + kv('Notes', restNote);
     const body = details || `<div style="font-size:12.5px;color:var(--soft);margin-top:5px">Details to be confirmed with your concierge.</div>`;
     return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b style="display:block">${esc(r.title||'Request')}</b><div style="margin-top:6px">${pill(r)}</div><div style="margin-top:7px">${body}</div>${zelleBox(r)}<div style="display:flex;gap:9px;margin-top:11px">${r.status==='done'?`<span style="font-size:12.5px;color:var(--soft);align-self:center">Arranged — message your concierge for any change</span>`:`<button onclick="editReq('${esc(r.id)}')" style="border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Edit</button>`}<button onclick="confirmRemoveReq('${esc(r.id)}')" style="border:1px solid #E3C4B6;background:#fff;color:#9E5B43;border-radius:11px;padding:9px 16px;font-size:13px;cursor:pointer">Cancel</button></div></span></div>`; };
@@ -2475,7 +2480,7 @@ function renderPlan(){
       <div style="font-size:13px;color:rgba(255,255,255,.85)">${b.arrive?fmtDate(b.arrive):''} – ${b.depart?fmtDate(b.depart):''}${b.nights?' · '+b.nights+' nights':''}</div>
     </div>
     ${(function(){ const ss=(s.sentServices||[]); if(!ss.length) return '';
-      const row=(x)=>{ const meta=[x.option,x.rate].filter(Boolean).map(esc).join(' · ');
+      const row=(x)=>{ const meta=[x.option,svcHideCost()?'':x.rate].filter(Boolean).map(esc).join(' · ');
         const det=[x.trip||'', x.date?(fmtDate(x.date)+(x.endDate&&x.endDate!==x.date?' – '+fmtDate(x.endDate):'')):'', x.qty?(x.qty+'×'):'', x.guests?(x.guests+' guests'):'', x.time||''].filter(Boolean).map(esc).join(' · ');
         const flt=(x.airline||x.flightNo||x.flightOrigin||x.arrivalTime)?('✈ '+[[x.airline,x.flightNo].filter(Boolean).join(' '),x.flightOrigin?'from '+x.flightOrigin:'',x.arrivalTime?'arr '+x.arrivalTime:''].filter(Boolean).map(esc).join(' · ')):'';
         const rfl=(x.returnAirline||x.returnFlightNo||x.returnDest||x.returnTime)?('↩ '+[[x.returnAirline,x.returnFlightNo].filter(Boolean).join(' '),x.returnDest?'to '+x.returnDest:'',x.returnTime?'dep '+x.returnTime:''].filter(Boolean).map(esc).join(' · ')):'';
@@ -2490,10 +2495,10 @@ function renderPlan(){
     ${(function(){ const yp=s.yachtProposal; if(!yp||!(yp.options||[]).length) return '';
       const chosenId=yp.chosenId||''; const isChosen=yp.status==='chosen'; const locked=!!yp.invoiced; // invoiced = boat choice locked; changes go through the concierge
       const opt=(o)=>{ const picked=isChosen&&o.id===chosenId;
-        return `<div class="card" style="padding:14px 15px;${picked?'border:1px solid #BFD3C2;background:#F4F8F3':''}"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:14.5px">${esc(o.name)}</b><span style="font-size:13px;color:var(--accent);font-weight:600;white-space:nowrap">${esc(o.rate||'Rates by request')}</span></div>${o.detail?`<div style="font-size:13px;color:var(--soft);line-height:1.5;margin-top:5px">${esc(o.detail)}</div>`:''}<div style="margin-top:11px">${picked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 11px;font-weight:600">✓ Your choice${locked?' · invoiced':''}</span>`:locked?'':isChosen?`<button onclick="chooseYacht('${esc(o.id)}')" style="border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:9px 15px;font-size:13px">Choose this instead</button>`:`<button onclick="chooseYacht('${esc(o.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 16px;font-size:13px">Choose this</button>`}</div></div>`; };
+        return `<div class="card" style="padding:14px 15px;${picked?'border:1px solid #BFD3C2;background:#F4F8F3':''}"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><b style="font-size:14.5px">${esc(o.name)}</b>${svcHideCost()?'':`<span style="font-size:13px;color:var(--accent);font-weight:600;white-space:nowrap">${esc(o.rate||'Rates by request')}</span>`}</div>${o.detail?`<div style="font-size:13px;color:var(--soft);line-height:1.5;margin-top:5px">${esc(o.detail)}</div>`:''}<div style="margin-top:11px">${picked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 11px;font-weight:600">✓ Your choice${locked?' · invoiced':''}</span>`:locked?'':isChosen?`<button onclick="chooseYacht('${esc(o.id)}')" style="border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:11px;padding:9px 15px;font-size:13px">Choose this instead</button>`:`<button onclick="chooseYacht('${esc(o.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 16px;font-size:13px">Choose this</button>`}</div></div>`; };
       return `<div class="sec-title">${esc(yp.title||'Yacht charter')}</div>${locked?`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">Your charter has been invoiced — message your concierge if you need to change boats.</div>`:yp.intro?`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">${esc(yp.intro)}</div>`:`<div style="font-size:12.5px;color:var(--soft);margin:0 0 6px;line-height:1.5">${isChosen?'Thanks — your concierge will arrange your choice and send an invoice.':'Pick the option you’d like — your concierge will then arrange it and send an invoice.'}</div>`}<div style="display:flex;flex-direction:column;gap:10px">${(yp.options||[]).map(opt).join('')}</div>`;
     })()}
-    ${(function(){ const invs=(s.invoices||[]); if(!invs.length) return '';
+    ${(function(){ const invs=(s.invoices||[]); if(!invs.length||svcHideCost()) return '';
       const fmt=n=>'US$ '+(Number(n)||0).toLocaleString('en-US'); const ref=(b&&b.reference)||'';
       const box=(iv)=>{ const paid=iv.status==='paid';
         const lines=(iv.items||[]).map(it=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:3px 0;color:var(--soft)"><span>${esc(it.label||'')}</span><span style="white-space:nowrap">${iv.kind==='grocery'?fmt(it.amountRD):fmt(it.amount)}</span></div>`).join('');
@@ -2524,7 +2529,7 @@ function renderPlan(){
     ${(function(){ const cs=((s.addOns)||[]).filter(a=>a.custom); if(!cs.length) return '';
       const bookedIds=new Set((reqList()||[]).filter(r=>r&&r.type==='addon'&&r.status!=='cancelled').map(r=>r.refId));
       const card=(a)=>{ const booked=bookedIds.has(a.id);
-        return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(a.name)}</b>${a.price?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(a.price)}</span>`:''}<span style="display:block;margin-top:3px">${esc(a.desc||'')}</span><div style="margin-top:10px">${booked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 10px;font-weight:600">✓ Added to your plan</span>`:`<button onclick="openReq('addon','${esc(a.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button>`}</div></span></div>`; };
+        return `<div class="row" style="cursor:default;align-items:flex-start"><span class="ic">✦</span><span class="tx" style="flex:1"><b>${esc(a.name)}</b>${(a.price&&!svcHideCost())?`<span style="display:block;margin-top:4px;font-size:12.5px;color:var(--accent);font-weight:600">${esc(a.price)}</span>`:''}<span style="display:block;margin-top:3px">${esc(a.desc||'')}</span><div style="margin-top:10px">${booked?`<span style="font-size:11px;background:#E2EAE0;color:#33493B;border-radius:20px;padding:3px 10px;font-weight:600">✓ Added to your plan</span>`:`<button onclick="openReq('addon','${esc(a.id)}')" style="background:var(--accent);color:#fff;border-radius:11px;padding:9px 14px;font-size:13px">Add to itinerary</button>`}</div></span></div>`; };
       return `<div class="sec-title">Services for your stay</div>${cs.map(card).join('')}`;
     })()}
     <button class="btn" style="margin-top:16px;background:var(--accent);color:#fff" onclick="push('addons')">Arrange more</button>
@@ -2542,7 +2547,7 @@ window.printItinerary=function(){
   const fmt=iso=>iso?fmtDate(iso):'—';
   const r2=(k,val)=>`<tr><td style="padding:4px 14px 4px 0;color:#6B756C;white-space:nowrap;vertical-align:top">${k}</td><td style="padding:4px 0">${val}</td></tr>`;
   const reqRow=r=>{ const when=[r.date?fmtDate(r.date)+(r.endDate?' → '+fmtDate(r.endDate):''):'',r.time||'',r.guests?r.guests+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ');
-    const status=r.status==='confirmed'?('Confirmed'+(r.price?' · '+esc(usdStr(r.price)):'')):r.status==='done'?'Arranged ✓':'Requested';
+    const status=r.status==='confirmed'?('Confirmed'+((r.price&&!svcHideCost())?' · '+esc(usdStr(r.price)):'')):r.status==='done'?'Arranged ✓':'Requested';
     let detail='';
     if(r.refId==='transfer'){ const mm=String(r.note||'').match(/Route:\s*([^\n]+)/i); detail=[mm&&mm[1].trim(),r.serviceLevel].filter(Boolean).join(' · '); }
     else if(r.cartType){ detail=[r.cartType,r.serviceLevel].filter(Boolean).join(' · '); }
