@@ -3532,6 +3532,10 @@ window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return;
 /* New invoice lines default to the stay's own booking source — most services are booked through
    the same channel that brought the stay. Staff override it per line when they aren't. */
 function defVia(){ return (cur&&cur.source)||''; }
+/* Default payee for a NEW invoice = the stay's CPH booking agent (so Ivonna's bookings default to
+   Ivonna, Jan's to Jan). Falls back to 'jan' when the booking is unassigned or the agent isn't a
+   known payee. Staff can still override the "Payment to" dropdown per invoice. */
+function invDefaultPayTo(){ const a=(cur&&cur.bookingAgent||'').trim().toLowerCase(); return INV_PAYEES[a]?a:'jan'; }
 window.addInvLine=function(){ if(!_invDraft)return; _invDraft.items.push(_invDraft.kind==='yacht'?{label:'',amount:'',rate:'',days:'',supplier:'',bookedVia:defVia(),svcSel:'addon:yacht-charter',svcId:'yacht-charter',svcOpt:''}:{label:'',amount:'',rate:'',days:'',supplier:'',bookedVia:defVia()}); renderInvItems(); };
 window.removeInvLine=function(i){ if(!_invDraft)return; _invDraft.items.splice(i,1); if(!_invDraft.items.length)_invDraft.items.push({label:'',amount:'',rate:'',days:''}); renderInvItems(); };
 window.closeInvoice=function(){ const ov=document.getElementById('invOv'); if(ov)ov.remove(); _invDraft=null; };
@@ -3593,7 +3597,7 @@ function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){
       <div id="invTotals" style="margin-top:11px">${invTotalsHtml()}</div>
     </div>
     <label style="${invLbl()}">Due by (optional)</label><input type="date" id="invDue" value="${esc(invDueISO(d.dueBy,new Date(cur.checkin||Date.now()).getFullYear()))}" style="${invInput()}">
-    <label style="${invLbl()}">Payment to</label><select id="invPayTo" style="${invInput()}">${Object.keys(INV_PAYEES).map(k=>`<option value="${k}"${(d.payTo||'jan')===k?' selected':''}>${esc(INV_PAYEES[k].label)}</option>`).join('')}</select>
+    <label style="${invLbl()}">Payment to</label><select id="invPayTo" style="${invInput()}">${Object.keys(INV_PAYEES).map(k=>`<option value="${k}"${(d.payTo||invDefaultPayTo())===k?' selected':''}>${esc(INV_PAYEES[k].label)}</option>`).join('')}</select>
     <label style="${invLbl()}">Note to the guest (optional)</label><textarea id="invNote" rows="2" style="${invInput('resize:vertical')}">${esc(d.note)}</textarea>
     <div style="display:flex;gap:9px;margin-top:18px;flex-wrap:wrap"><button onclick="saveInvoice(true)" style="flex:1;min-width:170px;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:13px 16px;font-size:14px;font-weight:600;cursor:pointer">Save &amp; send to guest</button><button onclick="saveInvoice(false)" style="background:#EFE9DC;color:#1F2A24;border:0;border-radius:11px;padding:13px 18px;font-size:14px;font-weight:500;cursor:pointer">Save</button><button onclick="closeInvoice()" style="background:#fff;color:var(--soft);border:1px solid var(--line);border-radius:11px;padding:13px 18px;font-size:14px;cursor:pointer">Cancel</button></div>
   </div>`;
@@ -3670,7 +3674,7 @@ function renderGroceryModal(){ let ov=document.getElementById('invOv'); if(!ov){
     <div id="groFinalHint" class="counter" style="margin-top:5px"></div>
     <button onclick="groAutoCalc('sub')" style="margin-top:8px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:13px;color:var(--accent);cursor:pointer">↻ Recalculate (15% + pick-up)</button>
     <label style="${invLbl()}">Due by (optional)</label><input type="date" id="groDue" value="${esc(invDueISO(d.dueBy,new Date(cur.checkin||Date.now()).getFullYear()))}" style="${invInput()}">
-    <label style="${invLbl()}">Payment to</label><select id="groPayTo" style="${invInput()}">${Object.keys(INV_PAYEES).map(k=>`<option value="${k}"${(d.payTo||'jan')===k?' selected':''}>${esc(INV_PAYEES[k].label)}</option>`).join('')}</select>
+    <label style="${invLbl()}">Payment to</label><select id="groPayTo" style="${invInput()}">${Object.keys(INV_PAYEES).map(k=>`<option value="${k}"${(d.payTo||invDefaultPayTo())===k?' selected':''}>${esc(INV_PAYEES[k].label)}</option>`).join('')}</select>
     <label style="${invLbl()}">Note to the guest (optional)</label><textarea id="groNote" rows="2" style="${invInput('resize:vertical')}">${esc(d.note)}</textarea>
     <div style="display:flex;gap:9px;margin-top:18px;flex-wrap:wrap"><button onclick="saveGroceryInvoice(true)" style="flex:1;min-width:170px;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:13px 16px;font-size:14px;font-weight:600;cursor:pointer">Save &amp; send to guest</button><button onclick="saveGroceryInvoice(false)" style="background:#EFE9DC;color:#1F2A24;border:0;border-radius:11px;padding:13px 18px;font-size:14px;cursor:pointer">Save</button><button onclick="closeInvoice()" style="background:#fff;color:var(--soft);border:1px solid var(--line);border-radius:11px;padding:13px 18px;font-size:14px;cursor:pointer">Cancel</button></div>
   </div>`;
