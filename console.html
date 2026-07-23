@@ -1206,6 +1206,7 @@ function renderList(){
       <div class="meta">${esc(_villaLine)}</div>
       <div class="meta">${esc(dates)}</div>
       <div class="meta">${s.guests} guests${(s.adults!=null||s.children!=null)?` · ${Number(s.adults)||0} adult${(Number(s.adults)||0)===1?'':'s'}${(Number(s.children)||0)>0?`, ${Number(s.children)} child${Number(s.children)===1?'':'ren'}`:''}`:''}</div>
+      ${s.bookingAgent?`<div class="meta">CPH agent · ${esc({ivonna:'Ivonna',jan:'Jan'}[String(s.bookingAgent).toLowerCase()]||(s.bookingAgent.charAt(0).toUpperCase()+s.bookingAgent.slice(1)))}</div>`:''}
       <div class="pillrow">${srcB}${pill!=='published'?`<span class="pill ${pill}">${esc(s.status)}</span>`:''}${nrB}${reqB}${fuB}${upB}</div></div>`;
   };
   const freshList=items.filter(isFresh).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)); // newest first, above everything
