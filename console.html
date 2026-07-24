@@ -3304,6 +3304,11 @@ window.viewFinancials=async function(){ if(!cur||!CAN_REV)return; const gid=cur.
     </div>`; }).join('');
   const margin=(cur.agencyMarginPct!=null?Number(cur.agencyMarginPct):25); window._finTotal=G.total;
   const line=(l,val,b)=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span style="${b?'font-weight:700':''}">${l}</span><span style="${b?'font-weight:700':''}">${money(val)}</span></div>`;
+  // Attached documents (financial records etc.), aggregated across the linked villas
+  const fmtSize=n=>{ n=Number(n)||0; return n>=1048576?((n/1048576).toFixed(1)+' MB'):n>=1024?(Math.round(n/1024)+' KB'):(n+' B'); };
+  const attItems=[]; full.forEach(s=>{ (s.attachments||[]).forEach(a=>attItems.push(Object.assign({stayId:s.id,villa:s.villaInternal||s.villaName||'Villa'},a))); });
+  const attRows=attItems.length?attItems.map(a=>`<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;border-top:1px solid var(--line);padding:6px 0"><div style="min-width:0"><a onclick="finAttOpen('${a.stayId}','${a.id}')" style="color:var(--purple);font-weight:600;font-size:12.5px;cursor:pointer;text-decoration:underline">${esc(a.name)}</a><div style="font-size:11px;color:var(--soft)">${fmtSize(a.size)}${gid?(' · '+esc(a.villa)):''}</div></div><button onclick="finAttDel('${a.stayId}','${a.id}')" style="border:1px solid #E3C4B6;background:#fff;color:#9E5B43;border-radius:8px;padding:3px 9px;font-size:11.5px;cursor:pointer">Delete</button></div>`).join(''):'<div style="font-size:12px;color:var(--soft);padding:5px 0">No documents attached yet.</div>';
+  const attBlock=`<div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px"><div style="font-weight:700;font-size:13px">Attached documents</div><div style="font-size:11px;color:var(--soft);margin:1px 0 3px">Financial records, invoices &amp; receipts for this ${gid?'reunion':'booking'} — stored securely, owner-only.</div>${attRows}<label style="display:inline-block;margin-top:9px;background:var(--purple);color:#fff;border-radius:9px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer">+ Attach a file<input type="file" onchange="finUpload(this)" style="display:none"></label><div style="font-size:10.5px;color:var(--soft);margin-top:5px">Max 8 MB · uploads attach to ${esc(cur.villaInternal||cur.villaName||'this villa')}.</div></div>`;
   const body=document.getElementById('reunionBody'); if(body)body.innerHTML=`
     <div style="margin-bottom:6px">${full.length} villa${full.length===1?'':'s'} · grand total <b style="color:#12794D">${money(G.total)}</b>${G.unpaid?(' · <b style="color:#B8860B">'+money(G.unpaid)+' outstanding</b>'):''}</div>
     <div style="border:1px solid var(--line);border-radius:12px;padding:10px 13px">${villaRows||'<div style="font-size:12px;padding:6px 0">No issued invoices yet.</div>'}</div>
@@ -3320,6 +3325,7 @@ window.viewFinancials=async function(){ if(!cur||!CAN_REV)return; const gid=cur.
       <div style="margin-top:6px;font-size:15px;font-weight:800;color:var(--purple)"><span id="finBranch">${money(G.total*margin/100)}</span></div>
       <div style="font-size:11px;color:var(--soft);margin-top:2px">Editable — saves for ${gid?'the whole reunion':'this booking'}.</div>
     </div>
+    ${attBlock}
     <div style="font-size:11.5px;color:var(--soft);margin-top:12px">Rolls up every issued invoice (villa services, groceries, yacht, events/parties added as invoices) across ${gid?'all linked villas':'this booking'}. Draft invoices are excluded. Add events, parties &amp; boat days as invoices on each villa — they appear here automatically.</div>`;
 };
 window.finToggle=function(i){ const el=document.getElementById('finV'+i); const ch=document.getElementById('finChev'+i); if(!el)return; const open=el.style.display!=='none'; el.style.display=open?'none':'block'; if(ch)ch.textContent=open?'▸':'▾'; };
@@ -3327,6 +3333,12 @@ window.finCalc=function(pct){ const p=Math.max(0,Math.min(100,parseFloat(pct)||0
 window.finSave=async function(pct){ if(!cur||!CAN_REV)return; const p=Math.max(0,Math.min(100,parseFloat(pct)||0)); const gid=cur.linkGroupId; const ids=gid?(LIST||[]).filter(s=>s.linkGroupId===gid).map(s=>s.id):[cur.id];
   for(const id of ids){ try{ await api('/api/staff/stays/'+id,{method:'PUT',body:JSON.stringify({agencyMarginPct:p})}); const it=(LIST||[]).find(s=>s.id===id); if(it)it.agencyMarginPct=p; }catch(e){} }
   cur.agencyMarginPct=p; toast&&toast('Agency margin saved · '+p+'%'); };
+window.finUpload=function(inp){ if(!cur||!CAN_REV)return; const f=inp&&inp.files&&inp.files[0]; if(!f)return; if(f.size>8*1024*1024){ toast&&toast('File too large (max 8 MB)'); inp.value=''; return; }
+  toast&&toast('Uploading '+f.name+'…'); const rd=new FileReader();
+  rd.onload=async()=>{ const b64=String(rd.result||'').split(',').pop()||''; let r; try{ r=await api('/api/staff/stays/'+cur.id+'/attachments',{method:'POST',body:JSON.stringify({name:f.name,type:f.type||'application/octet-stream',dataB64:b64})}); }catch(e){ r=null; } if(r&&r.ok){ toast&&toast('Attached: '+f.name); viewFinancials(); } else { toast&&toast((r&&r.body&&r.body.error)||'Upload failed'); } };
+  rd.onerror=()=>toast&&toast('Could not read file'); rd.readAsDataURL(f); };
+window.finAttOpen=function(stayId,attId){ window.open('/api/staff/stays/'+stayId+'/attachments/'+attId,'_blank'); };
+window.finAttDel=async function(stayId,attId){ if(!confirm('Delete this attachment? This cannot be undone.'))return; let r; try{ r=await api('/api/staff/stays/'+stayId+'/attachments/'+attId,{method:'DELETE'}); }catch(e){ r=null; } if(r&&r.ok){ toast&&toast('Deleted'); viewFinancials(); } else toast&&toast('Could not delete'); };
 /* ---- Dining reservations (staff-only; rolls up across a reunion) ---- */
 function resEnsure(){ if(!Array.isArray(cur.reservations))cur.reservations=[]; }
 function resEditor(){ resEnsure(); const list=cur.reservations;

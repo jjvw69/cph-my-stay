@@ -682,6 +682,7 @@ function blankStay() {
     rooms: [], // staff-only room & bed assignment board: per bedroom {name, beds, guests, dates, note}. Rolls up across a reunion.
     carts: [], // staff-only golf-cart assignment roster: {name, seats, house, note}. Rolls up across a reunion (total carts + seats).
     staffLog: [], // staff-only overtime log: {date, role, hours, rate, note}. Total (hours×rate) is deducted from the security deposit. Rolls up across a reunion.
+    attachments: [], // staff-only uploaded documents (financial records etc.): metadata {id,name,type,size,file,uploadedAt}; bytes live on DATA_DIR/attachments/<stayId>/. NOT guest-facing; NOT in the saveStay whitelist (so a normal Save can never wipe them).
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
     grocerySuper: '', // grocery-section provisioning pick (staff-only) — SAME VALUE as `provisioning` (board Super column); always kept mirrored, see syncProvisioning()
     groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
@@ -922,6 +923,45 @@ function summaryStay(s) {
 }
 function getStay(id) { return stays.find(s => s.id === id) || null; }
 function exportAll() { return stays; }
+
+// ------------------------------------------------------- attachments (staff-only uploaded documents)
+const ATTACH_DIR = path.join(DATA_DIR, 'attachments');
+function attStayDir(stayId) { return path.join(ATTACH_DIR, String(stayId).replace(/[^A-Za-z0-9]/g, '')); }
+/** Store an uploaded file (base64) on the persistent disk + push its metadata onto the stay. */
+function addAttachment(stayId, data) {
+  const s = getStay(stayId); if (!s) return null;
+  data = data || {};
+  let buf;
+  try { buf = Buffer.from(String(data.dataB64 || ''), 'base64'); } catch (e) { return { error: 'Bad file data' }; }
+  if (!buf || !buf.length) return { error: 'Empty file' };
+  if (buf.length > 8 * 1024 * 1024) return { error: 'File too large (max 8 MB)' };
+  const id = genId();
+  const dir = attStayDir(stayId);
+  try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
+  const safe = (String(data.name || 'file').replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80)) || 'file';
+  const file = id + '__' + safe;
+  try { fs.writeFileSync(path.join(dir, file), buf); } catch (e) { return { error: 'Could not save file' }; }
+  const meta = { id, name: String(data.name || 'file').slice(0, 120), type: String(data.type || 'application/octet-stream').slice(0, 100), size: buf.length, file, uploadedAt: Date.now() };
+  if (!Array.isArray(s.attachments)) s.attachments = [];
+  s.attachments.push(meta); s.updatedAt = Date.now(); persistStays();
+  return meta;
+}
+/** Read one attachment's bytes + metadata for download. */
+function getAttachment(stayId, attId) {
+  const s = getStay(stayId); if (!s) return null;
+  const meta = (s.attachments || []).find(a => a.id === attId); if (!meta) return null;
+  try { const buf = fs.readFileSync(path.join(attStayDir(stayId), meta.file)); return { meta, buf }; }
+  catch (e) { return null; }
+}
+/** Delete an attachment (file on disk + metadata). */
+function deleteAttachment(stayId, attId) {
+  const s = getStay(stayId); if (!s) return false;
+  const i = (s.attachments || []).findIndex(a => a.id === attId); if (i < 0) return false;
+  const meta = s.attachments[i];
+  try { fs.unlinkSync(path.join(attStayDir(stayId), meta.file)); } catch (e) {}
+  s.attachments.splice(i, 1); s.updatedAt = Date.now(); persistStays();
+  return true;
+}
 
 // ------------------------------------------------------- upsell / revenue metrics
 function parsePrice(p) { const n = Number(String(p == null ? '' : p).replace(/[^0-9.]/g, '')); return isFinite(n) ? n : 0; }
@@ -2519,6 +2559,7 @@ seedStaffFromEnv();
 module.exports = {
   DATA_DIR, ADDON_CATALOG, EXPLORE_SCENES, EXPLORE_BOOK, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
   BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA, DIET_TAGS,
+  addAttachment, getAttachment, deleteAttachment,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,

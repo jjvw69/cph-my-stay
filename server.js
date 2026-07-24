@@ -243,6 +243,8 @@ function setCookie(res,name,token,hours){ const a=[`${name}=${encodeURIComponent
 function clearCookie(res,name){ res.setHeader('Set-Cookie',`${name}=; HttpOnly; Path=/; Max-Age=0`+(SECURE?'; Secure':'')); }
 
 function readBody(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>2e6){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); try{resolve(d?JSON.parse(d):{});}catch{resolve({});} }); req.on('error',()=>resolve({})); }); }
+// Larger JSON body reader for file uploads (base64). Caps at ~max bytes and flags oversize.
+function readBodyLarge(req,max){ max=max||12e6; return new Promise(resolve=>{ const chunks=[]; let len=0; let big=false; req.on('data',c=>{ len+=c.length; if(len>max){big=true;req.destroy();return;} chunks.push(c); }); req.on('end',()=>{ if(big)return resolve({_big:true}); try{ resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}')); }catch{ resolve({}); } }); req.on('error',()=>resolve({})); }); }
 function readForm(req){ return new Promise(resolve=>{ let d=''; let big=false; req.on('data',c=>{d+=c; if(d.length>2e5){big=true;req.destroy();}}); req.on('end',()=>{ if(big)return resolve({}); const o={}; d.split('&').forEach(p=>{ if(!p)return; const i=p.indexOf('='); const k=i<0?p:p.slice(0,i); const v=i<0?'':p.slice(i+1); try{ o[decodeURIComponent(k.replace(/\+/g,' '))]=decodeURIComponent(v.replace(/\+/g,' ')); }catch(e){} }); resolve(o); }); req.on('error',()=>resolve({})); }); }
 function sendJSON(res,code,obj){ const s=JSON.stringify(obj); res.writeHead(code,{'Content-Type':'application/json','Content-Length':Buffer.byteLength(s)}); res.end(s); }
 function sendHTML(res,buf){ res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store, no-cache, must-revalidate','Pragma':'no-cache','Expires':'0'}); res.end(buf); }
@@ -668,6 +670,12 @@ async function route(req,res){
       if(m==='PUT'){ const patch=await readBody(req); const st=store.saveStay(id,patch); return st?sendJSON(res,200,{ok:true,stay:st}):sendJSON(res,404,{ok:false,error:'Not found'}); }
       if(m==='DELETE'){ return store.deleteStay(id)?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     }
+    // ---- Attachments (staff-only uploaded documents, e.g. reunion financial records) ----
+    const atA=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/attachments$/);
+    if(atA&&m==='POST'){ const b=await readBodyLarge(req,12e6); if(b&&b._big) return sendJSON(res,413,{ok:false,error:'File too large (max 8 MB).'}); const meta=store.addAttachment(atA[1],{name:b.name,type:b.type,dataB64:b.dataB64}); if(meta&&meta.error) return sendJSON(res,400,{ok:false,error:meta.error}); if(meta) broadcastStaff({type:'update'}); return meta?sendJSON(res,200,{ok:true,attachment:meta}):sendJSON(res,404,{ok:false,error:'Not found'}); }
+    const atB=url.match(/^\/api\/staff\/stays\/([A-Za-z0-9]+)\/attachments\/([A-Za-z0-9]+)$/);
+    if(atB&&m==='GET'){ const got=store.getAttachment(atB[1],atB[2]); if(!got) return sendJSON(res,404,{ok:false,error:'Not found'}); const fn=String(got.meta.name||'file').replace(/[\r\n"]/g,''); res.writeHead(200,{'Content-Type':got.meta.type||'application/octet-stream','Content-Length':got.buf.length,'Content-Disposition':'inline; filename="'+fn+'"','Cache-Control':'private, no-store'}); return res.end(got.buf); }
+    if(atB&&m==='DELETE'){ const okd=store.deleteAttachment(atB[1],atB[2]); if(okd) broadcastStaff({type:'update'}); return okd?sendJSON(res,200,{ok:true}):sendJSON(res,404,{ok:false,error:'Not found'}); }
     return sendJSON(res,404,{ok:false,error:'Unknown staff route'});
   }
 
