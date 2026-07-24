@@ -3005,6 +3005,7 @@ function renderEditor(){
       ${glEditor()}</div>
 
     <div class="sec"><h3>Grocery pre-stocking ${cur.grocery&&(cur.grocery.items||[]).length?`<span class="reqcount">${(cur.grocery.items||[]).length}</span>`:''}</h3>
+      ${dietSummaryPanel()}
       ${(function(){const amt=parseFloat(cur.groceryDeposit)||0; const paid=!!cur.groceryDepositPaid; const presets=[500,1000,2000]; const isCustom=amt>0&&presets.indexOf(amt)===-1;
         const selStyle='max-width:200px;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 11px;font-size:13.5px;background:#fff;font-family:var(--ui)';
         const pill=(on,bg)=>`padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid ${on?bg:'var(--line)'};background:${on?bg:'#fff'};color:${on?'#fff':'var(--soft)'}`;
@@ -3162,26 +3163,62 @@ const GIN='border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-s
 /* ---- guest registration list (staff-editable · shared with the guest app) ---- */
 function glEnsure(){ if(!Array.isArray(cur.guestList))cur.guestList=[]; }
 function glTouch(){ glEnsure(); markDirty('guestList'); renderPreview(); }
+/* Per-person dietary restrictions (chips from the single-source BOOT.dietTags + free-text notes). */
+function glDietRow(i,g){
+  const tags=(BOOT&&BOOT.dietTags)||[];
+  if(!g.diet||typeof g.diet!=='object')g.diet={avoid:[],notes:''};
+  if(!Array.isArray(g.diet.avoid))g.diet.avoid=[];
+  const diet=g.diet;
+  const chips=tags.map((t,ti)=>{ const on=diet.avoid.indexOf(t)>=0;
+    return `<button type="button" onclick="glDiet(${i},'toggle',${ti})" style="border:1px solid ${on?'#12794D':'var(--line)'};background:${on?'#12794D':'#fff'};color:${on?'#fff':'var(--soft)'};border-radius:14px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer">${esc(t)}</button>`; }).join(' ');
+  return `<div style="margin:6px 0 2px 28px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${chips}</div>
+    <input value="${escA(diet.notes||'')}" onchange="glDiet(${i},'notes',this.value)" placeholder="Other dietary notes (e.g. oat milk only, needs granola)" style="${GIN};width:100%;max-width:440px">
+  </div>`;
+}
 function glEditor(){
   glEnsure(); const list=cur.guestList;
-  const rows=list.map((g,i)=>`<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
+  const rows=list.map((g,i)=>`<div style="border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px">
+    <div style="display:flex;gap:6px;align-items:center">
       <span style="width:20px;flex:none;text-align:right;font-size:12px;color:var(--soft);font-weight:700">${i+1}.</span>
       <input id="glName${i}" value="${escA(g.name||'')}" onchange="glItem(${i},'name',this.value)" placeholder="Full name (as on passport)" style="flex:1.4;min-width:120px;${GIN}">
       <input value="${escA(g.passport||'')}" onchange="glItem(${i},'passport',this.value)" placeholder="Passport number" style="flex:1;min-width:100px;${GIN}">
       <button class="reqx" onclick="glItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
-    </div>`).join('');
+    </div>
+    ${glDietRow(i,g)}
+  </div>`).join('');
   return `<div style="margin-top:6px">
     ${rows||'<div class="counter" style="margin-bottom:8px">Nobody on the list yet — add the group below, or wait for the guest to submit it from their app.</div>'}
     <div style="margin-top:10px"><button class="reqx" onclick="glAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add person</button></div>
-    <div class="counter">Names &amp; passport numbers used to register the group with Casa de Campo. Shared list — your edits show in the guest's app too. Remember to Save.</div>
+    <div class="counter">Names, passport numbers &amp; dietary restrictions used to register the group and brief the chef. Shared list — your edits show in the guest's app too; guests can self-declare diet in pre check-in. Remember to Save.</div>
   </div>`;
 }
 window.glItem=function(i,f,v){ glEnsure(); const g=cur.guestList[i]; if(!g)return;
   if(f==='remove'){ cur.guestList.splice(i,1); glTouch(); renderEditor(); return; }
   g[f]=String(v||''); glTouch(); };
+window.glDiet=function(i,f,v){ glEnsure(); const g=cur.guestList[i]; if(!g)return;
+  if(!g.diet||typeof g.diet!=='object')g.diet={avoid:[],notes:''};
+  if(!Array.isArray(g.diet.avoid))g.diet.avoid=[];
+  if(f==='toggle'){ const tags=(BOOT&&BOOT.dietTags)||[]; const t=tags[v]; if(!t)return; const k=g.diet.avoid.indexOf(t); if(k>=0)g.diet.avoid.splice(k,1); else g.diet.avoid.push(t); glTouch(); renderEditor(); return; }
+  if(f==='notes'){ g.diet.notes=String(v||''); glTouch(); return; } };
 window.glAdd=function(){ glEnsure(); if(cur.guestList.length>=40){ toast('Maximum 40 people on the registration list'); return; }
-  cur.guestList.push({name:'',passport:''}); const n=cur.guestList.length-1; glTouch(); renderEditor();
+  cur.guestList.push({name:'',passport:'',diet:{avoid:[],notes:''}}); const n=cur.guestList.length-1; glTouch(); renderEditor();
   setTimeout(()=>{ const el=document.getElementById('glName'+n); if(el)el.focus(); },30); };
+/* Read-only roll-up of every guest's dietary restrictions — shown atop the Grocery section so
+   whoever provisions (and the chef) sees them in one place. Sourced from the registration list. */
+function dietSummaryPanel(){
+  const list=(cur.guestList||[]).filter(g=>g&&g.diet&&((Array.isArray(g.diet.avoid)&&g.diet.avoid.length)||(g.diet.notes&&String(g.diet.notes).trim())));
+  if(!list.length) return '';
+  const rows=list.map(g=>{ const d=g.diet||{};
+    const tags=(d.avoid||[]).map(t=>`<span style="display:inline-block;background:#FBE9E1;color:#9E5B43;border-radius:12px;padding:2px 9px;font-size:11.5px;font-weight:600;margin:0 4px 4px 0">${esc(t)}</span>`).join('');
+    const note=(d.notes&&String(d.notes).trim())?`<span style="font-size:12px;color:var(--soft)">${esc(d.notes)}</span>`:'';
+    return `<div style="padding:6px 0;border-top:1px solid #EED8CC"><div style="font-weight:600;font-size:13px">${esc(g.name||'—')}</div><div style="margin-top:3px">${tags}${note}</div></div>`; }).join('');
+  return `<div style="background:#FFF8F4;border:1px solid #EED8CC;border-radius:12px;padding:10px 13px;margin:2px 0 16px">
+    <div style="font-weight:700;font-size:13px;color:#9E5B43">⚠ Dietary restrictions (${list.length})</div>
+    <div style="font-size:11.5px;color:var(--soft);margin:1px 0 3px">From the guest registration list — share with the chef &amp; supermarket. Edit per person in the Registration list above.</div>
+    ${rows}
+  </div>`;
+}
 function grocEnsure(){ if(!cur.grocery||typeof cur.grocery!=='object')cur.grocery={items:[],other:{},note:''}; if(!Array.isArray(cur.grocery.items))cur.grocery.items=[]; if(!cur.grocery.other||typeof cur.grocery.other!=='object')cur.grocery.other={}; }
 function grocTouch(){ grocEnsure(); cur.grocery.updatedAt=Date.now(); markDirty('grocery'); }
 function grocEditor(){
@@ -3875,7 +3912,8 @@ window.printStay=function(){
   const reqs=(s.requests||[]).filter(r=>r.status!=='cancelled').map(r=>`<li><b>${esc(r.title||'')}</b> — ${esc(r.status==='confirmed'?('confirmed'+(r.price?' · '+usdStr(r.price):'')):'pending')}${r.date?' · '+esc(r.date):''}${r.time?' '+esc(r.time):''}${r.guests?' · '+esc(r.guests)+' guests':''}${r.note?'<br><i>“'+esc(r.note)+'”</i>':''}</li>`).join('')||'<li>None</li>';
   const groc=(s.grocery&&s.grocery.items&&s.grocery.items.length)?('<ul>'+(function(g){const by={};(g.items||[]).forEach(it=>{(by[it.category]=by[it.category]||[]).push(it);});return Object.keys(by).map(cat=>'<li><b>'+esc(cat)+':</b> '+by[cat].map(it=>esc(it.name)+' ×'+it.qty).join(', ')+'</li>').join('');})(s.grocery)+(s.grocery.note?'<li><b>Notes:</b> '+esc(s.grocery.note)+'</li>':'')+'</ul>'):'<p>None submitted.</p>';
   const meals=(s.mealPlan&&['breakfast','lunch','dinner'].some(k=>s.mealPlan[k]&&(s.mealPlan[k].date||s.mealPlan[k].desc)))?('<ul>'+[['breakfast','Breakfast'],['lunch','Lunch'],['dinner','Dinner']].map(([k,l])=>{const m=s.mealPlan[k]||{};if(!(m.date||m.time||m.guests||m.desc))return '';return '<li><b>'+l+':</b> '+[m.date,m.time,m.guests?m.guests+' guests':''].filter(Boolean).map(esc).join(' · ')+(m.desc?' — '+esc(m.desc):'')+'</li>';}).join('')+'</ul>'):'<p>None submitted.</p>';
-  const gl=(s.guestList&&s.guestList.length)?('<ol>'+s.guestList.map(g=>'<li>'+esc(g.name||'—')+' — passport '+esc(g.passport||'—')+'</li>').join('')+'</ol>'):'<p>Not submitted.</p>';
+  const gdiet=g=>{ const d=g.diet||{}; const a=(Array.isArray(d.avoid)?d.avoid:[]); const parts=[]; if(a.length)parts.push(a.join(', ')); if(d.notes&&String(d.notes).trim())parts.push(String(d.notes).trim()); return parts.length?(' — <b>diet:</b> '+esc(parts.join(' · '))):''; };
+  const gl=(s.guestList&&s.guestList.length)?('<ol>'+s.guestList.map(g=>'<li>'+esc(g.name||'—')+' — passport '+esc(g.passport||'—')+gdiet(g)+'</li>').join('')+'</ol>'):'<p>Not submitted.</p>';
   const gc=s.guestCheckin;
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>Stay summary — ${esc(s.leadName||s.reference||'')}</title>
     <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1F2A24;max-width:760px;margin:24px auto;padding:0 20px;line-height:1.5}

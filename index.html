@@ -326,12 +326,26 @@ function bootIntoApp(){ state.tab='home'; state.stack=[]; hydrateCheckin(); load
    staff (console "Guest registration list"). Seed the form's rows from the shared list, but NEVER
    overwrite a row the guest has typed into: only fill rows that are still empty. That way a list the
    concierge entered shows up in the guest's app, and a guest mid-typing is never clobbered. */
+/* Per-person dietary restrictions — the picklist is single-sourced from store.js (state.stay.dietTags);
+   `notes` covers the long tail. Rendered under each guest in pre check-in + the standalone list editor. */
+function guestDietTags(){ return (state.stay&&state.stay.dietTags)||[]; }
+function sanitizeGuestDiet(d){ d=(d&&typeof d==='object')?d:{}; return {avoid:Array.isArray(d.avoid)?d.avoid.slice(0,20):[],notes:String(d.notes||'').slice(0,200)}; }
+function dietChipsHTML(i, diet, onToggle, onNotes){
+  const tags=guestDietTags(); diet=sanitizeGuestDiet(diet); const av=diet.avoid;
+  const chips=tags.map((t,ti)=>{ const on=av.indexOf(t)>=0;
+    return `<button type="button" onclick="${onToggle}(${i},${ti})" style="border:1px solid ${on?'var(--accent)':'var(--line)'};background:${on?'var(--accent)':'#fff'};color:${on?'#fff':'var(--soft)'};border-radius:15px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer;margin:0 5px 5px 0">${esc(t)}</button>`; }).join('');
+  return `<div style="margin-top:9px">
+    <div style="font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--soft);font-weight:600;margin-bottom:5px">Dietary restrictions (optional)</div>
+    <div style="display:flex;flex-wrap:wrap">${chips}</div>
+    <input value="${esc(diet.notes||'')}" oninput="${onNotes}(${i},this.value)" placeholder="Anything else? (e.g. oat milk only, needs granola)" style="width:100%;margin-top:4px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px;box-sizing:border-box">
+  </div>`;
+}
 function docsFromGuestList(list, docs){
-  const out=(docs||[]).map(d=>({name:(d&&d.name)||'',passport:(d&&d.passport)||''}));
+  const out=(docs||[]).map(d=>({name:(d&&d.name)||'',passport:(d&&d.passport)||'',diet:sanitizeGuestDiet(d&&d.diet)}));
   (list||[]).forEach((g,i)=>{
     const cur=out[i]||{name:'',passport:''};
     const typed=String(cur.name||'').trim()||String(cur.passport||'').trim();
-    if(!typed) out[i]={name:(g&&g.name)||'',passport:(g&&g.passport)||''};
+    if(!typed) out[i]={name:(g&&g.name)||'',passport:(g&&g.passport)||'',diet:sanitizeGuestDiet(g&&g.diet)};
   });
   return out;
 }
@@ -2189,6 +2203,7 @@ function renderCheckin(){
       <b style="font-weight:500;font-size:12px;letter-spacing:.05em;color:var(--soft);text-transform:uppercase">Guest ${i+1}</b>
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Full name (as on passport)" value="${esc((docs[i]||{}).name||'')}" oninput="cinDoc(${i},'name',this.value)">
       <input style="width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:11px" placeholder="Passport number" value="${esc((docs[i]||{}).passport||'')}" oninput="cinDoc(${i},'passport',this.value)">
+      ${dietChipsHTML(i,(docs[i]||{}).diet,'cinDietToggle','cinDietNotes')}
     </div>`).join('')}`;
   } else if(step===2){ const tm=c.transportMode||'';
     inner=`<div class="label">STEP 3 OF 4 · TRANSPORTATION</div>
@@ -2231,12 +2246,14 @@ window.cinAir=function(a){ state.checkin.airport=a; render(); };
 window.cinToggle=function(k){ state.checkin[k]=!state.checkin[k]; render(); };
 window.cinTransfer=function(t){ state.checkin.transferType = state.checkin.transferType===t?null:t; render(); };
 window.cinDoc=function(i,k,v){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{}; d[i][k]=v; };
+window.cinDietToggle=function(i,ti){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{name:'',passport:''}; if(!d[i].diet||typeof d[i].diet!=='object')d[i].diet={avoid:[],notes:''}; if(!Array.isArray(d[i].diet.avoid))d[i].diet.avoid=[]; const t=guestDietTags()[ti]; if(!t)return; const k=d[i].diet.avoid.indexOf(t); if(k>=0)d[i].diet.avoid.splice(k,1); else d[i].diet.avoid.push(t); render(); };
+window.cinDietNotes=function(i,v){ const d=state.checkin.docs||(state.checkin.docs=[]); d[i]=d[i]||{name:'',passport:''}; if(!d[i].diet||typeof d[i].diet!=='object')d[i].diet={avoid:[],notes:''}; d[i].diet.notes=String(v||''); };
 window.cinTransport=function(m){ state.checkin.transportMode = state.checkin.transportMode===m?null:m; render(); };
 window.cinSet=function(k,v){ state.checkin[k]=v; };
 window.cinNext=async function(){
   if(state.checkin.step<3){ state.checkin.step++; render(); return; }
   await api('/api/checkin',{method:'POST',body:JSON.stringify(state.checkin)});
-  const docs=(state.checkin.docs||[]).filter(d=>d&&((d.name||'').trim()||(d.passport||'').trim())).map(d=>({name:d.name||'',passport:d.passport||''}));
+  const docs=(state.checkin.docs||[]).filter(d=>d&&((d.name||'').trim()||(d.passport||'').trim())).map(d=>({name:d.name||'',passport:d.passport||'',diet:sanitizeGuestDiet(d.diet)}));
   if(docs.length){ const gr=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests:docs})}); if(gr.ok&&gr.body.guestList) state.stay.guestList=gr.body.guestList; }
   state.checkin.done=true; state.checkin.step=0; pop(); toast('Pre check-in submitted — thank you!');
 };
@@ -2381,15 +2398,15 @@ function renderGolfCartInfo(){
 /* ---------------- GUEST REGISTRATION LIST ---------------- */
 function renderGuestList(){
   const s=state.stay;
-  if(!state._gl){ const ex=(s.guestList&&s.guestList.length)?s.guestList:[{name:'',passport:''}]; state._gl=ex.map(g=>({name:g.name||'',passport:g.passport||''})); }
+  if(!state._gl){ const ex=(s.guestList&&s.guestList.length)?s.guestList:[{name:'',passport:''}]; state._gl=ex.map(g=>({name:g.name||'',passport:g.passport||'',diet:sanitizeGuestDiet(g.diet)})); }
   glView();
 }
 function glView(){
   const inp='flex:1;min-width:0;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:15px;font-family:var(--ui);background:#fff;box-sizing:border-box';
-  const rows=state._gl.map((g,i)=>`<div style="display:flex;gap:8px;margin-top:9px;align-items:center"><input placeholder="Full name" value="${esc(g.name)}" oninput="glSet(${i},'name',this.value)" style="${inp}"><input placeholder="Passport no." value="${esc(g.passport)}" oninput="glSet(${i},'passport',this.value)" style="${inp}">${state._gl.length>1?`<button onclick="glDel(${i})" style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;color:#9E5B43;font-size:18px">×</button>`:''}</div>`).join('');
+  const rows=state._gl.map((g,i)=>`<div style="border:1px solid var(--line);border-radius:13px;padding:12px;margin-top:9px"><div style="display:flex;gap:8px;align-items:center"><input placeholder="Full name" value="${esc(g.name)}" oninput="glSet(${i},'name',this.value)" style="${inp}"><input placeholder="Passport no." value="${esc(g.passport)}" oninput="glSet(${i},'passport',this.value)" style="${inp}">${state._gl.length>1?`<button onclick="glDel(${i})" style="flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:#fff;color:#9E5B43;font-size:18px">×</button>`:''}</div>${dietChipsHTML(i,g.diet,'glDietToggle','glDietNotes')}</div>`).join('');
   const inner=`
     <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-top:4px">
-      <div style="font-size:13.5px;color:var(--soft);line-height:1.55">Add every guest's <b>full name</b> and <b>passport number</b> (no photos). We use this to pre-register your group with Casa de Campo — you'll receive a Registration Number for check-in.</div>
+      <div style="font-size:13.5px;color:var(--soft);line-height:1.55">Add every guest's <b>full name</b> and <b>passport number</b> (no photos). We use this to pre-register your group with Casa de Campo — you'll receive a Registration Number for check-in. Add any <b>dietary restrictions</b> so we can brief the chef and stock the kitchen.</div>
     </div>
     ${rows}
     <button onclick="glAdd()" style="margin-top:11px;background:none;border:1px dashed var(--line);border-radius:11px;padding:11px;width:100%;color:var(--accent);font-size:14px;cursor:pointer">+ Add another guest</button>
@@ -2401,9 +2418,11 @@ function glView(){
    a guest list the concierge has since edited. */
 window.openGuestList=function(){ state._gl=null; push('guestlist'); };
 window.glSet=function(i,k,v){ if(state._gl&&state._gl[i]) state._gl[i][k]=v; };
-window.glAdd=function(){ state._gl.push({name:'',passport:''}); glView(); };
-window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:''}); glView(); };
-window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').trim()||(g.passport||'').trim()); const r=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests})}); if(r.ok&&r.body.guestList){ state.stay.guestList=r.body.guestList; state._gl=null; toast('Guest list sent to your concierge'); pop(); } else toast('Could not send — please try again'); };
+window.glDietToggle=function(i,ti){ const g=state._gl&&state._gl[i]; if(!g)return; if(!g.diet||typeof g.diet!=='object')g.diet={avoid:[],notes:''}; if(!Array.isArray(g.diet.avoid))g.diet.avoid=[]; const t=guestDietTags()[ti]; if(!t)return; const k=g.diet.avoid.indexOf(t); if(k>=0)g.diet.avoid.splice(k,1); else g.diet.avoid.push(t); glView(); };
+window.glDietNotes=function(i,v){ const g=state._gl&&state._gl[i]; if(g){ if(!g.diet||typeof g.diet!=='object')g.diet={avoid:[],notes:''}; g.diet.notes=String(v||''); } };
+window.glAdd=function(){ state._gl.push({name:'',passport:'',diet:{avoid:[],notes:''}}); glView(); };
+window.glDel=function(i){ state._gl.splice(i,1); if(!state._gl.length)state._gl.push({name:'',passport:'',diet:{avoid:[],notes:''}}); glView(); };
+window.glSave=async function(){ const guests=state._gl.filter(g=>(g.name||'').trim()||(g.passport||'').trim()).map(g=>({name:g.name||'',passport:g.passport||'',diet:sanitizeGuestDiet(g.diet)})); const r=await api('/api/guestlist',{method:'POST',body:JSON.stringify({guests})}); if(r.ok&&r.body.guestList){ state.stay.guestList=r.body.guestList; state._gl=null; toast('Guest list sent to your concierge'); pop(); } else toast('Could not send — please try again'); };
 
 /* Zelle pay block — shown under a request once the concierge confirms it WITH a price.
    Zelle has no API, so we display-and-instruct: recipient email, amount, a memo to match the

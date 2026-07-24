@@ -1937,12 +1937,25 @@ function saveMealPlan(reference, data) {
   })).filter(m => m.type || m.date || m.time || m.guests || m.desc);
   s.mealPlan = out; s.updatedAt = Date.now(); persistStays(); return out;
 }
+// Structured dietary-restriction tags — SINGLE SOURCE shared by the guest app (toGuestStay.dietTags)
+// and the console (/api/staff/bootstrap dietTags). Guests self-declare per person in pre check-in;
+// staff edit them in the console registration list. Free-text `notes` covers the long tail
+// (e.g. "oat milk only", "needs granola", "only red meat").
+const DIET_TAGS = ['No pork', 'No beef', 'No lamb', 'No shellfish', 'No octopus', 'No seafood', 'Gluten-free', 'Dairy-free', 'No eggs', 'No nuts', 'Vegetarian', 'Vegan'];
+/** Shape guard for one person's dietary restrictions: a whitelisted tag array + free-text notes. */
+function sanitizeDiet(d) {
+  d = (d && typeof d === 'object') ? d : {};
+  const avoid = Array.isArray(d.avoid)
+    ? Array.from(new Set(d.avoid.map(x => norm(x).slice(0, 40)).filter(x => DIET_TAGS.includes(x)))).slice(0, 20)
+    : [];
+  return { avoid, notes: norm(d.notes).slice(0, 200) };
+}
 /** Shared shape guard for the registration list — used by both the guest submit and the console editor. */
 function sanitizeGuestList(guests) {
   if (!Array.isArray(guests)) return [];
   const seen = new Set();
   return guests.slice(0, 40)
-    .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40) }))
+    .map(g => ({ name: norm(g && g.name).slice(0, 80), passport: norm(g && g.passport).slice(0, 40), diet: sanitizeDiet(g && g.diet) }))
     .filter(g => g.name || g.passport)
     // Drop exact repeats (same name + same passport) — a guest submitting while staff had the list open
     // used to produce doubled rows. Same name with a DIFFERENT passport is kept: they're two people.
@@ -2375,7 +2388,8 @@ function toGuestStay(s) {
     wifiHandover: s.wifiHandover || '', // console-editable handover line — shown to the guest when no Wi-Fi name/password is set yet
     // Registration # is shown to the guest ONLY once the stay is ready AND a number is entered — hidden while pre-arrival info is pending/missing.
     registrationNumber: (stayReadiness(s).ready && String(s.registrationNumber || '').trim()) ? s.registrationNumber : '',
-    guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport })),
+    guestList: (s.guestList || []).map(g => ({ name: g.name, passport: g.passport, diet: sanitizeDiet(g.diet) })),
+    dietTags: DIET_TAGS,   // single source (store.js) — same dietary picklist on guest + console
     addOns: allAddOns().map(a => ({ id: a.id, category: a.category, name: a.name, desc: a.desc, price: a.price || '', rates: a.rates || '', custom: !!a.custom, recommended: offered.has(a.id) })),
     yachtFleet: YACHT_CATALOG.map(y => y.name),   // single source (store.js) — keeps guest + console in sync
     serviceOptions: SERVICE_OPTIONS,              // single source — same service options/rates on guest + console
@@ -2428,7 +2442,7 @@ seedStaffFromEnv();
 
 module.exports = {
   DATA_DIR, ADDON_CATALOG, EXPLORE_SCENES, EXPLORE_BOOK, CONCIERGES, YACHT_CATALOG, SERVICE_OPTIONS, PROVISIONING_OPTIONS,
-  BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA,
+  BOOKING_SOURCES, BOOKING_SOURCE_PARTNERS, SERVICE_BOOKED_VIA, DIET_TAGS,
   allAddOns, listServicesForStaff, addCustomService, updateService, deleteCustomService,
   sendService, updateSentService, cancelSentService, respondSentService,
   createInvoice, updateInvoice, setInvoiceStatus, deleteInvoice, invoiceTotal,
