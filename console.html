@@ -657,7 +657,7 @@
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
   .secbar{display:flex;flex-direction:column;gap:9px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
   .secbar:empty{display:none}
-  .secbar-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:8px 14px;overflow-x:auto}
+  .secbar-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:safe center;gap:8px 12px;overflow-x:auto}
   .secbar-row::-webkit-scrollbar{display:none}
   .secbar-admin{border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
   .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em}
@@ -665,7 +665,7 @@
   .secbar .secnav-chip:hover{border-color:#fff;color:#fff}
   .secbar .secnav-chip.on{background:#fff;border-color:#fff;color:var(--hedge);font-weight:600}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
-  .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;flex:0 0 auto}
   .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
   .secnav-chip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 11px;color:var(--accent);cursor:pointer;font-family:var(--ui);white-space:nowrap}
   .secnav-chip:hover{border-color:var(--accent)}
