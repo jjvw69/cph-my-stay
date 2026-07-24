@@ -657,15 +657,15 @@
   /* Full-width section-nav bar between the top bar and the three columns. Reuses the chip styles below. */
   .secbar{display:flex;flex-direction:column;gap:9px;padding:11px 18px;background:var(--hedge);border-bottom:1px solid rgba(255,255,255,.10);flex:0 0 auto}
   .secbar:empty{display:none}
-  .secbar-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:safe center;gap:8px 12px;overflow-x:auto}
+  .secbar-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:safe center;gap:.66em 1em;overflow-x:auto;font-size:12px}
   .secbar-row::-webkit-scrollbar{display:none}
   .secbar-admin{border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
-  .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em}
-  .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500}
+  .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em;display:none}
+  .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500;font-size:1em;padding:.34em .92em;border-radius:1.3em}
   .secbar .secnav-chip:hover{border-color:#fff;color:#fff}
   .secbar .secnav-chip.on{background:#fff;border-color:#fff;color:var(--hedge);font-weight:600}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
-  .secnav-g{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;flex:0 0 auto}
+  .secnav-g{display:flex;align-items:center;gap:.42em;flex-wrap:nowrap;flex:0 0 auto}
   .secnav-gl{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);margin-right:1px}
   .secnav-chip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 11px;color:var(--accent);cursor:pointer;font-family:var(--ui);white-space:nowrap}
   .secnav-chip:hover{border-color:var(--accent)}
@@ -2576,7 +2576,7 @@ const SECNAV_GROUPS=[
   {g:'Admin', ids:['csec-follow-up-reminders','csec-internal-notes']},
   {g:'Guest', ids:['csec-guest-party','csec-reunion-linked-booking','csec-villa-information','csec-rooms-beds','csec-golf-carts','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
   {g:'Requirements', ids:['csec-guest-pending-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals','csec-dining-reservations','csec-itinerary-schedule']},
-  {g:'Billing', ids:['csec-guest-booked-requests','csec-services-sent-to-guest','csec-invoices','csec-yacht-charter-proposal','csec-payment-balance','csec-staff-overtime']},
+  {g:'Billing', ids:['csec-guest-booked-requests','csec-services-sent-to-guest','csec-invoices','csec-staff-overtime','csec-yacht-charter-proposal','csec-payment-balance']},
 ];
 const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-reunion-linked-booking':'Reunion','csec-villa-information':'Villa Information','csec-rooms-beds':'Rooms','csec-golf-carts':'Carts','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-dining-reservations':'Dining','csec-itinerary-schedule':'Schedule','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-staff-overtime':'Staff OT','csec-follow-up-reminders':'Follow up / Notes','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 // Sections that stay grouped in the middle column but get NO top-bar chip.
@@ -2592,7 +2592,17 @@ function buildSecNav(){
   // All groups on one centered row, in SECNAV_GROUPS order (Booking · Admin · Requirements · Billing).
   const mainHtml=SECNAV_GROUPS.map(groupHtml).join('');
   bar.innerHTML=mainHtml?`<div class="secbar-row secbar-main">${mainHtml}</div>`:'';
+  fitSecBar();
 }
+/* Shrink the nav chips just enough to fit every section on ONE row, adapting to the window width.
+   Desktop only — mobile (<=760px) keeps its own horizontal-scroll behaviour. Chip sizing is em-based
+   (see .secbar .secnav-chip), so scaling the row's base font-size scales the whole bar. */
+function fitSecBar(){ const bar=document.getElementById('secbar'); if(!bar)return; const row=bar.querySelector('.secbar-row'); if(!row)return;
+  row.style.fontSize=''; if(window.innerWidth<=760)return;
+  let fs=12; row.style.fontSize=fs+'px'; let g=0;
+  while(row.scrollWidth>row.clientWidth+2 && fs>8){ fs-=0.5; row.style.fontSize=fs+'px'; if(++g>40)break; }
+}
+if(!window._secFitBound){ window._secFitBound=true; window.addEventListener('resize',function(){ clearTimeout(window._secFitT); window._secFitT=setTimeout(fitSecBar,120); }); }
 /* Reorder the editor sections into the same logical groups as the quick-nav, with an
    uppercase divider heading before each group (BOOKING / GUEST / UPSELL & MONEY / ADMIN). */
 function groupEditorSections(){
