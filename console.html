@@ -2967,6 +2967,9 @@ function renderEditor(){
       <div class="f full" style="border-top:1px solid var(--line);margin-top:8px;padding-top:10px"><label>Reset pre-arrival info</label><div class="reqmeta" style="margin:0 0 8px">Reset one section so the guest re-enters just that part — or reset everything. Can’t be undone.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="b-out" onclick="resetCheckinUI('party')" ${cur.guestCheckin?'':'disabled'} style="color:var(--purple);border-color:#D8CBE6">Party</button><button class="b-out" onclick="resetCheckinUI('documents')" ${(cur.guestList&&cur.guestList.length)?'':'disabled'} style="color:var(--purple);border-color:#D8CBE6">Passports</button><button class="b-out" onclick="resetCheckinUI('transportation')" ${cur.guestCheckin?'':'disabled'} style="color:var(--purple);border-color:#D8CBE6">Transportation</button><button class="b-out" onclick="resetCheckinUI('preferences')" ${cur.guestCheckin?'':'disabled'} style="color:var(--purple);border-color:#D8CBE6">Preferences</button><button class="b-out" onclick="resetCheckinUI('all')" ${(cur.guestCheckin||(cur.guestList&&cur.guestList.length))?'':'disabled'} style="color:#fff;background:var(--purple);border-color:var(--purple)">Reset all</button></div></div>
     </div></div>
 
+    <div class="sec"><h3>Reunion / linked booking${cur.linkGroupId?` <span class="reqcount">${(LIST||[]).filter(s=>s.linkGroupId===cur.linkGroupId).length}</span>`:''}</h3>
+      ${linkGroupEditor()}</div>
+
     <div class="sec"><h3>Villa Information</h3><div class="grid">
       <div class="f full"><label>Quick-fill from a saved listing</label><select onchange="pickVilla(this.value)">${villaOpts(cur.villaId)}</select></div>
       <div class="f"><label>Villa name</label><input value="${esc(cur.villaName)}" oninput="set('villaName',this.value)" placeholder="Casa …"></div>
@@ -3160,6 +3163,54 @@ function grocItemOpts(cat){ const c=GROC_CATALOG.find(x=>x.t===cat); const items
 const MEAL_DEFS=[['snacks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['breakfast','Breakfast / Desayuno'],['lunch','Lunch / Comida'],['dinner','Dinner / Cena']];
 const MEAL_TYPES=[['Welcome snacks & drinks','Welcome snacks & drinks / Picadera y bebidas de bienvenida'],['Breakfast','Breakfast / Desayuno'],['Lunch','Lunch / Comida'],['Dinner','Dinner / Cena'],['Other','Other / Otro']];
 const GIN='border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;font-family:var(--ui);box-sizing:border-box';
+/* ---- Reunion / linked booking (Feature 0): stays sharing a linkGroupId roll up together ---- */
+function linkGroupEditor(){
+  const groups={}; (LIST||[]).forEach(s=>{ if(s.linkGroupId){ (groups[s.linkGroupId]=groups[s.linkGroupId]||{id:s.linkGroupId,name:s.linkGroupName||s.linkGroupId,members:[]}).members.push(s); } });
+  const gArr=Object.values(groups); const cid=cur.linkGroupId||'';
+  const opts=['<option value="" '+(!cid?'selected':'')+'>— Not linked —</option>']
+    .concat(gArr.map(g=>`<option value="${escA(g.id)}" ${g.id===cid?'selected':''}>${esc(g.name)} (${g.members.length} villa${g.members.length===1?'':'s'})</option>`))
+    .concat((cid&&!groups[cid])?[`<option value="${escA(cid)}" selected>${esc(cur.linkGroupName||cid)} (1 villa)</option>`]:[])
+    .concat(['<option value="__new__">＋ New reunion / group…</option>']).join('');
+  let chip='';
+  if(cid){ const members=(LIST||[]).filter(s=>s.linkGroupId===cid); const names=members.map(m=>esc(m.villaInternal||m.villa||'Villa')).join(' · ')||'this villa only';
+    chip=`<div class="f full" style="margin-top:4px"><div style="background:#F1ECF7;border:1px solid #D8CBE6;border-radius:12px;padding:10px 13px">
+      <div style="font-weight:700;font-size:13px;color:var(--purple)">🔗 ${esc(cur.linkGroupName||'Linked group')} · ${members.length} villa${members.length===1?'':'s'}</div>
+      <div style="font-size:12px;color:var(--soft);margin-top:2px">${names}</div>
+      <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap"><button class="b-out" onclick="viewReunionRoster()" style="color:var(--purple);border-color:#D8CBE6">View reunion roster</button><button class="b-out" onclick="linkGroupPick('')" style="color:#9E5B43;border-color:#E3C4B6">Unlink this villa</button></div>
+    </div></div>`;
+  }
+  return `<div class="grid">
+    <div class="f full"><label>Reunion / linked booking (staff-only)</label><select onchange="linkGroupPick(this.value)">${opts}</select>
+      <div class="reqmeta" style="margin-top:6px">Link villas booked together as one reunion to roll up their guest roster &amp; dietary restrictions. To add another villa, open that booking and pick this same group.</div></div>
+    ${chip}
+  </div>`;
+}
+window.linkGroupPick=async function(val){ if(!cur)return;
+  if(val==='__new__'){ const name=(prompt('Name this reunion / group (e.g. "Salgar–Uribe Reunion 2026")')||'').trim(); if(!name){ renderEditor(); return; } cur.linkGroupId='LNK-'+Math.random().toString(36).slice(2,8).toUpperCase(); cur.linkGroupName=name.slice(0,80); }
+  else if(!val){ cur.linkGroupId=''; cur.linkGroupName=''; }
+  else { const g=(LIST||[]).find(s=>s.linkGroupId===val); cur.linkGroupId=val; cur.linkGroupName=(g&&g.linkGroupName)||cur.linkGroupName||''; }
+  const r=await api('/api/staff/stays/'+cur.id,{method:'PUT',body:JSON.stringify({linkGroupId:cur.linkGroupId,linkGroupName:cur.linkGroupName})});
+  if(r&&r.ok){ const it=(LIST||[]).find(s=>s.id===cur.id); if(it){ it.linkGroupId=cur.linkGroupId; it.linkGroupName=cur.linkGroupName; } toast&&toast(cur.linkGroupId?('Linked · '+cur.linkGroupName):'Unlinked'); } else toast&&toast('Could not save link');
+  renderEditor(); if(typeof renderList==='function')renderList();
+};
+window.viewReunionRoster=async function(){ if(!cur||!cur.linkGroupId)return; const gid=cur.linkGroupId; const gname=cur.linkGroupName||'Reunion';
+  const members=(LIST||[]).filter(s=>s.linkGroupId===gid);
+  let ov=document.getElementById('reunionOverlay'); if(ov)ov.remove();
+  ov=document.createElement('div'); ov.id='reunionOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,15,30,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto';
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:760px;width:100%;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:20px">🔗 ${esc(gname)}</h2><button onclick="document.getElementById('reunionOverlay').remove()" style="border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:34px;font-size:18px;cursor:pointer">×</button></div><div id="reunionBody" style="font-size:13.5px;color:var(--soft)">Loading roster…</div></div>`;
+  document.body.appendChild(ov); ov.onclick=e=>{ if(e.target===ov)ov.remove(); };
+  const full=[]; for(const m of members){ try{ const r=await api('/api/staff/stays/'+m.id); if(r&&r.ok&&r.body.stay)full.push(r.body.stay); }catch(e){} }
+  let totGuests=0,totRestr=0;
+  const fmt=(d)=> (typeof fmtLongDate==='function'&&d)?fmtLongDate(d):(d||'—');
+  const villaBlocks=full.map(s=>{ const gl=s.guestList||[]; totGuests+=gl.length;
+    const rows=gl.map(g=>{ const d=g.diet||{}; const av=Array.isArray(d.avoid)?d.avoid:[]; const has=av.length||(d.notes&&String(d.notes).trim()); if(has)totRestr++;
+      const chips=av.map(t=>`<span style="display:inline-block;background:#FBE9E1;color:#9E5B43;border-radius:11px;padding:2px 8px;font-size:11px;font-weight:600;margin:0 4px 3px 0">${esc(t)}</span>`).join('');
+      const note=(d.notes&&String(d.notes).trim())?`<span style="font-size:11.5px;color:var(--soft)"> ${esc(d.notes)}</span>`:'';
+      return `<div style="padding:5px 0;border-top:1px solid var(--line)"><span style="font-weight:600;font-size:13px">${esc(g.name||'—')}</span>${has?(' — '+chips+note):' <span style="font-size:11.5px;color:#9BB89B">no restrictions</span>'}</div>`; }).join('')||'<div style="font-size:12px;color:var(--soft);padding:6px 0">No guests on the registration list yet.</div>';
+    const cnt=(Number(s.adults)||0)+(Number(s.children)||0);
+    return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px"><div style="font-weight:700;font-size:14px">${esc(s.villaInternal||s.villaName||'Villa')}</div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">${esc(s.villaName||'')} · ${esc(fmt(s.checkin))} → ${esc(fmt(s.checkout))} · ${cnt} guest${cnt===1?'':'s'}</div>${rows}</div>`; }).join('');
+  const body=document.getElementById('reunionBody'); if(body)body.innerHTML=`<div style="margin-bottom:2px">${full.length} villa${full.length===1?'':'s'} · ${totGuests} guests on registration lists · <b style="color:#9E5B43">${totRestr} with dietary restrictions</b></div>${villaBlocks}<div style="font-size:11.5px;color:var(--soft);margin-top:12px">Combined roster across every villa linked to this reunion. Transfers manifest &amp; combined financials are coming as the next tabs.</div>`;
+};
 /* ---- guest registration list (staff-editable · shared with the guest app) ---- */
 function glEnsure(){ if(!Array.isArray(cur.guestList))cur.guestList=[]; }
 function glTouch(){ glEnsure(); markDirty('guestList'); renderPreview(); }
