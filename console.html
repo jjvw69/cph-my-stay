@@ -2575,10 +2575,10 @@ function collapsibleSections(){
 const SECNAV_GROUPS=[
   {g:'Admin', ids:['csec-follow-up-reminders','csec-internal-notes']},
   {g:'Guest', ids:['csec-guest-party','csec-reunion-linked-booking','csec-villa-information','csec-stay-details-shown-to-guest','csec-concierge-welcome']},
-  {g:'Requirements', ids:['csec-guest-pending-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals','csec-dining-reservations']},
+  {g:'Requirements', ids:['csec-guest-pending-requests','csec-guest-registration-list','csec-grocery-pre-stocking','csec-arrival-meals','csec-dining-reservations','csec-itinerary-schedule']},
   {g:'Billing', ids:['csec-guest-booked-requests','csec-services-sent-to-guest','csec-invoices','csec-yacht-charter-proposal','csec-payment-balance']},
 ];
-const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-reunion-linked-booking':'Reunion','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-dining-reservations':'Dining','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow up / Notes','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
+const SECNAV_LABEL={'csec-guest-party':'Guest & party','csec-reunion-linked-booking':'Reunion','csec-villa-information':'Villa Information','csec-stay-details-shown-to-guest':'Stay details','csec-concierge-welcome':'Concierge','csec-guest-pending-requests':'Pending','csec-guest-registration-list':'Registration','csec-grocery-pre-stocking':'Grocery','csec-arrival-meals':'Meals','csec-dining-reservations':'Dining','csec-itinerary-schedule':'Schedule','csec-recommended-services':'Recommended','csec-services-sent-to-guest':'Services','csec-yacht-charter-proposal':'Yacht','csec-invoices':'Invoices','csec-payment-balance':'Payment','csec-follow-up-reminders':'Follow up / Notes','csec-internal-notes':'Notes','csec-guest-booked-requests':'Booked'};
 // Sections that stay grouped in the middle column but get NO top-bar chip.
 const SECNAV_HIDE=new Set(['csec-concierge-welcome','csec-yacht-charter-proposal','csec-internal-notes']);
 function buildSecNav(){
@@ -3046,6 +3046,10 @@ function renderEditor(){
       ${cur.linkGroupId?`<div style="margin:0 0 8px"><button class="b-out" onclick="viewDiningSchedule()" style="color:var(--purple);border-color:#D8CBE6">View reunion dining schedule</button></div>`:''}
       ${resEditor()}</div>
 
+    <div class="sec"><h3>Itinerary / schedule ${(cur.itinerary&&cur.itinerary.length)?`<span class="reqcount">${cur.itinerary.length}</span>`:''}</h3>
+      <div class="counter" style="margin:0 0 8px">Shared schedule the guest sees in My Stay (dinners, events, activities). <button class="b-out" onclick="viewAgenda()" style="color:var(--purple);border-color:#D8CBE6;margin-left:4px">View ${cur.linkGroupId?'reunion ':''}agenda</button></div>
+      ${itnEditor()}</div>
+
     ${(function(){ const active=(cur.requests||[]).filter(r=>r.status!=='confirmed'&&r.status!=='done'&&r.status!=='cancelled').slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')); return `<div class="sec"><h3>Guest pending requests${active.length?` <span class="reqcount">${active.length}</span>`:''}</h3>
       ${active.length?`<div class="reqlist">${active.map(reqItemHtml).join('')}</div>
       <div class="counter">Guests send these from the app (Explore &amp; Add-ons). Confirm &amp; send a price to book it — it then moves to Booked.</div>`:`<div class="counter">No pending requests right now. Guests send these from the app (Explore &amp; Add-ons); once you confirm &amp; send a price, the booking moves to Booked.</div>`}</div>`; })()}
@@ -3348,6 +3352,45 @@ window.viewDiningSchedule=async function(){ if(!cur)return; const gid=cur.linkGr
   all.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time)));
   const rows=all.length?all.map(r=>`<div style="border-top:1px solid var(--line);padding:7px 0"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div style="font-weight:600;font-size:13px">${esc(r.place||'—')}${r.pax?(' <span style="color:var(--soft);font-weight:500">· '+r.pax+' pax</span>'):''}</div><div style="font-size:12px;color:var(--soft)">${esc(fmt(r.date))}${r.time?(' · '+esc(r.time)):''}</div></div><div style="font-size:11.5px;color:var(--soft);margin-top:2px">${[r.menu,r.cost,r.deposit?('deposit '+r.deposit):'',r.cancelBy?('cancel by '+fmt(r.cancelBy)):'',gid?('· '+r.villa):''].filter(Boolean).map(esc).join(' · ')}${r.note?(' — '+esc(r.note)):''}</div></div>`).join(''):'<div style="padding:8px 0">No reservations booked yet.</div>';
   const body=document.getElementById('reunionBody'); if(body)body.innerHTML=`<div style="margin-bottom:4px">${all.length} reservation${all.length===1?'':'s'}${gid?(' across '+full.length+' villas'):''}</div>${rows}<div style="font-size:11.5px;color:var(--soft);margin-top:12px">Chronological dining schedule. Add/edit on each booking’s Dining reservations section.</div>`;
+};
+/* ---- Itinerary / schedule (staff-editable; shown to the guest; rolls up across a reunion) ---- */
+function itnEnsure(){ if(!Array.isArray(cur.itinerary))cur.itinerary=[]; }
+function itnEditor(){ itnEnsure(); const list=cur.itinerary;
+  const rows=list.map((r,i)=>`<div style="border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <input type="date" value="${escA(r.date||'')}" onchange="itnItem(${i},'date',this.value)" style="${GIN};flex:0 0 145px">
+      <input value="${escA(r.time||'')}" onchange="itnItem(${i},'time',this.value)" placeholder="Time" style="${GIN};flex:0 0 92px">
+      <input value="${escA(r.title||'')}" onchange="itnItem(${i},'title',this.value)" placeholder="Title e.g. Cousin Olympics · Beach Day" style="${GIN};flex:1;min-width:140px">
+      <button class="reqx" onclick="itnItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+      <input value="${escA(r.place||'')}" onchange="itnItem(${i},'place',this.value)" placeholder="Location" style="${GIN};flex:0 0 190px">
+      <input value="${escA(r.note||'')}" onchange="itnItem(${i},'note',this.value)" placeholder="Note (optional)" style="${GIN};flex:1;min-width:120px">
+    </div>
+  </div>`).join('');
+  return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No schedule items yet — add dinners, events and activities the guests should see.</div>'}
+    <div style="margin-top:6px"><button class="reqx" onclick="itnAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add schedule item</button></div>
+    <div class="counter">Guests see this in My Stay. Remember to Save.</div></div>`;
+}
+window.itnItem=function(i,f,v){ itnEnsure(); const r=cur.itinerary[i]; if(!r)return; if(f==='remove'){ cur.itinerary.splice(i,1); markDirty(); renderEditor(); return; } r[f]=String(v||''); markDirty(); };
+window.itnAdd=function(){ itnEnsure(); cur.itinerary.push({id:'',date:'',time:'',title:'',place:'',note:''}); markDirty(); renderEditor(); };
+window.viewAgenda=async function(){ if(!cur)return; const gid=cur.linkGroupId; const gname=gid?(cur.linkGroupName||'Reunion'):(cur.villaInternal||cur.villaName||'this villa');
+  const members=gid?(LIST||[]).filter(s=>s.linkGroupId===gid):[{id:cur.id}];
+  let ov=document.getElementById('reunionOverlay'); if(ov)ov.remove();
+  ov=document.createElement('div'); ov.id='reunionOverlay'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,15,30,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto';
+  ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:760px;width:100%;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:20px">📅 Agenda · ${esc(gname)}</h2><button onclick="document.getElementById('reunionOverlay').remove()" style="border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:34px;font-size:18px;cursor:pointer">×</button></div><div id="reunionBody" style="font-size:13.5px;color:var(--soft)">Loading agenda…</div></div>`;
+  document.body.appendChild(ov); ov.onclick=e=>{ if(e.target===ov)ov.remove(); };
+  const full=[]; for(const m of members){ try{ const r=await api('/api/staff/stays/'+m.id); if(r&&r.ok&&r.body.stay)full.push(r.body.stay); }catch(e){} }
+  const fmt=d=>(typeof fmtLongDate==='function'&&d)?fmtLongDate(d):(d||'—');
+  const items=[]; full.forEach(s=>{ const villa=s.villaInternal||s.villaName||'Villa';
+    (s.itinerary||[]).forEach(r=>items.push({date:r.date,time:r.time,label:r.title,place:r.place,note:r.note,kind:'event',villa}));
+    (s.reservations||[]).forEach(r=>items.push({date:r.date,time:r.time,label:'🍽 '+(r.place||'Dining'),place:'',note:[r.pax?r.pax+' pax':'',r.menu,r.cost].filter(Boolean).join(' · '),kind:'dining',villa}));
+  });
+  items.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time)));
+  const byDay={}; items.forEach(it=>{ (byDay[it.date||'(no date)']=byDay[it.date||'(no date)']||[]).push(it); });
+  const days=Object.keys(byDay).sort();
+  const html=days.length?days.map(d=>`<div style="margin-top:12px"><div style="font-weight:700;font-size:13px;color:var(--purple)">${esc(fmt(d))}</div>${byDay[d].map(it=>`<div style="border-top:1px solid var(--line);padding:5px 0;display:flex;justify-content:space-between;gap:8px"><div style="min-width:0"><span style="font-weight:600;font-size:13px">${esc(it.label||'—')}</span>${it.place?(' <span style="color:var(--soft);font-size:12px">· '+esc(it.place)+'</span>'):''}${it.note?(' <span style="color:var(--soft);font-size:11.5px">— '+esc(it.note)+'</span>'):''}${gid?(' <span style="color:var(--soft);font-size:11px">['+esc(it.villa)+']</span>'):''}</div><div style="font-size:12px;color:var(--soft);white-space:nowrap">${esc(it.time||'')}</div></div>`).join('')}</div>`).join(''):'<div style="padding:8px 0">Nothing scheduled yet — add itinerary items or dining reservations.</div>';
+  const body=document.getElementById('reunionBody'); if(body)body.innerHTML=`<div style="margin-bottom:2px">${items.length} item${items.length===1?'':'s'}${gid?(' across '+full.length+' villas'):''} · day by day</div>${html}<div style="font-size:11.5px;color:var(--soft);margin-top:12px">Merges schedule items + dining reservations. Schedule items also show to guests in My Stay.</div>`;
 };
 /* ---- guest registration list (staff-editable · shared with the guest app) ---- */
 function glEnsure(){ if(!Array.isArray(cur.guestList))cur.guestList=[]; }
@@ -4182,7 +4225,7 @@ window.printMeals=function(){ if(!cur)return; const s=cur;
 };
 
 /* ---- save / publish ---- */
-function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','provisioning','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras','reservations']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||'';
+function payload(){ const k=['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','staffIncluded','staffHours','heroPhoto','checkin','checkout','checkinTime','checkoutTime','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','bookingAgent','grocerySuper','provisioning','groceryDeposit','groceryDepositPaid','staffCount','transferNote','extras','reservations','itinerary']; const o={}; k.forEach(x=>o[x]=cur[x]); o.villaNumber=o.villaNumber||cur.villaInternal||'';
   // Shared guest↔console sections are only sent when the staffer actually edited them — otherwise a
   // console copy loaded minutes ago would silently overwrite whatever the guest submitted since.
   SHARED_FIELDS.forEach(k=>{ if(dirtyFields.has(k)) o[k]=cur[k]; });
