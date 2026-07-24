@@ -1193,7 +1193,7 @@ function renderList(){
     const fuB=s.followUpDate?`<span class="fupill ${fuCls}">Follow up ${fmtDay(s.followUpDate)}</span>`:'';
     const upB=s.unpaid?`<span style="display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:#F3DADA;color:#9A2B2B">US$ ${(s.unpaidTotal||0).toLocaleString()} unpaid</span>`:'';
     const _R=s.readiness; const _upc=s.checkin&&s.checkin>=today&&daysUntil(s.checkin)!=null&&!hasDeparted(s);
-    const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Missing before arrival: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Not ready · ${(_R.missing||[]).length}</span>`:'';
+    const nrB=(_R&&!_R.ready&&(s.status||'')==='published'&&_upc)?`<span title="Pre check-in incomplete — still pending: ${esc((_R.missing||[]).join(', '))}" style="display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:#F6E3C9;color:#9A6A1E">Pre check-in pending</span>`:'';
     const unread=isUnread(s);
     // Arrives today = checkin is today (amber). In-house = arrived earlier, still with us (green).
     const arrToday=!!(s.checkin&&s.checkin===today&&(!s.checkout||today<s.checkout));
@@ -2277,22 +2277,18 @@ function nrYearCols(list){
   }).join('')}</div>`;
 }
 function notReadyRow(s){
-  const R=s.readiness||{}; const miss=(R.missing||[]); const d=daysUntil(s.checkin); const open=nrOpen.has(s.id);
-  const item=(ok,label)=>`<div class="nrx-item"><span class="nrx-ic ${ok?'ok':'no'}">${ok?'✓':'!'}</span><span>${esc(label)}${ok?'':' <span class="nrx-pend">— pending</span>'}</span></div>`;
+  const open=nrOpen.has(s.id);
   const _apTxt=arrPill(s).txt; const nrInhouse=_apTxt==='in house'; const nrToday=_apTxt==='today';
+  // Collapsed to ONE item, matching the guest app: passports (Travel documents) and transportation
+  // are STEPS INSIDE the pre check-in, so we no longer list them separately or count "N to fix".
+  // A stay only appears here while its pre check-in is incomplete (readiness.ready===false).
   return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''} ${nrToday?'nr-today':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
       <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
-      <span class="tr-tag red">${miss.length} to fix</span><span class="nrx-chev">▸</span>
+      <span class="tr-tag red">Pre check-in pending</span><span class="nrx-chev">▸</span>
     </button>
     <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
-      ${/* All three ARE the pre check-in — they're the steps of the same guest form. So the group is
-            called "Pre check-in" and the items are its steps; naming one of them "Pre check-in" too
-            was the confusing part. A step goes green the moment the guest fills it in. */''}
-      <div class="nrx-h">Pre check-in</div>
-      ${item(!!R.preCheckin,'Guest details & party')}
-      ${item(!!R.passports,'Passports')}
-      ${item(!!R.transferReady,'Transportation')}
+      <div class="nrx-item"><span class="nrx-ic no">!</span><span>Complete pre check-in <span class="nrx-pend">— pending</span></span></div>
       <button class="nrx-open" onclick="event.stopPropagation();selectStay('${s.id}')">Open stay →</button>
     </div>
   </div>`;
