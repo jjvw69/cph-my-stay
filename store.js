@@ -676,6 +676,7 @@ function blankStay() {
     agent: '', cartConfig: '', staffCount: '', accessCodes: '', transferNote: '', provisioning: '', extras: '',
     bookingAgent: '', // CPH booking agent (ivonna | jan) — internal owner of the booking, staff-only
     linkGroupId: '', linkGroupName: '', // reunion / linked booking (Feature 0): stays sharing a linkGroupId roll up together (combined roster etc.). Staff-only.
+    agencyMarginPct: 25, // owner-only reporting %: agency/branch share of invoiced total in the Financials roll-up (editable, default 25).
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
     grocerySuper: '', // grocery-section provisioning pick (staff-only) — SAME VALUE as `provisioning` (board Super column); always kept mirrored, see syncProvisioning()
     groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
@@ -910,7 +911,7 @@ function summaryStay(s) {
     agent: s.agent || '', cartConfig: s.cartConfig || '', staffCount: s.staffCount || '', accessCodes: s.accessCodes || '',
     registrationNumber: s.registrationNumber || '', // board Access column now edits the same field as Stay details Registration #
     transferNote: [boardSupplier(s, RE_TRANSFER_LINE), (function(){ const v = boardBookedVia(s, RE_TRANSFER_LINE); return v ? 'via ' + v : ''; })(), s.transferNote].map(x => String(x || '').trim()).filter(Boolean).join(' · '), provisioning: s.provisioning || '', extras: s.extras || '', internalNotes: s.internalNotes || '',
-    bookingAgent: s.bookingAgent || '', linkGroupId: s.linkGroupId || '', linkGroupName: s.linkGroupName || '', golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '',
+    bookingAgent: s.bookingAgent || '', linkGroupId: s.linkGroupId || '', linkGroupName: s.linkGroupName || '', agencyMarginPct: (s.agencyMarginPct != null ? s.agencyMarginPct : 25), golfCart: gcCart, rowColor: s.rowColor || '', grocerySuper: s.grocerySuper || '',
     reviewReq: s.reviewReq || null, guestRating: s.guestRating || null, phone: s.phone || '',
     groceryDeposit: parseFloat(s.groceryDeposit) || 0, groceryDepositPaid: !!s.groceryDepositPaid };
 }
@@ -1758,7 +1759,7 @@ function syncProvisioning(s, patch) {
 
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','agencyMarginPct','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   // Staff may edit the registration list from the console — sanitise exactly like the guest-submitted path.
   if ('guestList' in patch) s.guestList = sanitizeGuestList(patch.guestList);
