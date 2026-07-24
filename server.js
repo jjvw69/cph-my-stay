@@ -388,13 +388,13 @@ function buildReviewEmail(info){
   const first=info.firstName||(String(info.guest||'there').split(' ')[0])||'there';
   const villa=info.villa||'Casa de Campo';
   const subject='How was your stay at '+villa+'?';
-  const text=['Dear '+first+',','','Thank you for staying with us at '+villa+'. It was a pleasure hosting you and your family, and we hope you left with wonderful memories of Casa de Campo.','',"If you have a moment, we'd be very grateful if you would share your experience on Trustpilot — it genuinely helps other families discover us:",TRUSTPILOT_URL,'','Warm regards,','Jan','Caribbean Paradise Homes'].join('\n');
+  const text=['Dear '+first+',','','Thank you for staying with us at '+villa+'. It was a pleasure hosting you and your family, and we hope you left with wonderful memories of Casa de Campo.','',"If you have a moment, we'd be very grateful if you would share your experience on Trustpilot — it genuinely helps other families discover us:",TRUSTPILOT_URL,'','Warm regards,','Maria Fernanda Becker','Concierge Manager, Caribbean Paradise Homes'].join('\n');
   const html='<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;color:#22302a;line-height:1.6;font-size:15px">'
     +'<p>Dear '+esc2(first)+',</p>'
     +'<p>Thank you for staying with us at <b>'+esc2(villa)+'</b>. It was a pleasure hosting you and your family, and we hope you left with wonderful memories of Casa de Campo.</p>'
     +"<p>If you have a moment, we'd be very grateful if you would share your experience on Trustpilot — it genuinely helps other families discover us.</p>"
     +'<p style="text-align:center;margin:26px 0"><a href="'+TRUSTPILOT_URL+'" style="background:#C9A24B;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:10px;font-weight:bold;display:inline-block">Leave a review</a></p>'
-    +'<p style="margin-top:22px">Warm regards,<br>Jan<br><b>Caribbean Paradise Homes</b></p></div>';
+    +'<p style="margin-top:22px">Warm regards,<br>Maria Fernanda Becker<br>Concierge Manager, <b>Caribbean Paradise Homes</b></p></div>';
   return {subject,text,html};
 }
 

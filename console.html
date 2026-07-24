@@ -3229,6 +3229,18 @@ window.viewReunionRoster=async function(){ if(!cur||!cur.linkGroupId)return; con
     return `<div style="border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px"><div style="font-weight:700;font-size:14px">${esc(s.villaInternal||s.villaName||'Villa')}</div><div style="font-size:12px;color:var(--soft);margin-bottom:4px">${esc(s.villaName||'')} · ${esc(fmt(s.checkin))} → ${esc(fmt(s.checkout))} · ${cnt} guest${cnt===1?'':'s'}</div>${rows}</div>`; }).join('');
   const body=document.getElementById('reunionBody'); if(body)body.innerHTML=`<div style="margin-bottom:2px">${full.length} villa${full.length===1?'':'s'} · ${totGuests} guests on registration lists · <b style="color:#9E5B43">${totRestr} with dietary restrictions</b></div>${villaBlocks}<div style="font-size:11.5px;color:var(--soft);margin-top:12px">Combined roster across every villa linked to this reunion. Transfers manifest &amp; combined financials are coming as the next tabs.</div>`;
 };
+/* IATA airline codes → names (built-in, offline). The airline is the FLIGHT-NUMBER PREFIX — e.g.
+   AA1328 → American (AA). Extend this map as needed; PJ = Panorama Jets (private charter). */
+const AIRLINE_CODES={AA:'American',AV:'Avianca',IB:'Iberia',DL:'Delta',UA:'United',B6:'JetBlue',NK:'Spirit',F9:'Frontier',WN:'Southwest',AC:'Air Canada',WS:'WestJet',AM:'Aeroméxico',CM:'Copa',AF:'Air France',KL:'KLM',LH:'Lufthansa',BA:'British Airways',IB2:'Iberia',DM:'Arajet',SY:'Sun Country',WG:'Sunwing',TS:'Air Transat',PJ:'Panorama Jets',JB:'JetBlue',DE:'Condor',EK:'Emirates',QR:'Qatar',TP:'TAP',UX:'Air Europa',I2:'Iberia Express'};
+/* Build a display label for a flight: airline prefix + number, without doubling.
+   - explicit airline field wins ("AA" + "1328" → "AA 1328"); if the flight already starts with it, keep the flight.
+   - else derive from the flight's own 2–3 letter code prefix ("AA1328" → "American AA1328"; "PJ-HI1055" → "Panorama Jets PJ-HI1055"). */
+function flightLabel(airline,flight){ airline=String(airline||'').trim(); flight=String(flight||'').trim();
+  if(!flight) return airline||'';
+  if(airline){ const af=airline.replace(/[^a-z0-9]/gi,'').toLowerCase(), ff=flight.replace(/[^a-z0-9]/gi,'').toLowerCase(); return ff.startsWith(af)?flight:(airline+' '+flight); }
+  const m=flight.match(/^([A-Za-z]{2,3})[- ]?/); const code=m?m[1].toUpperCase():''; const name=code&&AIRLINE_CODES[code]?AIRLINE_CODES[code]:'';
+  return name?(name+' '+flight):flight;
+}
 /* Transfer manifest across a reunion: aggregates every villa's airport transfers into one
    arrivals/departures view, grouped by flight, with shared-pickup hints. Read-only roll-up. */
 window.viewTransferManifest=async function(){ if(!cur)return; const gid=cur.linkGroupId; const gname=gid?(cur.linkGroupName||'Reunion'):(cur.villaInternal||cur.villaName||'this villa');
@@ -3252,12 +3264,12 @@ window.viewTransferManifest=async function(){ if(!cur)return; const gid=cur.link
     }); });
   const section=(dir,title,icon)=>{ const rows=legs.filter(l=>l.dir===dir);
     if(!rows.length) return `<div style="margin-top:14px"><div style="font-weight:700;font-size:14px">${icon} ${title}</div><div style="font-size:12px;color:var(--soft);padding:6px 0">No ${dir} transfers booked yet.</div></div>`;
-    const groups={}; rows.forEach(l=>{ const k=(l.date||'?')+'|'+String(l.flight||l.airport||'?').toUpperCase(); (groups[k]=groups[k]||{date:l.date,flight:l.flight,airport:l.airport,time:l.time,level:l.level,legs:[]}).legs.push(l); });
+    const groups={}; rows.forEach(l=>{ const k=(l.date||'?')+'|'+String(l.flight||l.airport||'?').toUpperCase(); (groups[k]=groups[k]||{date:l.date,flight:l.flight,airline:l.airline,airport:l.airport,time:l.time,level:l.level,legs:[]}).legs.push(l); });
     const gArr=Object.values(groups).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.time).localeCompare(String(b.time)));
     let totPax=0; const cards=gArr.map(g=>{ const gp=g.legs.reduce((a,l)=>a+(l.pax||0),0); totPax+=gp; const gprice=g.legs.reduce((a,l)=>a+num(l.price),0);
       const who=g.legs.map(l=>`<div style="font-size:12px;padding:2px 0">• ${esc(l.villa)}${l.fam?(' — '+esc(l.fam)):''}${l.pax?(' <b>('+l.pax+' pax)</b>'):''}</div>`).join('');
       return `<div style="border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px">
-        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div style="font-weight:700;font-size:13px">${g.flight?esc(g.flight):'(no flight #)'}${g.airport?(' · '+esc(g.airport)):''}</div><div style="font-size:12px;color:var(--soft)">${esc(fmt(g.date))}${g.time?(' · '+esc(g.time)):''}${gp?(' · '+gp+' pax'):''}${gprice?(' · US$ '+gprice.toLocaleString('en-US')):''}</div></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div style="font-weight:700;font-size:13px">${g.flight?esc(flightLabel(g.airline,g.flight)):'(no flight #)'}${g.airport?(' · '+esc(g.airport)):''}</div><div style="font-size:12px;color:var(--soft)">${esc(fmt(g.date))}${g.time?(' · '+esc(g.time)):''}${gp?(' · '+gp+' pax'):''}${gprice?(' · US$ '+gprice.toLocaleString('en-US')):''}</div></div>
         ${g.level?`<div style="font-size:11.5px;color:var(--soft);margin-top:1px">${esc(g.level)}</div>`:''}
         <div style="margin-top:5px">${who}</div>
         ${g.legs.length>1?`<div style="font-size:11px;color:var(--purple);margin-top:4px">↳ ${g.legs.length} bookings on this flight — one shared pickup</div>`:''}
