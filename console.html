@@ -2686,11 +2686,11 @@ function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.te
             <label>Service level<input id="ed_serviceLevel_${r.id}" value="${esc(r.serviceLevel||'')}"></label>
             <label>Type / cart<input id="ed_cartType_${r.id}" value="${esc(r.cartType||'')}"></label>
             ${isTransfer?`<label>Airline<input id="ed_airline_${r.id}" value="${esc(r.airline||'')}"></label>
-            <label>Flight #<input id="ed_flightNo_${r.id}" value="${esc(r.flightNo||'')}"></label>
+            <label>Flight #<input id="ed_flightNo_${r.id}" value="${esc(r.flightNo||'')}" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></label>
             <label>Flying from<input id="ed_flightOrigin_${r.id}" value="${esc(r.flightOrigin||'')}"></label>
             <label>Arrival time<input id="ed_arrivalTime_${r.id}" value="${esc(r.arrivalTime||'')}"></label>
             <label>Return airline<input id="ed_returnAirline_${r.id}" value="${esc(r.returnAirline||'')}"></label>
-            <label>Return flight #<input id="ed_returnFlightNo_${r.id}" value="${esc(r.returnFlightNo||'')}"></label>
+            <label>Return flight #<input id="ed_returnFlightNo_${r.id}" value="${esc(r.returnFlightNo||'')}" oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase"></label>
             <label>Flying to (return)<input id="ed_returnDest_${r.id}" value="${esc(r.returnDest||'')}"></label>
             <label>Departure time<input id="ed_returnTime_${r.id}" value="${esc(r.returnTime||'')}"></label>`:''}
             <label>Price<input id="ed_price_${r.id}" value="${esc(r.price||'')}" placeholder="e.g. US$ 150"></label>
@@ -3235,10 +3235,10 @@ const AIRLINE_CODES={AA:'American',AV:'Avianca',IB:'Iberia',DL:'Delta',UA:'Unite
 /* Build a display label for a flight: airline prefix + number, without doubling.
    - explicit airline field wins ("AA" + "1328" → "AA 1328"); if the flight already starts with it, keep the flight.
    - else derive from the flight's own 2–3 letter code prefix ("AA1328" → "American AA1328"; "PJ-HI1055" → "Panorama Jets PJ-HI1055"). */
-function flightLabel(airline,flight){ airline=String(airline||'').trim(); flight=String(flight||'').trim();
+function flightLabel(airline,flight){ airline=String(airline||'').trim(); flight=String(flight||'').trim().toUpperCase();
   if(!flight) return airline||'';
-  if(airline){ const af=airline.replace(/[^a-z0-9]/gi,'').toLowerCase(), ff=flight.replace(/[^a-z0-9]/gi,'').toLowerCase(); return ff.startsWith(af)?flight:(airline+' '+flight); }
-  const m=flight.match(/^([A-Za-z]{2,3})[- ]?/); const code=m?m[1].toUpperCase():''; const name=code&&AIRLINE_CODES[code]?AIRLINE_CODES[code]:'';
+  if(airline){ const a=(airline.length<=3?airline.toUpperCase():airline); const af=airline.replace(/[^a-z0-9]/gi,'').toLowerCase(), ff=flight.replace(/[^a-z0-9]/gi,'').toLowerCase(); return ff.startsWith(af)?flight:(a+' '+flight); }
+  const m=flight.match(/^([A-Z]{2,3})[- ]?/); const code=m?m[1]:''; const name=code&&AIRLINE_CODES[code]?AIRLINE_CODES[code]:'';
   return name?(name+' '+flight):flight;
 }
 /* Transfer manifest across a reunion: aggregates every villa's airport transfers into one

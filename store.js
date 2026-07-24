@@ -1844,11 +1844,11 @@ function addRequest(reference, body) {
     note: norm(body.note).slice(0, 300),
     familyName: norm(body.familyName).slice(0, 60), // head-of-family / group label to tell multiple same-type bookings apart (e.g. two airport transfers)
     airline: norm(body.airline).slice(0, 40),         // arrival flight details captured on the private airport transfer
-    flightNo: norm(body.flightNo).slice(0, 24),
+    flightNo: norm(body.flightNo).slice(0, 24).toUpperCase(),
     flightOrigin: norm(body.flightOrigin).slice(0, 60),
     arrivalTime: norm(body.arrivalTime).slice(0, 40),
     returnAirline: norm(body.returnAirline).slice(0, 40),   // return/departure flight details (round-trip transfer)
-    returnFlightNo: norm(body.returnFlightNo).slice(0, 24),
+    returnFlightNo: norm(body.returnFlightNo).slice(0, 24).toUpperCase(),
     returnDest: norm(body.returnDest).slice(0, 60),
     returnTime: norm(body.returnTime).slice(0, 40),
     status: 'pending',
@@ -1877,11 +1877,11 @@ function updateGuestRequest(reference, requestId, body) {
   if (body.note != null) r.note = norm(body.note).slice(0, 300);
   if (body.familyName != null) r.familyName = norm(body.familyName).slice(0, 60);
   if (body.airline != null) r.airline = norm(body.airline).slice(0, 40);
-  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24);
+  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24).toUpperCase();
   if (body.flightOrigin != null) r.flightOrigin = norm(body.flightOrigin).slice(0, 60);
   if (body.arrivalTime != null) r.arrivalTime = norm(body.arrivalTime).slice(0, 40);
   if (body.returnAirline != null) r.returnAirline = norm(body.returnAirline).slice(0, 40);
-  if (body.returnFlightNo != null) r.returnFlightNo = norm(body.returnFlightNo).slice(0, 24);
+  if (body.returnFlightNo != null) r.returnFlightNo = norm(body.returnFlightNo).slice(0, 24).toUpperCase();
   if (body.returnDest != null) r.returnDest = norm(body.returnDest).slice(0, 60);
   if (body.returnTime != null) r.returnTime = norm(body.returnTime).slice(0, 40);
   r.status = 'pending'; r.price = ''; r.confirmedAt = ''; r.doneAt = ''; r.updatedAt = Date.now();
@@ -1944,11 +1944,11 @@ function staffUpdateRequest(stayId, requestId, body) {
   if (body.note != null) r.note = norm(body.note).slice(0, 300);
   if (body.familyName != null) r.familyName = norm(body.familyName).slice(0, 60);
   if (body.airline != null) r.airline = norm(body.airline).slice(0, 40);
-  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24);
+  if (body.flightNo != null) r.flightNo = norm(body.flightNo).slice(0, 24).toUpperCase();
   if (body.flightOrigin != null) r.flightOrigin = norm(body.flightOrigin).slice(0, 60);
   if (body.arrivalTime != null) r.arrivalTime = norm(body.arrivalTime).slice(0, 40);
   if (body.returnAirline != null) r.returnAirline = norm(body.returnAirline).slice(0, 40);
-  if (body.returnFlightNo != null) r.returnFlightNo = norm(body.returnFlightNo).slice(0, 24);
+  if (body.returnFlightNo != null) r.returnFlightNo = norm(body.returnFlightNo).slice(0, 24).toUpperCase();
   if (body.returnDest != null) r.returnDest = norm(body.returnDest).slice(0, 60);
   if (body.returnTime != null) r.returnTime = norm(body.returnTime).slice(0, 40);
   if (body.price != null) r.price = norm(body.price).slice(0, 24);
@@ -2165,11 +2165,11 @@ function sendService(stayId, b) {
     qty: Math.max(0, Math.min(99, Number(b && b.qty) || 0)) || '',
     trip: norm(b && b.trip).slice(0, 20),
     airline: norm(b && b.airline).slice(0, 40),
-    flightNo: norm(b && b.flightNo).slice(0, 24),
+    flightNo: norm(b && b.flightNo).slice(0, 24).toUpperCase(),
     flightOrigin: norm(b && b.flightOrigin).slice(0, 60),
     arrivalTime: norm(b && b.arrivalTime).slice(0, 40),
     returnAirline: norm(b && b.returnAirline).slice(0, 40),
-    returnFlightNo: norm(b && b.returnFlightNo).slice(0, 24),
+    returnFlightNo: norm(b && b.returnFlightNo).slice(0, 24).toUpperCase(),
     returnDest: norm(b && b.returnDest).slice(0, 60),
     returnTime: norm(b && b.returnTime).slice(0, 40),
     status: 'sent', sentAt: Date.now(), respondedAt: 0,
@@ -2191,11 +2191,11 @@ function updateSentService(stayId, sid, b) {
   if (b.qty != null) it.qty = Math.max(0, Math.min(99, Number(b.qty) || 0)) || '';
   if (b.trip != null) it.trip = norm(b.trip).slice(0, 20);
   if (b.airline != null) it.airline = norm(b.airline).slice(0, 40);
-  if (b.flightNo != null) it.flightNo = norm(b.flightNo).slice(0, 24);
+  if (b.flightNo != null) it.flightNo = norm(b.flightNo).slice(0, 24).toUpperCase();
   if (b.flightOrigin != null) it.flightOrigin = norm(b.flightOrigin).slice(0, 60);
   if (b.arrivalTime != null) it.arrivalTime = norm(b.arrivalTime).slice(0, 40);
   if (b.returnAirline != null) it.returnAirline = norm(b.returnAirline).slice(0, 40);
-  if (b.returnFlightNo != null) it.returnFlightNo = norm(b.returnFlightNo).slice(0, 24);
+  if (b.returnFlightNo != null) it.returnFlightNo = norm(b.returnFlightNo).slice(0, 24).toUpperCase();
   if (b.returnDest != null) it.returnDest = norm(b.returnDest).slice(0, 60);
   if (b.returnTime != null) it.returnTime = norm(b.returnTime).slice(0, 40);
   it.status = 'sent'; it.respondedAt = 0; s.updatedAt = Date.now(); persistStays(); return it;
