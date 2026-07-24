@@ -2272,7 +2272,8 @@ function cleanItems(arr) {
     const days = String((it && it.days) || '').replace(/[^0-9.]/g, '');
     const supplier = norm(it && it.supplier).slice(0, 80);               // optional internal supplier (staff-only; stripped from toGuestStay)
     const bookedVia = norm(it && it.bookedVia).slice(0, 80);             // booking channel that booked THIS line (staff-only; see BOOKING_SOURCES)
-    if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier; if (bookedVia) o.bookedVia = bookedVia;
+    const pax = Math.max(0, Math.min(999, parseInt(String((it && it.pax) || '').replace(/[^0-9]/g, ''), 10) || 0)); // guests/passengers on this line (optional; also shown in the label)
+    if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier; if (bookedVia) o.bookedVia = bookedVia; if (pax) o.pax = pax;
     return o;
   }).filter(it => it.label || it.amount);
 }
