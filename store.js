@@ -679,6 +679,7 @@ function blankStay() {
     agencyMarginPct: 25, // owner-only reporting %: agency/branch share of invoiced total in the Financials roll-up (editable, default 25).
     reservations: [], // staff-only dining reservations (date/time/place/pax/menu/cost/deposit/cancelBy). Rolls up across a reunion.
     itinerary: [], // shared schedule/itinerary items (date/time/title/place/note) — shown to the guest AND rolled up across a reunion agenda.
+    rooms: [], // staff-only room & bed assignment board: per bedroom {name, beds, guests, dates, note}. Rolls up across a reunion.
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
     grocerySuper: '', // grocery-section provisioning pick (staff-only) — SAME VALUE as `provisioning` (board Super column); always kept mirrored, see syncProvisioning()
     groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
@@ -1761,12 +1762,13 @@ function syncProvisioning(s, patch) {
 
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','agencyMarginPct','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList','reservations','itinerary'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','agencyMarginPct','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList','reservations','itinerary','rooms'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   // Staff may edit the registration list from the console — sanitise exactly like the guest-submitted path.
   if ('guestList' in patch) s.guestList = sanitizeGuestList(patch.guestList);
   if ('reservations' in patch) s.reservations = sanitizeReservations(patch.reservations);
   if ('itinerary' in patch) s.itinerary = sanitizeItinerary(patch.itinerary);
+  if ('rooms' in patch) s.rooms = sanitizeRooms(patch.rooms);
   syncProvisioning(s, patch); // board Super ↔ grocery Provisioning (Super) are one field
 
   s.updatedAt = Date.now();
@@ -1983,6 +1985,18 @@ function sanitizeItinerary(list) {
     place: norm(r && r.place).slice(0, 80),
     note: norm(r && r.note).slice(0, 200),
   })).filter(r => r.title || r.date);
+}
+/** Shape guard for the room & bed assignment board (staff-only). */
+function sanitizeRooms(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 40).map(r => ({
+    id: (norm(r && r.id).slice(0, 40)) || genId(),
+    name: norm(r && r.name).slice(0, 60),
+    beds: norm(r && r.beds).slice(0, 60),
+    guests: norm(r && r.guests).slice(0, 200),
+    dates: norm(r && r.dates).slice(0, 60),
+    note: norm(r && r.note).slice(0, 200),
+  })).filter(r => r.name || r.beds || r.guests);
 }
 /** Shared shape guard for the registration list — used by both the guest submit and the console editor. */
 function sanitizeGuestList(guests) {
