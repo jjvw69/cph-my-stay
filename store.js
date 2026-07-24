@@ -677,6 +677,7 @@ function blankStay() {
     bookingAgent: '', // CPH booking agent (ivonna | jan) — internal owner of the booking, staff-only
     linkGroupId: '', linkGroupName: '', // reunion / linked booking (Feature 0): stays sharing a linkGroupId roll up together (combined roster etc.). Staff-only.
     agencyMarginPct: 25, // owner-only reporting %: agency/branch share of invoiced total in the Financials roll-up (editable, default 25).
+    reservations: [], // staff-only dining reservations (date/time/place/pax/menu/cost/deposit/cancelBy). Rolls up across a reunion.
     rowColor: '', // arrivals-board row highlight colour (staff-only): ''|green|yellow|orange|red|blue|purple|gray
     grocerySuper: '', // grocery-section provisioning pick (staff-only) — SAME VALUE as `provisioning` (board Super column); always kept mirrored, see syncProvisioning()
     groceryDeposit: 0, groceryDepositPaid: false, // grocery deposit (staff-only, US$): amount (0=none) + paid flag; shown on the arrivals board
@@ -1759,10 +1760,11 @@ function syncProvisioning(s, patch) {
 
 function saveStay(id, patch) {
   const s = getStay(id); if (!s) return null;
-  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','agencyMarginPct','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList'];
+  const allowed = ['leadName','lastName','email','phone','source','adults','children','villaId','villaName','villaArea','villaView','villaSuites','villaSleeps','villaInternal','heroPhoto','checkin','checkout','checkinTime','checkoutTime','staffIncluded','staffHours','airport','flight','transferArranged','offeredAddOnIds','conciergeId','assigneeId','internalNotes','wifiHandover','welcomeMessage','status','wifiName','wifiPassword','villaNumber','registrationNumber','followUpDate','followUpNote','followUps','depositReminderAdded','paymentStatus','balanceDue','securityDeposit','totalCharge','amountPaid','balanceDueBy','agent','cartConfig','staffCount','accessCodes','transferNote','provisioning','extras','bookingAgent','linkGroupId','linkGroupName','agencyMarginPct','rowColor','grocerySuper','groceryDeposit','groceryDepositPaid','grocery','mealPlan','guestList','reservations'];
   allowed.forEach(k => { if (k in patch) s[k] = patch[k]; });
   // Staff may edit the registration list from the console — sanitise exactly like the guest-submitted path.
   if ('guestList' in patch) s.guestList = sanitizeGuestList(patch.guestList);
+  if ('reservations' in patch) s.reservations = sanitizeReservations(patch.reservations);
   syncProvisioning(s, patch); // board Super ↔ grocery Provisioning (Super) are one field
 
   s.updatedAt = Date.now();
@@ -1951,6 +1953,22 @@ function sanitizeDiet(d) {
     ? Array.from(new Set(d.avoid.map(x => norm(x).slice(0, 40)).filter(x => DIET_TAGS.includes(x)))).slice(0, 20)
     : [];
   return { avoid, notes: norm(d.notes).slice(0, 200) };
+}
+/** Shape guard for dining reservations (staff-only). */
+function sanitizeReservations(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 80).map(r => ({
+    id: (norm(r && r.id).slice(0, 40)) || genId(),
+    date: norm(r && r.date).slice(0, 20),
+    time: norm(r && r.time).slice(0, 20),
+    place: norm(r && r.place).slice(0, 80),
+    pax: Math.max(0, Math.min(300, parseInt(r && r.pax, 10) || 0)),
+    menu: norm(r && r.menu).slice(0, 120),
+    cost: norm(r && r.cost).slice(0, 40),
+    deposit: norm(r && r.deposit).slice(0, 40),
+    cancelBy: norm(r && r.cancelBy).slice(0, 20),
+    note: norm(r && r.note).slice(0, 200),
+  })).filter(r => r.place || r.date);
 }
 /** Shared shape guard for the registration list — used by both the guest submit and the console editor. */
 function sanitizeGuestList(guests) {
