@@ -662,6 +662,7 @@
   .secbar-admin{border-top:1px solid rgba(255,255,255,.09);padding-top:9px}
   .secbar .secnav-gl{color:#8FB39C;letter-spacing:.14em;display:none}
   .secbar .secnav-chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.22);color:#E9F1EB;font-weight:500;font-size:1em;padding:.34em .92em;border-radius:1.3em}
+  .secbar .secnav-sep{flex:0 0 auto;color:rgba(255,255,255,.28);font-size:1.35em;line-height:1;font-weight:300;user-select:none;pointer-events:none}
   .secbar .secnav-chip:hover{border-color:#fff;color:#fff}
   .secbar .secnav-chip.on{background:#fff;border-color:#fff;color:var(--hedge);font-weight:600}
   .secnav{position:sticky;top:0;z-index:20;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:7px 12px;align-items:center;box-shadow:0 -24px 0 var(--bg),0 4px 11px rgba(31,42,36,.07)}
@@ -2590,7 +2591,8 @@ function buildSecNav(){
     return chips.length?`<span class="secnav-g"><span class="secnav-gl">${esc(grp.g)}</span>${chips.join('')}</span>`:'';
   };
   // All groups on one centered row, in SECNAV_GROUPS order (Booking · Admin · Requirements · Billing).
-  const mainHtml=SECNAV_GROUPS.map(groupHtml).join('');
+  // Group labels are hidden to save room; a thin "|" separates the groups instead.
+  const mainHtml=SECNAV_GROUPS.map(groupHtml).filter(Boolean).join('<span class="secnav-sep" aria-hidden="true">|</span>');
   bar.innerHTML=mainHtml?`<div class="secbar-row secbar-main">${mainHtml}</div>`:'';
   fitSecBar();
 }
@@ -3452,8 +3454,8 @@ function sotEditor(){ sotEnsure(); const list=cur.staffLog; const tot=list.reduc
     </div>`; }).join('');
   const dep=parseFloat(String(cur.securityDeposit||'').replace(/[^0-9.]/g,''))||0;
   return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No overtime logged yet — add housekeeper/chef OT, laundry per day, etc.</div>'}
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="reqx" onclick="sotAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add OT entry</button>${list.length?`<span style="font-size:13px;font-weight:700;color:#9E5B43">Total OT: US$ ${tot.toLocaleString('en-US')}</span>`:''}</div>
-    <div class="counter">Overtime &amp; extras (hours × rate; for laundry use days × rate). Total is deducted from the security deposit${dep?(' (US$ '+dep.toLocaleString('en-US')+')'):''} at checkout. Staff-only. Remember to Save.</div></div>`;
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="reqx" onclick="sotAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add OT entry</button>${list.length?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="reqx" onclick="openStaffOTInvoice()" style="color:var(--accent);border-color:#BFD3C2">＋ Create invoice</button><span style="font-size:13px;font-weight:700;color:#9E5B43">Total OT: US$ ${tot.toLocaleString('en-US')}</span></span>`:''}</div>
+    <div class="counter">Overtime &amp; extras (hours × rate; for laundry use days × rate). Deduct from the security deposit${dep?(' (US$ '+dep.toLocaleString('en-US')+')'):''} at checkout — or tap <b>Create invoice</b> to bill it to the guest instead. Staff-only. Remember to Save.</div></div>`;
 }
 window.sotItem=function(i,f,v){ sotEnsure(); const r=cur.staffLog[i]; if(!r)return; if(f==='remove'){ cur.staffLog.splice(i,1); markDirty(); renderEditor(); return; } r[f]=(f==='hours'||f==='rate')?(Math.max(0,parseFloat(String(v).replace(/[^0-9.]/g,''))||0)):String(v||''); markDirty(); if(f==='hours'||f==='rate')renderEditor(); };
 window.sotAdd=function(){ sotEnsure(); cur.staffLog.push({id:'',date:'',role:'',hours:0,rate:0,note:''}); markDirty(); renderEditor(); };
@@ -3978,6 +3980,10 @@ window.openYachtInvoice=function(){ if(!cur)return; _invDraft={id:'',kind:'yacht
 /* "Other" invoice: fully manual — for services not in the console catalog. No fill-from
    pickers; every field typed by hand. kind is draft-only (not persisted). */
 window.openOtherInvoice=function(){ if(!cur)return; _invDraft={id:'',kind:'other',title:'',items:[{label:'',amount:'',rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); const t=document.getElementById('invTitle'); if(t)t.focus(); };
+/* Bill the staff-overtime log to the guest as an invoice (alternative to deducting from the deposit). */
+window.openStaffOTInvoice=function(){ if(!cur)return; if(!Array.isArray(cur.staffLog))cur.staffLog=[]; const log=cur.staffLog.filter(r=>((Number(r.hours)||0)*(Number(r.rate)||0))>0); if(!log.length){ toast&&toast('Add overtime entries first'); return; }
+  const items=log.map(r=>{ const amt=Math.round((Number(r.hours)||0)*(Number(r.rate)||0)*100)/100; const label=[r.role||'Staff overtime',(r.date||''),((Number(r.hours)||0)+' × US$ '+(Number(r.rate)||0))].filter(Boolean).join(' · '); return {label,amount:String(amt),rate:'',days:''}; });
+  _invDraft={id:'',kind:'other',title:'Staff overtime',items,legalPct:0,servicePct:0,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 window.openInvoiceFor=function(name,rate){ if(!cur)return; const fm=firstMoney(rate); const amt=(fm.n&&!fm.multi)?String(fm.n):''; _invDraft={id:'',title:name||'Service',items:[{label:name||'',amount:amt,rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 /* Invoice a confirmed concierge-sent service — carries the dates/details captured on the send form
    into the invoice line (dateFrom/dateTo → the right date block, per-day rentals get days × rate). */
