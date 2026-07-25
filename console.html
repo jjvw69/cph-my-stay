@@ -3363,28 +3363,43 @@ window.finUpload=function(inp){ if(!cur||!CAN_REV)return; const f=inp&&inp.files
   rd.onerror=()=>toast&&toast('Could not read file'); rd.readAsDataURL(f); };
 window.finAttOpen=function(stayId,attId){ window.open('/api/staff/stays/'+stayId+'/attachments/'+attId,'_blank'); };
 window.finAttDel=async function(stayId,attId){ if(!confirm('Delete this attachment? This cannot be undone.'))return; let r; try{ r=await api('/api/staff/stays/'+stayId+'/attachments/'+attId,{method:'DELETE'}); }catch(e){ r=null; } if(r&&r.ok){ toast&&toast('Deleted'); viewFinancials(); } else toast&&toast('Could not delete'); };
+/* ---- Shared aligned-table editor helper (CSS grid: every column shares one fixed track for
+       the header + all rows, so headers always line up with their fields; numeric/narrow columns
+       stay tight, text columns flex). One row per record + a remove ✕; optional footer + counter.
+       All five section editors (Dining, Itinerary, Staff OT, Golf carts, Rooms & beds) call this. ---- */
+function rowTable(o){
+  const cols=o.cols||[], list=o.list||[], item=o.item, add=o.add;
+  const GT='display:grid;grid-template-columns:'+cols.map(c=>c.w).join(' ')+' 32px;gap:6px;align-items:center';
+  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-left:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const cell=(c,r,i)=>{
+    if(c.type==='ro') return `<span style="${GIN};width:100%;min-width:0;display:flex;align-items:center;justify-content:flex-end;background:#F6F4EF;border-style:dashed;font-weight:600">${c.compute?c.compute(r):''}</span>`;
+    if(c.type==='select'){ const opts=(c.options||[]).map(op=>`<option value="${op[0]}" ${String(r[c.field])===String(op[0])?'selected':''}>${escA(op[1])}</option>`).join(''); return `<select onchange="${item}(${i},'${c.field}',this.value)" style="${GIN};width:100%;min-width:0">${opts}</select>`; }
+    const dt=c.type==='date', num=c.type==='number';
+    const val=num?(r[c.field]||''):escA(r[c.field]||'');
+    return `<input ${dt?'type="date"':(num?'type="number"':'')} value="${val}" onchange="${item}(${i},'${c.field}',this.value)" placeholder="${escA(c.ph||'')}"${c.title?` title="${escA(c.title)}"`:''} style="${GIN};width:100%;min-width:0${c.align==='right'?';text-align:right':''}">`;
+  };
+  const header=list.length?`<div style="${GT};padding:0 0 3px 0">${cols.map(c=>`<span style="${hstyle}${c.align==='right'?';padding-left:0;padding-right:4px;text-align:right':''}">${c.label}</span>`).join('')}<span></span></div>`:'';
+  const rows=list.map((r,i)=>`<div style="${GT};padding:5px 0;border-top:1px solid var(--line)">${cols.map(c=>cell(c,r,i)).join('')}<button class="reqx" onclick="${item}(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6;padding:0;width:32px;height:30px" title="Remove">✕</button></div>`).join('');
+  const addBtn=`<button class="reqx" onclick="${add}()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">${o.addLabel||'+ Add'}</button>`;
+  const footRow=o.footer?`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">${addBtn}${o.footer}</div>`:`<div style="margin-top:8px">${addBtn}</div>`;
+  return `<div style="margin-top:6px"><div style="overflow-x:auto">${header}${rows||('<div class="counter" style="margin-bottom:8px">'+(o.empty||'Nothing yet.')+'</div>')}</div>${footRow}${o.counter?('<div class="counter">'+o.counter+'</div>'):''}</div>`;
+}
 /* ---- Dining reservations (staff-only; rolls up across a reunion) ---- */
 function resEnsure(){ if(!Array.isArray(cur.reservations))cur.reservations=[]; }
-function resEditor(){ resEnsure(); const list=cur.reservations;
-  const rows=list.map((r,i)=>`<div style="border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <input type="date" value="${escA(r.date||'')}" onchange="resItem(${i},'date',this.value)" style="${GIN};flex:0 0 145px">
-      <input value="${escA(r.time||'')}" onchange="resItem(${i},'time',this.value)" placeholder="7:30 PM" style="${GIN};flex:0 0 92px">
-      <input value="${escA(r.place||'')}" onchange="resItem(${i},'place',this.value)" placeholder="Restaurant" style="${GIN};flex:1;min-width:120px">
-      <input type="number" value="${r.pax||''}" onchange="resItem(${i},'pax',this.value)" placeholder="PAX" style="${GIN};flex:0 0 66px">
-      <button class="reqx" onclick="resItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-      <input value="${escA(r.menu||'')}" onchange="resItem(${i},'menu',this.value)" placeholder="Menu (e.g. Prix fixe)" style="${GIN};flex:1;min-width:120px">
-      <input value="${escA(r.cost||'')}" onchange="resItem(${i},'cost',this.value)" placeholder="Cost e.g. US$ 65 pp" style="${GIN};flex:0 0 140px">
-      <input value="${escA(r.deposit||'')}" onchange="resItem(${i},'deposit',this.value)" placeholder="Deposit" style="${GIN};flex:0 0 110px">
-      <input type="date" value="${escA(r.cancelBy||'')}" onchange="resItem(${i},'cancelBy',this.value)" title="Cancel by" style="${GIN};flex:0 0 145px">
-    </div>
-    <input value="${escA(r.note||'')}" onchange="resItem(${i},'note',this.value)" placeholder="Note (optional)" style="${GIN};width:100%;margin-top:6px">
-  </div>`).join('');
-  return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No reservations yet — add the group’s dining schedule below.</div>'}
-    <div style="margin-top:6px"><button class="reqx" onclick="resAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add reservation</button></div>
-    <div class="counter">Date, restaurant, PAX, menu, cost, deposit &amp; cancel-by. Rolls up across a reunion. Remember to Save.</div></div>`;
+function resEditor(){ resEnsure();
+  return rowTable({ list:cur.reservations, item:'resItem', add:'resAdd', addLabel:'+ Add reservation',
+    empty:'No reservations yet — add the group’s dining schedule below.',
+    counter:'Date, restaurant, PAX, menu, cost, deposit &amp; cancel-by. Rolls up across a reunion. Remember to Save.',
+    cols:[
+      {label:'Date',field:'date',type:'date',w:'132px'},
+      {label:'Time',field:'time',ph:'7:30 PM',w:'80px'},
+      {label:'Restaurant',field:'place',ph:'Restaurant',w:'minmax(140px,1.5fr)'},
+      {label:'PAX',field:'pax',type:'number',ph:'#',align:'right',w:'54px'},
+      {label:'Menu',field:'menu',ph:'e.g. Prix fixe',w:'minmax(120px,1.2fr)'},
+      {label:'Cost',field:'cost',ph:'US$ 65 pp',w:'112px'},
+      {label:'Deposit',field:'deposit',ph:'Deposit',w:'96px'},
+      {label:'Cancel by',field:'cancelBy',type:'date',w:'132px'},
+      {label:'Note',field:'note',ph:'Note',w:'minmax(110px,1fr)'} ] });
 }
 window.resItem=function(i,f,v){ resEnsure(); const r=cur.reservations[i]; if(!r)return; if(f==='remove'){ cur.reservations.splice(i,1); markDirty(); renderEditor(); return; } r[f]=(f==='pax')?(Math.max(0,parseInt(v,10)||0)):String(v||''); markDirty(); };
 window.resAdd=function(){ resEnsure(); cur.reservations.push({id:'',date:'',time:'',place:'',pax:0,menu:'',cost:'',deposit:'',cancelBy:'',note:''}); markDirty(); renderEditor(); };
@@ -3403,22 +3418,16 @@ window.viewDiningSchedule=async function(){ if(!cur)return; const gid=cur.linkGr
 };
 /* ---- Itinerary / schedule (staff-editable; shown to the guest; rolls up across a reunion) ---- */
 function itnEnsure(){ if(!Array.isArray(cur.itinerary))cur.itinerary=[]; }
-function itnEditor(){ itnEnsure(); const list=cur.itinerary;
-  const rows=list.map((r,i)=>`<div style="border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px">
-    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-      <input type="date" value="${escA(r.date||'')}" onchange="itnItem(${i},'date',this.value)" style="${GIN};flex:0 0 145px">
-      <input value="${escA(r.time||'')}" onchange="itnItem(${i},'time',this.value)" placeholder="Time" style="${GIN};flex:0 0 92px">
-      <input value="${escA(r.title||'')}" onchange="itnItem(${i},'title',this.value)" placeholder="Title e.g. Cousin Olympics · Beach Day" style="${GIN};flex:1;min-width:140px">
-      <button class="reqx" onclick="itnItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-      <input value="${escA(r.place||'')}" onchange="itnItem(${i},'place',this.value)" placeholder="Location" style="${GIN};flex:0 0 190px">
-      <input value="${escA(r.note||'')}" onchange="itnItem(${i},'note',this.value)" placeholder="Note (optional)" style="${GIN};flex:1;min-width:120px">
-    </div>
-  </div>`).join('');
-  return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No schedule items yet — add dinners, events and activities the guests should see.</div>'}
-    <div style="margin-top:6px"><button class="reqx" onclick="itnAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add schedule item</button></div>
-    <div class="counter">Guests see this in My Stay. Remember to Save.</div></div>`;
+function itnEditor(){ itnEnsure();
+  return rowTable({ list:cur.itinerary, item:'itnItem', add:'itnAdd', addLabel:'+ Add schedule item',
+    empty:'No schedule items yet — add dinners, events and activities the guests should see.',
+    counter:'Guests see this in My Stay. Remember to Save.',
+    cols:[
+      {label:'Date',field:'date',type:'date',w:'132px'},
+      {label:'Time',field:'time',ph:'Time',w:'80px'},
+      {label:'Title',field:'title',ph:'e.g. Cousin Olympics · Beach Day',w:'minmax(150px,1.7fr)'},
+      {label:'Location',field:'place',ph:'Location',w:'minmax(120px,1.2fr)'},
+      {label:'Note',field:'note',ph:'Note',w:'minmax(110px,1fr)'} ] });
 }
 window.itnItem=function(i,f,v){ itnEnsure(); const r=cur.itinerary[i]; if(!r)return; if(f==='remove'){ cur.itinerary.splice(i,1); markDirty(); renderEditor(); return; } r[f]=String(v||''); markDirty(); };
 window.itnAdd=function(){ itnEnsure(); cur.itinerary.push({id:'',date:'',time:'',title:'',place:'',note:''}); markDirty(); renderEditor(); };
@@ -3443,19 +3452,18 @@ window.viewAgenda=async function(){ if(!cur)return; const gid=cur.linkGroupId; c
 /* ---- Staff overtime log (staff-only): hours×rate, total deducted from the security deposit; reunion roll-up ---- */
 function sotEnsure(){ if(!Array.isArray(cur.staffLog))cur.staffLog=[]; }
 function sotEditor(){ sotEnsure(); const list=cur.staffLog; const tot=list.reduce((a,r)=>a+((Number(r.hours)||0)*(Number(r.rate)||0)),0);
-  const rows=list.map((r,i)=>{ const amt=(Number(r.hours)||0)*(Number(r.rate)||0);
-    return `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
-      <input type="date" value="${escA(r.date||'')}" onchange="sotItem(${i},'date',this.value)" style="${GIN};flex:0 0 140px">
-      <input value="${escA(r.role||'')}" onchange="sotItem(${i},'role',this.value)" placeholder="Role e.g. Housekeeper / Chef / Laundry" style="${GIN};flex:1;min-width:130px">
-      <input type="number" value="${r.hours||''}" onchange="sotItem(${i},'hours',this.value)" placeholder="Hrs/days" title="Hours (or days for laundry)" style="${GIN};flex:0 0 82px">
-      <input type="number" value="${r.rate||''}" onchange="sotItem(${i},'rate',this.value)" placeholder="Rate US$" style="${GIN};flex:0 0 92px">
-      <span style="flex:0 0 78px;text-align:right;font-size:12.5px;font-weight:600">US$ ${amt.toLocaleString('en-US')}</span>
-      <button class="reqx" onclick="sotItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
-    </div>`; }).join('');
   const dep=parseFloat(String(cur.securityDeposit||'').replace(/[^0-9.]/g,''))||0;
-  return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No overtime logged yet — add housekeeper/chef OT, laundry per day, etc.</div>'}
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="reqx" onclick="sotAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add OT entry</button>${list.length?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="reqx" onclick="openStaffOTInvoice()" style="color:var(--accent);border-color:#BFD3C2">＋ Create invoice</button><span style="font-size:13px;font-weight:700;color:#9E5B43">Total OT: US$ ${tot.toLocaleString('en-US')}</span></span>`:''}</div>
-    <div class="counter">Overtime &amp; extras (hours × rate; for laundry use days × rate). Deduct from the security deposit${dep?(' (US$ '+dep.toLocaleString('en-US')+')'):''} at checkout — or tap <b>Create invoice</b> to bill it to the guest instead. Staff-only. Remember to Save.</div></div>`;
+  const footer=list.length?`<span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="reqx" onclick="openStaffOTInvoice()" style="color:var(--accent);border-color:#BFD3C2">＋ Create invoice</button><span style="font-size:13px;font-weight:700;color:#9E5B43">Total OT: US$ ${tot.toLocaleString('en-US')}</span></span>`:'';
+  return rowTable({ list, item:'sotItem', add:'sotAdd', addLabel:'+ Add OT entry', footer,
+    empty:'No overtime logged yet — add housekeeper/chef OT, laundry per day, etc.',
+    counter:`Overtime &amp; extras (hours × rate; for laundry use days × rate). Deduct from the security deposit${dep?(' (US$ '+dep.toLocaleString('en-US')+')'):''} at checkout — or tap <b>Create invoice</b> to bill it to the guest instead. Staff-only. Remember to Save.`,
+    cols:[
+      {label:'Date',field:'date',type:'date',w:'132px'},
+      {label:'Role',field:'role',ph:'Housekeeper / Chef / Laundry',w:'minmax(140px,1.6fr)'},
+      {label:'Hrs/days',field:'hours',type:'number',ph:'0',title:'Hours (or days for laundry)',align:'right',w:'76px'},
+      {label:'Rate US$',field:'rate',type:'number',ph:'0',align:'right',w:'88px'},
+      {label:'Amount',type:'ro',w:'96px',compute:r=>'US$ '+((Number(r.hours)||0)*(Number(r.rate)||0)).toLocaleString('en-US')},
+      {label:'Note',field:'note',ph:'Note',w:'minmax(110px,1fr)'} ] });
 }
 window.sotItem=function(i,f,v){ sotEnsure(); const r=cur.staffLog[i]; if(!r)return; if(f==='remove'){ cur.staffLog.splice(i,1); markDirty(); renderEditor(); return; } r[f]=(f==='hours'||f==='rate')?(Math.max(0,parseFloat(String(v).replace(/[^0-9.]/g,''))||0)):String(v||''); markDirty(); if(f==='hours'||f==='rate')renderEditor(); };
 window.sotAdd=function(){ sotEnsure(); cur.staffLog.push({id:'',date:'',role:'',hours:0,rate:0,note:''}); markDirty(); renderEditor(); };
@@ -3476,15 +3484,14 @@ window.viewStaffOT=async function(){ if(!cur)return; const gid=cur.linkGroupId; 
 /* ---- Golf-cart fleet: per-person cart assignment roster (staff-only) + reunion seat roll-up ---- */
 function crtEnsure(){ if(!Array.isArray(cur.carts))cur.carts=[]; }
 function crtEditor(){ crtEnsure(); const list=cur.carts; const totSeats=list.reduce((a,r)=>a+(Number(r.seats)||0),0);
-  const rows=list.map((r,i)=>`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
-    <input value="${escA(r.name||'')}" onchange="crtItem(${i},'name',this.value)" placeholder="Guest name" style="${GIN};flex:1;min-width:130px">
-    <select onchange="crtItem(${i},'seats',this.value)" style="${GIN};flex:0 0 108px">${[0,2,4,6,8].map(n=>`<option value="${n}" ${Number(r.seats)===n?'selected':''}>${n?n+' seater':'— seats —'}</option>`).join('')}</select>
-    <input value="${escA(r.note||'')}" onchange="crtItem(${i},'note',this.value)" placeholder="Note / kart #" style="${GIN};flex:0 0 150px">
-    <button class="reqx" onclick="crtItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6" title="Remove">✕</button>
-  </div>`).join('');
-  return `<div style="margin-top:6px">${rows||'<div class="counter" style="margin-bottom:8px">No carts assigned yet.</div>'}
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="reqx" onclick="crtAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add cart</button>${list.length?`<span style="font-size:12.5px;font-weight:700;color:var(--purple)">${list.length} carts · ${totSeats} seats</span>`:''}</div>
-    <div class="counter">Who gets which cart (seats). Rolls up across a reunion to a total-seats count. Staff-only. Remember to Save.</div></div>`;
+  const footer=list.length?`<span style="font-size:12.5px;font-weight:700;color:var(--purple)">${list.length} carts · ${totSeats} seats</span>`:'';
+  return rowTable({ list, item:'crtItem', add:'crtAdd', addLabel:'+ Add cart', footer,
+    empty:'No carts assigned yet.',
+    counter:'Who gets which cart (seats). Rolls up across a reunion to a total-seats count. Staff-only. Remember to Save.',
+    cols:[
+      {label:'Guest',field:'name',ph:'Guest name',w:'minmax(140px,1.6fr)'},
+      {label:'Seats',field:'seats',type:'select',w:'108px',options:[[0,'— seats —'],[2,'2 seater'],[4,'4 seater'],[6,'6 seater'],[8,'8 seater']]},
+      {label:'Note',field:'note',ph:'Note / kart #',w:'minmax(120px,1.2fr)'} ] });
 }
 window.crtItem=function(i,f,v){ crtEnsure(); const r=cur.carts[i]; if(!r)return; if(f==='remove'){ cur.carts.splice(i,1); markDirty(); renderEditor(); return; } r[f]=(f==='seats')?(Math.max(0,parseInt(v,10)||0)):String(v||''); markDirty(); if(f==='seats')renderEditor(); };
 window.crtAdd=function(){ crtEnsure(); cur.carts.push({id:'',name:'',seats:0,house:'',note:''}); markDirty(); renderEditor(); };
@@ -3520,19 +3527,16 @@ window.viewOccupancy=async function(){ if(!cur)return; const gid=cur.linkGroupId
 };
 /* ---- Rooms & beds assignment board (staff-only; rolls up across a reunion) ---- */
 function roomEnsure(){ if(!Array.isArray(cur.rooms))cur.rooms=[]; }
-function roomEditor(){ roomEnsure(); const list=cur.rooms;
-  // Compact one-row-per-bedroom TABLE. CSS grid gives every column a fixed track shared by the header
-  // and each row, so columns always line up. Room is narrow (just a number); "Who's in it" gets the most.
-  const GT='display:grid;grid-template-columns:50px minmax(130px,1.2fr) minmax(160px,1.7fr) 132px minmax(110px,1.1fr) 32px;gap:6px;align-items:center';
-  const LBL=['Room','Beds',"Who's in it",'Dates','Note'];
-  const F=['name','beds','guests','dates','note'];
-  const PH=['#','King / 2 Queen',"Who's in it (names)",'Jul 27-Aug 8','Note'];
-  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-left:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-  const header=list.length?`<div style="${GT};padding:0 0 3px 0">${LBL.map(t=>`<span style="${hstyle}">${t}</span>`).join('')}<span></span></div>`:'';
-  const rows=list.map((r,i)=>`<div style="${GT};padding:5px 0;border-top:1px solid var(--line)">${F.map((f,j)=>`<input value="${escA(r[f]||'')}" onchange="roomItem(${i},'${f}',this.value)" placeholder="${PH[j]}" style="${GIN};width:100%;min-width:0">`).join('')}<button class="reqx" onclick="roomItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6;padding:0;width:32px;height:30px" title="Remove">✕</button></div>`).join('');
-  return `<div style="margin-top:6px"><div style="overflow-x:auto">${header}${rows||'<div class="counter" style="margin-bottom:8px">No rooms yet — map each bedroom, its beds and who sleeps where.</div>'}</div>
-    <div style="margin-top:8px"><button class="reqx" onclick="roomAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add bedroom</button></div>
-    <div class="counter">One row per bedroom — bed config, occupants &amp; dates (handy for staggered arrivals). Staff-only. Rolls up across a reunion. Remember to Save.</div></div>`;
+function roomEditor(){ roomEnsure();
+  return rowTable({ list:cur.rooms, item:'roomItem', add:'roomAdd', addLabel:'+ Add bedroom',
+    empty:'No rooms yet — map each bedroom, its beds and who sleeps where.',
+    counter:'One row per bedroom — bed config, occupants &amp; dates (handy for staggered arrivals). Staff-only. Rolls up across a reunion. Remember to Save.',
+    cols:[
+      {label:'Room',field:'name',ph:'#',w:'50px'},
+      {label:'Beds',field:'beds',ph:'King / 2 Queen',w:'minmax(130px,1.2fr)'},
+      {label:"Who's in it",field:'guests',ph:'Names',w:'minmax(160px,1.7fr)'},
+      {label:'Dates',field:'dates',ph:'Jul 27-Aug 8',w:'132px'},
+      {label:'Note',field:'note',ph:'Note',w:'minmax(110px,1.1fr)'} ] });
 }
 window.roomItem=function(i,f,v){ roomEnsure(); const r=cur.rooms[i]; if(!r)return; if(f==='remove'){ cur.rooms.splice(i,1); markDirty(); renderEditor(); return; } r[f]=String(v||''); markDirty(); };
 window.roomAdd=function(){ roomEnsure(); cur.rooms.push({id:'',name:'',beds:'',guests:'',dates:'',note:''}); markDirty(); renderEditor(); };
