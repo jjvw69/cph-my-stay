@@ -3525,8 +3525,8 @@ function roomEditor(){ roomEnsure(); const list=cur.rooms;
   const cols=[['Bedroom','flex:0 0 118px'],['Beds','flex:1 1 130px;min-width:110px'],["Who's in it",'flex:1 1 160px;min-width:120px'],['Dates','flex:0 1 140px;min-width:105px'],['Note','flex:1 1 115px;min-width:95px']];
   const F=['name','beds','guests','dates','note'];
   const PH=['Bedroom 1','King / 2 Queen',"Who's in it (names)",'Jul 27-Aug 8','Note'];
-  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600';
-  const header=list.length?`<div style="display:flex;gap:6px;align-items:center;padding:0 0 3px 2px">${cols.map(c=>`<span style="${c[1]};${hstyle}">${c[0]}</span>`).join('')}<span style="flex:0 0 30px"></span></div>`:'';
+  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;box-sizing:border-box;padding-left:9px';
+  const header=list.length?`<div style="display:flex;gap:6px;align-items:center;padding:0 0 3px 0">${cols.map(c=>`<span style="${c[1]};${hstyle}">${c[0]}</span>`).join('')}<span style="flex:0 0 30px"></span></div>`:'';
   const rows=list.map((r,i)=>`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0;border-top:1px solid var(--line)">${F.map((f,j)=>`<input value="${escA(r[f]||'')}" onchange="roomItem(${i},'${f}',this.value)" placeholder="${PH[j]}" style="${GIN};${cols[j][1]}">`).join('')}<button class="reqx" onclick="roomItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6;flex:0 0 auto" title="Remove">✕</button></div>`).join('');
   return `<div style="margin-top:6px">${header}${rows||'<div class="counter" style="margin-bottom:8px">No rooms yet — map each bedroom, its beds and who sleeps where.</div>'}
     <div style="margin-top:8px"><button class="reqx" onclick="roomAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add bedroom</button></div>
