@@ -3521,14 +3521,16 @@ window.viewOccupancy=async function(){ if(!cur)return; const gid=cur.linkGroupId
 /* ---- Rooms & beds assignment board (staff-only; rolls up across a reunion) ---- */
 function roomEnsure(){ if(!Array.isArray(cur.rooms))cur.rooms=[]; }
 function roomEditor(){ roomEnsure(); const list=cur.rooms;
-  // Compact one-row-per-bedroom table — uses the full editor width so many rooms fit at a glance.
-  const cols=[['Room','flex:0 0 58px'],['Beds','flex:1 1 150px;min-width:120px'],["Who's in it",'flex:1 1 175px;min-width:130px'],['Dates','flex:0 1 140px;min-width:105px'],['Note','flex:1 1 125px;min-width:100px']];
+  // Compact one-row-per-bedroom TABLE. CSS grid gives every column a fixed track shared by the header
+  // and each row, so columns always line up. Room is narrow (just a number); "Who's in it" gets the most.
+  const GT='display:grid;grid-template-columns:50px minmax(130px,1.2fr) minmax(160px,1.7fr) 132px minmax(110px,1.1fr) 32px;gap:6px;align-items:center';
+  const LBL=['Room','Beds',"Who's in it",'Dates','Note'];
   const F=['name','beds','guests','dates','note'];
   const PH=['#','King / 2 Queen',"Who's in it (names)",'Jul 27-Aug 8','Note'];
-  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;box-sizing:border-box;padding-left:9px';
-  const header=list.length?`<div style="display:flex;gap:6px;align-items:center;padding:0 0 3px 0">${cols.map(c=>`<span style="${c[1]};${hstyle}">${c[0]}</span>`).join('')}<span style="flex:0 0 30px"></span></div>`:'';
-  const rows=list.map((r,i)=>`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:5px 0;border-top:1px solid var(--line)">${F.map((f,j)=>`<input value="${escA(r[f]||'')}" onchange="roomItem(${i},'${f}',this.value)" placeholder="${PH[j]}" style="${GIN};${cols[j][1]}">`).join('')}<button class="reqx" onclick="roomItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6;flex:0 0 auto" title="Remove">✕</button></div>`).join('');
-  return `<div style="margin-top:6px">${header}${rows||'<div class="counter" style="margin-bottom:8px">No rooms yet — map each bedroom, its beds and who sleeps where.</div>'}
+  const hstyle='color:#9AA49B;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;padding-left:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const header=list.length?`<div style="${GT};padding:0 0 3px 0">${LBL.map(t=>`<span style="${hstyle}">${t}</span>`).join('')}<span></span></div>`:'';
+  const rows=list.map((r,i)=>`<div style="${GT};padding:5px 0;border-top:1px solid var(--line)">${F.map((f,j)=>`<input value="${escA(r[f]||'')}" onchange="roomItem(${i},'${f}',this.value)" placeholder="${PH[j]}" style="${GIN};width:100%;min-width:0">`).join('')}<button class="reqx" onclick="roomItem(${i},'remove')" style="color:#9E5B43;border-color:#E3C4B6;padding:0;width:32px;height:30px" title="Remove">✕</button></div>`).join('');
+  return `<div style="margin-top:6px"><div style="overflow-x:auto">${header}${rows||'<div class="counter" style="margin-bottom:8px">No rooms yet — map each bedroom, its beds and who sleeps where.</div>'}</div>
     <div style="margin-top:8px"><button class="reqx" onclick="roomAdd()" style="color:#fff;background:var(--accent);border-color:var(--accent);font-weight:700">+ Add bedroom</button></div>
     <div class="counter">One row per bedroom — bed config, occupants &amp; dates (handy for staggered arrivals). Staff-only. Rolls up across a reunion. Remember to Save.</div></div>`;
 }
