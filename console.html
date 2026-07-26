@@ -450,10 +450,6 @@
   /* "today" arrival pill — same red as the arriving-today left card marker. */
   .tr-tag.today{background:#C0392B;color:#fff}
   .nrx{margin-bottom:8px}
-  /* Two-column layout for the Today's-overview unpaid-invoice rows. align-items:start so an
-     expanded row grows inside its own cell without stretching its neighbour. */
-  .inv2col{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start}
-  @media(max-width:720px){.inv2col{grid-template-columns:1fr}}
   .nrx .nrx-head{margin-bottom:0}
   .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
   .nrx.open .nrx-chev{transform:rotate(90deg)}
@@ -2310,7 +2306,8 @@ function unpaidRow(s){
   // without expanding. Past its date → "overdue" in red.
   const due=(inv.map(i=>i.dueBy).filter(Boolean).sort()[0])||'';
   const overdue=!!(due&&due<todayStr());
-  const dueChip=due?`<span class="tr-sep">·</span><span class="inx-due${overdue?' od':''}">${overdue?'overdue':'due'} ${esc(fmtDay(due))}</span>`:'';
+  const _dueFmt=d=>{const dt=new Date(d+'T00:00:00');return isNaN(dt)?d:dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});};
+  const dueChip=due?`<span class="tr-sep">·</span><span class="inx-due${overdue?' od':''}">${overdue?'overdue':'due'} ${esc(_dueFmt(due))}</span>`:'';
   const lines=inv.length?inv.map(i=>`<div class="nrx-item"><span>${esc(i.title)}${i.no?' <span class="inx-no">#'+esc(String(i.no))+'</span>':''}${i.dueBy?' <span class="nrx-pend" style="color:var(--soft)">· due '+esc(fmtLongDate(i.dueBy))+'</span>':''}</span><span class="inx-amt">US$ ${(i.total||0).toLocaleString()}</span></div>`).join(''):`<div class="nrx-item">No itemised invoices found.</div>`;
   return `<div class="nrx ${open?'open':''}" id="inx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleInv('${s.id}')">
@@ -2467,7 +2464,7 @@ function renderToday(){
       ${stat(reviewDue.length,'Reviews to request','reviewDue')}
     </div>
     ${/* Money owed sits directly under the cards, above the upsell panel. */''}
-    ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$ ${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3><div class="inv2col">${unpaid.map(s=>unpaidRow(s)).join('')}</div></div>`:''}
+    ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$ ${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3>${unpaid.map(s=>unpaidRow(s)).join('')}</div>`:''}
     ${/* Upsell/revenue MOVED OUT 2026-07-14 → the owner-only "Revenue" view (showRevenue). Concierges
           shouldn't be looking at money; they should be looking at what needs doing. */''}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
