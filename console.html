@@ -2292,7 +2292,7 @@ function notReadyRow(s){
   return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''} ${nrToday?'nr-today':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
       <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
-      <span class="tr-tag red tr-tag-sm">Check-in Pending</span><span class="nrx-chev">▸</span>
+      <span class="tr-tag red tr-tag-sm">Check-in</span><span class="nrx-chev">▸</span>
     </button>
     <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
       <div class="nrx-item"><span class="nrx-ic no">!</span><span>Complete pre check-in <span class="nrx-pend">— pending</span></span></div>
