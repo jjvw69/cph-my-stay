@@ -438,6 +438,9 @@
   .today-row .tr-tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:600;border-radius:20px;padding:3px 11px;white-space:nowrap}
   .tr-tag.amber{background:#FBF1D8;color:#9A7B36}
   .tr-tag.red{background:#F3DADA;color:#9A2B2B}
+  /* Compact tag — used on the Arrivals-not-ready "Pre check-in pending" pill so the row's guest ·
+     villa · arrival text keeps to a single line in the narrow year columns. */
+  .today-row .tr-tag.tr-tag-sm{font-size:10px;padding:2px 8px}
   /* Follow-ups due wear the same purple as the "N follow-ups due" badge in the top bar — one colour,
      one meaning: a dated promise to a guest. */
   .fudue-sec .today-row{background:var(--purple);border-color:var(--purple)}
@@ -2289,7 +2292,7 @@ function notReadyRow(s){
   return `<div class="nrx ${open?'open':''} ${nrInhouse?'nr-inhouse':''} ${nrToday?'nr-today':''}" id="nrx-${s.id}">
     <button class="today-row nrx-head" onclick="toggleNR('${s.id}')">
       <span class="tr-main"><span class="tr-g">${esc(s.guest)}</span><span class="tr-sep">|</span><span class="tr-m">${esc(s.villa||'—')} · ${(p=>p.txt==='in house'?'in house':(p.txt==='today'?'arrives today':p.txt))(arrPill(s))}</span></span>
-      <span class="tr-tag red">Pre check-in pending</span><span class="nrx-chev">▸</span>
+      <span class="tr-tag red tr-tag-sm">Pre check-in pending</span><span class="nrx-chev">▸</span>
     </button>
     <div class="nrx-body" id="nrb-${s.id}" style="display:${open?'block':'none'}">
       <div class="nrx-item"><span class="nrx-ic no">!</span><span>Complete pre check-in <span class="nrx-pend">— pending</span></span></div>
