@@ -450,6 +450,10 @@
   /* "today" arrival pill — same red as the arriving-today left card marker. */
   .tr-tag.today{background:#C0392B;color:#fff}
   .nrx{margin-bottom:8px}
+  /* Two-column layout for the Today's-overview unpaid-invoice rows. align-items:start so an
+     expanded row grows inside its own cell without stretching its neighbour. */
+  .inv2col{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-items:start}
+  @media(max-width:720px){.inv2col{grid-template-columns:1fr}}
   .nrx .nrx-head{margin-bottom:0}
   .nrx-chev{flex:0 0 auto;margin-left:9px;color:var(--soft);font-size:11px;transition:transform .15s}
   .nrx.open .nrx-chev{transform:rotate(90deg)}
@@ -2454,7 +2458,7 @@ function renderToday(){
       ${stat(reviewDue.length,'Reviews to request','reviewDue')}
     </div>
     ${/* Money owed sits directly under the cards, above the upsell panel. */''}
-    ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$ ${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3>${unpaid.map(s=>unpaidRow(s)).join('')}</div>`:''}
+    ${unpaid.length?`<div class="today-sec" id="tsec-unpaid"><h3>Unpaid invoices <span class="h3-amt">${totUnpaid} · US$ ${totCollect.toLocaleString(undefined,{maximumFractionDigits:2})} to collect</span></h3><div class="inv2col">${unpaid.map(s=>unpaidRow(s)).join('')}</div></div>`:''}
     ${/* Upsell/revenue MOVED OUT 2026-07-14 → the owner-only "Revenue" view (showRevenue). Concierges
           shouldn't be looking at money; they should be looking at what needs doing. */''}
     ${nothing?`<div class="today-clear">Nothing needs attention right now — every stay is up to date.</div>`:''}
