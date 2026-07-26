@@ -2404,10 +2404,10 @@ function renderToday(){
   const arrTom=L.filter(s=>s.checkin===tom);
   const depToday=L.filter(s=>s.checkout===today);
   const pending=L.filter(s=>(s.pending||0)>0);
-  /* Unpaid invoices, soonest due at the top (a stay is ranked by its earliest-due unpaid invoice).
-     No due date = nothing to chase it against, so it drops to the bottom. */
+  /* Unpaid invoices, highest amount owed at the top. Earliest due date breaks ties (no due date
+     drops to the bottom of a tie). */
   const _dueOf=s=>((s.unpaidInvoices||[]).map(i=>i.dueBy).filter(Boolean).sort()[0])||'9999-12-31';
-  const unpaid=L.filter(s=>(s.unpaid||0)>0).sort((a,b)=>_dueOf(a).localeCompare(_dueOf(b))||((b.unpaidTotal||0)-(a.unpaidTotal||0)));
+  const unpaid=L.filter(s=>(s.unpaid||0)>0).sort((a,b)=>((b.unpaidTotal||0)-(a.unpaidTotal||0))||_dueOf(a).localeCompare(_dueOf(b)));
   const msgs=L.filter(s=>unreadMsgs(s)>0);
   const fudue=L.filter(s=>s.followUpDate&&s.followUpDate<=today).sort((a,b)=>(a.followUpDate||'').localeCompare(b.followUpDate||''));
   // Guests currently on property: checked in, not yet checked out.
