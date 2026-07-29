@@ -1678,6 +1678,54 @@ function payables(agentKey) {
     bySupplier, rows,
   };
 }
+/** GOLF-CART SUPPLIER PAYMENTS — a PAYMENT-focused, profit-free view for the concierge manager (Maria),
+ *  plus Ivonna & Jan. Unlike payables('jan'/'ivonna') this is NOT scoped to one agent's book: it merges
+ *  the golf-cart rows across BOTH books (every cart is the same supplier relationship, e.g. Julio).
+ *  The rows deliberately DROP `charged` and `margin` — Maria sees what CPH pays the supplier and whether
+ *  it's been paid, never the guest price or CPH profit. Settlement shares the same store + keys as the
+ *  Jan/Ivonna payables views, so "paid to supplier" is one source of truth everywhere. */
+function cartPayables() {
+  const round = v => Math.round((Number(v) || 0) * 100) / 100;
+  const rows = [];
+  // pull the cart rows the main engine already computed for each book (no overlap: an invoice belongs
+  // to exactly one payTo), so the cart-parsing / cost logic stays single-sourced in payables().
+  ['jan', 'ivonna'].forEach(a => {
+    (payables(a).rows || []).forEach(r => { if (r.category === 'cart') rows.push(r); });
+  });
+  // unpaid-by-guest first (what's coming), then by check-in
+  rows.sort((a, b) => (a.guestPaid === b.guestPaid ? String(a.checkin).localeCompare(String(b.checkin)) : (a.guestPaid ? 1 : -1)));
+  const sum = (list, f) => round(list.reduce((x, r) => x + f(r), 0));
+  const paid = rows.filter(r => r.guestPaid), unpaid = rows.filter(r => !r.guestPaid);
+  // group by supplier — the actionable unit is "pay this vendor US$X" (PAYMENT side only, no profit)
+  const bySupMap = {};
+  rows.forEach(r => {
+    const e = bySupMap[r.supplier] || (bySupMap[r.supplier] = { supplier: r.supplier, count: 0, cost: 0, outstanding: 0, settled: 0, pending: 0 });
+    e.count++; e.cost += r.cost;
+    if (!r.guestPaid) e.pending += r.cost;              // guest hasn't paid → not owed yet
+    else if (r.settled) e.settled += r.cost;            // already paid to the supplier
+    else e.outstanding += r.cost;                       // guest paid, still to pay the supplier
+  });
+  const bySupplier = Object.values(bySupMap)
+    .map(e => Object.assign(e, { cost: round(e.cost), outstanding: round(e.outstanding), settled: round(e.settled), pending: round(e.pending) }))
+    .sort((a, b) => b.outstanding - a.outstanding || b.pending - a.pending || b.cost - a.cost);
+  // rows served to the client — PAYMENT fields only (charged & margin intentionally omitted)
+  const publicRows = rows.map(r => ({
+    key: r.key, invoiceId: r.invoiceId, invoiceNo: r.invoiceNo, stayId: r.stayId,
+    guest: r.guest, villa: r.villa, villaInternal: r.villaInternal,
+    checkin: r.checkin, checkout: r.checkout, upcoming: r.upcoming,
+    supplier: r.supplier, via: r.via, bookingSource: r.bookingSource, source: r.source, detail: r.detail,
+    cost: r.cost,                                       // what CPH pays the cart supplier
+    guestPaid: r.guestPaid, settled: r.settled, settledAmount: r.settledAmount, settledAt: r.settledAt, changed: r.changed,
+    paidAt: r.paidAt,
+  }));
+  return {
+    toPay: sum(paid.filter(r => !r.settled), r => r.cost),   // guest paid, supplier not yet paid → pay now
+    settled: sum(paid.filter(r => r.settled), r => r.cost),  // already paid to the supplier
+    pending: sum(unpaid, r => r.cost),                       // becomes due once the guest pays
+    count: rows.length, paidCount: paid.length, unpaidCount: unpaid.length,
+    bySupplier, rows: publicRows,
+  };
+}
 /** Mark a supplier payable settled (Jan paid the supplier) or clear it. amount = cost at settle time. */
 function setPayableSettled(key, settled, amount) {
   key = String(key || ''); if (!key) return false;
@@ -2568,7 +2616,7 @@ module.exports = {
   hashPassword, verifyPassword, getStaffByEmail, staffPublic, listStaffPublic, seedStaffFromEnv,
   listVillas, getVilla,
   cartInfo,
-  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
+  listStays, getStay, acknowledgeStay, exportAll, runAutomations, reviewQueue, markReviewSent, reviewInfo, saveGuestRating, upsellMetrics, payables, cartPayables, setPayableSettled, createStay, saveStay, publishStay, deleteStay,
   guestDirectory, addDirectoryContact, updateDirectoryContact, deleteDirectoryContact, setDirectoryNote,
   setDirectoryMeta, addDirectoryActivity, directoryCSV,
   addRequest, updateGuestRequest, removeGuestRequest, removeStaffRequest, markRequestDone, reopenRequest, setRequestFamily, staffUpdateRequest, setGuestList, saveGrocery, saveMealPlan, saveCheckin, resetCheckin, confirmRequest, addGuestMessage, addGuestMessageByPhone, addStaffMessage, getMessagesByRef, getRequestsByRef,

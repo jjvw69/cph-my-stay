@@ -417,7 +417,7 @@ async function staffLogin(req,res){
   const st=store.getStaffByEmail(email);
   if(!st||!store.verifyPassword(password,st.pw)) return sendJSON(res,401,{ok:false,error:'Wrong email or password.'});
   setCookie(res,STAFF_COOKIE,sign({t:'s',sid:st.id,email:st.email,role:st.role},STAFF_HOURS),STAFF_HOURS); attempts.delete('s:'+ip(req));
-  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st),canPayables:canSeePayables(st),canIvonna:canSeeIvonna(st)})});
+  return sendJSON(res,200,{ok:true,staff:Object.assign({},store.staffPublic(st),{canRevenue:canSeeRevenue(st),canPayables:canSeePayables(st),canIvonna:canSeeIvonna(st),canCarts:canSeeCarts(st)})});
 }
 /* Staff auth guard with a SLIDING session. The cookie used to be a hard 8h from login: after 8h
    the console kept rendering (it had already loaded) but every API call 401'd, so it looked frozen
@@ -459,6 +459,23 @@ function canSeeIvonna(s){
   const email=String(s.email||'').toLowerCase();
   if(IVONNA_EMAILS.includes(email)) return true;
   return /^(ivonna|jan)@/.test(email); // fallback if the account was seeded on another domain
+}
+/* GOLF-CART SUPPLIER PAYMENTS ACCESS — the cart payment-movements view is for the concierge manager
+   (María Fernanda) PLUS Ivonna and Jan. It shows what CPH pays the cart supplier and whether it's been
+   paid — PAYMENTS, not profit. Wider than the Jan/Ivonna ledgers (which expose profit); those two stay
+   as they are. María is identified by her staff-record NAME (so it works regardless of her exact email);
+   override/extend with the CART_PAYABLES_EMAILS env var. Gated on the SERVER so the numbers can't be
+   fetched by anyone else. NOTE: viewing ≠ settling — Maria is view-only; only Jan & Ivonna mark paid. */
+const CART_PAYABLES_EMAILS = String(process.env.CART_PAYABLES_EMAILS || 'jan@caribbeanparadisehomes.com,ivonna@caribbeanparadisehomes.com')
+  .split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+function canSeeCarts(s){
+  if(!s) return false;
+  if(canSeePayables(s) || canSeeIvonna(s)) return true;      // Jan + Ivonna always
+  const email=String(s.email||'').toLowerCase();
+  if(CART_PAYABLES_EMAILS.includes(email)) return true;
+  if(/^(maria|mfernanda|fernanda|mbecker)@/.test(email)) return true;   // common Maria email shapes
+  try{ const rec=store.getStaffByEmail(email); if(rec && /mar[íi]a|fernanda|becker/i.test(String(rec.name||''))) return true; }catch(e){}
+  return false;
 }
 function requireStaff(req,res){
   const s=staffSession(req);
@@ -565,7 +582,7 @@ async function route(req,res){
     const s=staffSession(req); if(!s) return sendJSON(res,200,{ok:false,staff:null});
     const rec=store.getStaffByEmail(s.email);
     const fallback=String(s.email||'').split('@')[0].replace(/[._-]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s),canPayables:canSeePayables(s),canIvonna:canSeeIvonna(s)}});
+    return sendJSON(res,200,{ok:true,staff:{name:(rec&&rec.name)||fallback,email:s.email,role:s.role,canRevenue:canSeeRevenue(s),canPayables:canSeePayables(s),canIvonna:canSeeIvonna(s),canCarts:canSeeCarts(s)}});
   }
   if(url.startsWith('/api/staff/')){
     const s=requireStaff(req,res); if(!s) return;
@@ -581,6 +598,7 @@ async function route(req,res){
     if(m==='GET' &&url==='/api/staff/metrics'){ if(!canSeeRevenue(s)) return sendJSON(res,403,{ok:false,error:'Revenue is restricted.'}); return sendJSON(res,200,{ok:true,metrics:store.upsellMetrics()}); }
     if(m==='GET' &&url==='/api/staff/ivonna-ledger'){ if(!canSeeIvonna(s)) return sendJSON(res,403,{ok:false,error:'This view is restricted.'}); return sendJSON(res,200,{ok:true,ledger:store.payables('ivonna')}); }
     if(m==='GET' &&url==='/api/staff/payables'){ if(!canSeePayables(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
+    if(m==='GET' &&url==='/api/staff/cart-payables'){ if(!canSeeCarts(s)) return sendJSON(res,403,{ok:false,error:'This view is restricted.'}); return sendJSON(res,200,{ok:true,carts:store.cartPayables(),canSettle:(canSeePayables(s)||canSeeIvonna(s))}); }
     if(m==='POST'&&url==='/api/staff/payables/settle'){ if(!canSeePayables(s)&&!canSeeIvonna(s)) return sendJSON(res,403,{ok:false,error:'Supplier payables are restricted.'}); const b=await readBody(req); const ok=store.setPayableSettled(String(b.key||''),!!b.settled,b.amount); if(!ok) return sendJSON(res,400,{ok:false,error:'A payable key is required.'}); return sendJSON(res,200,{ok:true,payables:store.payables()}); }
     // ----- guest directory (staff address book) -----
     if(m==='GET' &&url==='/api/staff/directory') return sendJSON(res,200,{ok:true,directory:store.guestDirectory()});

@@ -896,7 +896,7 @@
   <div class="secbar" id="secbar"></div>
   <div class="cols">
     <div class="col left">
-      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◐ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◒ Jan</button></span></div>
+      <div class="hd"><span class="label">Concierge desk</span><span style="display:flex;gap:13px"><button class="newbtn" id="revBtn" onclick="showRevenue()" style="display:none" title="Owner view — invoiced add-ons, paid and still to collect">◐ Upsell</button><button class="newbtn" id="ivBtn" onclick="showIvonna()" style="display:none" title="Ivonna &amp; Jan only — Ivonna's own bookings and the money on them">◑ Ivonna</button><button class="newbtn" id="payBtn" onclick="showJan()" style="display:none" title="Jan only — what CPH still owes suppliers (golf carts &amp; transfers), settle each once paid">◒ Jan</button><button class="newbtn" id="cartBtn" onclick="showCarts()" style="display:none" title="Golf-cart supplier payments — what CPH pays the cart supplier, paid &amp; still to pay (Maria, Ivonna &amp; Jan)">◧ Carts</button></span></div>
       <div class="homebtns"><button class="todaybtn" id="todayBtn" onclick="showToday()">▦ Today</button><button class="todaybtn" id="arrBtn" onclick="showArrivals()">▤ Arrivals</button></div>
       <input class="search" id="search" placeholder="Search guest or villa…">
       <div class="lfilter">
@@ -1012,6 +1012,10 @@ let CAN_PAY=false;
 /* The Ivonna view (her own bookings + money) is visible to Ivonna and Jan. canIvonna comes back
    on /me and login; /api/staff/ivonna-ledger 403s anyone else. This only hides the button. */
 let CAN_IVONNA=false;
+/* The Carts view (golf-cart SUPPLIER PAYMENTS — what CPH pays the cart supplier, paid/unpaid) is for
+   María Fernanda plus Ivonna & Jan. Payment-focused, no profit. canCarts comes back on /me + login;
+   /api/staff/cart-payables 403s anyone else. Maria is VIEW-ONLY — the settle endpoint still 403s her. */
+let CAN_CARTS=false, CAN_CART_SETTLE=false;
 async function enter(staff){
   document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='flex';
   document.getElementById('who').textContent=staff.name||staff.email;
@@ -1021,8 +1025,11 @@ async function enter(staff){
   const pb=document.getElementById('payBtn'); if(pb)pb.style.display=CAN_PAY?'':'none';
   CAN_IVONNA=!!(staff&&staff.canIvonna);
   const ib=document.getElementById('ivBtn'); if(ib)ib.style.display=CAN_IVONNA?'':'none';
+  CAN_CARTS=!!(staff&&staff.canCarts);
+  const cb=document.getElementById('cartBtn'); if(cb)cb.style.display=CAN_CARTS?'':'none';
   await refreshPayables();
   await refreshIvonnaLedger();
+  await refreshCartPayments();
   const b=await api('/api/staff/bootstrap'); if(b.ok){ BOOT=b.body; YACHT_CATALOG=(BOOT&&BOOT.yachtCatalog)||[]; fillBookChan(); }
   await refreshMetrics();
   await loadList();
@@ -1039,6 +1046,10 @@ async function refreshMetrics(){ if(!CAN_REV){ METRICS=null; return; } try{ cons
 /* Jan-only supplier payables. Server 403s everyone else — don't ask if we know we can't. */
 let PAYABLES=null;
 async function refreshPayables(){ if(!CAN_PAY){ PAYABLES=null; return; } try{ const r=await api('/api/staff/payables'); if(r.ok) PAYABLES=r.body.payables; }catch(e){} }
+/* Golf-cart supplier payments (Maria + Ivonna + Jan). Server 403s everyone else. The response also
+   tells us whether THIS user may settle (Jan/Ivonna yes, Maria no) so the UI hides the mark-paid button. */
+let CART_PAY=null;
+async function refreshCartPayments(){ if(!CAN_CARTS){ CART_PAY=null; return; } try{ const r=await api('/api/staff/cart-payables'); if(r.ok){ CART_PAY=r.body.carts; CAN_CART_SETTLE=!!r.body.canSettle; } }catch(e){} }
 /* Ivonna's own bookings + money. Server 403s anyone but Ivonna & Jan — don't ask if we can't. */
 let IVONNA_LEDGER=null;
 async function refreshIvonnaLedger(){ if(!CAN_IVONNA){ IVONNA_LEDGER=null; return; } try{ const r=await api('/api/staff/ivonna-ledger'); if(r.ok) IVONNA_LEDGER=r.body.ledger; }catch(e){} }
@@ -1277,9 +1288,9 @@ function refreshTodayBtn(){
   if(typeof refreshHomeBtns==='function') refreshHomeBtns();
 }
 let centerView='today';
-function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const iv=centerView==='ivonna'; const dir=centerView==='directory'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay||iv); cols.classList.toggle('dir-mode',dir); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(iv) renderIvonna(); else if(dir) renderDirectory(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay&&!iv&&!dir) renderArrivalsPanel(); refreshHomeBtns(); const _eh=document.getElementById('editor'); if(_eh)_eh.scrollTop=0; }
+function renderHome(){ const _a=document.getElementById('app'); if(_a)_a.classList.remove('editing'); const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; botNavActive(); const board=centerView==='arrivals'; const rev=centerView==='revenue'; const pay=centerView==='payables'; const iv=centerView==='ivonna'; const carts=centerView==='carts'; const dir=centerView==='directory'; const cols=document.querySelector('.cols'); if(cols){ cols.classList.toggle('board-mode',board); cols.classList.toggle('rev-mode',rev); cols.classList.toggle('pay-mode',pay||iv||carts); cols.classList.toggle('dir-mode',dir); } if(!rev){ document.getElementById('revKpi')?.remove(); document.getElementById('revCash')?.remove(); document.getElementById('revGroc')?.remove(); } if(centerView==='inbox') renderInbox(); else if(rev) renderRevenue(); else if(pay) renderPayables(); else if(iv) renderIvonna(); else if(carts) renderCartPayments(); else if(dir) renderDirectory(); else if(board) renderArrivalsBoard(); else renderToday(); if(!board&&!rev&&!pay&&!iv&&!carts&&!dir) renderArrivalsPanel(); refreshHomeBtns(); const _eh=document.getElementById('editor'); if(_eh)_eh.scrollTop=0; }
 function botNavActive(){ const n=document.querySelector('.botnav'); if(!n)return; const app=document.getElementById('app'); const detail=app&&app.classList.contains('view-detail'); let active=null; if(!cur){ active=!detail?'stays':(centerView==='arrivals'?'arrivals':'today'); } n.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.view===active)); }
-function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } const iv=document.getElementById('ivBtn'); if(iv){ iv.style.display=CAN_IVONNA?'':'none'; iv.classList.toggle('on',centerView==='ivonna'&&!cur); } }
+function refreshHomeBtns(){ const t=document.getElementById('todayBtn'); const i=document.getElementById('inboxBtn'); const a=document.getElementById('arrBtn'); const r=document.getElementById('revBtn'); const p=document.getElementById('payBtn'); if(t)t.classList.toggle('on',centerView==='today'&&!cur); if(i)i.classList.toggle('on',centerView==='inbox'&&!cur); if(a)a.classList.toggle('on',centerView==='arrivals'&&!cur); if(r){ r.style.display=CAN_REV?'':'none'; r.classList.toggle('on',centerView==='revenue'&&!cur); } if(p){ p.style.display=CAN_PAY?'':'none'; p.classList.toggle('on',centerView==='payables'&&!cur); } const iv=document.getElementById('ivBtn'); if(iv){ iv.style.display=CAN_IVONNA?'':'none'; iv.classList.toggle('on',centerView==='ivonna'&&!cur); } const cb=document.getElementById('cartBtn'); if(cb){ cb.style.display=CAN_CARTS?'':'none'; cb.classList.toggle('on',centerView==='carts'&&!cur); } }
 /* Owner-only Revenue view — the upsell/revenue numbers used to sit inside Today's overview, where
    every concierge saw them. They now live here, behind the server-side canRevenue gate. */
 window.showRevenue=function(){
@@ -1300,6 +1311,14 @@ window.showIvonna=async function(){
   if(!CAN_IVONNA) return;
   if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
   cur=null; setDirty(false); clearRevLeft(); centerView='ivonna'; setView(true); await refreshIvonnaLedger(); renderList(); renderHome();
+};
+/* Golf-cart supplier PAYMENTS view — for the concierge manager (María) plus Ivonna & Jan. Payment
+   movements only (what CPH pays the cart supplier, paid vs still to pay), never profit. Server-gated
+   via canCarts; the mark-paid button only appears for those who may settle (Jan/Ivonna). */
+window.showCarts=async function(){
+  if(!CAN_CARTS) return;
+  if(dirty && cur && !confirm('You have unsaved changes. Discard them and switch?')) return;
+  cur=null; setDirty(false); clearRevLeft(); centerView='carts'; setView(true); await refreshCartPayments(); renderList(); renderHome();
 };
 /* ---- Revenue dashboard (owner view) ----
    Everything below is drawn from the SAME invoice data as the rest of the console — no separate
@@ -1794,6 +1813,7 @@ function paintPayables(p,C){
     ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
     ${(CAN_IVONNA&&C.who!=='Ivonna')?`<button class="nav-owner" onclick="showIvonna()" title="Ivonna — her bookings &amp; profit">◑ Ivonna</button>`:''}
     ${(CAN_PAY&&C.who!=='Jan')?`<button class="nav-owner" onclick="showJan()" title="Jan — supplier payables">◒ Jan</button>`:''}
+    ${CAN_CARTS?`<button class="nav-owner" onclick="showCarts()" title="Golf-cart supplier payments">◧ Carts</button>`:''}
   </div>`;
   const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
   const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
@@ -1855,6 +1875,85 @@ window.togglePayableSettled=async function(key,settled,amount){
     if(!r.ok){ alert((r.body&&r.body.error)||'Could not update.'); return; }
     PAYABLES=r.body.payables; renderPayables();
     if(typeof toast==='function') toast(settled?'Marked paid to supplier.':'Reopened — back on the to-pay list.');
+  }catch(e){ alert('Could not update.'); }
+};
+/* ---- Golf-cart supplier PAYMENTS view (Maria + Ivonna + Jan) ----
+   PAYMENT movements only: what CPH pays the cart supplier and whether it's been paid. Deliberately
+   NO invoice total and NO profit column (payload has neither). Maria is view-only; the mark-paid
+   button appears only when the server says this user may settle (Jan/Ivonna). */
+let CART_SORT={col:'date',dir:1}, CART_FILTER='';
+window.cartSort=function(col){ if(CART_SORT.col===col) CART_SORT.dir*=-1; else { CART_SORT.col=col; CART_SORT.dir=(col==='pay')?-1:1; } renderCartPayments(); };
+window.cartFilter=function(sup){ CART_FILTER=sup?decodeURIComponent(sup):''; renderCartPayments(); };
+async function renderCartPayments(){
+  const el=document.getElementById('editor'); if(!el) return;
+  if(!CART_PAY) await refreshCartPayments();
+  const p=CART_PAY;
+  if(!p){ el.innerHTML='<div class="today-clear">This view is restricted.</div>'; const rr=document.getElementById('preview'); if(rr)rr.innerHTML=''; const sb=document.getElementById('secbar'); if(sb)sb.innerHTML=''; return; }
+  let rows=(p.rows||[]).slice();
+  if(CART_FILTER) rows=rows.filter(r=>r.supplier===CART_FILTER);
+  const rank=r=>r.settled?2:(r.guestPaid?0:1);
+  const sval=(r,c)=>({date:r.checkin||'',guest:(r.guest||'').toLowerCase(),supplier:(r.supplier||'').toLowerCase(),source:(r.bookingSource||'').toLowerCase(),pay:r.cost,status:rank(r)}[c]);
+  rows.sort((a,b)=>{ const x=sval(a,CART_SORT.col),y=sval(b,CART_SORT.col); let c=(typeof x==='number')?(x-y):String(x).localeCompare(String(y)); if(c===0) c=String(a.checkin).localeCompare(String(b.checkin)); return c*CART_SORT.dir; });
+  const tPay=rows.reduce((s,r)=>s+r.cost,0);
+  const canSettle=!!CAN_CART_SETTLE;
+  const th=(c,lbl,cls)=>`<th class="${cls||''}${CART_SORT.col===c?' srt':''}" onclick="cartSort('${c}')">${lbl}${CART_SORT.col===c?(CART_SORT.dir>0?' ▲':' ▼'):''}</th>`;
+  const row=r=>{
+    const state=r.settled?'st-settled':(r.guestPaid?'st-topay':'st-await');
+    const via=(r.via&&r.via!==r.bookingSource)?`<span class="pd-via">via ${esc(r.via)}</span>`:'';
+    let action;
+    if(!r.guestPaid) action=`<span class="pay-await" title="Not owed to the supplier until the guest pays">awaiting guest</span>`;
+    else if(canSettle) action=`<button class="pay-btn${r.settled?' on':''}" onclick="event.stopPropagation();cartToggleSettled('${r.key}',${r.settled?0:1},${r.cost})" title="${r.settled?('Paid to supplier'+(r.settledAt?' '+new Date(r.settledAt).toLocaleDateString():'')+' — tap to reopen'):'Tap once you have paid the cart supplier'}">${r.settled?'✓ Paid':'Mark paid'}</button>`;
+    else action=`<span class="pay-status ${r.settled?'ok':'due'}">${r.settled?'✓ Paid to supplier':'To pay supplier'}</span>`;
+    return `<tr class="pay-r ${state}">
+      <td class="pd-date" title="arrival → departure">${esc(fmtDay(r.checkin))}${r.checkout?` <span class="pd-dep">→ ${esc(fmtDay(r.checkout))}</span>`:''}</td>
+      <td class="pd-g" onclick="selectStay('${r.stayId}')"><b>${esc(r.guest)}</b><span>${esc(r.villa||'—')}</span>${r.villaInternal?`<span class="pd-int">${esc(r.villaInternal)}</span>`:''}</td>
+      <td><span class="pd-tag cat-cart">Cart</span>${esc(r.detail)}${r.invoiceNo?`<span class="pd-no">#${esc(r.invoiceNo)}</span>`:''}</td>
+      <td class="pd-sup">${esc(r.supplier)}</td>
+      <td class="pd-src">${esc(r.bookingSource||'—')}${via}</td>
+      <td class="pd-num pd-pay" title="what to pay the cart supplier">${money0(r.cost)}</td>
+      <td class="pd-st"><span class="pay-status ${r.guestPaid?'ok':'due'}">${r.guestPaid?'Guest paid':'Guest unpaid'}</span>${action}${r.changed?`<span class="pay-changed">Amount changed since paid (${money0(r.settledAmount)} → ${money0(r.cost)})</span>`:''}</td>
+    </tr>`;
+  };
+  const ledger=`<div class="pay-ledger-wrap"><table class="pay-ledger">
+    <thead><tr>${th('date','Arrival → Dep.')}${th('guest','Guest / villa')}<th>Carts</th>${th('supplier','Supplier')}${th('source','Source')}${th('pay','Pay supplier','num')}<th>Status</th></tr></thead>
+    <tbody>${rows.length?rows.map(row).join(''):'<tr><td colspan="7" style="padding:16px;color:var(--soft)">No golf-cart payments for this supplier.</td></tr>'}</tbody>
+    <tfoot><tr class="pay-tot"><td colspan="4" class="pd-lbl">${CART_FILTER?esc(CART_FILTER)+' · ':''}${rows.length} booking${rows.length===1?'':'s'}</td><td></td><td class="pd-num pd-pay">${money0(tPay)}</td><td></td></tr></tfoot>
+  </table></div>`;
+  const nav=`<div class="pay-topnav">
+    <button class="nav-back" onclick="backToList()" title="Back to the stay list">← All stays</button>
+    <button onclick="showToday()">▦ Today</button>
+    <button onclick="showArrivals()">▤ Arrivals</button>
+    ${CAN_REV?`<button class="nav-owner" onclick="showRevenue()" title="Owner revenue view">◐ Upsell</button>`:''}
+    ${CAN_IVONNA?`<button class="nav-owner" onclick="showIvonna()" title="Ivonna — her bookings">◑ Ivonna</button>`:''}
+    ${CAN_PAY?`<button class="nav-owner" onclick="showJan()" title="Jan — all supplier payables">◒ Jan</button>`:''}
+  </div>`;
+  const owing=(p.bySupplier||[]).filter(g=>g.outstanding>0);
+  const waiting=(p.bySupplier||[]).filter(g=>g.pending>0);
+  const supRow=(g,cls)=>`<div class="pay-sumrow"><span class="s">${esc(g.supplier)} <span style="color:var(--soft);font-weight:500">· golf carts</span></span><span class="v${cls||''}">${money0(cls?g.pending:g.outstanding)}</span></div>`;
+  const summary=`<div class="pay-summary">
+    <div class="pay-sumcard"><h4>To pay the cart supplier now</h4><div class="sub">guest has paid · supplier not yet paid</div>
+      ${owing.length?owing.map(g=>supRow(g,'')).join('')+`<div class="pay-sumrow pay-sumtotal"><span class="s">Total to pay now</span><span class="v">${money0(owing.reduce((a,g)=>a+g.outstanding,0))}</span></div>`:'<div class="sub">Nothing to pay right now — every guest-paid cart is settled.</div>'}</div>
+    <div class="pay-sumcard"><h4>Awaiting guest payment</h4><div class="sub">becomes payable once the guest pays</div>
+      ${waiting.length?waiting.map(g=>supRow(g,' wait')).join(''):'<div class="sub">Nothing awaiting guest payment.</div>'}</div>
+    <div class="pay-sumcard"><h4>Already paid to supplier</h4><div class="sub">carts settled with the vendor</div>
+      <div class="pay-rail-profit">${money0(p.settled)}<span>settled${p.pending?` · ${money0(p.pending)} pending`:''}</span></div></div>
+  </div>`;
+  el.innerHTML=`
+    ${nav}
+    <div class="today-head"><span style="font-weight:400">Golf carts -</span> <b style="font-weight:800">Supplier payments</b></div>
+    <div class="today-date">What CPH pays the cart supplier · paid vs still to pay · click a column to sort, chips above to filter${canSettle?'':' · view only'}</div>
+    ${p.count?summary+ledger:'<div class="today-clear">No golf-cart payments yet — this fills in automatically as golf-cart invoices are sent and paid.</div>'}`;
+  buildPaySecNav(p,CART_FILTER,'cartFilter');
+  const rail=document.getElementById('preview'); if(rail) rail.innerHTML='';
+}
+/* Settle toggle for the cart view — same endpoint + shared settle store as Jan/Ivonna. Only reachable
+   when the server allowed settling (Jan/Ivonna); Maria never sees the button and the endpoint 403s her. */
+window.cartToggleSettled=async function(key,settled,amount){
+  try{
+    const r=await api('/api/staff/payables/settle',{method:'POST',body:JSON.stringify({key,settled:!!settled,amount})});
+    if(!r.ok){ alert((r.body&&r.body.error)||'Could not update.'); return; }
+    await refreshCartPayments(); renderCartPayments();
+    if(typeof toast==='function') toast(settled?'Marked paid to the cart supplier.':'Reopened — back on the to-pay list.');
   }catch(e){ alert('Could not update.'); }
 };
 /* Revenue view injects KPI/cash/groceries panels into the left column; strip them (and rev-mode)
