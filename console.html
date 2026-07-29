@@ -3873,6 +3873,7 @@ window.invOptPick=function(i,val){ if(!_invDraft||!_invDraft.items[i])return; co
     it.label=[a.name||it.label,opt].filter(Boolean).join(' — '); invSyncTitle();
     const fm=firstMoney(rate); const num=fm.n;
     if(isFinite(num)&&num>0){ if(it.svcId!=='yacht-charter'&&/day|hour|hr/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+    invRecalcDay(it);
   }
   renderInvItems();
 };
@@ -3941,6 +3942,8 @@ window.invField=function(i,k,v){ if(!_invDraft||!_invDraft.items[i])return; cons
 function invDaysInclusive(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const d=Math.round((b-a)/86400000)+1; return d>=1?d:1; }
 /* Rental days = NIGHTS between pick-up and return (same day = 1). Jul 12 → Jul 22 = 10. */
 function invDaysSpan(from,to){ if(!from)return 0; const a=new Date(from+'T00:00:00'); if(isNaN(a))return 0; if(!to||to===from)return 1; const b=new Date(to+'T00:00:00'); if(isNaN(b))return 1; const n=Math.round((b-a)/86400000); return n>=1?n:1; }
+/* Per-day rental (golf cart / car): with a rate and dates set, recompute nights × rate → line total. Called after a service/option pick so a full-stay default fills days & amount automatically. */
+function invRecalcDay(it){ if(!it)return; const combo=(it.svcOpt||'')+' '+(it.label||''); const hasRate=!!(String(it.rate||'').trim()); if(!(hasRate&&/day/i.test(combo)&&it.dateFrom))return; if(!it.dateTo)it.dateTo=it.dateFrom; const d=invDaysSpan(it.dateFrom,it.dateTo); it.days=String(d); const rate=parseFloat(String(it.rate).replace(/[^0-9.]/g,'')); if(isFinite(rate)) it.amount=String(Math.round(rate*d*100)/100); }
 function invDateRange(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; }
 /* Date text printed on the invoice line: per-day = range; round-trip transfer = arr/dep; else a single date. */
 function invServiceDateLabel(it){ if(!it||!it.dateFrom)return ''; const f=iso=>{ const x=new Date(iso+'T00:00:00'); return isNaN(x)?'':x.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }; const a=f(it.dateFrom); if(!a)return ''; const combo=(it.svcOpt||'')+' '+(it.label||''); const perDay=!!(String(it.rate||'').trim())&&/day/i.test(combo); const rt=/round\s*-?\s*trip/i.test(combo); if(perDay){ if(!it.dateTo||it.dateTo===it.dateFrom)return a; const b=f(it.dateTo); return b?(a+'–'+b):a; } if(rt&&it.dateTo){ const b=f(it.dateTo); return b?('arr '+a+' · dep '+b):a; } return a; }
@@ -3973,6 +3976,7 @@ window.invPick=function(i,val){ if(!_invDraft||!_invDraft.items[i]||!val)return;
   const fm=firstMoney(rate); const num=fm.n;
   if(fm.multi){ it.rate=''; it.days=''; it.amount=''; } // tiered rate text — don't guess, staff types the price
   else if(isFinite(num)&&num>0){ if(/day/i.test(rate)){ it.rate=String(num); it.days=''; it.amount=''; } else { it.amount=String(num); it.rate=''; it.days=''; } }
+  invRecalcDay(it);
   renderInvItems();
 };
 /* New invoice lines default to the stay's own booking source — most services are booked through
@@ -4024,8 +4028,10 @@ window.openInvoiceForReq=function(rid){ if(!cur)return; const r=(cur.requests||[
 /* Backdrop click: don't silently throw away a typed invoice draft. */
 function invConfirmClose(){ const d=_invDraft; const hasContent=d&&!d.id&&(d.items||[]).some(it=>String(it.label||'').trim()||String(it.amount||'').trim()||String(it.amountRD||'').trim()); if(hasContent&&!confirm('Discard this invoice?'))return; closeInvoice(); }
 function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)invConfirmClose(); }; document.body.appendChild(ov); } const d=_invDraft;
-  // New invoices: seed each line's "Booked via" with the stay's booking source (editable per line).
-  if(!d.id)(d.items||[]).forEach(it=>{ if(it.bookedVia==null)it.bookedVia=defVia(); });
+  // New invoices: seed each line's "Booked via" with the stay's booking source, and default the
+  // service dates to the stay's own booking dates (arrival → departure) instead of today. Per-day
+  // rentals get the full stay so nights × rate auto-fills. All still editable per line.
+  if(!d.id&&d.kind!=='grocery')(d.items||[]).forEach(it=>{ if(it.bookedVia==null)it.bookedVia=defVia(); if(it.dateFrom==null||it.dateFrom==='')it.dateFrom=(cur&&cur.checkin)||''; if(it.dateTo==null||it.dateTo==='')it.dateTo=(cur&&cur.checkout)||''; invRecalcDay(it); });
   ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;padding:20px">
     <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px">${d.kind==='yacht'?(d.id?'Edit yacht invoice':'Yacht invoice'):d.kind==='other'?(d.id?'Edit invoice':'Other invoice'):(d.id?'Edit service invoice':'Service invoice')}</b><button onclick="closeInvoice()" style="border:0;background:none;font-size:20px;cursor:pointer;color:var(--soft)">✕</button></div>
     <label style="${invLbl()}">Title</label><input id="invTitle" value="${esc(d.title)}" placeholder="e.g. Spa day · Private tour · Photographer" style="${invInput()}">
