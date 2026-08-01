@@ -1443,7 +1443,11 @@ window.invoicePrint=function(id){ const s=state.stay; const iv=((s&&s.invoices)|
     ${GUEST_INV_DISCLAIMER}
     <button onclick="window.print()" class="noprint" style="margin:24px auto 0;display:block;background:#16241E;color:#fff;border:0;border-radius:11px;padding:12px 20px;font-size:15px;cursor:pointer">Print / Save as PDF</button></body></html>`;
     const w2=window.open('','_blank'); if(!w2){ toast('Allow pop-ups, then tap Print again'); return; } w2.document.open(); w2.document.write(gh); w2.document.close(); try{w2.focus();}catch(e){} setTimeout(function(){ try{w2.print();}catch(e){} },450); return; }
-  const stTd='border:1px solid #d9d9d9;padding:7px 12px'; const rows=(iv.items||[]).map(it=>`<tr><td style="${stTd}">${esc(it.label||'')}</td><td style="${stTd};text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`).join('');
+  const stTd='border:1px solid #d9d9d9;padding:7px 12px';
+  /* Per-day rental lines (golf cart, car rental) show "· N days × US$ R/day" behind the description
+     when both rate & days are stored on the line (reconciles with amount = rate × days). */
+  const invLineText=it=>{ let s=String((it&&it.label)||''); const r=parseFloat(String((it&&it.rate)||'').replace(/[^0-9.]/g,'')); const d=parseInt(String((it&&it.days)||'').replace(/[^0-9]/g,''),10); if(isFinite(r)&&r>0&&isFinite(d)&&d>0&&!/×\s*US\$/.test(s)){ s+=' · '+d+' day'+(d===1?'':'s')+' × US$ '+r.toLocaleString('en-US')+'/day'; } return s; };
+  const rows=(iv.items||[]).map(it=>`<tr><td style="${stTd}">${esc(invLineText(it))}</td><td style="${stTd};text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`).join('');
   const paid=iv.status==='paid';
   const zelle=paid?'':`<div style="margin-top:16px;border:1px solid #E2DAF0;background:#F7F4FC;border-radius:10px;padding:12px 14px"><div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:#6D1ED4;text-transform:uppercase;margin-bottom:5px">Pay by Zelle</div><div style="font-size:13px;color:#33403A;line-height:1.6">Send to <b>${esc(guestPayee(iv).zelle)}</b><br>Amount <b>${money(iv.total)}</b><br>Memo <b>${esc([ref,iv.title].filter(Boolean).join(' · '))}</b></div></div>`;
   const html=`<!doctype html><html><head><meta charset="utf-8"><title>Invoice #${iv.no} — ${esc(guest)}</title><meta name="viewport" content="width=device-width,initial-scale=1">${GUEST_PRINT_CSS}</head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1F2A24;max-width:640px;margin:14px auto;padding:0 22px">
