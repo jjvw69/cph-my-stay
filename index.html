@@ -1447,7 +1447,7 @@ window.invoicePrint=function(id){ const s=state.stay; const iv=((s&&s.invoices)|
   /* Per-day rental lines (golf cart, car rental) carry a daily rate + day count → their own Days
      and Price columns (blank for flat items); amount = days × price. */
   const invLineParts=it=>{ const r=parseFloat(String((it&&it.rate)||'').replace(/[^0-9.]/g,'')); const d=parseInt(String((it&&it.days)||'').replace(/[^0-9]/g,''),10); const hasR=isFinite(r)&&r>0, hasD=isFinite(d)&&d>0; return { days: hasD?String(d):'', price: hasR?('US$ '+r.toLocaleString('en-US')+'/day'):'' }; };
-  const invStripDate=s=>{ s=String(s||''); const M='(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'; s=s.replace(new RegExp('\\s*·\\s*arr\\s+'+M+'\\s+\\d{1,2}\\s*·\\s*dep\\s+'+M+'\\s+\\d{1,2}'),''); s=s.replace(new RegExp('\\s*·\\s*'+M+'\\s+\\d{1,2}(?:\\s*[–-]\\s*'+M+'\\s+\\d{1,2})?'),''); return s.trim(); };
+  const invStripDate=s=>{ s=String(s||''); const M='(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'; s=s.replace(new RegExp('\\s*·\\s*arr\\s+'+M+'\\s+\\d{1,2}\\s*·\\s*dep\\s+'+M+'\\s+\\d{1,2}'),''); s=s.replace(new RegExp('\\s*·\\s*'+M+'\\s+\\d{1,2}(?:\\s*[–-]\\s*'+M+'\\s+\\d{1,2})?'),''); s=s.replace(/\s*·\s*\d+\s*(?:nights?|days?)\b/i,''); return s.trim(); };
   const stTdn=stTd+';padding:7px 8px';
   const rows=(iv.items||[]).map(it=>{const p=invLineParts(it);return `<tr><td style="${stTd}">${esc(invStripDate(it.label))}</td><td style="${stTdn};text-align:center;white-space:nowrap">${esc(p.days)}</td><td style="${stTdn};text-align:right;white-space:nowrap">${esc(p.price)}</td><td style="${stTdn};text-align:right;white-space:nowrap">${money(it.amount)}</td></tr>`;}).join('');
   const paid=iv.status==='paid';
