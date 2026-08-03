@@ -1,0 +1,3436 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.
+"use strict";
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // src/react.ts
+  function getReact() {
+    const R = window.React;
+    if (!R) throw new Error("dc-runtime: window.React is not available yet");
+    return R;
+  }
+  function getReactDOM() {
+    const RD = window.ReactDOM;
+    if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
+    return RD;
+  }
+  var h = ((...args) => getReact().createElement(
+    ...args
+  ));
+
+  // src/parse.ts
+  function parseDcDocument(doc) {
+    const dc = doc.querySelector("x-dc");
+    if (!dc) return null;
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template: dc.innerHTML,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDcText(src) {
+    const openMatch = /<x-dc(?:\s[^>]*)?>/.exec(src);
+    if (!openMatch) return null;
+    const close = src.lastIndexOf("</x-dc>");
+    if (close === -1 || close < openMatch.index) return null;
+    const template = src.slice(openMatch.index + openMatch[0].length, close);
+    const doc = new DOMParser().parseFromString(src, "text/html");
+    const scriptEl = doc.querySelector("script[data-dc-script]");
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
+    return {
+      template,
+      js: scriptEl ? scriptEl.textContent || "" : "",
+      props,
+      preview
+    };
+  }
+  function parseDataProps(raw) {
+    if (!raw) return { props: null, preview: null };
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return { props: null, preview: null };
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { props: null, preview: null };
+    }
+    const obj = parsed;
+    const preview = obj.$preview && typeof obj.$preview === "object" ? obj.$preview : null;
+    const rest = {};
+    for (const k of Object.keys(obj)) {
+      if (k[0] !== "$") rest[k] = obj[k];
+    }
+    return { props: Object.keys(rest).length ? rest : null, preview };
+  }
+  function dcNameFromPath(pathname) {
+    let p = pathname || "";
+    try {
+      p = decodeURIComponent(p);
+    } catch {
+    }
+    const base = p.split("/").pop() || "Root";
+    return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
+  }
+
+  // src/boot.ts
+  var BASE_CSS = `
+    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
+      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
+      border-radius:2px;box-sizing:border-box;overflow:hidden}
+    @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
+    html.sc-dc-streaming .sc-placeholder,
+    html.sc-dc-streaming .sc-interp.sc-missing{position:relative;
+      background:color-mix(in srgb,currentColor 5%,transparent);
+      border-color:transparent}
+    html.sc-dc-streaming .sc-placeholder::before,
+    html.sc-dc-streaming .sc-interp.sc-missing::before{content:'';
+      position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(90deg,rgba(217,119,87,0) 25%,rgba(247,225,211,.95) 37%,rgba(217,119,87,0) 63%);
+      background-size:400% 100%;animation:sc-shine 1.4s ease infinite}
+    html.sc-dc-streaming .sc-placeholder:nth-child(n+9 of .sc-placeholder)::before,
+    html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
+      background:color-mix(in srgb,currentColor 8%,transparent)}
+    .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
+      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
+    .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
+      vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+      border-radius:2px;box-sizing:border-box;color:transparent;
+      user-select:none}
+    .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
+      color:color-mix(in srgb,currentColor 50%,transparent);
+      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
+      padding:0 3px}
+    .sc-host.sc-has-error{position:relative}
+    .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
+      padding:6px 10px;background:#b00020;color:#fff;font:12px/1.4 ui-monospace,monospace;
+      border-radius:4px;white-space:pre-wrap;pointer-events:none}
+    /* Mirrors PRINT_BASELINE_CSS in apps/web deck-stage-export.ts \u2014 keep both
+       in sync until dc-runtime regains a build step. */
+    @media print {
+      @page { margin: 0.5cm; }
+      figure, table { break-inside: avoid; }
+      #dc-root, #dc-root > .sc-host { height: auto; }
+      *, *::before, *::after {
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+        backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+        animation-delay: -99s !important; animation-duration: .001s !important;
+        animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+        animation-play-state: running !important; transition-duration: 0s !important;
+      }
+    }
+  `;
+  var FULL_PAGE_CSS = "html,body{height:100%;margin:0}#dc-root,#dc-root>.sc-host{height:100%}";
+  function rootNameForDocument(doc, loc) {
+    let bootPath = loc.pathname || "";
+    if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
+      try {
+        bootPath = new URL(doc.baseURI || "/").pathname;
+      } catch {
+      }
+    }
+    return dcNameFromPath(bootPath);
+  }
+  function safeDecode(s) {
+    try {
+      return decodeURIComponent(s);
+    } catch {
+      return s;
+    }
+  }
+  function boot(runtime, doc = document) {
+    const parsed = parseDcDocument(doc);
+    if (!parsed) return null;
+    const React = getReact();
+    const rootName = rootNameForDocument(doc, location);
+    runtime.markFetched(rootName);
+    runtime.setRootName(rootName);
+    runtime.adoptParsed(rootName, parsed);
+    if (!window.__resources) {
+      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
+        const raw = t ? parseDcText(t) : null;
+        if (raw?.template) runtime.updateHtml(rootName, raw.template);
+      }).catch(() => {
+      });
+    }
+    const dc = doc.querySelector("x-dc");
+    const hostEl = doc.createElement("div");
+    hostEl.id = "dc-root";
+    dc.replaceWith(hostEl);
+    if (!parsed.preview) {
+      const s = doc.createElement("style");
+      s.textContent = FULL_PAGE_CSS;
+      doc.head.appendChild(s);
+    }
+    const Root = runtime.getDC(rootName);
+    const entry = runtime.registry.get(rootName);
+    function StandaloneRoot() {
+      const [, setTick] = React.useState(0);
+      React.useEffect(() => {
+        const sub = () => setTick((n) => n + 1);
+        entry.subs.add(sub);
+        return () => {
+          entry.subs.delete(sub);
+        };
+      }, []);
+      const defaults = React.useMemo(() => {
+        const d = {};
+        for (const k in entry.propsMeta || {}) {
+          const v = entry.propsMeta?.[k]?.default;
+          if (v !== void 0) d[k] = v;
+        }
+        return d;
+      }, [entry.propsMeta]);
+      return h(Root, { ...defaults, ...entry.propOverrides || {} });
+    }
+    const ReactDOM = getReactDOM();
+    if (ReactDOM.createRoot)
+      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
+    else ReactDOM.render(h(StandaloneRoot), hostEl);
+    return rootName;
+  }
+
+  // src/expr.ts
+  var IDENT_RE = /^[A-Za-z_$][A-Za-z0-9_$]*/;
+  var NUMBER_RE = /^-?\d+(\.\d+)?$/;
+  function resolve(vals, src) {
+    const expr = String(src).trim();
+    if (!expr) return void 0;
+    if (expr[0] === "(" && expr[expr.length - 1] === ")" && parensWrapWhole(expr)) {
+      return resolve(vals, expr.slice(1, -1));
+    }
+    const eq = findTopLevelEquality(expr);
+    if (eq) {
+      const lv = resolve(vals, expr.slice(0, eq.index));
+      const rv = resolve(vals, expr.slice(eq.index + eq.op.length));
+      switch (eq.op) {
+        case "===":
+          return lv === rv;
+        case "!==":
+          return lv !== rv;
+        case "==":
+          return lv == rv;
+        default:
+          return lv != rv;
+      }
+    }
+    if (expr[0] === "!") return !resolve(vals, expr.slice(1));
+    if (expr === "true") return true;
+    if (expr === "false") return false;
+    if (expr === "null") return null;
+    if (expr === "undefined") return void 0;
+    if (NUMBER_RE.test(expr)) return Number(expr);
+    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
+      return expr.slice(1, -1);
+    }
+    return resolvePath(vals, expr);
+  }
+  function parensWrapWhole(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length - 1; i++) {
+      if (expr[i] === "(") depth++;
+      else if (expr[i] === ")") {
+        depth--;
+        if (depth === 0) return false;
+      }
+    }
+    return true;
+  }
+  function findTopLevelEquality(expr) {
+    let depth = 0;
+    for (let i = 0; i < expr.length; i++) {
+      const c = expr[i];
+      if (c === "[" || c === "(") depth++;
+      else if (c === "]" || c === ")") depth--;
+      else if (depth === 0 && (c === "=" || c === "!") && expr[i + 1] === "=") {
+        if (i > 0 && (expr[i - 1] === "=" || expr[i - 1] === "!")) continue;
+        if (!expr.slice(0, i).trim()) continue;
+        const op = expr[i + 2] === "=" ? c + "==" : c + "=";
+        return { index: i, op };
+      }
+    }
+    return null;
+  }
+  function resolvePath(vals, expr) {
+    const head = expr.match(IDENT_RE);
+    if (!head) return void 0;
+    let cur = vals == null ? void 0 : vals[head[0]];
+    let i = head[0].length;
+    while (i < expr.length) {
+      if (expr[i] === ".") {
+        const m = expr.slice(i + 1).match(IDENT_RE) || expr.slice(i + 1).match(/^\d+/);
+        if (!m) return void 0;
+        cur = cur == null ? void 0 : cur[m[0]];
+        i += 1 + m[0].length;
+      } else if (expr[i] === "[") {
+        let depth = 1;
+        let j = i + 1;
+        while (j < expr.length && depth > 0) {
+          if (expr[j] === "[") depth++;
+          else if (expr[j] === "]") {
+            depth--;
+            if (depth === 0) break;
+          }
+          j++;
+        }
+        if (depth !== 0) return void 0;
+        const key = resolve(vals, expr.slice(i + 1, j));
+        cur = cur == null ? void 0 : cur[key];
+        i = j + 1;
+      } else {
+        return void 0;
+      }
+    }
+    return cur;
+  }
+
+  // src/encode.ts
+  var CAMEL_ATTR = "sc-camel-";
+  var INLINE_TEXT_TAGS = new Set(
+    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
+      " "
+    )
+  );
+  var RAW_WRAP = {
+    select: "sc-raw-select",
+    table: "sc-raw-table",
+    tbody: "sc-raw-tbody",
+    thead: "sc-raw-thead",
+    tfoot: "sc-raw-tfoot",
+    tr: "sc-raw-tr",
+    td: "sc-raw-td",
+    th: "sc-raw-th",
+    caption: "sc-raw-caption"
+  };
+  var RAW_UNWRAP = Object.fromEntries(
+    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
+  );
+  var EVENT_MAP = {
+    onclick: "onClick",
+    onchange: "onChange",
+    oninput: "onInput",
+    onsubmit: "onSubmit",
+    onkeydown: "onKeyDown",
+    onkeyup: "onKeyUp",
+    onkeypress: "onKeyPress",
+    onmousedown: "onMouseDown",
+    onmouseup: "onMouseUp",
+    onmouseenter: "onMouseEnter",
+    onmouseleave: "onMouseLeave",
+    onfocus: "onFocus",
+    onblur: "onBlur",
+    ondoubleclick: "onDoubleClick",
+    oncontextmenu: "onContextMenu",
+    onmousemove: "onMouseMove",
+    onmouseover: "onMouseOver",
+    onmouseout: "onMouseOut",
+    onpointerdown: "onPointerDown",
+    onpointerup: "onPointerUp",
+    onpointermove: "onPointerMove",
+    onpointerenter: "onPointerEnter",
+    onpointerleave: "onPointerLeave",
+    onpointercancel: "onPointerCancel",
+    onpointerover: "onPointerOver",
+    onpointerout: "onPointerOut",
+    ongotpointercapture: "onGotPointerCapture",
+    onlostpointercapture: "onLostPointerCapture",
+    ontouchstart: "onTouchStart",
+    ontouchend: "onTouchEnd",
+    ontouchmove: "onTouchMove",
+    ontouchcancel: "onTouchCancel",
+    ondragstart: "onDragStart",
+    ondragend: "onDragEnd",
+    ondragenter: "onDragEnter",
+    ondragleave: "onDragLeave",
+    ondragover: "onDragOver",
+    onanimationstart: "onAnimationStart",
+    onanimationend: "onAnimationEnd",
+    onanimationiteration: "onAnimationIteration",
+    ontransitionend: "onTransitionEnd"
+  };
+  var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
+  var IMPORT_SELF_CLOSE_RE = new RegExp(
+    "<(x-import|dc-import)(" + ATTRS + ")/>",
+    "gi"
+  );
+  var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
+  function encodeCamelAttrs(html) {
+    return html.replace(
+      CAMEL_ATTR_RE,
+      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
+    );
+  }
+  function encodeCase(html) {
+    html = html.replace(
+      IMPORT_SELF_CLOSE_RE,
+      (_, t, a) => "<" + t + a + "></" + t + ">"
+    );
+    html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
+    html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
+    html = encodeCamelAttrs(html);
+    for (const [real, alias] of Object.entries(RAW_WRAP)) {
+      html = html.replace(
+        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
+        "$1" + alias
+      );
+    }
+    return html;
+  }
+  function kebabToCamel(s) {
+    return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+  }
+  function cssToObj(css) {
+    const o = {};
+    for (const decl of css.split(";")) {
+      const i = decl.indexOf(":");
+      if (i < 0) continue;
+      const prop = decl.slice(0, i).trim();
+      o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
+    }
+    return o;
+  }
+  function compileAttr(raw) {
+    const whole = raw.match(/^\s*\{\{([\s\S]+?)\}\}\s*$/);
+    if (whole) {
+      const path = whole[1];
+      return (vals) => resolve(vals, path);
+    }
+    if (raw.includes("{{")) {
+      const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
+      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
+    }
+    return () => raw;
+  }
+
+  // src/compile.ts
+  function collectProps(node, kind, host) {
+    const propGetters = [];
+    const pseudoClasses = [];
+    let hintSize = null;
+    for (const { name, value } of [...node.attributes]) {
+      if (name === "sc-name" || name === "data-dc-tpl") continue;
+      let key = name;
+      if (key.startsWith(CAMEL_ATTR))
+        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
+      if (key === "hint-size") {
+        hintSize = value;
+        continue;
+      }
+      if (key.startsWith("style-")) {
+        pseudoClasses.push(host.pseudoClass(key.slice(6), value));
+        continue;
+      }
+      if (kind !== "dom") {
+        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
+          key = kebabToCamel(key);
+      } else {
+        if (key === "class") key = "className";
+        else if (key === "for") key = "htmlFor";
+        else if (key.startsWith("on"))
+          key = EVENT_MAP[key] || "on" + key[2].toUpperCase() + key.slice(3);
+      }
+      propGetters.push([key, compileAttr(value)]);
+    }
+    return { propGetters, pseudoClasses, hintSize };
+  }
+  var HOST_STYLE_PROPS = /* @__PURE__ */ new Set([
+    "position",
+    "left",
+    "right",
+    "top",
+    "bottom",
+    "inset",
+    "width",
+    "height",
+    "z-index",
+    "transform"
+  ]);
+  function hostPositionStyle(style) {
+    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
+    if (!all) return void 0;
+    const out = {};
+    for (const [k, v] of Object.entries(all)) {
+      const kebab = k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase());
+      if (HOST_STYLE_PROPS.has(kebab)) out[k] = v;
+    }
+    return Object.keys(out).length ? out : void 0;
+  }
+  function compileTemplate(html, host) {
+    const tpl = document.createElement("template");
+    //! nosemgrep: direct-inner-html-assignment
+    tpl.innerHTML = encodeCase(html);
+    let tplN = 0;
+    (function stamp(node) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        node.setAttribute("data-dc-tpl", String(tplN++));
+      }
+      for (const c of node.childNodes) stamp(c);
+    })(tpl.content);
+    const builders = walkChildren(tpl.content, host);
+    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
+    render.__annotated = tpl.innerHTML;
+    return render;
+  }
+  function walkChildren(node, host) {
+    return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
+  }
+  var SLIDE_ID_VALUE_RE = /^[0-9a-f]{8}$/;
+  var DECK_CONTROL_FLOW_RE = /^(sc-if|sc-for|sc-else|dc-import|x-import)$/;
+  var DECK_AUX_RE = /^(template|script|style|sc-helmet|helmet)$/;
+  function isDeckMountTag(el) {
+    if (el.localName === "deck-stage") return true;
+    return el.localName === "x-import" && (el.getAttribute("component-from-global-scope") || "") === "deck-stage";
+  }
+  function walkDeckChildren(el, host) {
+    const pairs = [...el.childNodes].map((c) => ({ c, b: walk(c, host) })).filter((p) => p.b !== null);
+    const kids = pairs.map((p) => p.b);
+    const seen = /* @__PURE__ */ new Set();
+    const wsSeen = /* @__PURE__ */ new Map();
+    const keys = [];
+    const nextSlideId = new Array(pairs.length);
+    {
+      let upcoming = null;
+      for (let j = pairs.length - 1; j >= 0; j--) {
+        const n = pairs[j].c;
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          const t = n.localName;
+          upcoming = !DECK_AUX_RE.test(t) && !DECK_CONTROL_FLOW_RE.test(t) ? n.getAttribute("data-om-slide-id") : null;
+        }
+        nextSlideId[j] = upcoming;
+      }
+    }
+    for (let j = 0; j < pairs.length; j++) {
+      const { c } = pairs[j];
+      if (c.nodeType === Node.TEXT_NODE) {
+        if ((c.nodeValue ?? "").trim() === "") {
+          const base = nextSlideId[j] ? "omid-ws:" + nextSlideId[j] : "omid-ws:aux";
+          const n = wsSeen.get(base) ?? 0;
+          wsSeen.set(base, n + 1);
+          keys.push(n === 0 ? base : base + ":" + n);
+          continue;
+        }
+        return { kids, keys: null };
+      }
+      if (c.nodeType !== Node.ELEMENT_NODE) {
+        keys.push(j);
+        continue;
+      }
+      const child = c;
+      const tag = child.localName;
+      if (DECK_AUX_RE.test(tag)) {
+        keys.push(j);
+        continue;
+      }
+      if (DECK_CONTROL_FLOW_RE.test(tag)) return { kids, keys: null };
+      const v = child.getAttribute("data-om-slide-id");
+      if (!v || !SLIDE_ID_VALUE_RE.test(v) || seen.has(v)) {
+        return { kids, keys: null };
+      }
+      seen.add(v);
+      keys.push("omid:" + v);
+    }
+    return { kids, keys };
+  }
+  function renderDeckKids(kids, kidKeys, vals, ctx) {
+    return kids.map((b, j) => {
+      const k = kidKeys ? kidKeys[j] : j;
+      const out = b(vals, ctx, k);
+      return kidKeys != null && typeof out === "string" ? h(getReact().Fragment, { key: k }, out) : out;
+    });
+  }
+  function walk(node, host) {
+    if (node.nodeType === Node.TEXT_NODE) return walkText(node);
+    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+    const el = node;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "sc-for") return walkFor(el, host);
+    if (tag === "sc-if") return walkIf(el, host);
+    if (tag === "x-import") return walkXImport(el, host);
+    if (tag === "sc-helmet") return host.helmet(el);
+    if (tag === "dc-import") return walkComponent(el, host);
+    return walkElement(el, host);
+  }
+  var warnedHoles = /* @__PURE__ */ new Set();
+  function warnUnresolved(ctx, what) {
+    const key = (ctx?.__name || "?") + "\0" + what;
+    if (warnedHoles.has(key)) return;
+    warnedHoles.add(key);
+    console.warn("[dc-runtime] " + (ctx?.__name || "template") + ": " + what);
+  }
+  function walkText(node) {
+    const txt = node.nodeValue ?? "";
+    if (!txt.includes("{{")) {
+      if (!txt.trim() && !txt.includes(" ")) return null;
+      return () => txt;
+    }
+    const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
+    return (vals, ctx, key) => h(
+      getReact().Fragment,
+      { key },
+      ...parts.map((p, i) => {
+        if (!(i & 1)) return p;
+        const v = resolve(vals, p);
+        if (v === void 0) {
+          if (!ctx?.__streamingNow) {
+            if (document.body?.hasAttribute("data-dc-editor-on")) {
+              return h(
+                "span",
+                { key: i, className: "sc-interp sc-unresolved" },
+                "{{ " + p.trim() + " }}"
+              );
+            }
+            warnUnresolved(
+              ctx,
+              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
+            );
+            return null;
+          }
+          return h(
+            "span",
+            { key: i, className: "sc-interp sc-missing" },
+            p.trim()
+          );
+        }
+        if (getReact().isValidElement(v) || Array.isArray(v)) {
+          return h(getReact().Fragment, { key: i }, v);
+        }
+        if (v === null || typeof v === "boolean") return null;
+        return h("span", { key: i, className: "sc-interp" }, String(v));
+      })
+    );
+  }
+  function walkFor(el, host) {
+    const listGet = compileAttr(el.getAttribute("list") || "");
+    const asName = el.getAttribute("as") || "item";
+    const hintN = parseInt(el.getAttribute("hint-placeholder-count") || "0", 10);
+    const kids = walkChildren(el, host);
+    const listSrc = el.getAttribute("list") || "";
+    return (vals, ctx, key) => {
+      let list = listGet(vals);
+      if (!Array.isArray(list)) {
+        if (!ctx?.__streamingNow) {
+          if (list !== void 0 && list !== null) {
+            warnUnresolved(
+              ctx,
+              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
+            );
+          }
+          list = [];
+        } else {
+          list = hintN > 0 ? Array(hintN).fill(void 0) : [];
+        }
+      }
+      return h(
+        getReact().Fragment,
+        { key },
+        list.map((item, i) => {
+          const sub = { ...vals, [asName]: item, $index: i };
+          return h(
+            getReact().Fragment,
+            { key: i },
+            kids.map((b, j) => b(sub, ctx, j))
+          );
+        })
+      );
+    };
+  }
+  function walkIf(el, host) {
+    const valGet = compileAttr(el.getAttribute("value") || "");
+    const hintRaw = el.getAttribute("hint-placeholder-val");
+    const hintGet = hintRaw != null ? compileAttr(hintRaw) : null;
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      let v = valGet(vals);
+      if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
+      return v ? h(
+        getReact().Fragment,
+        { key },
+        kids.map((b, j) => b(vals, ctx, j))
+      ) : null;
+    };
+  }
+  function walkComponent(el, host) {
+    const name = el.getAttribute("name") || el.getAttribute("component") || "";
+    el.removeAttribute("name");
+    el.removeAttribute("component");
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
+    const kids = walkChildren(el, host);
+    return (vals, ctx, key) => {
+      const props = {
+        key,
+        __hintSize: hintSize,
+        __tplId: tplId,
+        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
+      };
+      for (const [k, g] of propGetters) {
+        const v = g(vals);
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
+        props[k] = v;
+      }
+      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
+      return h(host.component(name), props);
+    };
+  }
+  function walkXImport(el, host) {
+    const globalNameGet = compileAttr(
+      el.getAttribute("component-from-global-scope") || ""
+    );
+    const exportNameGet = compileAttr(
+      el.getAttribute("component") || el.getAttribute("name") || ""
+    );
+    const fromRaw = el.getAttribute("from") || (el.getAttribute("component-from-global-scope") ? "" : el.getAttribute("src") || el.getAttribute("import") || "");
+    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
+    const url = urls.length ? urls[urls.length - 1] : "";
+    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
+    const tplId = el.getAttribute("data-dc-tpl");
+    const styleRaw = el.getAttribute("style");
+    el.removeAttribute("style");
+    const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
+    const wrap = tplId != null || styleGet != null;
+    const { propGetters, hintSize } = collectProps(el, "x-import", host);
+    const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
+    const deckKeyed = hasContent && isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : hasContent ? walkChildren(el, host) : [];
+    const kidKeys = deckKeyed?.keys ?? null;
+    const urlBindable = fromRaw.includes("{{");
+    if (urls.length && !urlBindable) {
+      let prev;
+      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
+    }
+    const evalName = (g, vals) => {
+      const v = g(vals);
+      const s = v == null ? "" : String(v);
+      return s.includes("{{") ? "" : s;
+    };
+    return (vals, ctx, key) => {
+      const globalName = evalName(globalNameGet, vals);
+      const name = globalName || evalName(exportNameGet, vals);
+      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
+      const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
+      const wrapper = wrap ? {
+        key,
+        className: "sc-host-x",
+        "data-dc-tpl": tplId,
+        style: hostStyle || { display: "contents" }
+      } : null;
+      if (!C) {
+        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      const props = wrapper ? {} : { key };
+      let unresolvedHole = false;
+      for (const [k, g] of propGetters) {
+        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
+          continue;
+        }
+        const v = g(vals);
+        if (v === void 0) unresolvedHole = true;
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
+        props[k] = v;
+      }
+      if (unresolvedHole && ctx?.__htmlStreamingNow) {
+        const ph = host.placeholder({
+          key: wrapper ? void 0 : key,
+          name,
+          hintSize,
+          error: null
+        });
+        return wrapper ? h("div", wrapper, ph) : ph;
+      }
+      if (kids.length) {
+        props.children = renderDeckKids(kids, kidKeys, vals, ctx);
+      }
+      return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
+    };
+  }
+  function contentKey(el) {
+    const clone = el.cloneNode(true);
+    for (const d of clone.querySelectorAll("*")) {
+      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
+    }
+    const s = clone.innerHTML;
+    let h2 = 5381;
+    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
+    return s.length + "." + (h2 >>> 0).toString(36);
+  }
+  var NEVER_CONTENT_KEYED = new Set(
+    "script style textarea option title select canvas iframe video audio".split(
+      " "
+    )
+  );
+  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
+  function walkElement(el, host) {
+    const realTag = RAW_UNWRAP[el.localName] || el.localName;
+    const tplId = el.getAttribute("data-dc-tpl");
+    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
+    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
+    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
+    const deckKeyed = isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : walkChildren(el, host);
+    const kidKeys = deckKeyed?.keys ?? null;
+    return (vals, ctx, key) => {
+      const props = {
+        key: key + keySuffix,
+        "data-dc-tpl": tplId
+      };
+      for (const [k, g] of propGetters) {
+        let v = g(vals);
+        if (k === "style" && typeof v === "string") v = cssToObj(v);
+        if ((k === "value" || k === "checked") && v === void 0) {
+          v = k === "checked" ? false : "";
+        }
+        props[k] = v;
+      }
+      if (pseudoClasses.length) {
+        props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
+      }
+      return h(realTag, props, ...renderDeckKids(kids, kidKeys, vals, ctx));
+    };
+  }
+
+  // src/logic.ts
+  var StreamableLogic = class {
+    constructor(props) {
+      __publicField(this, "props");
+      __publicField(this, "state", {});
+      /** Back-pointer to the wrapper component, installed after construction. */
+      __publicField(this, "__host");
+      this.props = props || {};
+    }
+    setState(update, cb) {
+      this.__host && this.__host.__setLogicState(update, cb);
+    }
+    forceUpdate() {
+      this.__host && this.__host.forceUpdate();
+    }
+    componentDidMount() {
+    }
+    componentDidUpdate(_prevProps) {
+    }
+    componentWillUnmount() {
+    }
+    /** The flat object the template renders against (merged over props). */
+    renderVals() {
+      return {};
+    }
+  };
+  function evalDcLogic(src) {
+    //! nosemgrep: eval-and-function-constructor
+    const fn = new Function(
+      "DCLogic",
+      "StreamableLogic",
+      "React",
+      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
+    );
+    return fn(StreamableLogic, StreamableLogic, getReact());
+  }
+
+  // src/component.ts
+  function shallowEqual(a, b) {
+    if (!b) return false;
+    const ak = Object.keys(a).filter((k) => k !== "children");
+    const bk = Object.keys(b).filter((k) => k !== "children");
+    if (ak.length !== bk.length) return false;
+    for (const k of ak) if (a[k] !== b[k]) return false;
+    return true;
+  }
+  function Placeholder({
+    name,
+    hintSize,
+    streaming,
+    error
+  }) {
+    const [w, hgt] = (hintSize || "100%,60px").split(",");
+    return h(
+      "div",
+      {
+        className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
+        style: { width: w.trim(), height: hgt && hgt.trim() },
+        title: name
+      },
+      error ? h(
+        "div",
+        { className: "sc-placeholder-error" },
+        (name ? name + ": " : "") + error
+      ) : null
+    );
+  }
+  function hintToMin(hint) {
+    if (!hint) return void 0;
+    const [w, hgt] = hint.split(",");
+    return { minWidth: w.trim(), minHeight: hgt && hgt.trim() };
+  }
+  function createComponentFactory(registry, ensureFetched) {
+    const React = getReact();
+    const AncestorContext = React.createContext([]);
+    class StreamableComponent extends React.Component {
+      constructor(props) {
+        super(props);
+        __publicField(this, "__name");
+        __publicField(this, "__sub");
+        __publicField(this, "__needsDidMount", false);
+        /** Snapshot of the registry's streaming flags taken at render time —
+         *  builders read it off the RenderCtx (this) to pick placeholder vs
+         *  render-nothing for unresolved values. */
+        __publicField(this, "__streamingNow", false);
+        __publicField(this, "__htmlStreamingNow", false);
+        /** When a construct throws, remember the (class, registry.ver, props)
+         *  triple so render-time reconcile doesn't re-attempt it on every parent
+         *  re-render. A registry bump (new class, template, external module
+         *  resolving via bumpAll) changes `ver` and breaks the memo so an
+         *  env-dependent constructor can self-heal. */
+        __publicField(this, "__failedLogic", null);
+        __publicField(this, "__failedUserProps", null);
+        __publicField(this, "__failedVer", -1);
+        /** Per-instance constructor error — kept here (not on the registry entry)
+         *  so one instance's successful construct can't hide a sibling's failure,
+         *  and a construct can never wipe an eval error `updateJs` recorded on
+         *  `r.logicError`. */
+        __publicField(this, "__ctorError", null);
+        __publicField(this, "logic");
+        this.__name = props.__name;
+        this.state = { __v: 0, __err: null };
+        this.__sub = () => {
+          if (this.state.__err) this.setState({ __err: null });
+          this.forceUpdate();
+        };
+        this.__makeLogic(registry.get(this.__name).Logic, null);
+        ensureFetched(this.__name);
+      }
+      /** Error-boundary hook: a render crash anywhere in this DC's subtree
+       *  (its own template, an x-import'd component, a child DC without its
+       *  own deeper boundary) lands here instead of unmounting the page. */
+      static getDerivedStateFromError(e) {
+        return { __err: e instanceof Error && e.message ? e.message : String(e) };
+      }
+      componentDidCatch(e, info) {
+        console.error(
+          "[dc-runtime] render error in <" + this.__name + ">:",
+          e,
+          info?.componentStack || ""
+        );
+      }
+      /** Instantiate the logic class (or the no-op base) and adopt `prevState`
+       *  over its initial state — used both at mount and on hot-swap. */
+      __makeLogic(Logic, prevState) {
+        const L = Logic || StreamableLogic;
+        try {
+          this.logic = new L(this.__userProps());
+          this.__failedLogic = null;
+          this.__failedUserProps = null;
+          this.__ctorError = null;
+        } catch (e) {
+          console.error(e);
+          this.__failedLogic = Logic;
+          this.__failedUserProps = this.__userProps();
+          this.__failedVer = registry.get(this.__name).ver;
+          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+          this.logic = new StreamableLogic(
+            this.__userProps()
+          );
+        }
+        this.logic.__host = this;
+        if (prevState)
+          this.logic.state = { ...this.logic.state || {}, ...prevState };
+      }
+      /** The props the author's logic + template see — internal __-prefixed
+       *  wiring stripped. */
+      __userProps() {
+        const { __name, __hintSize, __tplId, __hostStyle, ...rest } = this.props;
+        return rest;
+      }
+      __setLogicState(update, cb) {
+        const prev = this.logic.state;
+        const patch = typeof update === "function" ? update(prev) : update;
+        this.logic.state = { ...prev, ...patch };
+        this.setState((s) => ({ __v: s.__v + 1 }), cb);
+      }
+      /** Swap the logic instance when the registry's Logic class changed
+       *  (streaming completion, hot reload). State carries over; didMount
+       *  re-fires after the swap commits so refs exist. */
+      __reconcileLogic() {
+        const r = registry.get(this.__name);
+        const Next = r.Logic;
+        const Cur = this.logic.constructor;
+        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
+          return;
+        }
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        this.__makeLogic(Next, this.logic.state);
+        this.__needsDidMount = true;
+      }
+      componentDidMount() {
+        registry.get(this.__name).subs.add(this.__sub);
+        try {
+          this.logic.componentDidMount();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      componentDidUpdate(prevProps) {
+        this.logic.props = this.__userProps();
+        if (this.__needsDidMount) {
+          if (this.state.__err || !registry.get(this.__name).tpl) return;
+          this.__needsDidMount = false;
+          try {
+            this.logic.componentDidMount();
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          try {
+            this.logic.componentDidUpdate(prevProps);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      componentWillUnmount() {
+        registry.get(this.__name).subs.delete(this.__sub);
+        if (!this.__needsDidMount) {
+          try {
+            this.logic.componentWillUnmount();
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      render() {
+        const r = registry.get(this.__name);
+        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
+        const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
+        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
+        const hostBase = {
+          className: cls,
+          style: hostStyle,
+          "data-sc-name": this.__name,
+          "data-dc-tpl": this.props.__tplId
+        };
+        const chain = Array.isArray(this.context) ? this.context : [];
+        if (chain.includes(this.__name)) {
+          const cycle = [
+            ...chain.slice(chain.indexOf(this.__name)),
+            this.__name
+          ].join(" \u2192 ");
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: "circular import: " + cycle
+            })
+          );
+        }
+        if (this.state.__err) {
+          return h(
+            "div",
+            { ...hostBase, className: cls + " sc-has-error" },
+            h(
+              "div",
+              { className: "sc-logic-error", "data-omelette-chrome": "" },
+              this.__name + ": " + this.state.__err
+            ),
+            h(Placeholder, {
+              name: this.__name,
+              hintSize: this.props.__hintSize,
+              error: this.state.__err
+            })
+          );
+        }
+        this.__reconcileLogic();
+        if (!r.tpl) {
+          return h(
+            "div",
+            hostBase,
+            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
+          );
+        }
+        const userProps = this.__userProps();
+        this.logic.props = userProps;
+        let vals = userProps;
+        let renderErr = r.logicError || this.__ctorError;
+        try {
+          vals = { ...userProps, ...this.logic.renderVals() || {} };
+        } catch (e) {
+          console.error(e);
+          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
+        }
+        this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
+        this.__htmlStreamingNow = !!r.htmlStreaming;
+        return h(
+          "div",
+          { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
+          renderErr && h(
+            "div",
+            { className: "sc-logic-error", "data-omelette-chrome": "" },
+            renderErr
+          ),
+          h(
+            AncestorContext.Provider,
+            { value: [...chain, this.__name] },
+            r.tpl(vals, this)
+          )
+        );
+      }
+    }
+    __publicField(StreamableComponent, "contextType", AncestorContext);
+    const named = /* @__PURE__ */ new Map();
+    function getDC(name) {
+      const hit = named.get(name);
+      if (hit) return hit;
+      function Dispatcher(p) {
+        const [, setTick] = React.useState(0);
+        React.useEffect(() => {
+          const sub = () => setTick((n) => n + 1);
+          registry.get(name).subs.add(sub);
+          return () => {
+            registry.get(name).subs.delete(sub);
+          };
+        }, []);
+        ensureFetched(name);
+        return h(StreamableComponent, { ...p, __name: name });
+      }
+      Dispatcher.displayName = name;
+      named.set(name, Dispatcher);
+      return Dispatcher;
+    }
+    return {
+      getDC,
+      StreamableComponent
+    };
+  }
+
+  // src/bundled.ts
+  function bundledBlob(url) {
+    const blobs = window.__resourceBlobs;
+    const b = blobs ? blobs[url.split("#")[0]] : void 0;
+    return b instanceof Blob ? b : null;
+  }
+
+  // src/cdn.ts
+  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
+  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
+  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
+  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
+  function cdnScriptFor(url, sri) {
+    const res = window.__resources;
+    const v = res ? res[url] : void 0;
+    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
+  }
+
+  // src/external.ts
+  var isCustomElementName = (n) => !n.includes(".") && n.includes("-");
+  function isRenderableType(g) {
+    if (typeof g === "function") return !isElementClass(g);
+    return typeof g === "object" && g !== null && typeof g.$$typeof === "symbol";
+  }
+  function resolveDottedPath(root, name) {
+    let cur = root;
+    for (const seg of name.split(".")) {
+      if (cur == null) return void 0;
+      cur = cur[seg];
+    }
+    return cur;
+  }
+  var GLOBAL_POLL_INTERVAL_MS = 50;
+  var GLOBAL_POLL_TIMEOUT_MS = 3e4;
+  function createExternalModules(onResolved) {
+    const cache = /* @__PURE__ */ new Map();
+    let babelLoading = null;
+    const reportedMissing = /* @__PURE__ */ new Map();
+    const polling = /* @__PURE__ */ new Set();
+    function ensureBabel() {
+      if (window.Babel) return Promise.resolve();
+      if (babelLoading) return babelLoading;
+      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
+      babelLoading = new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = babel.src;
+        if (babel.integrity) {
+          s.integrity = babel.integrity;
+          s.crossOrigin = "anonymous";
+        }
+        s.onload = () => res();
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      return babelLoading;
+    }
+    const pending = /* @__PURE__ */ new Map();
+    function load(kind, url, after) {
+      const existing = pending.get(url);
+      if (existing) return existing;
+      cache.set(url, null);
+      console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
+      const ready = Promise.all([
+        kind === "jsx" ? ensureBabel() : Promise.resolve(),
+        after ?? Promise.resolve()
+      ]);
+      const p = ready.then(() => {
+        const pre = bundledBlob(url);
+        if (pre) return pre.text();
+        return fetch(url).then((r) => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        });
+      }).then((src) => {
+        const code = kind === "jsx" ? window.Babel.transform(src, {
+          filename: url,
+          presets: ["react", "typescript"]
+        }).code : src;
+        const module = { exports: {} };
+        const before = new Set(Object.keys(window));
+        //! nosemgrep: eval-and-function-constructor
+        new Function("React", "module", "exports", "require", code)(
+          getReact(),
+          module,
+          module.exports,
+          () => ({})
+        );
+        const globals = {};
+        for (const k of Object.keys(window)) {
+          if (!before.has(k) && typeof window[k] === "function") {
+            globals[k] = window[k];
+          }
+        }
+        cache.set(url, { mod: module.exports, globals });
+        console.info(
+          "[dc-runtime] x-import: loaded",
+          url,
+          "\u2014 exports:",
+          Object.keys(module.exports),
+          "window globals:",
+          Object.keys(globals)
+        );
+        onResolved();
+      }).catch((e) => {
+        cache.set(url, {
+          mod: {},
+          globals: {},
+          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
+        });
+        console.error(
+          "[dc-runtime] x-import: FAILED to load",
+          url,
+          "(" + kind + ")",
+          e
+        );
+        onResolved();
+      });
+      pending.set(url, p);
+      return p;
+    }
+    function resolve2(url, name) {
+      const entry = cache.get(url);
+      if (!entry) return null;
+      const { mod, globals } = entry;
+      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
+      if (typeof C === "function") return C;
+      const key = url + "\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(
+          key,
+          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
+        );
+        console.error(
+          "[dc-runtime] x-import: module",
+          url,
+          "loaded but has no component named",
+          JSON.stringify(name),
+          "\u2014 available exports:",
+          Object.keys(mod),
+          "window globals:",
+          Object.keys(globals),
+          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
+        );
+      }
+      return null;
+    }
+    function waitForGlobal(name) {
+      if (polling.has(name)) return;
+      polling.add(name);
+      const started = Date.now();
+      const isCE = isCustomElementName(name);
+      const tick = () => {
+        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
+        if (found) {
+          polling.delete(name);
+          onResolved();
+          return;
+        }
+        if (Date.now() - started >= GLOBAL_POLL_TIMEOUT_MS) {
+          console.warn(
+            "[dc-runtime] x-import: global",
+            JSON.stringify(name),
+            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
+          );
+          return;
+        }
+        setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+      };
+      setTimeout(tick, GLOBAL_POLL_INTERVAL_MS);
+    }
+    function resolveGlobal(url, name) {
+      const isCE = isCustomElementName(name);
+      if (!url) {
+        if (isCE) {
+          if (customElements.get(name)) return name;
+          waitForGlobal(name);
+          return null;
+        }
+        const g2 = resolveDottedPath(window, name);
+        if (isRenderableType(g2)) return g2;
+        waitForGlobal(name);
+        return null;
+      }
+      const entry = cache.get(url);
+      if (!entry) return null;
+      if (isCE && customElements.get(name)) return name;
+      const g = entry.globals[name] ?? resolveDottedPath(window, name);
+      if (isRenderableType(g)) return g;
+      if (name.includes(".")) return null;
+      const key = url + "\0global\0" + name;
+      if (!reportedMissing.has(key)) {
+        reportedMissing.set(key, null);
+        if (isCE && !customElements.get(name)) {
+          console.warn(
+            "[dc-runtime] x-import:",
+            url,
+            "loaded but no custom element",
+            JSON.stringify(name),
+            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
+          );
+        }
+      }
+      return name;
+    }
+    function getError(url, name) {
+      const entry = cache.get(url);
+      if (entry?.error) return entry.error;
+      return reportedMissing.get(url + "\0" + name) || null;
+    }
+    return { load, resolve: resolve2, resolveGlobal, getError };
+  }
+  function isElementClass(g) {
+    try {
+      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
+    } catch {
+      return false;
+    }
+  }
+
+  // src/atomics.ts
+  var ATOMIC_CSS = (
+    // layout
+    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
+  );
+
+  // src/helmet.ts
+  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
+  var CANVAS_BG_LIGHT = "#f0eee6";
+  var CANVAS_BG_DARK = "#2e2c26";
+  function createHelmetManager(doc, isStreaming) {
+    const mounted = /* @__PURE__ */ new Set();
+    const live = /* @__PURE__ */ new Map();
+    let designDocMode = null;
+    let canvasStyleEl = null;
+    let appTheme = "light";
+    try {
+      const ds = doc.documentElement.dataset.theme;
+      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
+        "theme"
+      ) === "dark" ? "dark" : "light";
+    } catch {
+    }
+    function applyCanvasBg() {
+      if (!canvasStyleEl) return;
+      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
+      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
+    }
+    function postDesignMode(mode) {
+      if (window.parent === window) return;
+      try {
+        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
+      } catch {
+      }
+    }
+    function setDesignDocMode(mode) {
+      if (mode === designDocMode) return;
+      designDocMode = mode;
+      postDesignMode(mode);
+      if (mode === "canvas") {
+        doc.documentElement.setAttribute("data-dc-canvas", "");
+        canvasStyleEl = doc.createElement("style");
+        canvasStyleEl.setAttribute("data-dc-canvas", "");
+        applyCanvasBg();
+        doc.head.appendChild(canvasStyleEl);
+      } else {
+        doc.documentElement.removeAttribute("data-dc-canvas");
+        canvasStyleEl?.remove();
+        canvasStyleEl = null;
+      }
+    }
+    window.addEventListener("message", (e) => {
+      const type = e.data && e.data.type;
+      if (type === "__dc_theme") {
+        const t = e.data.theme;
+        if (t === "light" || t === "dark") {
+          appTheme = t;
+          applyCanvasBg();
+        }
+        return;
+      }
+      if (!designDocMode || type !== "__dc_probe") return;
+      postDesignMode(designDocMode);
+    });
+    function compile(node) {
+      const raw = [...node.children];
+      const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
+      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
+        mounted.add("__dc-atomics");
+        const el = doc.createElement("style");
+        el.id = "__dc-atomics";
+        el.textContent = ATOMIC_CSS;
+        doc.head.appendChild(el);
+      }
+      return (_vals, ctx) => {
+        const name = ctx && ctx.__name || "";
+        const streaming = !!(name && isStreaming(name));
+        for (let i = 0; i < raw.length; i++) {
+          const child = raw[i];
+          const tag = child.tagName;
+          const mayBePartial = streaming && !helmetClosed && i === raw.length - 1;
+          if (tag === "SCRIPT") {
+            if (mayBePartial) continue;
+            const key = "SCRIPT|" + (child.getAttribute("src") || child.textContent || "");
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            const el = doc.createElement("script");
+            for (const { name: an, value } of [...child.attributes])
+              el.setAttribute(an, value);
+            if (child.textContent) el.textContent = child.textContent;
+            doc.head.appendChild(el);
+          } else if (tag === "LINK" || tag === "META") {
+            if (mayBePartial) continue;
+            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
+            if (mounted.has(key)) continue;
+            mounted.add(key);
+            if (tag === "LINK") {
+              const rel = (child.getAttribute("rel") || "").toLowerCase().split(/\s+/);
+              const href = (child.getAttribute("href") || "").trim();
+              const res = window.__resources;
+              const pre = res && rel.includes("stylesheet") && !rel.includes("alternate") ? res[href] : void 0;
+              const blob = typeof pre === "string" && pre ? bundledBlob(pre) : null;
+              if (blob) {
+                const el = doc.createElement("style");
+                if (child.hasAttribute("disabled")) {
+                  el.setAttribute("media", "not all");
+                } else if (child.getAttribute("media")) {
+                  el.setAttribute("media", child.getAttribute("media"));
+                }
+                if (child.getAttribute("title"))
+                  el.setAttribute("title", child.getAttribute("title"));
+                void blob.text().then((css) => {
+                  el.textContent = css;
+                });
+                doc.head.appendChild(el);
+                continue;
+              }
+            }
+            doc.head.appendChild(child.cloneNode(true));
+          } else {
+            const key = name + "|" + i;
+            let el = live.get(key);
+            if (!el || el.tagName !== tag) {
+              if (el) el.remove();
+              el = doc.createElement(tag.toLowerCase());
+              live.set(key, el);
+              doc.head.appendChild(el);
+            }
+            for (const { name: an, value } of [...child.attributes]) {
+              if (el.getAttribute(an) !== value) el.setAttribute(an, value);
+            }
+            if (el.textContent !== child.textContent)
+              el.textContent = child.textContent;
+          }
+        }
+        return null;
+      };
+    }
+    return { compile, setDesignDocMode };
+  }
+
+  // src/pseudo.ts
+  function scanUnquotedUrl(css, i) {
+    if (css[i] !== "u" && css[i] !== "U" || css.slice(i, i + 4).toLowerCase() !== "url(" || /[a-z0-9_-]/i.test(css[i - 1] ?? "")) {
+      return -1;
+    }
+    let j = i + 4;
+    while (j < css.length && /\s/.test(css[j])) j++;
+    if (css[j] === '"' || css[j] === "'") return -1;
+    while (j < css.length && css[j] !== ")") {
+      if (css[j] === "\\") j++;
+      j++;
+    }
+    return j < css.length ? j + 1 : css.length;
+  }
+  function stripComments(css) {
+    let out = "";
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") {
+          out += c + (css[i + 1] ?? "");
+          i++;
+          continue;
+        }
+        if (c === quote) quote = "";
+        out += c;
+      } else if (c === "'" || c === '"') {
+        quote = c;
+        out += c;
+      } else if (c === "/" && css[i + 1] === "*") {
+        const end = css.indexOf("*/", i + 2);
+        i = end === -1 ? css.length : end + 1;
+        out += " ";
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end === -1) out += c;
+        else {
+          out += css.slice(i, end);
+          i = end - 1;
+        }
+      }
+    }
+    return out;
+  }
+  function importantify(css) {
+    css = stripComments(css);
+    const decls = [];
+    let start = 0;
+    let depth = 0;
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") i++;
+        else if (c === quote) quote = "";
+      } else if (c === "'" || c === '"') quote = c;
+      else if (c === "(") depth++;
+      else if (c === ")") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        decls.push(css.slice(start, i));
+        start = i + 1;
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end !== -1) i = end - 1;
+      }
+    }
+    decls.push(css.slice(start));
+    return decls.map((d) => d.trim()).filter(Boolean).map((d) => /!\s*important$/i.test(d) ? d : d + " !important").join(";");
+  }
+  function createPseudoSheet(doc) {
+    let el = null;
+    const cache = /* @__PURE__ */ new Map();
+    let n = 0;
+    return (pseudo, css) => {
+      const k = pseudo + "|" + css;
+      const hit = cache.get(k);
+      if (hit) return hit;
+      if (!el) {
+        el = doc.createElement("style");
+        doc.head.appendChild(el);
+      }
+      const cls = "scp" + (n++).toString(36);
+      const isPseudoElement = pseudo === "before" || pseudo === "after";
+      const sel = isPseudoElement ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
+      el.sheet.insertRule(
+        sel + "{" + (isPseudoElement ? css : importantify(css)) + "}",
+        el.sheet.cssRules.length
+      );
+      cache.set(k, cls);
+      return cls;
+    };
+  }
+
+  // src/registry.ts
+  function createRegistry() {
+    const entries = /* @__PURE__ */ Object.create(null);
+    function get(name) {
+      return entries[name] || (entries[name] = {
+        html: "",
+        tpl: null,
+        Logic: null,
+        jsStreaming: false,
+        htmlStreaming: false,
+        ver: 0,
+        subs: /* @__PURE__ */ new Set(),
+        fetched: false
+      });
+    }
+    function bump(name) {
+      const r = get(name);
+      r.ver++;
+      for (const fn of r.subs) fn();
+    }
+    return {
+      entries,
+      get,
+      bump,
+      bumpAll() {
+        for (const n in entries) bump(n);
+      }
+    };
+  }
+
+  // src/runtime.ts
+  var COMPONENT_DIR = ".";
+  function createRuntime(doc = document) {
+    const registry = createRegistry();
+    const pseudoClass = createPseudoSheet(doc);
+    const helmet = createHelmetManager(
+      doc,
+      (name) => registry.get(name).htmlStreaming
+    );
+    const external = createExternalModules(() => registry.bumpAll());
+    const factory = createComponentFactory(registry, ensureFetched);
+    const host = {
+      component: (name) => factory.getDC(name),
+      placeholder: (props) => h(Placeholder, props),
+      helmet: (node) => helmet.compile(node),
+      loadExternal: (kind, url, after) => external.load(kind, url, after),
+      resolveExternal: (url, name) => external.resolve(url, name),
+      resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
+      resolveExternalError: (url, name) => external.getError(url, name),
+      pseudoClass
+    };
+    function ensureFetched(name) {
+      const r = registry.get(name);
+      if (r.fetched) return;
+      r.fetched = true;
+      const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
+      const res = window.__resources;
+      const pre = res ? res[url] : void 0;
+      const target = typeof pre === "string" && pre ? pre : url;
+      const blob = bundledBlob(target);
+      (blob ? blob.text() : fetch(target).then((res2) => {
+        if (!res2.ok) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '" failed:',
+            url,
+            "returned",
+            res2.status,
+            "\u2014 the reference renders as an empty placeholder."
+          );
+          return "";
+        }
+        return res2.text();
+      })).then((t) => {
+        if (!t) return;
+        const parsed = parseDcText(t);
+        if (!parsed) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '":',
+            url,
+            "has no <x-dc> block \u2014 not a Design Component."
+          );
+          return;
+        }
+        if (parsed.props) r.propsMeta = parsed.props;
+        if (parsed.preview) r.preview = parsed.preview;
+        if (parsed.template && !r.html) updateHtml(name, parsed.template);
+        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
+      }).catch(
+        (e) => console.error(
+          '[dc-runtime] sibling fetch for "' + name + '" threw:',
+          url,
+          e
+        )
+      );
+    }
+    let rootName = null;
+    function updateHtml(name, html) {
+      const r = registry.get(name);
+      r.html = html;
+      if (name === rootName) {
+        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
+        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
+      }
+      try {
+        r.tpl = compileTemplate(html, host);
+      } catch (e) {
+        console.error("[dc-runtime] template compile FAILED for", name, e);
+      }
+      registry.bump(name);
+    }
+    function updateJs(name, src) {
+      const r = registry.get(name);
+      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
+      try {
+        const Cls = evalDcLogic(src);
+        if (r.jsSeq !== seq) return;
+        if (typeof Cls !== "function") {
+          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
+        } else {
+          r.logicError = null;
+          r.Logic = Cls;
+        }
+      } catch (e) {
+        if (r.jsSeq !== seq) return;
+        console.error(
+          "[dc-runtime] logic class eval FAILED for",
+          name,
+          "\u2014 the template renders with props only.",
+          e
+        );
+        r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+      }
+      registry.bump(name);
+    }
+    function setStreaming(name, kind, on) {
+      const r = registry.get(name);
+      if (kind === "html") r.htmlStreaming = !!on;
+      else r.jsStreaming = !!on;
+      let any = false;
+      for (const n in registry.entries) {
+        const e = registry.entries[n];
+        if (e && (e.htmlStreaming || e.jsStreaming)) {
+          any = true;
+          break;
+        }
+      }
+      doc.documentElement.classList.toggle("sc-dc-streaming", any);
+      registry.bump(name);
+    }
+    function dcUpdate(name, kind, content, streaming) {
+      if (streaming) registry.get(name).fetched = true;
+      if (kind === "html") {
+        setStreaming(name, "html", !!streaming);
+        updateHtml(name, content);
+      } else if (kind === "js") {
+        setStreaming(name, "js", !!streaming);
+        if (!streaming) updateJs(name, content);
+      } else if (kind === "props") {
+        const { props, preview } = parseDataProps(content);
+        const r = registry.get(name);
+        r.propsMeta = props ?? void 0;
+        r.preview = preview;
+        registry.bump(name);
+      }
+    }
+    function setProps(name, overrides) {
+      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
+      registry.bump(name);
+    }
+    function adoptParsed(name, parsed) {
+      if (!parsed) return;
+      const r = registry.get(name);
+      if (parsed.props) r.propsMeta = parsed.props;
+      if (parsed.preview) r.preview = parsed.preview;
+      if (parsed.template) updateHtml(name, parsed.template);
+      if (parsed.js) updateJs(name, parsed.js);
+    }
+    return {
+      registry,
+      getDC: factory.getDC,
+      updateHtml,
+      updateJs,
+      dcUpdate,
+      setProps,
+      adoptParsed,
+      setRootName: (name) => {
+        rootName = name;
+      },
+      markFetched: (name) => {
+        registry.get(name).fetched = true;
+      },
+      annotatedTemplate: (name) => {
+        const r = registry.get(name);
+        return r.tpl && r.tpl.__annotated || null;
+      },
+      templateSource: (name) => registry.get(name).html || null,
+      StreamableLogic
+    };
+  }
+
+  // src/stream-state.ts
+  function createStreamTracker(staleMs = 6e4, now = Date.now) {
+    const since = /* @__PURE__ */ new Map();
+    const liveOne = (n) => {
+      const t = since.get(n);
+      if (t === void 0) return false;
+      if (now() - t > staleMs) {
+        since.delete(n);
+        return false;
+      }
+      return true;
+    };
+    return {
+      push(name, streaming, viewportKey) {
+        if (viewportKey === "dc-model") return;
+        if (streaming) since.set(name, now());
+        else since.delete(name);
+      },
+      live(name) {
+        if (name !== void 0) return liveOne(name);
+        for (const n of [...since.keys()]) if (liveOne(n)) return true;
+        return false;
+      }
+    };
+  }
+
+  // src/index.ts
+  function hideRawTemplate() {
+    const s = document.createElement("style");
+    s.textContent = "x-dc{display:none!important}";
+    document.head.appendChild(s);
+  }
+  function loadScript(src, integrity) {
+    return new Promise((resolve2, reject) => {
+      //! nosemgrep: create-script-element
+      const s = document.createElement("script");
+      s.src = src;
+      if (integrity) {
+        s.integrity = integrity;
+        s.crossOrigin = "anonymous";
+      }
+      s.async = false;
+      s.onload = () => resolve2();
+      s.onerror = () => reject(new Error(`failed to load ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+  function loadReactUmd() {
+    const w = window;
+    if (w.React && w.ReactDOM) return Promise.resolve();
+    const react = cdnScriptFor(REACT_URL, REACT_SRI);
+    const reactDom = cdnScriptFor(REACT_DOM_URL, REACT_DOM_SRI);
+    return Promise.all([
+      loadScript(react.src, react.integrity),
+      loadScript(reactDom.src, reactDom.integrity)
+    ]).then(() => void 0);
+  }
+  function init() {
+    const runtime = createRuntime(document);
+    let rootName = "Root";
+    const baseCss = document.createElement("style");
+    baseCss.textContent = BASE_CSS;
+    document.head.prepend(baseCss);
+    const notifyHost = () => {
+      if (window.parent === window) return;
+      const r = runtime.registry.entries[rootName];
+      try {
+        window.parent.postMessage(
+          {
+            type: "__dc_booted",
+            rootName,
+            propsMeta: r && r.propsMeta || null,
+            preview: r && r.preview || null
+          },
+          "*"
+        );
+      } catch {
+      }
+    };
+    const streams = createStreamTracker();
+    const api = {
+      __dcUpdate: (name, kind, content, streaming, viewportKey) => {
+        streams.push(name, streaming, viewportKey);
+        runtime.dcUpdate(name, kind, content, streaming);
+        if (name === rootName && !streaming && kind === "props") notifyHost();
+      },
+      __dcStreaming: (name) => streams.live(name),
+      __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
+      /** Name of the component currently mounted as the page root — DC tools
+       *  push their template-stream here when targeting "the open page". */
+      __dcRootName: () => rootName,
+      /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
+       *  The host editor parses this into its own template DOM so it can map a
+       *  rendered node (carrying the same `data-dc-tpl`) back to the source
+       *  node that emitted it. Returns the encoded form (`sc-camel-*` attrs,
+       *  `<sc-raw-*>`/`<sc-helmet>` tags); the editor decodes on serialize. */
+      __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
+      /** Editor bridge — the *original* (decoded) template source. */
+      __dcTemplateSource: (name) => runtime.templateSource(name),
+      __dcBoot: () => {
+        rootName = boot(runtime, document) ?? rootName;
+        notifyHost();
+      },
+      __dcRegistry: runtime.registry.entries,
+      getDC: (name) => runtime.getDC(name),
+      // `DCLogic` is the documented base class name; `StreamableLogic` is the
+      // implementation alias kept for any project that already references it.
+      DCLogic: runtime.StreamableLogic,
+      StreamableLogic: runtime.StreamableLogic
+    };
+    Object.assign(window, api);
+    window.__dcContentKeyed = true;
+    if (document.readyState !== "loading") api.__dcBoot();
+    else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
+  }
+  hideRawTemplate();
+  loadReactUmd().then(init).catch((err) => {
+    console.error("[dc] failed to load React or boot:", err);
+    throw err;
+  });
+})();
+
+</script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,400;0,500;1,6..72,300&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  * { animation-delay: -99s !important; animation-duration: .001s !important; animation-iteration-count: 1 !important; animation-fill-mode: both !important; animation-play-state: running !important; transition-duration: 0s !important; }
+  doc-page:not(:defined) { visibility: hidden; }
+  a { color: #4A5A3C; text-decoration: none; }
+  a:hover { color: #A8543A; }
+</style>
+<script>
+// @ds-adherence-ignore -- omelette starter scaffold (raw elements/hex/px by design)
+// Copied omelette starter. Re-running copy_starter_component with this kind overwrites this file with the latest version (page content is unaffected).
+/* BEGIN USAGE */
+/**
+ * <doc-page> — paged-document shell for printable HTML.
+ *
+ * FIRST, decide how the document paginates — up front, before building:
+ *
+ * - FLOWING document (the default): write the whole document as one
+ *   normal HTML flow inside <doc-page>; the browser's print engine
+ *   splits it onto pages at export. Use for long-form documents with a
+ *   single text flow: reports, memos, letters, essays.
+ * - EXPLICIT pagination: a fixed set of pre-paginated pages, one
+ *   <section class="page"> child per page. Use when the user asks for a
+ *   specific page count, or the design implies one: a one-page resume, a
+ *   two-sided flier, a poster, a certificate, a brochure — any richly
+ *   laid-out document without a single text flow.
+ * - If in doubt, ask the user as part of the build.
+ *
+ * PAGE SIZING — paper differs by country (letter vs A4), so the printed
+ * sheet is not one fixed truth:
+ * - FLOWING documents pin NO paper size: the print engine paginates
+ *   onto the user's real paper, and the content reflows to it.
+ * - EXPLICITLY PAGINATED documents print each page at a FIXED page box
+ *   with overflow hidden — letter by default, size="a4" for a clearly
+ *   metric user, the user's chosen paper when they export. Design each
+ *   page to FILL that box, fitting letter and A4 alike without overlap.
+ * - width/height pin an explicit fixed size, ONLY when the user gives
+ *   one.
+ * Never write your own @page rule or hard-code paper dimensions in the
+ * content.
+ *
+ * Sizing modes (attributes):
+ *   (none)                      — portrait: flowing docs use the user's
+ *           paper; explicitly paginated pages use the named size box
+ *           (letter unless size="a4")
+ *   orientation="landscape"     — the same, landscape
+ *   width / height              — explicit fixed size, ONLY when the user
+ *           gives one (e.g. width="22in" height="30in" for a 22×30
+ *           poster): the page IS the design's size, printed at true
+ *           dimensions (or scaled onto the user's paper at print time).
+ *           Any absolute CSS length: px/in/mm/cm/pt/pc.
+ * The component announces the chosen mode to the host app at runtime (a
+ * meta tag it injects), so the print path can inject the user's true
+ * paper size.
+ *
+ * On screen the document renders on a desk background: a flowing
+ * document as one tall scrolling sheet (Google Docs' pageless view);
+ * explicitly paginated documents as one card per page.
+ *
+ * EXPLICIT pagination usage:
+ *   <style>doc-page:not(:defined){visibility:hidden}</style>
+ *   <doc-page>
+ *     <section class="page" id="p1">…one page's design…</section>
+ *     <section class="page" id="p2">…</section>
+ *   </doc-page>
+ *   <script src="doc-page.js"><\/script>
+ * How the page box works, concretely: each .page prints as ONE full-bleed
+ * sheet at a FIXED physical size — letter by default (set size="a4" for
+ * a clearly metric user), the user's chosen paper when they export —
+ * with overflow hidden. Nothing scrolls and nothing reflows onto a next
+ * sheet: content that misses the box is CLIPPED. Design each page to
+ * FILL that page box, and to fit it — letter and A4 alike — without
+ * overlap. Each page is a size container; don't size anything in
+ * viewport units (they track the window, not the page), and never set
+ * width or height on the .page section itself (the component sizes the
+ * page box; an authored height like 100% is meaningless at print and is
+ * overridden). The component owns the page box, the screen card chrome,
+ * and the page breaks (never add your own break-before/after). Don't mix
+ * .page sections with flowing content or header/footer slots in the same
+ * document.
+ *
+ * FLOWING usage:
+ *   <style>doc-page:not(:defined){visibility:hidden}</style>
+ *   <doc-page margin="0.75in">
+ *     <h1>Title</h1>
+ *     <p>…body…</p>
+ *   </doc-page>
+ *   <script src="doc-page.js"><\/script>
+ * There is no manual page-splitting — the browser's print engine
+ * paginates at export. Standard break-hygiene rules (`break-inside:
+ * avoid` on figures, code blocks, images and table rows; `orphans/
+ * widows: 3`) are applied so paragraphs and groups split cleanly. On
+ * screen and at print, headings default to `text-wrap: balance` and
+ * body text to `text-wrap: pretty`; the defaults have zero specificity,
+ * so any text-wrap you declare wins.
+ *
+ * Other attributes:
+ *   size    — letter | a4 | legal (default letter). Flowing documents:
+ *           preview proportion only — it does NOT pin their printed
+ *           paper (the print dialog's paper governs); leave it alone
+ *           there. Explicitly paginated documents: it sets the page box
+ *           the cards and the pinned @page share (the export dialog's
+ *           choice overrides both at print) — set size="a4" for a
+ *           clearly metric user. Scaled-fit: names the sheet the fit is
+ *           computed against, same a4-for-metric-users advice.
+ *   content-width / content-height — the design's own fixed dimensions
+ *           (CSS lengths), for scaling a fixed-size design ONTO the
+ *           named sheet: content lays out at exactly this size, and the
+ *           component scales it to fit that sheet's printable area
+ *           (centered horizontally, top-aligned; the export dialog
+ *           re-fits to the user's actual paper choice where available).
+ *           Both must be set; they do not change the page box. For pages
+ *           WITHOUT running header/footer slots.
+ *   margin  — printable inset on every page of a FLOWING document
+ *           (default 0.75in); margin="0" makes pages full-bleed.
+ *           Explicitly paginated pages are always full-bleed.
+ *
+ * Running header/footer (flowing documents only): give an element
+ * `slot="header"` or `slot="footer"` and it repeats on every printed
+ * page via `position: fixed`. To keep body text from sliding under it,
+ * the component prints inside a single-cell table whose <thead>/<tfoot>
+ * are spacers sized to the header/footer height — browsers repeat
+ * thead/tfoot on every page, so each sheet's content starts below the
+ * header and ends above the footer. On screen the header/footer render
+ * once at the top/bottom of the sheet.
+ *
+ * At print the component injects `@page { margin: 0 }` (which leaves
+ * Chrome no margin box to draw its date/URL/page-count header in) and
+ * moves the visual margin onto the sheet's own padding. It also marks
+ * the document as owning its print CSS (a
+ * `meta[name="omelette-owns-print"]` it injects at runtime), so the
+ * PDF export never injects page-geometry CSS of its own on top.
+ *
+ * Print best practices for the content you author:
+ * - Multi-column text: use CSS columns (`column-count` +
+ *   `column-gap`), never side-by-side flex/grid columns — only real
+ *   CSS columns flow and break across pages. `column-span: all` lets
+ *   a heading span the columns; `hyphens: auto` (needs `lang` on
+ *   the html element) keeps narrow columns readable.
+ * - Page breaks in flowing documents: `break-before: page` on an
+ *   element that must start a new page (a chapter, an appendix). Add
+ *   your own kept-together blocks (callouts, stat tiles, cards) to a
+ *   `break-inside: avoid` rule, and keep each one shorter than a page.
+ * - Extend `orphans: 3; widows: 3` to any custom text blocks you add
+ *   (p and li are covered by default).
+ * - Give long tables a <thead> — browsers repeat it on every printed
+ *   page.
+ * - No `position: fixed`/`sticky` and no viewport units in content:
+ *   fixed elements stamp every printed page (running headers/footers go
+ *   in the component's slots) and `100vh` mis-sizes at print.
+ *
+ * Author content as static HTML so the user can click-to-edit any text
+ * directly. Do not set width/padding/background on the document body —
+ * the component owns the sheet box.
+ */
+/* END USAGE */
+
+(() => {
+  const PAPER = {
+    letter: ['8.5in', '11in'],
+    a4: ['210mm', '297mm'],
+    legal: ['8.5in', '14in'],
+  };
+  const CSS_LENGTH = /^\d+(\.\d+)?(px|in|mm|cm|pt|pc)$/;
+  // Unitless "0" is a valid CSS length and the natural way to write
+  // margin="0"; normalise it to 0px so max()/calc() (which reject a bare
+  // number) keep working.
+  const safeLen = (v, fb) => {
+    v = (v || '').trim();
+    return v === '0' ? '0px' : CSS_LENGTH.test(v) ? v : fb;
+  };
+  // WebKit (Safari and every iOS browser shell) never repeats a table's
+  // thead/tfoot on printed pages (WebKit bug 17205), so the spacer-borne
+  // vertical margins of a FLOWING document reach only the first page
+  // there. Engine check, not browser check: vendor is 'Apple Computer,
+  // Inc.' exactly for WebKit and 'Google Inc.' for Blink.
+  const WK_PRINT = /apple/i.test(navigator.vendor || '');
+  // CSS length → px number (CSS absolute units are exact: 1in = 96px).
+  // Returns NaN for anything safeLen would reject — callers gate on it.
+  const PX_PER = { px: 1, in: 96, mm: 96 / 25.4, cm: 96 / 2.54, pt: 96 / 72, pc: 16 };
+  const toPx = (v) => {
+    const m = /^(\d+(?:\.\d+)?)(px|in|mm|cm|pt|pc)$/.exec((v || '').trim());
+    return m ? parseFloat(m[1]) * PX_PER[m[2]] : NaN;
+  };
+
+  const stylesheet = `
+    :host {
+      position: relative;
+      display: block;
+      /* When the viewport is narrower than the page, grow to wrap the
+       * sheet (plus this padding) instead of staying viewport-width, so
+       * the desk background and right margin reach the sheet's far edge
+       * in the horizontal scroll. */
+      min-width: max-content;
+      min-height: 100vh;
+      background: #f5f5f4;
+      padding: 48px 24px;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+      --doc-page-w: 8.5in;
+      --doc-page-h: 11in;
+      --doc-page-margin: 0.75in;
+      --doc-hdr-h: 0px;
+      --doc-ftr-h: 0px;
+      --doc-hdr-pad: 0px;
+      --doc-ftr-pad: 0px;
+    }
+    .sheet {
+      width: var(--doc-page-w);
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(20, 20, 19, 0.12);
+      border-radius: 7px;
+      box-sizing: border-box;
+      padding: var(--doc-page-margin);
+    }
+    .frame { width: 100%; border-collapse: collapse; }
+    /* Scaled-fit mode (content-width/content-height): the inner .fit box
+     * lays the content out at its authored fixed size and scales it onto
+     * the printable area; .fit-box reserves the scaled footprint in flow
+     * (transforms don't affect layout) and centers it. Without the mode,
+     * both divs are unstyled block pass-throughs. */
+    /* Explicit pagination: direct .page children are the pages. The sheet
+     * becomes a transparent stack and each page carries the card look on
+     * screen; at print each page is exactly one full-bleed sheet. The
+     * ::slotted defaults are deliberately weak (document CSS wins), so
+     * authored page styling can override any of this. */
+    .sheet.paginated {
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+    }
+    .paginated ::slotted(.page) {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: var(--doc-page-ar);
+      container-type: size;
+      overflow: hidden;
+      box-sizing: border-box;
+      background: #fff;
+      border-radius: 7px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+      break-inside: avoid;
+    }
+    .paginated ::slotted(.page:not(:first-child)) { margin-top: 1rem; }
+    @media print {
+      .sheet.paginated { padding: 0; }
+      /* The flowing-document vertical inset lives on the repeating
+       * thead/tfoot spacers, not the sheet padding — they must go too,
+       * or each full-sheet .page is pushed ~margin down and spills onto
+       * a second sheet. Paginated pages are full-bleed by definition
+       * (content owns its insets). */
+      .sheet.paginated .hdr-space,
+      .sheet.paginated .ftr-space { height: 0; }
+      .paginated ::slotted(.page) {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        /* Physical page-box sizing, no viewport units: Safari resolves
+         * 100vh against the window, not the page box, so a vh-sized card
+         * paginates wrong there. --doc-page-w/h are the named size by
+         * default and are overridden to the user's chosen paper by the
+         * export path, so every card is exactly one sheet either way.
+         * Width + height (same source values as @page size) rather than
+         * width + aspect-ratio: the ratio is a 6-decimal rounding of the
+         * same division, and a few millionths of overflow would spill a
+         * blank sheet after every page. The screen-only aspect-ratio
+         * (preview proportions) must not leak into print. cqh typography
+         * tracks the same box.
+         *
+         * Every declaration is !important: per CSS Scoping, unimportant
+         * shadow ::slotted rules LOSE to the document context, so a page
+         * section's authored inline style would silently beat this print
+         * geometry. A model-authored height:100% did exactly that — the
+         * percentage resolves as auto in the all-auto print ancestry, the
+         * base rule's size containment turns auto into ZERO, and
+         * overflow:hidden then paints nothing: a blank PDF with perfect
+         * page boxes. At print the component's geometry is the design's
+         * whole contract, so it must win over any authored sizing. */
+        aspect-ratio: auto !important;
+        width: var(--doc-page-w) !important;
+        height: var(--doc-page-h) !important;
+        overflow: hidden !important;
+      }
+      .paginated ::slotted(.page:not(:first-child)) {
+        break-before: page !important;
+        margin-top: 0 !important;
+      }
+    }
+    .fit-mode .fit-box {
+      width: calc(var(--doc-fit-w) * var(--doc-fit-scale));
+      height: calc(var(--doc-fit-h) * var(--doc-fit-scale));
+      margin: 0 auto;
+      break-inside: avoid;
+    }
+    .fit-mode .fit {
+      width: var(--doc-fit-w);
+      height: var(--doc-fit-h);
+      transform: scale(var(--doc-fit-scale));
+      transform-origin: top left;
+    }
+    .frame td, .frame th { padding: 0; text-align: left; font-weight: inherit; }
+    .hdr-space { height: var(--doc-hdr-h); }
+    .ftr-space { height: var(--doc-ftr-h); }
+    ::slotted([slot="header"]),
+    ::slotted([slot="footer"]) { display: block; box-sizing: border-box; }
+    @media print {
+      :host { background: none; padding: 0; min-width: 0; min-height: 0; }
+      .sheet {
+        width: auto; margin: 0; box-shadow: none; border-radius: 0;
+        padding: 0 var(--doc-page-margin);
+      }
+      /* The thead/tfoot spacers repeat on every page, so they carry the
+       * vertical page margin (which the sheet's own padding cannot, since
+       * that padding is consumed once on the first/last page). The running
+       * header/footer are fixed inside that band. */
+      /* The 0.35in is breathing room between a running header/footer and
+       * the body; without one the spacer is exactly the page margin, so a
+       * margin="0" full-bleed document gets truly full-bleed pages. */
+      .hdr-space { height: max(var(--doc-page-margin), calc(var(--doc-hdr-h) + var(--doc-hdr-pad))); }
+      .ftr-space { height: max(var(--doc-page-margin), calc(var(--doc-ftr-h) + var(--doc-ftr-pad))); }
+      /* WebKit flowing documents: @page carries the vertical margin (see
+       * _syncPrintPageRule), so the spacers keep only whatever a running
+       * header/footer needs BEYOND it — page 1 would otherwise double its
+       * top inset. Paginated sheets already zero their spacers above. */
+      .sheet.wk-print:not(.paginated) .hdr-space { height: max(0px, calc(max(var(--doc-page-margin), calc(var(--doc-hdr-h) + var(--doc-hdr-pad))) - var(--doc-page-margin))); }
+      .sheet.wk-print:not(.paginated) .ftr-space { height: max(0px, calc(max(var(--doc-page-margin), calc(var(--doc-ftr-h) + var(--doc-ftr-pad))) - var(--doc-page-margin))); }
+      ::slotted([slot="header"]) {
+        position: fixed; top: 0; left: 0; right: 0; margin: 0;
+        padding: calc(var(--doc-page-margin) * 0.45) var(--doc-page-margin) 0;
+      }
+      ::slotted([slot="footer"]) {
+        position: fixed; bottom: 0; left: 0; right: 0; margin: 0;
+        padding: 0 var(--doc-page-margin) calc(var(--doc-page-margin) * 0.45);
+      }
+    }
+  `;
+
+  class DocPage extends HTMLElement {
+    static get observedAttributes() {
+      return ['size', 'width', 'height', 'margin', 'orientation', 'content-width', 'content-height'];
+    }
+
+    constructor() {
+      super();
+      this._root = this.attachShadow({ mode: 'open' });
+      this._mo = typeof MutationObserver === 'function'
+        ? new MutationObserver(() => this._scheduleMeasure())
+        : null;
+    }
+
+    /** The named paper's [w, h], swapped when orientation="landscape".
+     *  Only the named size swaps — explicit width/height are exact values
+     *  the author already oriented. */
+    _paperSize() {
+      const named = PAPER[(this.getAttribute('size') || '').toLowerCase()] || PAPER.letter;
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() === 'landscape';
+      return landscape ? [named[1], named[0]] : named;
+    }
+    get pageWidth() {
+      return safeLen(this.getAttribute('width'), this._paperSize()[0]);
+    }
+    get pageHeight() {
+      return safeLen(this.getAttribute('height'), this._paperSize()[1]);
+    }
+    get pageMargin() { return safeLen(this.getAttribute('margin'), '0.75in'); }
+
+    /** Scaled-fit mode's content box [w, h] as CSS lengths, or null when
+     *  the mode is off (either attribute missing/invalid/zero — a partial
+     *  declaration falls back to normal flow rather than guessing). */
+    _contentFit() {
+      const w = safeLen(this.getAttribute('content-width'), null);
+      const h = safeLen(this.getAttribute('content-height'), null);
+      if (!w || !h) return null;
+      const wPx = toPx(w), hPx = toPx(h);
+      return wPx > 0 && hPx > 0 ? [w, h, wPx, hPx] : null;
+    }
+
+    connectedCallback() {
+      if (!this._sheet) this._render();
+      this._syncSize();
+      this._syncPrintPageRule();
+      this._ensureTextWrapDefaults();
+      this._ensureOwnsPrintMeta();
+      this._syncFixedSizeMeta();
+      this._syncPrintSizingMeta();
+      if (this._mo) this._mo.observe(this, {
+        subtree: true, childList: true, characterData: true, attributes: true,
+      });
+      this._onResize = () => this._scheduleMeasure();
+      window.addEventListener('resize', this._onResize);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => this._scheduleMeasure());
+      }
+      this._scheduleMeasure();
+    }
+
+    disconnectedCallback() {
+      window.removeEventListener('resize', this._onResize);
+      if (this._mo) this._mo.disconnect();
+      if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
+      // Drop the head rules when the last doc-page leaves, so a deleted
+      // document's @page geometry and text-wrap defaults can't apply to
+      // whatever replaces it.
+      const survivor = document.querySelector('doc-page');
+      if (!survivor) {
+        ['doc-page-print', 'doc-page-text-wrap', 'doc-page-owns-print', 'doc-page-fixed-size', 'doc-page-print-sizing'].forEach((id) => {
+          const tag = document.getElementById(id);
+          if (tag) tag.remove();
+        });
+        // A live deck-stage deferred its own print-sizing meta to ours —
+        // hand the page-global meta over so the deck isn't left unmarked.
+        const deck = document.querySelector('deck-stage');
+        if (deck && typeof deck._ensurePrintSizingMeta === 'function') {
+          deck._ensurePrintSizingMeta();
+        }
+      } else {
+        // A departed owner hands each page-global meta to whatever
+        // doc-page remains (or it's removed).
+        if (typeof survivor._syncFixedSizeMeta === 'function') {
+          survivor._syncFixedSizeMeta();
+        }
+        if (typeof survivor._syncPrintSizingMeta === 'function') {
+          survivor._syncPrintSizingMeta();
+        }
+      }
+    }
+
+    attributeChangedCallback() {
+      if (!this._sheet) return;
+      this._syncSize();
+      this._syncPrintPageRule();
+      this._syncFixedSizeMeta();
+      this._syncPrintSizingMeta();
+      this._scheduleMeasure();
+    }
+
+    _render() {
+      this._root.innerHTML = `
+        <style>${stylesheet}</style>
+        <style id="vars"></style>
+        <div class="sheet" data-screen-label="Document">
+          <table class="frame" role="presentation">
+            <thead><tr><th><div class="hdr-space"><slot name="header"></slot></div></th></tr></thead>
+            <tbody><tr><td class="body"><div class="fit-box"><div class="fit"><slot></slot></div></div></td></tr></tbody>
+            <tfoot><tr><td><div class="ftr-space"><slot name="footer"></slot></div></td></tr></tfoot>
+          </table>
+        </div>`;
+      this._sheet = this._root.querySelector('.sheet');
+      this._vars = this._root.getElementById('vars');
+    }
+
+    /** Runtime sizing lives in a shadow <style> :host rule, never on the
+     *  light-DOM host element, so serialize-persist can't write it back. */
+    _syncSize(hdrH, ftrH) {
+      // Scaled-fit mode: content at its authored size, scaled onto the
+      // printable area (page minus margins on both axes). The factor is a
+      // plain number var so calc(length * number) stays valid; 4 decimals
+      // keeps the shadow style stable across re-measures. Upscaling is
+      // allowed — print transforms are vector, so text and CSS stay crisp
+      // (raster images soften, which the catalog bullet warns about).
+      const fit = this._contentFit();
+      let fitVars = '';
+      if (fit) {
+        const marginPx = toPx(this.pageMargin) || 0;
+        const availW = toPx(this.pageWidth) - 2 * marginPx;
+        const availH = toPx(this.pageHeight) - 2 * marginPx;
+        const scale = Math.min(availW / fit[2], availH / fit[3]);
+        if (scale > 0 && Number.isFinite(scale)) {
+          fitVars =
+            '--doc-fit-w:' + fit[0] + ';' +
+            '--doc-fit-h:' + fit[1] + ';' +
+            '--doc-fit-scale:' + scale.toFixed(4) + ';';
+        }
+      }
+      this._sheet.classList.toggle('fit-mode', !!fitVars);
+      // Numeric w/h ratio for the paginated page cards' aspect-ratio —
+      // aspect-ratio takes a number, not a length ratio, so compute it
+      // here (CSS length division isn't portable). 6 decimals keeps the
+      // shadow style stable across re-syncs.
+      const arW = toPx(this.pageWidth);
+      const arH = toPx(this.pageHeight);
+      const ar = arW > 0 && arH > 0 ? (arW / arH).toFixed(6) : '0.772727';
+      this._vars.textContent = ':host{' +
+        fitVars +
+        '--doc-page-ar:' + ar + ';' +
+        '--doc-page-w:' + this.pageWidth + ';' +
+        '--doc-page-h:' + this.pageHeight + ';' +
+        '--doc-page-margin:' + this.pageMargin + ';' +
+        '--doc-hdr-h:' + (hdrH || 0) + 'px;' +
+        '--doc-ftr-h:' + (ftrH || 0) + 'px;' +
+        '--doc-hdr-pad:' + (hdrH ? '0.35in' : '0px') + ';' +
+        '--doc-ftr-pad:' + (ftrH ? '0.35in' : '0px') + '}';
+    }
+
+    /** @page is a no-op inside shadow DOM, so the rule lives in <head>.
+     *  Re-appended on every sync so it stays last in source order — the
+     *  @page cascade is source-order per descriptor, so this rule wins
+     *  over any other @page rule in the document.
+     *
+     *  The @page SIZE is pinned where the page box IS part of the design:
+     *  explicit-fixed-size mode (width + height authored), scaled-fit
+     *  mode (the named sheet the fit targets), and explicit pagination
+     *  (the named size the cards share — so card and sheet agree on
+     *  every print path, and the export path's chosen paper overrides
+     *  BOTH with one later rule). For FLOWING documents no paper size is
+     *  emitted at all — the true size comes from the user's preference,
+     *  injected by the export path or chosen in the print dialog — so a
+     *  flowing document never fights the paper it lands on.
+     *  margin: 0 is emitted in every mode: it leaves Chrome no margin box
+     *  to draw its date/URL/page-count header in, and the visual margin
+     *  lives on the sheet's own padding. */
+    _syncPrintPageRule() {
+      const id = 'doc-page-print';
+      let tag = document.getElementById(id);
+      if (!tag) {
+        tag = document.createElement('style');
+        tag.id = id;
+      }
+      document.head.appendChild(tag);
+      // Three print-geometry regimes:
+      // - true-size: the page IS the design — pin its exact size.
+      // - scaled-fit (content-width/height): the fit factor is computed
+      //   against the NAMED paper's printable area, so that paper must
+      //   stay pinned or the scaled content overflows a smaller sheet
+      //   (the export path re-fits and re-pins at print time on top).
+      // - default modes: no paper size — but landscape still needs the
+      //   paper-agnostic 'size: landscape' keyword, because the size
+      //   descriptor is what carries orientation; without it a landscape
+      //   document prints portrait whenever nothing injects a size.
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() ===
+        'landscape';
+      // Explicit pagination pins the page box to the SAME values that
+      // size the cards (the named size by default, the export path's
+      // chosen paper when its later rule overrides both) — card and
+      // sheet agree on every print path, and a mismatched real paper
+      // shrinks-to-fit in the dialog instead of clipping a Letter card
+      // on A4. Declared before the paginated read below so both derive
+      // from one check.
+      const paginatedNow = this.querySelector(':scope > .page') !== null;
+      const sizeDescriptor = this._trueSizePx()
+        ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+        : this._contentFit()
+          ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+          : paginatedNow
+            ? 'size: ' + this.pageWidth + ' ' + this.pageHeight + '; '
+            : landscape
+              ? 'size: landscape; '
+              : '';
+      // WebKit never repeats the thead/tfoot spacers that carry a flowing
+      // document's vertical page margins (see WK_PRINT above), so pages
+      // after the first print edge-to-edge there. Carry the VERTICAL
+      // margins on @page for WebKit instead, and the shadow print CSS
+      // trims the first-page spacers by the same amount (.sheet.wk-print
+      // rules). Horizontal inset stays on the sheet's own padding in
+      // every engine. Blink keeps margin: 0 (a nonzero margin there
+      // re-opens the box Chrome draws its header furniture in). One cost,
+      // learned in testing: Safari's own date/URL headers are a USER
+      // dialog setting ("Print headers and footers") that renders in the
+      // margin area when room exists — margin: 0 only suppressed it by
+      // leaving no room, and no CSS controls it. The export dialog's
+      // Safari guide teaches turning the setting off for flowing
+      // documents. Explicitly paginated and fixed-size documents keep
+      // margin: 0 everywhere: their pages ARE the sheet.
+      const wkFlowing =
+        WK_PRINT && !paginatedNow && !this._trueSizePx() && !this._contentFit();
+      const marginDescriptor = wkFlowing
+        ? 'margin: ' + this.pageMargin + ' 0; '
+        : 'margin: 0; ';
+      // Shadow-internal marker (never serialized), kept in lockstep with
+      // the @page decision above: the print CSS trims the first-page
+      // spacers ONLY while @page actually carries the margins — a
+      // true-size or scaled-fit sheet keeps margin: 0 and must keep its
+      // spacers too. Re-synced here so attribute changes and pagination
+      // flips move both together.
+      if (this._sheet) this._sheet.classList.toggle('wk-print', wkFlowing);
+      tag.textContent =
+        '@page { ' + sizeDescriptor + marginDescriptor + '} ' +
+        '@media print { html, body { margin: 0 !important; padding: 0 !important; background: none !important; height: auto !important; overflow: visible !important; } ' +
+        'h1,h2,h3,h4,h5,h6 { break-after: avoid; } ' +
+        'figure,pre,blockquote,img,svg,tr { break-inside: avoid; } ' +
+        'p,li { orphans: 3; widows: 3; } ' +
+        '* { -webkit-print-color-adjust: exact; print-color-adjust: exact; ' +
+        'backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } ' +
+        '*, *::before, *::after { animation-delay: -99s !important; animation-duration: .001s !important; ' +
+        'animation-iteration-count: 1 !important; animation-fill-mode: both !important; ' +
+        'animation-play-state: running !important; transition-duration: 0s !important; } }';
+    }
+
+    /** Typographic defaults for document text: balance headings, avoid
+     *  widowed/orphaned words in body copy (browsers without text-wrap
+     *  support drop the declarations). Zero-specificity via :where() so
+     *  any text-wrap authored on those elements wins; document-level so the
+     *  rules reach the slotted (light DOM) content — shadow styles can't.
+     *  data-omelette-injected marks the tag for the host editor to strip
+     *  at serialize, so it is never written back as authored source. */
+    _ensureTextWrapDefaults() {
+      if (document.getElementById('doc-page-text-wrap')) return;
+      const tag = document.createElement('style');
+      tag.id = 'doc-page-text-wrap';
+      tag.setAttribute('data-omelette-injected', '');
+      tag.textContent =
+        ':where(h1,h2,h3,h4,h5,h6){text-wrap:balance}' +
+        ':where(p,li,blockquote,figcaption){text-wrap:pretty}';
+      document.head.appendChild(tag);
+    }
+
+    /** Declares that this document owns its print CSS. The instant-PDF
+     *  export checks for the meta by NAME PRESENCE alone (content is
+     *  ignored) and skips its automatic print-CSS injections, so the
+     *  component's @page geometry is never overridden by a heuristic.
+     *  data-omelette-injected keeps it out of serialized source. */
+    _ensureOwnsPrintMeta() {
+      if (document.getElementById('doc-page-owns-print')) return;
+      const tag = document.createElement('meta');
+      tag.id = 'doc-page-owns-print';
+      tag.name = 'omelette-owns-print';
+      tag.content = 'true';
+      tag.setAttribute('data-omelette-injected', '');
+      document.head.appendChild(tag);
+    }
+
+    /** This page's valid true-size page box (explicit width AND height)
+     *  as [w, h] px ints, or null when the mode is off. */
+    _trueSizePx() {
+      if (
+        !safeLen(this.getAttribute('width'), null) ||
+        !safeLen(this.getAttribute('height'), null)
+      ) return null;
+      const w = Math.round(toPx(this.pageWidth));
+      const h = Math.round(toPx(this.pageHeight));
+      return w > 0 && h > 0 ? [w, h] : null;
+    }
+
+    /** True-size pages (explicit width AND height) also declare the page
+     *  box as the preview size: the in-app preview reads
+     *  meta[name="omelette-fixed-size"] (content "W,H" in px ints) and
+     *  scales the sheet into view — without it an 18in poster previews at
+     *  true size with scrollbars. Never overrides an author-set meta
+     *  (only the component's own id is managed). The meta is page-global
+     *  while doc-page instances are not, so every sync recomputes the
+     *  page-wide owner — the first connected true-size doc-page — and a
+     *  non-true-size sibling's sync can never delete the owner's meta.
+     *  Removed when no true-size page remains (the owner's disconnect
+     *  re-syncs via any survivor) or when an author-set meta exists. */
+    _syncFixedSizeMeta() {
+      const id = 'doc-page-fixed-size';
+      const own = document.getElementById(id);
+      const authored = document.querySelector(
+        'meta[name="omelette-fixed-size"]:not([data-omelette-injected])'
+      );
+      // The page-wide owner, not this instance: an upgraded true-size page
+      // anywhere in the document keeps the meta alive and sized.
+      let box = null;
+      for (const el of document.querySelectorAll('doc-page')) {
+        box = typeof el._trueSizePx === 'function' ? el._trueSizePx() : null;
+        if (box) break;
+      }
+      if (!box || authored) {
+        if (own) own.remove();
+        return;
+      }
+      const tag = own || document.createElement('meta');
+      tag.id = id;
+      tag.name = 'omelette-fixed-size';
+      tag.content = box[0] + ',' + box[1];
+      tag.setAttribute('data-omelette-injected', '');
+      if (!own) document.head.appendChild(tag);
+    }
+
+    /** This page's print-sizing mode: 'fixed' when an explicit width AND
+     *  height are authored (the page is the design's own size), else the
+     *  default paper in the authored orientation. */
+    _printSizingMode() {
+      if (this._trueSizePx()) return 'fixed';
+      const landscape =
+        (this.getAttribute('orientation') || '').trim().toLowerCase() ===
+        'landscape';
+      return landscape ? 'default-landscape' : 'default-portrait';
+    }
+
+    /** Announces the print-sizing mode to the host app:
+     *  meta[name="omelette-print-sizing"] with content 'default-portrait',
+     *  'default-landscape', or 'fixed' (fixed pages also carry the
+     *  omelette-fixed-size meta with the page box in px). The export path
+     *  probes it to decide what true paper size to inject at print time —
+     *  in the default modes the component emits no paper size of its own.
+     *  Same page-global ownership rules as the fixed-size meta above:
+     *  first connected doc-page owns it, an authored meta is never
+     *  overridden, removed when no doc-page remains. */
+    _syncPrintSizingMeta() {
+      const id = 'doc-page-print-sizing';
+      const own = document.getElementById(id);
+      const authored = document.querySelector(
+        'meta[name="omelette-print-sizing"]:not([data-omelette-injected])'
+      );
+      // A fixed page wins outright (mirroring the fixed-size loop above,
+      // so the two metas can never contradict each other in a mixed
+      // multi-page document); otherwise the first page's mode holds.
+      let mode = null;
+      for (const el of document.querySelectorAll('doc-page')) {
+        if (typeof el._printSizingMode !== 'function') continue;
+        const m = el._printSizingMode();
+        if (m === 'fixed') {
+          mode = m;
+          break;
+        }
+        if (mode === null) mode = m;
+      }
+      if (!mode || authored) {
+        if (own) own.remove();
+        return;
+      }
+      // A deck-stage that connected first injected its own meta and
+      // defers to any existing one — take it over, or the document ends
+      // up with two conflicting injected metas (a doc-page page is the
+      // document; the deck re-ensures its meta if every doc-page leaves).
+      const deckMeta = document.getElementById('deck-stage-print-sizing');
+      if (deckMeta) deckMeta.remove();
+      const tag = own || document.createElement('meta');
+      tag.id = id;
+      tag.name = 'omelette-print-sizing';
+      tag.content = mode;
+      tag.setAttribute('data-omelette-injected', '');
+      if (!own) document.head.appendChild(tag);
+    }
+
+    _scheduleMeasure() {
+      if (this._raf) return;
+      this._raf = requestAnimationFrame(() => { this._raf = null; this._measure(); });
+    }
+
+    /** Slot heights feed the print spacers (--doc-hdr-h / --doc-ftr-h), so
+     *  they re-measure on content mutation, resize, and font load. The
+     *  same pass detects explicit pagination (direct .page children) and
+     *  toggles the sheet between the flowing-document card and the
+     *  page-per-card stack — content edits can add or remove pages at any
+     *  time, so this tracks the same mutations the measurement does. */
+    _measure() {
+      const hdr = this.querySelector(':scope > [slot="header"]');
+      const ftr = this.querySelector(':scope > [slot="footer"]');
+      const wasPaginated = this._sheet.classList.contains('paginated');
+      this._sheet.classList.toggle(
+        'paginated',
+        this.querySelector(':scope > .page') !== null
+      );
+      // The WebKit @page margin is flowing-only, so a pagination flip
+      // must re-emit the rule (content edits can add or remove .page
+      // sections at any time).
+      if (this._sheet.classList.contains('paginated') !== wasPaginated) {
+        this._syncPrintPageRule();
+      }
+      this._syncSize(hdr ? hdr.offsetHeight : 0, ftr ? ftr.offsetHeight : 0);
+    }
+  }
+
+  if (!customElements.get('doc-page')) {
+    customElements.define('doc-page', DocPage);
+  }
+})();
+
+</script>
+</helmet>
+
+<doc-page orientation="landscape">
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 40px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; padding-bottom: 22px; border-bottom: 1px solid #D8D0C4;">
+      <div>
+        <div style="font-family: Newsreader, Georgia, serif; font-size: 22px; letter-spacing: 0.16em; text-transform: uppercase;">Meridian</div>
+        <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378; margin-top: 5px;">Estate Operations · Casa de Campo</div>
+        <h1 style="margin: 22px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 38px; line-height: 1.08; letter-spacing: -0.015em;">Portfolio operations report</h1>
+        <div style="font-size: 13px; color: #6E6862; margin-top: 9px;">1–31 July 2026 · 6 villas · issued 3 August 2026 · prepared by J. van Welie</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378;">Operating spend</div>
+        <div style="font-family: Newsreader, Georgia, serif; font-size: 36px; margin-top: 6px; letter-spacing: -0.015em;">{{ totals.spend }}</div>
+        <div style="font-size: 12px; color: #8A8378; margin-top: 4px;">{{ currencyLabel }}</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px;">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 15px 16px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.17em; text-transform: uppercase; color: #8A8378;">{{ k.label }}</div>
+          <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 11px;">
+            <span style="font-family: Newsreader, Georgia, serif; font-size: 28px; line-height: 1;">{{ k.value }}</span>
+            <span style="font-size: 11px; color: #8A8378;">{{ k.unit }}</span>
+          </div>
+          <div style="margin-top: 9px; font-size: 11px;"><span style="color: {{ k.deltaColor }};">{{ k.delta }}</span><span style="color: #A09A8F;"> vs June</span></div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; margin-top: 16px; overflow: hidden;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 11px;">
+        <h2 style="margin: 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Consumption &amp; cost by villa</h2>
+        <span style="font-size: 11px; color: #8A8378;">Metered · figures in red exceeded expected range</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 2.1fr 0.9fr 1fr 1fr 0.9fr 1.15fr; gap: 10px; padding: 0 18px 8px; font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #8A8378; border-bottom: 1px solid #EDE7DE;">
+        <span>Villa</span><span style="text-align: right;">Occup.</span><span style="text-align: right;">Gallons</span><span style="text-align: right;">kWh</span><span style="text-align: right;">Hours</span><span style="text-align: right;">Spend</span>
+      </div>
+      <sc-for list="{{ villas }}" as="v" hint-placeholder-count="6">
+        <div style="display: grid; grid-template-columns: 2.1fr 0.9fr 1fr 1fr 0.9fr 1.15fr; gap: 10px; align-items: center; padding: 10px 18px; border-bottom: 1px solid #F1ECE4; font-size: 12.5px;">
+          <div>
+            <div>{{ v.name }}</div>
+            <div style="font-size: 10.5px; color: #A09A8F; margin-top: 2px;">{{ v.meta }}</div>
+          </div>
+          <span style="text-align: right; color: #4C463F;">{{ v.occ }}</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums; color: {{ v.galColor }};">{{ v.gal }}</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums; color: {{ v.kwhColor }};">{{ v.kwh }}</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums; color: #4C463F;">{{ v.hrs }}</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ v.spend }}</span>
+        </div>
+      </sc-for>
+      <div style="display: grid; grid-template-columns: 2.1fr 0.9fr 1fr 1fr 0.9fr 1.15fr; gap: 10px; padding: 11px 18px; background: #FAF7F2; font-size: 12.5px;">
+        <span style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #8A8378;">Total</span><span></span>
+        <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ totals.gal }}</span>
+        <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ totals.kwh }}</span>
+        <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ totals.hrs }}</span>
+        <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ totals.spend }}</span>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 16px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Meridian · portfolio operations report</span><span>July 2026 · page 1 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div>
+        <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Utilities</div>
+        <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Daily draw · {{ selectedVilla.name }}</h2>
+      </div>
+      <div style="display: flex; gap: 26px;">
+        <div style="text-align: right;">
+          <div style="font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378;">Electricity</div>
+          <div style="font-family: Newsreader, Georgia, serif; font-size: 24px; margin-top: 4px;">{{ selectedVilla.kwh }} <span style="font-size: 12px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #8A8378;">kWh</span></div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378;">Water</div>
+          <div style="font-family: Newsreader, Georgia, serif; font-size: 24px; margin-top: 4px;">{{ selectedVilla.gal }} <span style="font-size: 12px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #8A8378;">gal</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 18px 20px; margin-top: 16px;">
+      <div style="display: flex; align-items: flex-end; gap: 4px; height: 168px; padding-bottom: 4px; border-bottom: 1px solid #E3DDD3;">
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 3px; height: 100%;">
+            <span style="font-size: 9px; color: {{ d.labelColor }};">{{ d.peak }}</span>
+            <div style="width: 100%; border-radius: 3px 3px 0 0; height: {{ d.h }}; background: {{ d.color }};"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 4px; margin-top: 6px;">
+        <sc-for list="{{ days }}" as="d" hint-placeholder-count="31">
+          <span style="flex: 1; text-align: center; font-size: 9px; color: #A09A8F;">{{ d.dayLabel }}</span>
+        </sc-for>
+      </div>
+      <div style="display: flex; gap: 18px; margin-top: 14px; font-size: 11px; color: #6E6862;">
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #4A5A3C;"></span>Occupied</span>
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #C9CDB9;"></span>Vacant</span>
+        <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 8px; height: 8px; border-radius: 2px; background: #A8543A;"></span>Flagged spike</span>
+        <span style="margin-left: auto;">Vacant-day average 96 kWh · occupied 341 kWh</span>
+      </div>
+    </div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; margin-top: 16px; overflow: hidden;">
+      <h2 style="margin: 0; padding: 14px 18px 10px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">By meter &amp; zone</h2>
+      <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.1fr; gap: 10px; padding: 0 18px 8px; font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #8A8378; border-bottom: 1px solid #EDE7DE;">
+        <span>Zone</span><span style="text-align: right;">Reading</span><span style="text-align: right;">Share</span><span style="text-align: right;">Cost</span>
+      </div>
+      <sc-for list="{{ zones }}" as="z" hint-placeholder-count="6">
+        <div style="padding: 9px 18px; border-bottom: 1px solid #F1ECE4;">
+          <div style="display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.1fr; gap: 10px; align-items: center; font-size: 12.5px;">
+            <div>{{ z.zone }}<span style="font-size: 10.5px; color: #A09A8F;"> · {{ z.meter }}</span></div>
+            <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ z.reading }}</span>
+            <span style="text-align: right; color: #6E6862;">{{ z.share }}</span>
+            <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ z.cost }}</span>
+          </div>
+          <div style="height: 3px; border-radius: 3px; background: #EDE7DE; margin-top: 7px;">
+            <div style="height: 3px; border-radius: 3px; width: {{ z.share }}; background: {{ z.color }};"></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Utilities · water &amp; electricity</span><span>July 2026 · page 2 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Utilities</div>
+      <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Exceptions &amp; meter record</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; align-items: start;">
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 16px 18px;">
+        <h3 style="margin: 0 0 4px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Needs attention</h3>
+        <div style="font-size: 11px; color: #8A8378;">{{ alertCount }} open exceptions at close of month</div>
+        <div style="display: flex; flex-direction: column; gap: 13px; margin-top: 15px;">
+          <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="3">
+            <div style="display: flex; gap: 11px; align-items: flex-start;">
+              <span style="width: 7px; height: 7px; border-radius: 7px; flex: none; margin-top: 5px; background: {{ a.color }};"></span>
+              <div style="flex: 1;">
+                <div style="font-size: 12.5px; line-height: 1.35;">{{ a.title }}</div>
+                <div style="font-size: 11px; color: #8A8378; margin-top: 4px; line-height: 1.45;">{{ a.body }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; overflow: hidden;">
+        <h3 style="margin: 0; padding: 16px 18px 11px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Reading log</h3>
+        <sc-for list="{{ readings }}" as="r" hint-placeholder-count="6">
+          <div style="display: flex; align-items: center; gap: 11px; padding: 10px 18px; border-bottom: 1px solid #F1ECE4;">
+            <span style="width: 48px; flex: none; font-size: 11px; color: #8A8378;">{{ r.date }}</span>
+            <div style="flex: 1;">
+              <div style="font-size: 12.5px;">{{ r.value }}</div>
+              <div style="font-size: 10.5px; color: #A09A8F; margin-top: 2px;">{{ r.meter }} · read by {{ r.by }}</div>
+            </div>
+            <span style="font-size: 10.5px; padding: 3px 8px; border-radius: 20px; background: {{ r.chipBg }}; color: {{ r.chipFg }};">{{ r.state }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+      <div style="background: #211E1A; border-radius: 9px; padding: 18px 20px; color: #E8E3DA;">
+        <div style="font-size: 9.5px; letter-spacing: 0.17em; text-transform: uppercase; color: #8B857A;">Next scheduled work</div>
+        <div style="display: flex; flex-direction: column; gap: 11px; margin-top: 14px;">
+          <sc-for list="{{ upcoming }}" as="u" hint-placeholder-count="4">
+            <div style="display: flex; gap: 12px; align-items: baseline;">
+              <span style="width: 42px; flex: none; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #8B857A;">{{ u.when }}</span>
+              <div style="flex: 1;">
+                <div style="font-size: 12.5px; color: #F3EFE9;">{{ u.task }}</div>
+                <div style="font-size: 10.5px; color: #A8A196; margin-top: 2px;">{{ u.villa }} · {{ u.who }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="background: #F1F3EC; border-radius: 9px; padding: 18px 20px;">
+        <div style="font-size: 9.5px; letter-spacing: 0.17em; text-transform: uppercase; color: #5A6A4A;">How readings are captured</div>
+        <p style="margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: #2E3327; text-wrap: pretty;">Staff submit meter readings from the field app with a photograph of the dial attached. Entries without a photo are marked estimated and excluded from variance flags. Readings queue locally when signal drops in the Cajuiles and Barranca sectors and sync on reconnect, so the monthly figure is closed from captured data rather than reconstructed at month end.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Utilities · exceptions</span><span>July 2026 · page 3 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Labour</div>
+      <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Hours, shifts and payroll</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
+      <sc-for list="{{ laborKpis }}" as="k" hint-placeholder-count="4">
+        <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 14px 16px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.17em; text-transform: uppercase; color: #8A8378;">{{ k.label }}</div>
+          <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 10px;">
+            <span style="font-family: Newsreader, Georgia, serif; font-size: 26px; line-height: 1;">{{ k.value }}</span>
+            <span style="font-size: 11px; color: #8A8378;">{{ k.unit }}</span>
+          </div>
+          <div style="margin-top: 8px; font-size: 11px; color: #8A8378;">{{ k.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px; margin-top: 16px; align-items: start;">
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; overflow: hidden;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px;">
+          <h3 style="margin: 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Timesheet · week of 27 July</h3>
+          <span style="font-size: 11px; color: #8A8378;">Approved Friday 17:00</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1.7fr 1.5fr 0.8fr 0.8fr 1fr; gap: 10px; padding: 0 18px 8px; font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #8A8378; border-bottom: 1px solid #EDE7DE;">
+          <span>Staff</span><span>Assigned</span><span style="text-align: right;">Reg.</span><span style="text-align: right;">OT</span><span style="text-align: right;">Payroll</span>
+        </div>
+        <sc-for list="{{ staff }}" as="s" hint-placeholder-count="7">
+          <div style="display: grid; grid-template-columns: 1.7fr 1.5fr 0.8fr 0.8fr 1fr; gap: 10px; align-items: center; padding: 9px 18px; border-bottom: 1px solid #F1ECE4; font-size: 12.5px;">
+            <div>
+              <div>{{ s.name }}</div>
+              <div style="font-size: 10.5px; color: #A09A8F; margin-top: 2px;">{{ s.role }}</div>
+            </div>
+            <span style="font-size: 11.5px; color: #6E6862;">{{ s.villas }}</span>
+            <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ s.reg }}</span>
+            <span style="text-align: right; font-variant-numeric: tabular-nums; color: {{ s.otColor }};">{{ s.ot }}</span>
+            <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ s.pay }}</span>
+          </div>
+        </sc-for>
+        <div style="display: grid; grid-template-columns: 1.7fr 1.5fr 0.8fr 0.8fr 1fr; gap: 10px; padding: 11px 18px; background: #FAF7F2; font-size: 12.5px;">
+          <span style="font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #8A8378;">Week total</span><span></span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums;">288</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums;">21</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ payrollTotal }}</span>
+        </div>
+      </div>
+
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 16px 18px;">
+        <h3 style="margin: 0 0 14px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Hours charged per villa</h3>
+        <div style="display: flex; flex-direction: column; gap: 11px;">
+          <sc-for list="{{ allocation }}" as="a" hint-placeholder-count="6">
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                <span>{{ a.villa }}</span>
+                <span style="color: #6E6862; font-variant-numeric: tabular-nums;">{{ a.hrs }} h · {{ a.cost }}</span>
+              </div>
+              <div style="height: 5px; border-radius: 5px; background: #EDE7DE; margin-top: 6px;">
+                <div style="height: 5px; border-radius: 5px; width: {{ a.pct }}; background: #4A5A3C;"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Labour · hours employed</span><span>July 2026 · page 4 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div>
+        <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Maintenance</div>
+        <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Schedule · August 2026</h2>
+      </div>
+      <span style="font-size: 11.5px; color: #8A8378;">14 scheduled · 3 overdue</span>
+    </div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 16px 18px; margin-top: 16px;">
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;">
+        <sc-for list="{{ weekdays }}" as="w" hint-placeholder-count="7">
+          <span style="font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; text-align: center; padding-bottom: 3px;">{{ w }}</span>
+        </sc-for>
+        <sc-for list="{{ calendar }}" as="c" hint-placeholder-count="42">
+          <div style="min-height: 66px; border-radius: 6px; padding: 6px 7px; border: 1px solid {{ c.border }}; background: {{ c.bg }};">
+            <div style="font-size: 11px; color: {{ c.numColor }}; font-variant-numeric: tabular-nums;">{{ c.num }}</div>
+            <div style="display: flex; flex-direction: column; gap: 3px; margin-top: 4px;">
+              <sc-for list="{{ c.events }}" as="e" hint-placeholder-count="1">
+                <div style="font-size: 9.5px; line-height: 1.25; padding: 3px 4px; border-radius: 4px; background: {{ e.bg }}; color: {{ e.fg }};">{{ e.label }}</div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Maintenance · calendar</span><span>August 2026 · page 5 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Maintenance</div>
+      <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Preventive programme &amp; open orders</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; margin-top: 16px; align-items: start;">
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; overflow: hidden;">
+        <h3 style="margin: 0; padding: 14px 18px 10px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Preventive programme</h3>
+        <sc-for list="{{ preventive }}" as="p" hint-placeholder-count="6">
+          <div style="padding: 11px 18px; border-bottom: 1px solid #F1ECE4;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <span style="flex: 1; font-size: 12.5px;">{{ p.task }}</span>
+              <span style="font-size: 10.5px; padding: 3px 8px; border-radius: 20px; background: {{ p.chipBg }}; color: {{ p.chipFg }};">{{ p.state }}</span>
+            </div>
+            <div style="font-size: 10.5px; color: #A09A8F; margin-top: 4px;">Every {{ p.interval }} · last {{ p.last }} · next {{ p.next }} · {{ p.vendor }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; overflow: hidden;">
+        <h3 style="margin: 0; padding: 14px 18px 10px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Open work orders</h3>
+        <sc-for list="{{ workOrders }}" as="w" hint-placeholder-count="4">
+          <div style="display: flex; gap: 11px; padding: 11px 18px; border-bottom: 1px solid #F1ECE4;">
+            <span style="width: 42px; flex: none; font-size: 11px; color: #8A8378; font-variant-numeric: tabular-nums;">{{ w.id }}</span>
+            <div style="flex: 1;">
+              <div style="font-size: 12.5px;">{{ w.title }}</div>
+              <div style="font-size: 10.5px; color: #A09A8F; margin-top: 3px;">{{ w.villa }} · raised {{ w.raised }} · {{ w.owner }}</div>
+            </div>
+            <span style="font-size: 10.5px; align-self: flex-start; padding: 3px 8px; border-radius: 20px; background: {{ w.chipBg }}; color: {{ w.chipFg }};">{{ w.state }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Maintenance · programme</span><span>August 2026 · page 6 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div>
+        <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Procurement · RFQ-114</div>
+        <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Re-plaster &amp; retile pool · Villa Cajuiles 12</h2>
+        <div style="font-size: 11.5px; color: #8A8378; margin-top: 6px;">Requested 12 July · owner approval required above {{ approvalThreshold }} · bids close 6 August</div>
+      </div>
+      <span style="font-size: 11px; padding: 5px 11px; border-radius: 20px; background: #F5EFDF; color: #8A6A1F; white-space: nowrap;">Awaiting decision</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;">
+      <sc-for list="{{ bids }}" as="b" hint-placeholder-count="3">
+        <div style="border: 1px solid {{ b.border }}; background: {{ b.bg }}; border-radius: 9px; padding: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: 13.5px;">{{ b.vendor }}</div>
+            <span style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: {{ b.tagColor }};">{{ b.tag }}</span>
+          </div>
+          <div style="font-family: Newsreader, Georgia, serif; font-size: 27px; margin-top: 10px; letter-spacing: -0.015em;">{{ b.total }}</div>
+          <div style="font-size: 11px; color: #8A8378; margin-top: 3px;">{{ b.perUnit }}</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #E7E1D7;">
+            <sc-for list="{{ b.lines }}" as="l" hint-placeholder-count="4">
+              <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px;">
+                <span style="color: #6E6862;">{{ l.k }}</span>
+                <span style="text-align: right;">{{ l.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 14px; padding: 13px 16px; background: #F1F3EC; border-radius: 8px; font-size: 11.5px; color: #2E3327; line-height: 1.55;">{{ quoteNote }}</div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; margin-top: 14px; overflow: hidden;">
+      <h3 style="margin: 0; padding: 13px 18px 9px; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Other open requests</h3>
+      <div style="display: grid; grid-template-columns: 0.7fr 2.2fr 1.4fr 1fr 1fr 0.9fr; gap: 10px; padding: 0 18px 8px; font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #8A8378; border-bottom: 1px solid #EDE7DE;">
+        <span>RFQ</span><span>Scope</span><span>Villa</span><span style="text-align: right;">Bids</span><span style="text-align: right;">Low bid</span><span style="text-align: right;">Status</span>
+      </div>
+      <sc-for list="{{ rfqs }}" as="r" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 0.7fr 2.2fr 1.4fr 1fr 1fr 0.9fr; gap: 10px; align-items: center; padding: 9px 18px; border-bottom: 1px solid #F1ECE4; font-size: 12.5px;">
+          <span style="color: #8A8378; font-size: 11px;">{{ r.id }}</span>
+          <span>{{ r.scope }}</span>
+          <span style="color: #6E6862; font-size: 11.5px;">{{ r.villa }}</span>
+          <span style="text-align: right; color: #6E6862;">{{ r.bids }}</span>
+          <span style="text-align: right; font-variant-numeric: tabular-nums;">{{ r.low }}</span>
+          <span style="text-align: right;"><span style="font-size: 10.5px; padding: 3px 8px; border-radius: 20px; background: {{ r.chipBg }}; color: {{ r.chipFg }};">{{ r.state }}</span></span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Procurement · quotes</span><span>July 2026 · page 7 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 36px 44px 30px; background: #F3EFE9; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="padding-bottom: 14px; border-bottom: 1px solid #D8D0C4;">
+      <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Ledger</div>
+      <h2 style="margin: 7px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 27px;">Payments for services &amp; products</h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
+      <sc-for list="{{ payKpis }}" as="k" hint-placeholder-count="4">
+        <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; padding: 14px 16px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.17em; text-transform: uppercase; color: #8A8378;">{{ k.label }}</div>
+          <div style="font-family: Newsreader, Georgia, serif; font-size: 26px; margin-top: 10px; letter-spacing: -0.015em;">{{ k.value }}</div>
+          <div style="margin-top: 8px; font-size: 11px; color: {{ k.noteColor }};">{{ k.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: #FFFDFA; border: 1px solid #E3DDD3; border-radius: 9px; margin-top: 16px; overflow: hidden;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px;">
+        <h3 style="margin: 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 17px;">Ledger extract · July 2026</h3>
+        <span style="font-size: 11px; color: #8A8378;">9 of 38 entries shown</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 0.85fr 2fr 1.3fr 1.1fr 1.15fr 1.15fr; gap: 10px; padding: 0 18px 8px; font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: #8A8378; border-bottom: 1px solid #EDE7DE;">
+        <span>Date</span><span>Payee &amp; item</span><span>Villa</span><span>Charged to</span><span style="text-align: right;">Amount</span><span style="text-align: right;">Status</span>
+      </div>
+      <sc-for list="{{ ledger }}" as="p" hint-placeholder-count="9">
+        <div style="display: grid; grid-template-columns: 0.85fr 2fr 1.3fr 1.1fr 1.15fr 1.15fr; gap: 10px; align-items: center; padding: 9px 18px; border-bottom: 1px solid #F1ECE4; font-size: 12.5px;">
+          <span style="color: #8A8378; font-size: 11.5px;">{{ p.date }}</span>
+          <div>
+            <div>{{ p.payee }}</div>
+            <div style="font-size: 10.5px; color: #A09A8F; margin-top: 2px;">{{ p.item }}</div>
+          </div>
+          <span style="font-size: 11.5px; color: #6E6862;">{{ p.villa }}</span>
+          <span style="font-size: 10.5px; padding: 3px 8px; border-radius: 20px; justify-self: start; background: {{ p.tagBg }}; color: {{ p.tagFg }};">{{ p.charged }}</span>
+          <div style="text-align: right;">
+            <div style="font-variant-numeric: tabular-nums;">{{ p.amount }}</div>
+            <div style="font-size: 10px; color: #A09A8F; margin-top: 2px;">{{ p.receipt }}</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 10.5px; padding: 3px 8px; border-radius: 20px; background: {{ p.chipBg }}; color: {{ p.chipFg }};">{{ p.state }}</span>
+            <div style="font-size: 10px; color: #A09A8F; margin-top: 3px;">{{ p.approver }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Ledger · payments</span><span>July 2026 · page 8 of 9</span>
+    </div>
+  </section>
+
+  <section class="page" style="display: flex; flex-direction: column; padding: 40px 60px 30px; background: #FFFDFA; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #211E1A;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid #E3DDD3;">
+      <div>
+        <div style="font-size: 10px; letter-spacing: 0.19em; text-transform: uppercase; color: #8A8378;">Owner statement · July 2026</div>
+        <h2 style="margin: 9px 0 0; font-family: Newsreader, Georgia, serif; font-weight: 400; font-size: 30px; letter-spacing: -0.01em;">Villa Cajuiles 12</h2>
+        <div style="font-size: 12.5px; color: #6E6862; margin-top: 7px;">Prepared for Mr &amp; Mrs Aldrich · issued 3 August 2026</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378;">Net to owner</div>
+        <div style="font-family: Newsreader, Georgia, serif; font-size: 32px; margin-top: 5px; letter-spacing: -0.015em;">{{ ownerNet }}</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding: 20px 0; border-bottom: 1px solid #E3DDD3;">
+      <sc-for list="{{ ownerStats }}" as="s" hint-placeholder-count="3">
+        <div>
+          <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378;">{{ s.label }}</div>
+          <div style="font-family: Newsreader, Georgia, serif; font-size: 23px; margin-top: 6px;">{{ s.value }}</div>
+          <div style="font-size: 11.5px; color: #8A8378; margin-top: 4px; line-height: 1.5;">{{ s.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="padding: 18px 0 0;">
+      <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8A8378; margin-bottom: 4px;">Charges this period</div>
+      <sc-for list="{{ ownerLines }}" as="l" hint-placeholder-count="6">
+        <div style="display: flex; align-items: baseline; gap: 14px; padding: 10px 0; border-bottom: 1px solid #F1ECE4;">
+          <div style="flex: 1;">
+            <div style="font-size: 13px;">{{ l.label }}</div>
+            <div style="font-size: 11.5px; color: #A09A8F; margin-top: 3px;">{{ l.detail }}</div>
+          </div>
+          <span style="font-variant-numeric: tabular-nums; font-size: 13px;">{{ l.amount }}</span>
+        </div>
+      </sc-for>
+      <div style="display: flex; justify-content: space-between; padding: 14px 0 0; font-size: 14px;">
+        <span style="letter-spacing: 0.02em;">Total operating cost</span>
+        <span style="font-family: Newsreader, Georgia, serif; font-size: 20px;">{{ ownerTotal }}</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 16px 20px; background: #F1F3EC; border-radius: 9px;">
+      <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #5A6A4A;">Note from your manager</div>
+      <p style="margin: 8px 0 0; font-family: Newsreader, Georgia, serif; font-size: 14.5px; line-height: 1.6; color: #2E3327; text-wrap: pretty;">{{ ownerNote }}</p>
+    </div>
+
+    <div style="margin-top: auto; padding-top: 14px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #A09A8F; display: flex; justify-content: space-between;">
+      <span>Owner statement · read only</span><span>July 2026 · page 9 of 9</span>
+    </div>
+  </section>
+
+</doc-page>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currency&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;USD&quot;, &quot;DOP&quot;], &quot;default&quot;: &quot;DOP&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Data&quot;}, &quot;flagAnomalies&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Data&quot;}}">
+class Component extends DCLogic {
+  fmt(usd, decimals) {
+    const dop = (this.props.currency ?? 'DOP') === 'DOP';
+    const n = dop ? usd * 60.5 : usd;
+    const s = n.toLocaleString('en-US', { minimumFractionDigits: decimals ? 2 : 0, maximumFractionDigits: decimals ? 2 : 0 });
+    return (dop ? 'RD$' : '$') + s;
+  }
+
+  num(n) { return n.toLocaleString('en-US'); }
+
+  renderVals() {
+    const anomaliesOn = this.props.flagAnomalies ?? true;
+
+    const villaData = [
+      ['Villa Cajuiles 12', '6 bed · pool · staffed', '82%', 31400, 9120, 248, 8940, 'high', 'high'],
+      ['Villa Vistamar 8', '5 bed · oceanfront', '74%', 24860, 7480, 196, 6310, '', ''],
+      ['Villa Barranca Este 24', '7 bed · pool · gym', '61%', 29740, 8960, 232, 7620, 'high', ''],
+      ['Villa Las Colinas 31', '4 bed · garden', '88%', 18200, 5340, 164, 4880, '', ''],
+      ['Villa Punta Aguila 5', '6 bed · beachfront', '43%', 26100, 6220, 188, 6410, 'high', ''],
+      ['Villa Los Naranjos 78', '4 bed · golf', '69%', 17900, 4260, 136, 4252, '', '']
+    ];
+    const villas = villaData.map(([name, meta, occ, gal, kwh, hrs, spend, gh, kh]) => ({
+      name, meta, occ, hrs,
+      gal: this.num(gal), kwh: this.num(kwh), spend: this.fmt(spend),
+      galColor: gh && anomaliesOn ? '#A8543A' : '#4C463F',
+      kwhColor: kh && anomaliesOn ? '#A8543A' : '#4C463F'
+    }));
+    const sum = (idx) => villaData.reduce((a, r) => a + r[idx], 0);
+    const totals = { gal: this.num(sum(3)), kwh: this.num(sum(4)), hrs: sum(5), spend: this.fmt(sum(6)) };
+
+    const kpis = [
+      { label: 'Water', value: this.num(sum(3)), unit: 'gallons', delta: '+6.4%', deltaColor: '#A8543A' },
+      { label: 'Electricity', value: this.num(sum(4)), unit: 'kWh', delta: '−3.1%', deltaColor: '#4A5A3C' },
+      { label: 'Labour', value: this.num(sum(5)), unit: 'hours', delta: '+2.0%', deltaColor: '#6E6862' },
+      { label: 'Operating spend', value: this.fmt(sum(6)), unit: '', delta: '+4.8%', deltaColor: '#A8543A' }
+    ];
+
+    const alerts = anomaliesOn ? [
+      { color: '#A8543A', title: 'Cajuiles 12 — water up 41% on vacant nights', body: 'Nights of 18–24 July averaged 1,180 gal with no guests. Irrigation valve or pool top-up suspected.' },
+      { color: '#B0842B', title: 'Punta Aguila 5 — kWh flat while vacant', body: 'AC likely left running between stays. Compare with housekeeping log for 27 July.' },
+      { color: '#B0842B', title: 'Barranca Este 24 — cistern refill twice in a week', body: 'Two 5,000-gal truck deliveries billed 9 days apart.' }
+    ] : [];
+
+    const upcoming = [
+      { when: 'Tue 4', task: 'Generator load test & oil change', villa: 'Cajuiles 12', who: 'Rodríguez Power' },
+      { when: 'Wed 5', task: 'AC coil clean · 6 units', villa: 'Barranca Este 24', who: 'Clima Caribe' },
+      { when: 'Thu 6', task: 'Palm trim & debris removal', villa: 'Punta Aguila 5', who: 'In-house grounds' },
+      { when: 'Fri 7', task: 'Pool chemistry audit', villa: 'All villas', who: 'Aqua Sur' }
+    ];
+
+    const sv = villaData[0];
+    const selectedVilla = { name: sv[0], kwh: this.num(sv[4]), gal: this.num(sv[3]) };
+
+    const vacant = { 4: 1, 5: 1, 6: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1, 23: 1, 27: 1, 28: 1 };
+    const spike = { 18: 1, 21: 1 };
+    const days = Array.from({ length: 31 }, (_, i) => {
+      const d = i + 1;
+      const base = vacant[d] ? 88 + ((i * 37) % 34) : 288 + ((i * 53) % 96);
+      const kwh = spike[d] ? base + 210 : base;
+      return {
+        dayLabel: d % 5 === 1 || d === 31 ? String(d) : '',
+        peak: kwh > 400 ? String(kwh) : '',
+        labelColor: spike[d] ? '#A8543A' : '#A09A8F',
+        h: Math.round((kwh / 560) * 142) + 'px',
+        color: spike[d] ? '#A8543A' : (vacant[d] ? '#C9CDB9' : '#4A5A3C')
+      };
+    });
+
+    const zones = [
+      ['Main house', 'E-1140', '4,880 kWh', '54%', 1268, '#4A5A3C'],
+      ['Air conditioning', 'E-1141', '2,190 kWh', '24%', 569, '#6B7A55'],
+      ['Pool plant', 'E-1142', '1,140 kWh', '12%', 296, '#8C9A74'],
+      ['Staff quarters', 'E-1143', '910 kWh', '10%', 236, '#AFB995'],
+      ['Irrigation', 'W-220', '11,400 gal', '36%', 402, '#4A6A7A'],
+      ['Pool top-up & cistern', 'W-221', '6,850 gal', '22%', 241, '#7A94A2']
+    ].map(([zone, meter, reading, share, cost, color]) => ({ zone, meter, reading, share, cost: this.fmt(cost), color }));
+
+    const readings = [
+      ['31 Jul', '04 812 kWh', 'E-1140 main', 'Marisol R.', 'Verified', '#EDF0E7', '#4A5A3C'],
+      ['31 Jul', '112 480 gal', 'W-220 irrigation', 'Marisol R.', 'Verified', '#EDF0E7', '#4A5A3C'],
+      ['24 Jul', '04 468 kWh', 'E-1140 main', 'Luis A.', 'Verified', '#EDF0E7', '#4A5A3C'],
+      ['21 Jul', '110 190 gal', 'W-220 irrigation', 'Luis A.', 'Flagged +41%', '#F6E9E3', '#A8543A'],
+      ['17 Jul', '04 121 kWh', 'E-1140 main', 'Marisol R.', 'Verified', '#EDF0E7', '#4A5A3C'],
+      ['10 Jul', '03 902 kWh', 'E-1140 main', 'Estimated', 'No photo', '#F5EFDF', '#8A6A1F']
+    ].map(([date, value, meter, by, state, chipBg, chipFg]) => ({ date, value, meter, by, state, chipBg, chipFg }));
+
+    const laborKpis = [
+      { label: 'Hours this week', value: '309', unit: 'h', note: '7 staff · 4 villas covered' },
+      { label: 'Overtime', value: '21', unit: 'h', note: '2 staff over 44 h' },
+      { label: 'Payroll accrued', value: this.fmt(3912), unit: '', note: 'incl. 13.5% statutory' },
+      { label: 'Cost per occupied night', value: this.fmt(74), unit: '', note: 'labour only' }
+    ];
+
+    const staff = [
+      ['Marisol Reyes', 'Housekeeping lead', 'Cajuiles 12, Vistamar 8', 44, 9, 486],
+      ['Luis Alcántara', 'Caretaker', 'Cajuiles 12', 40, 0, 402],
+      ['Ana Belén Cruz', 'Housekeeping', 'Barranca Este 24', 40, 4, 388],
+      ['Freddy Núñez', 'Grounds & pool', 'All villas', 44, 6, 452],
+      ['Yamilé Santos', 'Housekeeping', 'Las Colinas 31', 36, 0, 344],
+      ['Pedro Jiménez', 'Night security', 'Punta Aguila 5', 48, 2, 476],
+      ['Carmen Ovalles', 'Cook (on call)', 'Vistamar 8', 22, 0, 264]
+    ].map(([name, role, villas, reg, ot, pay]) => ({
+      name, role, villas, reg, ot: ot ? ot : '—', pay: this.fmt(pay),
+      otColor: ot >= 6 ? '#A8543A' : '#6E6862'
+    }));
+
+    const allocation = [
+      ['Cajuiles 12', 248, '100%', 2480],
+      ['Barranca Este 24', 232, '94%', 2280],
+      ['Vistamar 8', 196, '79%', 1940],
+      ['Punta Aguila 5', 188, '76%', 1860],
+      ['Las Colinas 31', 164, '66%', 1620],
+      ['Los Naranjos 78', 136, '55%', 1340]
+    ].map(([villa, hrs, pct, cost]) => ({ villa, hrs, pct, cost: this.fmt(cost) }));
+
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const ev = {
+      2: [['Cistern check', '#EDF0E7', '#3E4B32']],
+      4: [['Generator service', '#F5EFDF', '#7A5D1B']],
+      5: [['AC coil clean ×6', '#EDF0E7', '#3E4B32']],
+      6: [['Palm trim', '#EDF0E7', '#3E4B32']],
+      7: [['Pool chemistry', '#EDF0E7', '#3E4B32']],
+      11: [['Pest control', '#EDF0E7', '#3E4B32']],
+      13: [['Pool re-plaster starts', '#F6E9E3', '#8C4128']],
+      14: [['Overdue: gutter flush', '#F6E9E3', '#8C4128']],
+      18: [['Water tank sanitise', '#EDF0E7', '#3E4B32']],
+      20: [['Fire extinguisher cert', '#F5EFDF', '#7A5D1B']],
+      24: [['Deep clean · Vistamar', '#EDF0E7', '#3E4B32']],
+      27: [['Generator load test', '#EDF0E7', '#3E4B32']],
+      31: [['Meter readings due', '#E9EEF2', '#2F4A5A']]
+    };
+    const calendar = Array.from({ length: 42 }, (_, i) => {
+      const day = i - 5;
+      const inMonth = day >= 1 && day <= 31;
+      const isToday = day === 3;
+      return {
+        num: inMonth ? day : '',
+        numColor: isToday ? '#A8543A' : (inMonth ? '#4C463F' : '#CFC7BB'),
+        bg: isToday ? '#FBF4F1' : (inMonth ? '#FFFDFA' : '#F7F4EF'),
+        border: isToday ? '#E0C4B8' : '#EDE7DE',
+        events: inMonth && ev[day] ? ev[day].map(([label, bg, fg]) => ({ label, bg, fg })) : []
+      };
+    });
+
+    const preventive = [
+      ['Generator service & load test', '3 months', '4 May', '4 Aug', 'Rodríguez Power', 'Due tomorrow', '#F5EFDF', '#8A6A1F'],
+      ['AC coil clean, all units', '2 months', '6 Jun', '5 Aug', 'Clima Caribe', 'Scheduled', '#EDF0E7', '#4A5A3C'],
+      ['Cistern sanitise & test', '6 months', '18 Feb', '18 Aug', 'Aqua Sur', 'Scheduled', '#EDF0E7', '#4A5A3C'],
+      ['Gutter & roof drain flush', '6 months', '2 Jan', '2 Jul', 'In-house grounds', 'Overdue 32 d', '#F6E9E3', '#A8543A'],
+      ['Termite inspection', '12 months', '11 Aug 25', '11 Aug', 'Fumigadora RD', 'Scheduled', '#EDF0E7', '#4A5A3C'],
+      ['Fire extinguisher recert', '12 months', '20 Aug 25', '20 Aug', 'Segurimax', 'Scheduled', '#EDF0E7', '#4A5A3C']
+    ].map(([task, interval, last, next, vendor, state, chipBg, chipFg]) => ({ task, interval, last, next, vendor, state, chipBg, chipFg }));
+
+    const workOrders = [
+      ['#418', 'Master bath shower mixer dripping', 'Cajuiles 12', '29 Jul', 'Luis A.', 'Parts ordered', '#F5EFDF', '#8A6A1F'],
+      ['#419', 'Terrace pergola beam rot, west end', 'Vistamar 8', '30 Jul', 'Awaiting quote', 'Quoting', '#E9EEF2', '#2F4A5A'],
+      ['#421', 'Guest reported weak wifi, casita', 'Barranca Este 24', '1 Aug', 'Altice ticket', 'With vendor', '#E9EEF2', '#2F4A5A'],
+      ['#422', 'Golf cart battery will not hold charge', 'Los Naranjos 78', '2 Aug', 'Freddy N.', 'New', '#F6E9E3', '#A8543A']
+    ].map(([id, title, villa, raised, owner, state, chipBg, chipFg]) => ({ id, title, villa, raised, owner, state, chipBg, chipFg }));
+
+    const bids = [
+      {
+        vendor: 'Aqua Sur', tag: 'Lowest', tagColor: '#4A5A3C', total: this.fmt(14800), perUnit: this.fmt(41) + ' / sq ft · 18 days',
+        border: '#C9D2BC', bg: '#FBFCF8',
+        lines: [['Plaster', 'Quartz aggregate'], ['Tile', 'Owner-supplied'], ['Warranty', '3 years'], ['Prior jobs', '4 in Cajuiles']].map(([k, v]) => ({ k, v }))
+      },
+      {
+        vendor: 'Piscinas del Este', tag: 'Fastest', tagColor: '#8A6A1F', total: this.fmt(16250), perUnit: this.fmt(45) + ' / sq ft · 11 days',
+        border: '#E3DDD3', bg: '#FFFDFA',
+        lines: [['Plaster', 'Pebble finish'], ['Tile', 'Included, 3 options'], ['Warranty', '5 years'], ['Prior jobs', '1, 2024']].map(([k, v]) => ({ k, v }))
+      },
+      {
+        vendor: 'Caribe Pools SRL', tag: 'Highest', tagColor: '#A8543A', total: this.fmt(19400), perUnit: this.fmt(54) + ' / sq ft · 21 days',
+        border: '#E3DDD3', bg: '#FFFDFA',
+        lines: [['Plaster', 'Glass bead'], ['Tile', 'Included, imported'], ['Warranty', '5 years'], ['Prior jobs', 'None']].map(([k, v]) => ({ k, v }))
+      }
+    ];
+
+    const rfqs = [
+      ['118', 'Pergola beam replacement, west terrace', 'Vistamar 8', '2 of 3', 3400, 'Bids open', '#E9EEF2', '#2F4A5A'],
+      ['117', 'Exterior repaint, north & east elevations', 'Barranca Este 24', '3 of 3', 11250, 'Ready', '#F5EFDF', '#8A6A1F'],
+      ['116', 'Irrigation controller replacement', 'Cajuiles 12', '1 of 3', 1180, 'Chasing bids', '#F6E9E3', '#A8543A'],
+      ['115', 'Annual generator contract renewal', 'All villas', '2 of 2', 6600, 'Ready', '#F5EFDF', '#8A6A1F'],
+      ['113', 'Mattress replacement, 4 king', 'Punta Aguila 5', '3 of 3', 4720, 'Approved', '#EDF0E7', '#4A5A3C']
+    ].map(([id, scope, villa, bidsN, low, state, chipBg, chipFg]) => ({ id: 'RFQ-' + id, scope, villa, bids: bidsN, low: this.fmt(low), state, chipBg, chipFg }));
+
+    const payKpis = [
+      { label: 'Paid in July', value: this.fmt(31480), note: '26 entries cleared', noteColor: '#8A8378' },
+      { label: 'Due this week', value: this.fmt(6932), note: '4 invoices · 1 overdue', noteColor: '#A8543A' },
+      { label: 'Owner-billable', value: this.fmt(24610), note: '78% of spend', noteColor: '#8A8378' },
+      { label: 'Absorbed by us', value: this.fmt(6870), note: 'incl. 2 goodwill items', noteColor: '#8A8378' }
+    ];
+
+    const ledger = [
+      ['31 Jul', 'Clima Caribe', 'AC coil clean, 6 units', 'Barranca Este 24', 'Owner', 1980, 'Receipt ✓', 'Paid', 'J. van W.'],
+      ['30 Jul', 'Aqua Sur', 'Pool chemicals, monthly', 'All villas', 'Owner', 742, 'Receipt ✓', 'Paid', 'J. van W.'],
+      ['29 Jul', 'Camión Agua La Romana', 'Cistern refill 5,000 gal ×2', 'Barranca Este 24', 'Owner', 310, 'Receipt ✓', 'Paid', 'M. Reyes'],
+      ['28 Jul', 'EdeEste', 'Electricity, July billing', 'Cajuiles 12', 'Owner', 1268, 'Bill ✓', 'Due 6 Aug', 'Pending'],
+      ['26 Jul', 'Ferretería Ochoa', 'Shower mixer + fittings', 'Cajuiles 12', 'Owner', 148, 'Receipt ✓', 'Paid', 'L. Alcántara'],
+      ['24 Jul', 'Rodríguez Power', 'Generator service, Q2', 'Cajuiles 12', 'Owner', 640, 'Receipt ✓', 'Paid', 'J. van W.'],
+      ['22 Jul', 'Textiles Bávaro', 'Bed linen, 4 king sets', 'Punta Aguila 5', 'Absorbed', 890, 'Receipt ✓', 'Paid', 'J. van W.'],
+      ['19 Jul', 'Fumigadora RD', 'Pest control, quarterly', 'All villas', 'Owner', 520, 'Missing', 'Overdue 14 d', 'Chase'],
+      ['15 Jul', 'Payroll · week 28', '7 staff, incl. overtime', 'All villas', 'Split', 3912, 'Ledger ✓', 'Paid', 'J. van W.']
+    ].map(([date, payee, item, villa, charged, amount, receipt, state, approver]) => ({
+      date, payee, item, villa, charged, receipt, state, approver,
+      amount: this.fmt(amount),
+      tagBg: charged === 'Owner' ? '#EDF0E7' : (charged === 'Absorbed' ? '#F1EDE6' : '#E9EEF2'),
+      tagFg: charged === 'Owner' ? '#4A5A3C' : (charged === 'Absorbed' ? '#6E6862' : '#2F4A5A'),
+      chipBg: state === 'Paid' ? '#EDF0E7' : (state.startsWith('Overdue') ? '#F6E9E3' : '#F5EFDF'),
+      chipFg: state === 'Paid' ? '#4A5A3C' : (state.startsWith('Overdue') ? '#A8543A' : '#8A6A1F')
+    }));
+
+    const ownerStats = [
+      { label: 'Occupancy', value: '82%', note: '25 of 31 nights, 4 arrivals' },
+      { label: 'Water', value: '31,400 gal', note: 'One flagged irrigation event, corrected 22 July' },
+      { label: 'Electricity', value: '9,120 kWh', note: 'Down 3% on June despite fuller month' }
+    ];
+
+    const ownerLines = [
+      ['Utilities', 'Electricity ' + this.fmt(1268) + ' · water & cistern ' + this.fmt(643) + ' · propane ' + this.fmt(210), 2121],
+      ['Household staff', '248 hours · housekeeping, caretaker, grounds', 2480],
+      ['Scheduled maintenance', 'Generator Q2 service · pool chemistry · pest control', 1160],
+      ['Repairs', 'Shower mixer replacement, master bath', 148],
+      ['Supplies & consumables', 'Amenities, cleaning, pool chemicals', 494],
+      ['Management fee', '10% of operating cost', 640]
+    ].map(([label, detail, amount]) => ({ label, detail, amount: this.fmt(amount) }));
+
+    return {
+      currencyLabel: (this.props.currency ?? 'DOP') === 'DOP' ? 'Dominican pesos · RD$60.5 = US$1' : 'US dollars',
+      villas, totals, kpis, alerts, alertCount: alerts.length, upcoming,
+      selectedVilla, days, zones, readings,
+      laborKpis, staff, allocation, payrollTotal: this.fmt(3912),
+      weekdays, calendar, preventive, workOrders,
+      bids, rfqs, approvalThreshold: this.fmt(2500),
+      quoteNote: 'Aqua Sur has resurfaced four pools in Cajuiles and its quartz finish held up on the Vistamar job. Piscinas del Este is five days faster and includes tile, which matters only if the owner wants the waterline changed — worth asking before the decision is made.',
+      payKpis, ledger,
+      ownerNet: this.fmt(18240), ownerTotal: this.fmt(7043), ownerStats, ownerLines,
+      ownerNote: 'A steady month. The irrigation timer at the east hedge was running twice nightly, which explains the water figure; we replaced the controller and consumption is back to normal in the first days of August. The pool needs re-plastering before high season and we have three quotes ready for your review.'
+    };
+  }
+}
+
+</script>
+</body>
+</html>
