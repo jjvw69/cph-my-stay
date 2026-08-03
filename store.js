@@ -1938,6 +1938,11 @@ function updateGuestRequest(reference, requestId, body) {
 function removeGuestRequest(reference, requestId) {
   const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.requests)) return false;
   const r = s.requests.find(r => r.id === requestId); if (!r) return false;
+  // Guests may not cancel a request the concierge already arranged (done) or one already invoiced —
+  // a guest-side cancel would silently un-arrange it while any standing invoice stays active. They
+  // message the concierge instead. (Mirrors the updateGuestRequest guard.)
+  if (r.status === 'done') return false;
+  if (Array.isArray(s.invoices) && s.invoices.some(iv => iv.requestId === requestId)) return false;
   r.status = 'cancelled'; r.cancelledAt = Date.now();
   s.updatedAt = Date.now(); persistStays(); return true;
 }
@@ -2260,6 +2265,9 @@ function cancelSentService(stayId, sid) {
 function respondSentService(reference, sid, response) {
   const s = findPublishedStayByRef(reference); if (!s || !Array.isArray(s.sentServices)) return null;
   const it = s.sentServices.find(x => x.id === sid); if (!it) return null;
+  // Once the concierge has invoiced this arranged service, the guest can't flip confirm/decline —
+  // that would desync the (still-active) invoice from the service status. They message instead.
+  if (Array.isArray(s.invoices) && s.invoices.some(iv => iv.sentId && iv.sentId === sid)) return null;
   it.status = response === 'confirmed' ? 'confirmed' : response === 'declined' ? 'declined' : it.status;
   it.respondedAt = Date.now(); s.updatedAt = Date.now(); persistStays(); return it;
 }
@@ -2355,6 +2363,7 @@ function createInvoice(stayId, b) {
     items: cleanItems(b && b.items),
     requestId: norm(b && b.requestId).slice(0, 40), // optional link to the guest request this invoice bills — lets the console flag it if the request is later cancelled
     yachtId: norm(b && b.yachtId).slice(0, 40),     // optional link to the yacht proposal — locks the guest's boat choice once invoiced
+    sentId: norm(b && b.sentId).slice(0, 40),       // optional link to the "arranged for you" sent-service — locks the guest's confirm/decline once invoiced
     legalPct: clampPct(b && b.legalPct, 18),     // 18% ITBIS / legal fee by default
     servicePct: clampPct(b && b.servicePct, 10), // 10% service fee by default
     extras: cleanExtras(b && b.extras),          // flat extra charges (e.g. Pick up & delivery US$50) — any label, any amount
@@ -2406,6 +2415,7 @@ function updateInvoice(stayId, iid, b) {
   if (b.items != null) inv.items = cleanItems(b.items);
   if (b.requestId != null) inv.requestId = norm(b.requestId).slice(0, 40);
   if (b.yachtId != null) inv.yachtId = norm(b.yachtId).slice(0, 40);
+  if (b.sentId != null) inv.sentId = norm(b.sentId).slice(0, 40);
   if (b.legalPct != null) inv.legalPct = clampPct(b.legalPct, 18);
   if (b.servicePct != null) inv.servicePct = clampPct(b.servicePct, 10);
   if (b.extras != null) inv.extras = cleanExtras(b.extras);
@@ -2561,7 +2571,7 @@ function toGuestStay(s) {
     explore: EXPLORE_SCENES,
     exploreOptions: EXPLORE_BOOK,                  // single source — per-activity booking choices, shared with the console
     requests: (s.requests || []).map(r => ({ id: r.id, type: r.type, refId: r.refId, title: r.title, date: r.date, endDate: r.endDate || '', cartType: r.cartType || '', serviceLevel: r.serviceLevel || '', time: r.time, guests: r.guests, note: r.note, familyName: r.familyName || '', airline: r.airline || '', flightNo: r.flightNo || '', flightOrigin: r.flightOrigin || '', arrivalTime: r.arrivalTime || '', returnAirline: r.returnAirline || '', returnFlightNo: r.returnFlightNo || '', returnDest: r.returnDest || '', returnTime: r.returnTime || '', status: r.status, price: r.price || '', createdAt: r.createdAt, updatedAt: r.updatedAt || 0 })),
-    sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0 })),
+    sentServices: (s.sentServices || []).map(x => ({ id: x.id, serviceId: x.serviceId, name: x.name, option: x.option || '', rate: x.rate || '', note: x.note || '', date: x.date || '', endDate: x.endDate || '', time: x.time || '', guests: x.guests || '', qty: x.qty || '', trip: x.trip || '', airline: x.airline || '', flightNo: x.flightNo || '', flightOrigin: x.flightOrigin || '', arrivalTime: x.arrivalTime || '', returnAirline: x.returnAirline || '', returnFlightNo: x.returnFlightNo || '', returnDest: x.returnDest || '', returnTime: x.returnTime || '', status: x.status, sentAt: x.sentAt, respondedAt: x.respondedAt || 0, invoiced: (s.invoices || []).some(iv => iv.sentId && iv.sentId === x.id) })),
     yachtProposal: s.yachtProposal ? { id: s.yachtProposal.id, title: s.yachtProposal.title, intro: s.yachtProposal.intro || '', options: (s.yachtProposal.options || []).map(o => ({ id: o.id, name: o.name, detail: o.detail || '', rate: o.rate || '' })), status: s.yachtProposal.status, chosenId: s.yachtProposal.chosenId || '', invoiced: (s.invoices || []).some(iv => iv.yachtId && iv.yachtId === s.yachtProposal.id), sentAt: s.yachtProposal.sentAt, respondedAt: s.yachtProposal.respondedAt || 0 } : null,
     invoices: (s.invoices || []).filter(x => x.status !== 'draft').map(x => { if (x.kind === 'grocery') { const g = groceryBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, kind: 'grocery', items: (x.items || []).map(it => ({ label: it.label, amountRD: it.amountRD })), totalRD: g.totalRD, subUSD: g.subUSD, serviceFeeUSD: g.svc, pickupUSD: g.pickup, invoiceUSD: g.totalUSD, depositUSD: g.deposit, finalUSD: g.finalUSD, refundUSD: g.refundUSD, total: g.dueUSD, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); } const bd = invoiceBreakdown(x); return ({ id: x.id, no: x.no, title: x.title, items: (x.items || []).map(it => ({ label: it.label, amount: it.amount })), subtotal: bd.subtotal, legalPct: bd.legalPct, servicePct: bd.servicePct, legalFee: bd.legal, serviceFee: bd.service, extras: bd.extras, extrasTotal: bd.extrasTotal, total: bd.total, dueBy: x.dueBy || '', note: x.note || '', payTo: x.payTo || 'jan', status: x.status, sentAt: x.sentAt || 0, paidAt: x.paidAt || 0 }); }),
     messages: (s.messages || []).map(m => ({ id: m.id, from: m.from, text: m.text, at: m.at })),

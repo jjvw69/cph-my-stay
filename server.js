@@ -511,13 +511,18 @@ async function route(req,res){
   if(m==='GET' && url==='/api/_probe'){
     const configured = !!(v365.CFG.key && v365.CFG.pass);
     const mode = v365.CFG.mock ? 'mock' : (configured ? 'live' : 'unconfigured');
+    // The live probe fires a real outbound PMS call, so gate it behind a staff cookie or the
+    // backup token — otherwise anyone hitting this URL could drive unauthenticated PMS load.
+    const _q=require('url').parse(req.url,true).query||{};
+    const _tok=String(process.env.BACKUP_TOKEN||'');
+    const authed = !!staffSession(req) || (_tok && String(_q.token||'')===_tok);
     let probes = [];
-    if(mode === 'live'){
+    if(mode === 'live' && authed){
       try{ probes = [await v365.probeAction('getreservations')]; }
       catch(e){ probes = [{action:'getreservations', err: e.message}]; }
     }
     const ok = mode === 'live' && probes.length > 0 && probes.every(p => !p.err);
-    const s = JSON.stringify({ok,mode,configured,probes,note:'structure only — never returns guest data',time:new Date().toISOString()});
+    const s = JSON.stringify({ok,mode,configured,authed,probes,note:authed?'structure only — never returns guest data':'live probe requires a staff session or backup token',time:new Date().toISOString()});
     res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store, no-cache, must-revalidate','Content-Length':Buffer.byteLength(s)});
     return res.end(s);
   }
