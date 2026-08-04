@@ -2578,6 +2578,8 @@ function toGuestStay(s) {
     guestCheckin: s.guestCheckin || null,
     readiness: stayReadiness(s),
     itinerary: (s.itinerary || []).map(r => ({ id: r.id, date: r.date, time: r.time, title: r.title, place: r.place, note: r.note })),
+    // Dining reservations the guest sees — guest-friendly fields only. cost/deposit/cancelBy/note stay staff-only.
+    diningReservations: (s.reservations || []).map(r => ({ id: r.id, date: r.date, time: r.time, place: r.place, pax: r.pax, menu: r.menu })),
     grocery: s.grocery || null,
     mealPlan: s.mealPlan || null,
     guestRating: s.guestRating || null,
