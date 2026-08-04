@@ -2329,7 +2329,17 @@ function cleanItems(arr) {
     const supplier = norm(it && it.supplier).slice(0, 80);               // optional internal supplier (staff-only; stripped from toGuestStay)
     const bookedVia = norm(it && it.bookedVia).slice(0, 80);             // booking channel that booked THIS line (staff-only; see BOOKING_SOURCES)
     const pax = Math.max(0, Math.min(999, parseInt(String((it && it.pax) || '').replace(/[^0-9]/g, ''), 10) || 0)); // guests/passengers on this line (optional; also shown in the label)
+    // Per-line SERVICE date(s) + which service/option built this line. Staff-only, kept so the console
+    // editor round-trips (service + destination dropdowns and the date pickers repopulate) and so the
+    // printed invoice can show the service date. Without these the date silently vanished on save.
+    const dateFrom = norm(it && it.dateFrom).slice(0, 20);
+    const dateTo = norm(it && it.dateTo).slice(0, 20);
+    const svcId = norm(it && it.svcId).slice(0, 60);
+    const svcSel = norm(it && it.svcSel).slice(0, 60);
+    const svcOpt = norm(it && it.svcOpt).slice(0, 160);
     if (rate) o.rate = rate; if (days) o.days = days; if (supplier) o.supplier = supplier; if (bookedVia) o.bookedVia = bookedVia; if (pax) o.pax = pax;
+    if (dateFrom) o.dateFrom = dateFrom; if (dateTo) o.dateTo = dateTo;
+    if (svcId) o.svcId = svcId; if (svcSel) o.svcSel = svcSel; if (svcOpt) o.svcOpt = svcOpt;
     return o;
   }).filter(it => it.label || it.amount);
 }
