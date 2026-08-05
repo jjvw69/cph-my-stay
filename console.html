@@ -3217,13 +3217,18 @@ function renderEditor(){
           const d=new Date(cur.checkout+'T00:00:00');
           if(!isNaN(d)){ d.setDate(d.getDate()+2); const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
             if(!Array.isArray(cur.followUps)) cur.followUps=[];
-            if(!cur.followUps.some(f=>f&&/pending to refund/i.test(f.note||''))) cur.followUps.push({date:ds,note:'Security deposit — pending to refund'});
+            // Direct bookings: WE hold the deposit and must return it → firm refund reminder.
+            // Non-direct (agency / owner): we don't hold it → a soft check-in with the owner, not a refund.
+            const depNote=isDirect?'Security deposit — pending to refund to the guest':'Security deposit — check with the owner that everything is OK';
+            if(!cur.followUps.some(f=>f&&/security deposit/i.test(f.note||''))) cur.followUps.push({date:ds,note:depNote});
             cur.depositReminderAdded=true;
           }
         }
         const hasDep=!!String(cur.securityDeposit||'').trim();
         const hint=isDirect?'Direct booking — enter the deposit manually.':(rate>0?('Preset to one night at '+esc(villa.name||'this villa')+' (US$ '+rate.toLocaleString('en-US')+') — edit if needed.'):'No nightly rate on file for this villa — enter manually.');
-        const rem=hasDep?' A “pending to refund” reminder is set for 2 days after checkout.':'';
+        const rem=hasDep?(isDirect
+          ? ' A “pending to refund” reminder is set for 2 days after checkout — we hold this deposit and must return it to the guest.'
+          : ' A reminder to check with the owner that everything’s OK is set for 2 days after checkout — this deposit isn’t held by us, so it’s a courtesy check, not a refund.'):'';
         return `<div class="f full"><label>Security deposit</label><input value="${esc(cur.securityDeposit||'')}" oninput="set('securityDeposit',this.value)" placeholder="e.g. US$ 1,000 held · refundable on checkout"><div class="reqmeta" style="margin-top:0">${hint}${rem}</div></div>`;
       })()}
       <div class="f full counter">Internal only — the guest never sees this.</div>
