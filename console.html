@@ -3209,9 +3209,9 @@ function renderEditor(){
         const isDirect=/direct/i.test(cur.source||'');
         const villa=(BOOT.villas||[]).find(x=>x.id===cur.villaId)||{};
         const rate=Number(villa.nightlyRate)||0;
-        // Preset the deposit to one night's rate for NON-direct bookings (direct bookings stay blank
-        // for manual entry). Listed villas only — no rate on file → nothing is presetted.
-        if(!String(cur.securityDeposit||'').trim() && !isDirect && rate>0){ cur.securityDeposit='US$ '+rate.toLocaleString('en-US'); }
+        // Preset the deposit to one night's rate for ALL bookings (direct + non-direct) when the field
+        // is blank — editable, the concierge can adjust. Listed villas only — no rate on file → no preset.
+        if(!String(cur.securityDeposit||'').trim() && rate>0){ cur.securityDeposit='US$ '+rate.toLocaleString('en-US'); }
         // Once a deposit is set, add a one-time follow-up 2 days after checkout to confirm the refund.
         if(String(cur.securityDeposit||'').trim() && cur.checkout && !cur.depositReminderAdded){
           const d=new Date(cur.checkout+'T00:00:00');
@@ -3225,7 +3225,7 @@ function renderEditor(){
           }
         }
         const hasDep=!!String(cur.securityDeposit||'').trim();
-        const hint=isDirect?'Direct booking — enter the deposit manually.':(rate>0?('Preset to one night at '+esc(villa.name||'this villa')+' (US$ '+rate.toLocaleString('en-US')+') — edit if needed.'):'No nightly rate on file for this villa — enter manually.');
+        const hint=rate>0?('Preset to one night at '+esc(villa.name||'this villa')+' (US$ '+rate.toLocaleString('en-US')+') — edit if needed.'):'No nightly rate on file for this villa — enter manually.';
         const rem=hasDep?(isDirect
           ? ' A “pending to refund” reminder is set for 2 days after checkout — we hold this deposit and must return it to the guest.'
           : ' A reminder to check with the owner that everything’s OK is set for 2 days after checkout — this deposit isn’t held by us, so it’s a courtesy check, not a refund.'):'';
