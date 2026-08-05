@@ -1712,7 +1712,8 @@ const SERVICE_INFO = {
     menu:'https://www.casadecampo.com.do/experiences/for-families/',
     notePlaceholder:'Dates, any allergies or needs…',
     childList:true,
-    selects:`<label class="reqlbl">Program (by age)</label><select id="rqService"><option>Toddlers 'N' Casa — ages 1–3</option><option>Kidz 'N' Casa — ages 4–6</option><option>Casa Tweens — ages 7–12</option><option>Bonche 4 Teens — ages 13–17</option></select><label class="reqlbl">Day length</label><select id="rqDayLen"><option>Half day</option><option>Full day</option></select>`,
+    dayLength:true,
+    selects:`<label class="reqlbl">Program (by age)</label><select id="rqService"><option>Toddlers 'N' Casa — ages 1–3</option><option>Kidz 'N' Casa — ages 4–6</option><option>Casa Tweens — ages 7–12</option><option>Bonche 4 Teens — ages 13–17</option></select>`,
     rates:`<b>SUPERVISED FAMILY PROGRAMS (taxes incl.)</b>
       <div class="rt"><span>Half day (snack incl.)</span><span>8:30 am–12 pm / 1:30–4 pm</span></div>
       <div class="rt"><span>Full day (lunch incl.)</span><span>8:30 am–4 pm</span></div>
@@ -1796,6 +1797,8 @@ window.openReq=function(type,refId){
   { const _bk=(state.stay&&state.stay.exploreOptions&&state.stay.exploreOptions[refId]); if(_bk&&_bk.choices&&_bk.choices.length){ selectsBlock=`<label class="reqlbl">${esc(_bk.label||'What would you like?')}</label><select id="rqService">${_bk.choices.map(c=>{const lab=(c&&c.label!=null)?c.label:c; const rt=(c&&c.rate)?c.rate:''; return `<option value="${esc(lab)}">${esc(lab)}${(rt&&!svcHideCost())?' · '+esc(rt):''}</option>`;}).join('')}</select>`; } }
   // Preferred-yacht select is built from the live fleet the server sends (single source: store.js YACHT_CATALOG) so guest ↔ console always match.
   if(refId==='yacht'){ const fleet=(state.stay&&state.stay.yachtFleet)||[]; if(fleet.length) selectsBlock += `<label class="reqlbl">Preferred yacht (optional)</label><select id="rqYacht"><option value="">No preference — let my concierge suggest</option>${fleet.map(n=>`<option>${esc(n)}</option>`).join('')}</select>`; }
+  // Half/Full day for kids' programs — appended here so it survives the exploreOptions override above (which rebuilds the program picker from store.js and would otherwise drop it).
+  if(info.dayLength) selectsBlock += `<label class="reqlbl">Day length</label><select id="rqDayLen"><option>Half day</option><option>Full day</option></select>`;
   const dateBlock = info.noDate ? ''
     : info.tripDates
     ? `<div class="reqrange"><div><label class="reqlbl" id="rqDateLbl">Transfer date</label><input id="rqDate" type="date" value="${esc(b.arrive||'')}"></div><div id="rqEndWrap" style="display:none"><label class="reqlbl">${info.toLabel||'Departure date'}</label><input id="rqEnd" type="date" value="${esc(b.depart||b.arrive||'')}"></div></div>`
