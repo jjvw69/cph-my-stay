@@ -957,6 +957,9 @@ let BOOT={villas:[],addons:[],concierges:[]}, LIST=[], cur=null; // cur = workin
 const DEFAULT_WELCOME="Welcome to {villa name} — we're so happy to have you. I'm {concierge name}, here to help with transfers, groceries, dinners, or anything else. Tap Pre check-in when you have a moment, and message me anytime.";
 let _sndSvc='', _sndOptVal='', _sndRate='', _sndCustomName=''; // "Send a service" form state — kept in module vars so it survives live-sync re-renders (_sndCustomName = typed name when the service isn't in the catalog)
 let _sndExtra={}; // per-service booking details (dates/time/guests/qty/flight) — also survives re-renders
+// Multi-send queue: stack several services with "+ Add another", then push them all in one go. Tied to
+// ONE booking via _sndQueueStayId so a queue can never be sent to the wrong guest after switching stays.
+let _sndQueue=[], _sndQueueStayId='';
 
 /* ---- per-stay "seen" tracking (unread dots), persisted in localStorage ---- */
 function getSeen(){ try{ return JSON.parse(localStorage.getItem('cph_console_seen')||'{}')||{}; }catch(e){ return {}; } }
@@ -2788,7 +2791,7 @@ function mealsSortedC(mp){ if(!mp) return []; const has=m=>!!(m&&(m.date||m.time
 // One guest-request card — shared by the active "Guest requests" list and the "Request log".
 function reqItemHtml(r){ const isTransfer=(r.refId==='transfer')||/transfer/i.test(r.title||'')||!!(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime||r.returnAirline||r.returnFlightNo||r.returnDest||r.returnTime); const _sc=r.status==='confirmed'?'is-confirmed':r.status==='done'?'is-done':r.status==='cancelled'?'is-cancelled':'is-pending'; return `<div class="reqitem ${_sc}"${r.status==='cancelled'?' style="opacity:.7"':''}>
         <div class="reqtop"><span class="reqtype ${r.type}">${r.type==='addon'?'Add-on':'Itinerary'}</span><b${(r.status==='cancelled'||r.status==='done')?' style="text-decoration:line-through"':''}>${esc(r.title||'')}</b><button class="reqx" onclick="toggleReqEdit('${r.id}')" style="color:#5B6E5F">✎ Edit</button>${(r.status==='done'||r.status==='cancelled')?`<button class="reqx" onclick="reopenReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">↩ Reopen &amp; edit</button>`:`<button class="reqx" onclick="markDoneReq('${r.id}')">Mark done</button><button class="reqx" onclick="deleteReq('${r.id}')" style="color:#9E5B43;border-color:#E3C4B6">Delete</button>`}</div>
-        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span></div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. US$ 150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
+        ${r.status==='done'?`<div style="margin-top:7px"><span class="reqok">✓ Done${r.doneAt?' · '+fmtReqDate(r.doneAt):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div>`:r.status==='confirmed'?`<div style="margin-top:7px"><span class="reqok">Confirmed${r.price?' · '+esc(r.price):''}</span>${(cur.invoices||[]).some(iv=>iv.requestId===r.id)?` <span style="font-size:11px;background:#EAF1EA;color:#3F6B4E;border-radius:20px;padding:2px 9px;font-weight:600">Invoiced</span>`:` <button class="reqx" onclick="openInvoiceForReq('${r.id}')" style="color:var(--accent);border-color:#BFD3C2">Create invoice</button>`}</div><div class="reqconfirm" style="margin-top:8px"><input id="px_${r.id}" value="${esc(reqSuggestedPrice(r))}" placeholder="Rate, e.g. US$ 150"><button class="b-out" onclick="confirmReq('${r.id}','px')">${r.price?'Update rate':'Add rate &amp; send'}</button></div>`:r.status==='cancelled'?`<div style="margin-top:7px"><span style="font-size:11px;background:#F3DADA;color:#9A2B2B;border-radius:20px;padding:2px 9px;font-weight:600">Cancelled by guest</span></div>`:''}
         <div class="reqmeta">${[r.cartType?esc(r.cartType):'',r.serviceLevel?esc(r.serviceLevel):'',r.date?esc(r.date)+(r.endDate?' → '+esc(r.endDate):''):'',r.time?esc(r.time):'',r.guests?esc(r.guests)+' guest'+(r.guests==1?'':'s'):''].filter(Boolean).join(' · ')||'No date/time given'}</div>
         ${(r.airline||r.flightNo||r.flightOrigin||r.arrivalTime)?`<div class="reqmeta">✈ ${[[esc(r.airline||''),esc(r.flightNo||'')].filter(Boolean).join(' '),r.flightOrigin?'from '+esc(r.flightOrigin):'',r.arrivalTime?'arr '+esc(r.arrivalTime):''].filter(Boolean).join(' · ')}</div>`:''}
         ${(r.returnAirline||r.returnFlightNo||r.returnDest||r.returnTime)?`<div class="reqmeta">↩ ${[[esc(r.returnAirline||''),esc(r.returnFlightNo||'')].filter(Boolean).join(' '),r.returnDest?'to '+esc(r.returnDest):'',r.returnTime?'dep '+esc(r.returnTime):''].filter(Boolean).join(' · ')}</div>`:''}
@@ -3872,7 +3875,16 @@ function sndFormInner(){ return `<select id="sndSvc" onchange="selSendSvc(this.v
           <input id="sndRate" value="${esc(_sndRate)}" oninput="setSndRate(this.value)" placeholder="Rate shown to guest (e.g. US$ 120 / day)" style="border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
           ${sndDetailFields()}
           <input id="sndNote" value="${esc(_sndExtra.note||'')}" oninput="sndSet('note',this.value)" placeholder="Note to the guest (optional)" style="grid-column:1/-1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:14px;background:#fff">
-          <button onclick="sendServiceUI()" style="grid-column:1/-1;justify-self:start;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">Send to guest</button>`; }
+          ${sndQueueHtml()}
+          <div style="grid-column:1/-1;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+            <button onclick="sendServiceUI()" style="background:var(--accent);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:500;cursor:pointer">${(function(){const n=sndQueue().length+(_sndSvc?1:0); return n>1?('Send '+n+' to guest'):'Send to guest';})()}</button>
+            <button onclick="sndAddAnother()" style="background:#fff;color:var(--accent);border:1px solid #BFD3C2;border-radius:10px;padding:10px 14px;font-size:13.5px;cursor:pointer">+ Add another service</button>
+            <span style="font-size:11.5px;color:var(--soft)">Queue several, then send them together.</span>
+          </div>`; }
+/* The "queued to send" list shown above the buttons. */
+function sndQueueHtml(){ const q=sndQueue(); if(!q.length) return '';
+  const row=(b,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-top:1px solid #D8E6D9"><span style="flex:1;min-width:0;font-size:13px;color:var(--ink)"><b>${esc(b.name||'Service')}</b>${b.option?' · '+esc(b.option):''}${b.rate?' · '+esc(b.rate):''}${b.date?' · '+esc(b.date):''}${b.guests?' · '+esc(String(b.guests))+' guests':''}</span><button onclick="sndRemoveQueued(${i})" title="Remove from queue" style="flex:0 0 auto;border:1px solid #E3C4B6;color:#9E5B43;background:#fff;border-radius:8px;padding:1px 9px;font-size:13px;cursor:pointer">✕</button></div>`;
+  return `<div style="grid-column:1/-1;background:#F4F8F3;border:1px solid #BFD3C2;border-radius:10px;padding:9px 11px"><div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#3F6B4E;font-weight:700">Queued to send (${q.length})</div>${q.map(row).join('')}</div>`; }
 /* Adaptive per-service booking-detail fields for the "Send a service" form — mirror the guest's own
    request form so a pushed service carries dates/flight/qty and can prefill an invoice. */
 function sndDetailFields(){
@@ -3898,17 +3910,44 @@ function sndDetailFields(){
 }
 let _sndBusy=false;
 let _confirmBusy=false, _yachtBusy=false, _msgBusy=false; // double-click guards: a second tap would re-fire the price / re-send the proposal / re-send the message
-window.sendServiceUI=async function(){ if(!cur||_sndBusy)return; _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500); const id=_sndSvc; if(!id){ alert('Choose a service.'); return; }
+/* Build the sent-service payload from whatever is in the "Send a service" form right now.
+   Returns null (after an alert) if it isn't complete. Shared by "+ Add another" and "Send to guest"
+   so a queued service and a directly-sent one are built identically. */
+function sndBuildBody(){
+  const id=_sndSvc; if(!id){ alert('Choose a service.'); return null; }
   // Explore-section booking (dinner reservation / tour / activity), custom, or an add-on from the catalog.
   const isExplore=id.indexOf('exp:')===0; const expItem=isExplore?((BOOT.explore||[]).find(x=>('exp:'+x.id)===id)||{}):null;
   const svc=isExplore?{}:((BOOT.addons||[]).find(a=>a.id===id)||{});
   // Custom service: the name is typed, not picked from the catalog.
   const isCustom=id==='__custom__'; const typedName=String(((document.getElementById('sndCustomName')||{}).value)||_sndCustomName||'').trim();
-  if(isCustom&&!typedName){ alert('Type the service name.'); _sndBusy=false; return; }
+  if(isCustom&&!typedName){ alert('Type the service name.'); return null; }
   const svcId=isCustom?'custom':(isExplore?('explore:'+(expItem.id||'')):id); const svcName=isCustom?typedName:(isExplore?(expItem.name||''):(svc.name||''));
   const custom=((document.getElementById('sndOptCustom')||{}).value||'').trim(); let option=custom||(_sndOptVal.split('||')[0]||''); if(isExplore&&!option) option=((expItem.cat==='Dining'||expItem.cat==='Cafe')?'Restaurant reservation':(expItem.meta||'')); const rate=String(_sndRate||'').trim(); const E=_sndExtra||{}; const note=String(E.note||'').trim();
-  const body={serviceId:svcId,name:svcName,option,rate,note,date:E.date||'',endDate:E.endDate||'',time:E.time||'',guests:E.guests||'',qty:E.qty||'',trip:E.trip||'',airline:E.airline||'',flightNo:E.flightNo||'',flightOrigin:E.flightOrigin||'',arrivalTime:E.arrivalTime||'',returnAirline:E.returnAirline||'',returnFlightNo:E.returnFlightNo||'',returnDest:E.returnDest||'',returnTime:E.returnTime||''};
-  const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify(body)}); if(!r.ok){ alert(r.body.error||'Could not send.'); return; } cur.sentServices=cur.sentServices||[]; cur.sentServices.push(r.body.service); _sndSvc=''; _sndOptVal=''; _sndRate=''; _sndCustomName=''; _sndExtra={}; renderEditor(); renderPreview(); toast&&toast('Sent to the guest — they’ll confirm or decline in their app.'); };
+  return {serviceId:svcId,name:svcName,option,rate,note,date:E.date||'',endDate:E.endDate||'',time:E.time||'',guests:E.guests||'',qty:E.qty||'',trip:E.trip||'',airline:E.airline||'',flightNo:E.flightNo||'',flightOrigin:E.flightOrigin||'',arrivalTime:E.arrivalTime||'',returnAirline:E.returnAirline||'',returnFlightNo:E.returnFlightNo||'',returnDest:E.returnDest||'',returnTime:E.returnTime||''};
+}
+function sndClearForm(){ _sndSvc=''; _sndOptVal=''; _sndRate=''; _sndCustomName=''; _sndExtra={}; }
+/* The queue belongs to ONE booking — switching stays discards it so nothing can be sent to the wrong guest. */
+function sndQueue(){ if(_sndQueueStayId && cur && _sndQueueStayId!==cur.id){ _sndQueue=[]; _sndQueueStayId=''; } return _sndQueue; }
+window.sndAddAnother=function(){ if(!cur)return; const b=sndBuildBody(); if(!b)return; sndQueue().push(b); _sndQueueStayId=cur.id; sndClearForm(); renderEditor(); toast&&toast('Added to the queue — pick the next service.'); };
+window.sndRemoveQueued=function(i){ sndQueue().splice(i,1); if(!_sndQueue.length)_sndQueueStayId=''; renderEditor(); };
+/* Sends the queue (if any) PLUS whatever is still filled in the form, one call each — so the guest gets
+   them as separate items and confirms or declines each one in their app. */
+window.sendServiceUI=async function(){ if(!cur||_sndBusy)return;
+  const list=sndQueue().slice();
+  if(_sndSvc){ const b=sndBuildBody(); if(!b)return; list.push(b); }
+  if(!list.length){ alert('Choose a service.'); return; }
+  _sndBusy=true; setTimeout(()=>{_sndBusy=false;},1500);
+  cur.sentServices=cur.sentServices||[]; let ok=0; const failed=[];
+  for(const body of list){
+    const r=await api('/api/staff/stays/'+cur.id+'/sent-services',{method:'POST',body:JSON.stringify(body)});
+    if(r.ok&&r.body.service){ cur.sentServices.push(r.body.service); ok++; } else { failed.push(body.name||'service'); }
+  }
+  // Only clear what actually went out — anything that failed stays queued so it can be retried.
+  _sndQueue=failed.length?list.filter(b=>failed.indexOf(b.name||'service')>=0):[]; if(!_sndQueue.length)_sndQueueStayId=''; sndClearForm();
+  renderEditor(); renderPreview();
+  if(failed.length) alert(failed.length+' of '+list.length+' could not be sent ('+failed.join(', ')+') — still queued, please retry.');
+  if(ok) toast&&toast(ok===1?'Sent to the guest — they’ll confirm or decline in their app.':ok+' services sent — the guest confirms each one in their app.');
+};
 window.modifySentUI=async function(sid){ if(!cur)return; const ss=(cur.sentServices||[]).find(x=>x.id===sid); if(!ss)return; const option=prompt('Option / how it’s provided:',ss.option||''); if(option===null)return; const rate=prompt('Rate shown to guest:',ss.rate||''); if(rate===null)return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'PUT',body:JSON.stringify({option,rate})}); if(!r.ok){ alert(r.body.error||'Could not update.'); return; } const i=cur.sentServices.findIndex(x=>x.id===sid); if(i>=0)cur.sentServices[i]=r.body.service; renderEditor(); renderPreview(); toast&&toast('Updated — guest will re-confirm.'); };
 window.cancelSentUI=async function(sid,name){ if(!cur)return; if(!confirm('Cancel “'+(name||'this service')+'”? It will be removed from the guest’s plan.')) return; const r=await api('/api/staff/stays/'+cur.id+'/sent-services/'+sid,{method:'DELETE'}); if(!r.ok){ alert(r.body.error||'Could not cancel.'); return; } cur.sentServices=(cur.sentServices||[]).filter(x=>x.id!==sid); renderEditor(); renderPreview(); };
 
@@ -4125,9 +4164,11 @@ window.openInvoiceForSent=function(sid){ if(!cur)return; const ss=(cur.sentServi
 window.openInvoiceForYacht=function(name,rate){ if(!cur)return; const fm=firstMoney(rate); const amt=(fm.n&&!fm.multi)?String(fm.n):''; _invDraft={id:'',kind:'yacht',yachtId:(cur.yachtProposal&&cur.yachtProposal.id)||'',title:'Yacht charter',items:[{label:name||'Yacht charter',amount:amt,rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 /* Invoice a confirmed guest request — carries requestId so the invoice is flagged if the guest later cancels the request. */
 window.openInvoiceForReq=function(rid){ if(!cur)return; const r=(cur.requests||[]).find(x=>x.id===rid); if(!r)return;
-  const meta=[r.cartType,r.serviceLevel,r.date?String(r.date)+(r.endDate?' → '+r.endDate:''):'',r.time,r.guests?r.guests+' guests':''].filter(Boolean).join(' · ');
+  // Dates and pax go into the structured line fields (not the label text) so they print on the invoice
+  // PDF and survive save/reopen — saveInvoice appends "· Sep 8 · 5 pax" to the label from these.
+  const meta=[r.cartType,r.serviceLevel,r.time].filter(Boolean).join(' · ');
   const fm=firstMoney(r.price); const amt=(fm.n&&!fm.multi)?String(fm.n):'';
-  _invDraft={id:'',requestId:rid,title:r.title||'Service',items:[{label:[r.title,meta].filter(Boolean).join(' — '),amount:amt,rate:'',days:''}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
+  _invDraft={id:'',requestId:rid,title:r.title||'Service',items:[{label:[r.title,meta].filter(Boolean).join(' — '),amount:amt,rate:'',days:'',dateFrom:r.date||'',dateTo:r.endDate||'',pax:r.guests?String(r.guests):'',bookedVia:(typeof defVia==='function'?defVia():'')}],legalPct:18,servicePct:10,dueBy:cur.balanceDueBy||'',note:invNoteDefault()}; renderInvoiceModal(); };
 /* Backdrop click: don't silently throw away a typed invoice draft. */
 function invConfirmClose(){ const d=_invDraft; const hasContent=d&&(d.id||(d.items||[]).some(it=>String(it.label||'').trim()||String(it.amount||'').trim()||String(it.amountRD||'').trim())); if(hasContent&&!confirm(d&&d.id?'Discard your changes to this invoice?':'Discard this invoice?'))return; closeInvoice(); }
 function renderInvoiceModal(){ let ov=document.getElementById('invOv'); if(!ov){ ov=document.createElement('div'); ov.id='invOv'; ov.style.cssText='position:fixed;inset:0;background:rgba(20,33,28,.45);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px'; ov.onclick=e=>{ if(e.target===ov)invConfirmClose(); }; document.body.appendChild(ov); } const d=_invDraft;
