@@ -1562,6 +1562,7 @@ function payables(agentKey) {
       // 3-cart invoice showing as "2× cart"). A blank supplier inherits the supplier named on the
       // invoice's other cart lines; if no line names one, the row reads "(supplier not set)".
       let cAmt = 0, cCost = 0, carts = 0, cartNights = 0, nights = 0, cSup = '', cVia = '';
+      const seatQty = {};   // seats → how many of that size, so the ledger reads "2× 6-seater" not just "2× cart"
       const _isCartLine = it => RE_CART_ANY.test(String(it.label || '')) || RE_CART_ANY.test(String(inv.title || ''));
       // supplier named on any cart line of this invoice (first one wins) — used for the blank ones
       let cSupNamed = '';
@@ -1577,6 +1578,7 @@ function payables(agentKey) {
         const days = parseFloat(String(it.days || '').replace(/[^0-9.]/g, '')) || nightsBetween(s.checkin, s.checkout) || 0;
         const amt = Number(it.amount) || 0; if (!days || !amt) return;
         cAmt += amt; carts += qty; cartNights += qty * days; nights = Math.max(nights, days);
+        if (p && p.seats) seatQty[p.seats] = (seatQty[p.seats] || 0) + qty;   // 4-seater vs 6-seater breakdown
         cCost += amt - (PAY_CART_MARGIN_PER_NIGHT * qty * days);
         if (!cSup) cSup = lineSup; if (!cVia && it.bookedVia) cVia = String(it.bookedVia).trim();
       });
@@ -1585,7 +1587,15 @@ function payables(agentKey) {
         category: 'cart', supplier: cSup || '(supplier not set)', via: cVia, guestPaid,
         // booking agent: the channel that booked THIS cart, else the stay's own source
         source: cVia || (s.source || 'Unknown').trim(),
-        detail: carts + '× cart · ' + nights + 'n',
+        // Show the cart SIZE, e.g. "2× 6-seater · 7n" or a mix "1× 4-seater + 2× 6-seater · 7n".
+        // Any cart whose size we couldn't read falls back to the generic "N× cart" so nothing is lost.
+        detail: (function () {
+          const sizes = Object.keys(seatQty).sort((a, b) => Number(a) - Number(b));
+          const tagged = sizes.reduce((a, k) => a + seatQty[k], 0);
+          const parts = sizes.map(k => seatQty[k] + '× ' + k + '-seater');
+          if (carts > tagged) parts.push((carts - tagged) + '× cart');
+          return (parts.length ? parts.join(' + ') : carts + '× cart') + ' · ' + nights + 'n';
+        })(),
         charged: round(cAmt), cost: round(cCost),
       })));
       // --- airport transfers ---
